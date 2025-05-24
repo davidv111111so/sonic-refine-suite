@@ -1,6 +1,6 @@
 
 import { useState, useCallback, useRef } from 'react';
-import { Upload, FileAudio, X } from 'lucide-react';
+import { Upload, FileAudio, X, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -14,6 +14,72 @@ export const UploadZone = ({ onFilesUploaded }: UploadZoneProps) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const extractAlbumArtwork = async (file: File): Promise<string | undefined> => {
+    // Only attempt extraction for audio files
+    if (!file.type.startsWith('audio/')) return undefined;
+
+    try {
+      // For MP3 files with embedded artwork
+      const arrayBuffer = await file.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      
+      // Simple ID3 tag detection (very basic implementation)
+      // Look for APIC frame which contains the artwork
+      const id3v2Header = String.fromCharCode(...Array.from(uint8Array.slice(0, 3)));
+      
+      if (id3v2Header === 'ID3') {
+        // This is a very simplified approach to find image data
+        // A robust implementation would parse the ID3 structure properly
+        
+        // Look for JPEG header bytes (FF D8 FF)
+        for (let i = 0; i < uint8Array.length - 3; i++) {
+          if (uint8Array[i] === 0xFF && uint8Array[i + 1] === 0xD8 && uint8Array[i + 2] === 0xFF) {
+            // Found potential JPEG header
+            // Find the end of the JPEG (FF D9)
+            for (let j = i; j < uint8Array.length - 1; j++) {
+              if (uint8Array[j] === 0xFF && uint8Array[j + 1] === 0xD9) {
+                // Extract the JPEG data
+                const imageBlob = new Blob([uint8Array.slice(i, j + 2)], { type: 'image/jpeg' });
+                return URL.createObjectURL(imageBlob);
+              }
+            }
+          }
+        }
+        
+        // Also look for PNG header bytes (89 50 4E 47)
+        for (let i = 0; i < uint8Array.length - 4; i++) {
+          if (
+            uint8Array[i] === 0x89 && 
+            uint8Array[i + 1] === 0x50 && 
+            uint8Array[i + 2] === 0x4E && 
+            uint8Array[i + 3] === 0x47
+          ) {
+            // Found potential PNG header
+            // Find the IEND chunk which marks the end of the PNG
+            for (let j = i + 4; j < uint8Array.length - 8; j++) {
+              if (
+                uint8Array[j] === 0x49 && 
+                uint8Array[j + 1] === 0x45 && 
+                uint8Array[j + 2] === 0x4E && 
+                uint8Array[j + 3] === 0x44
+              ) {
+                // Extract PNG data (include the ending bytes)
+                const imageBlob = new Blob([uint8Array.slice(i, j + 8)], { type: 'image/png' });
+                return URL.createObjectURL(imageBlob);
+              }
+            }
+          }
+        }
+      }
+      
+      // If we didn't find embedded artwork, return undefined
+      return undefined;
+    } catch (error) {
+      console.error('Error extracting album artwork:', error);
+      return undefined;
+    }
+  };
 
   const processFiles = useCallback(async (files: FileList) => {
     const audioFiles: AudioFile[] = [];
@@ -48,6 +114,22 @@ export const UploadZone = ({ onFilesUploaded }: UploadZoneProps) => {
         console.error('Error extracting audio metadata:', error);
       }
 
+      // Extract album artwork
+      const artworkUrl = await extractAlbumArtwork(file);
+
+      // Extract song and artist information from filename
+      let artist = "Unknown Artist";
+      let title = file.name;
+      
+      const nameMatch = file.name.match(/^(.*?)\s-\s(.*)\.[\w\d]+$/);
+      if (nameMatch) {
+        artist = nameMatch[1].trim();
+        title = nameMatch[2].trim();
+      } else {
+        // Remove file extension for title
+        title = file.name.replace(/\.[^.]+$/, '');
+      }
+
       const audioFile: AudioFile = {
         id: `${Date.now()}-${i}`,
         name: file.name,
@@ -58,6 +140,9 @@ export const UploadZone = ({ onFilesUploaded }: UploadZoneProps) => {
         duration,
         sampleRate,
         bitrate,
+        artist,
+        title,
+        artworkUrl,
       };
 
       audioFiles.push(audioFile);
@@ -198,6 +283,10 @@ export const UploadZone = ({ onFilesUploaded }: UploadZoneProps) => {
             <li className="flex items-start gap-2">
               <span className="text-blue-400 mt-1">•</span>
               Files are processed locally in your browser for privacy
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-blue-400 mt-1">•</span>
+              Album artwork will be extracted when available
             </li>
           </ul>
         </CardContent>

@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { Upload, Music, Settings, Download, Play, Pause, Volume2, FileAudio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,7 @@ export interface AudioFile {
   originalUrl?: string;
   artist?: string;
   title?: string;
+  artworkUrl?: string; // Add this new property
 }
 
 const Index = () => {

@@ -1,6 +1,6 @@
 
 import { useState, useRef } from 'react';
-import { Play, Pause, Download, Trash2, FileAudio, Volume2, Clock, Music } from 'lucide-react';
+import { Play, Pause, Download, Trash2, FileAudio, Volume2, Clock, Music, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -113,7 +113,19 @@ export const AudioFileCard = ({ file, onRemove }: AudioFileCardProps) => {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            <FileAudio className="h-5 w-5 text-blue-400 flex-shrink-0" />
+            {file.artworkUrl ? (
+              <div className="w-10 h-10 rounded overflow-hidden flex-shrink-0">
+                <img 
+                  src={file.artworkUrl} 
+                  alt="Album artwork" 
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="w-10 h-10 bg-blue-900/30 rounded flex items-center justify-center flex-shrink-0">
+                <FileAudio className="h-5 w-5 text-blue-400" />
+              </div>
+            )}
             <span className="font-medium text-white truncate" title={file.name}>
               {file.name}
             </span>
@@ -131,6 +143,19 @@ export const AudioFileCard = ({ file, onRemove }: AudioFileCardProps) => {
       </CardHeader>
 
       <CardContent className="space-y-4">
+        {/* Album Artwork - Larger Display */}
+        {file.artworkUrl && (
+          <div className="flex justify-center mb-4">
+            <div className="w-28 h-28 rounded-md overflow-hidden border border-slate-700 shadow-lg">
+              <img 
+                src={file.artworkUrl} 
+                alt="Album artwork" 
+                className="w-full h-full object-cover"
+              />
+            </div>
+          </div>
+        )}
+
         {/* Mini Player */}
         {(file.originalUrl || file.enhancedUrl) && (
           <div className="space-y-2">
