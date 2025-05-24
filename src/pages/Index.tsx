@@ -1,15 +1,16 @@
 
-import { useState, useCallback } from 'react';
-import { Upload, Music, Settings, Download, Play, Pause, Volume2, FileAudio } from 'lucide-react';
+import { useState, useCallback, useEffect } from 'react';
+import { Upload, Music, Settings, Download, FileAudio, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
 import { UploadZone } from '@/components/UploadZone';
 import { AudioFileCard } from '@/components/AudioFileCard';
 import { EnhancementSettings } from '@/components/EnhancementSettings';
 import { ProcessingQueue } from '@/components/ProcessingQueue';
+import { BatchPresets } from '@/components/BatchPresets';
+import { ExportHistory } from '@/components/ExportHistory';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { useToast } from '@/hooks/use-toast';
 
 export interface AudioFile {
@@ -27,7 +28,7 @@ export interface AudioFile {
   originalUrl?: string;
   artist?: string;
   title?: string;
-  artworkUrl?: string; // Add this new property
+  artworkUrl?: string;
 }
 
 const Index = () => {
@@ -35,6 +36,17 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState('upload');
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
+  const [smartFolderOrganization, setSmartFolderOrganization] = useState('artist'); // 'artist', 'genre', 'decade'
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+
+  useEffect(() => {
+    // Request notification permission when the app loads
+    if ('Notification' in window) {
+      Notification.requestPermission().then(permission => {
+        setNotificationsEnabled(permission === 'granted');
+      });
+    }
+  }, []);
 
   const handleFilesUploaded = useCallback((files: AudioFile[]) => {
     // Process the files to extract metadata when uploaded
@@ -87,9 +99,38 @@ const Index = () => {
     });
   }, []);
 
+  const handleUpdateFile = useCallback((fileId: string, updates: Partial<AudioFile>) => {
+    setAudioFiles(prev => prev.map(file => 
+      file.id === fileId ? { ...file, ...updates } : file
+    ));
+    
+    toast({
+      title: "File updated",
+      description: "The file information has been updated",
+    });
+  }, [toast]);
+
   const handleEnhanceFiles = useCallback(async (settings: any) => {
     setIsProcessing(true);
     const filesToProcess = audioFiles.filter(file => file.status === 'uploaded');
+    
+    // Determine folder organization strategy
+    const getFolder = (file: AudioFile) => {
+      if (settings.smartFolder) {
+        return `So/${settings.smartFolder}`;
+      }
+      
+      switch (smartFolderOrganization) {
+        case 'artist':
+          return `So/${file.artist || 'Unknown Artist'}`;
+        case 'genre':
+          return 'So/Genre'; // In a real app, would use genre metadata
+        case 'decade':
+          return 'So/2020s'; // In a real app, would use year metadata
+        default:
+          return 'So';
+      }
+    };
     
     // Simulate processing
     for (const file of filesToProcess) {
@@ -98,8 +139,8 @@ const Index = () => {
       ));
 
       // Simulate progress
-      for (let i = 0; i <= 100; i += 10) {
-        await new Promise(resolve => setTimeout(resolve, 200));
+      for (let i = 0; i <= 100; i += 5) {
+        await new Promise(resolve => setTimeout(resolve, 100));
         setAudioFiles(prev => prev.map(f => 
           f.id === file.id ? { ...f, progress: i } : f
         ));
@@ -107,6 +148,7 @@ const Index = () => {
 
       // Create enhanced file URL
       const enhancedUrl = file.originalUrl; // In a real app, this would be a processed file
+      const folder = getFolder(file);
       
       setAudioFiles(prev => prev.map(f => 
         f.id === file.id ? { 
@@ -119,11 +161,30 @@ const Index = () => {
     }
 
     setIsProcessing(false);
+    
+    // Show toast notification
     toast({
       title: "Enhancement complete!",
-      description: `${filesToProcess.length} files have been enhanced successfully and saved to the "So" folder`,
+      description: `${filesToProcess.length} files have been enhanced and organized into folders`,
     });
-  }, [audioFiles, toast]);
+    
+    // Show browser notification if enabled
+    if (notificationsEnabled && filesToProcess.length > 0) {
+      new Notification('Audio Enhancement Complete', {
+        body: `${filesToProcess.length} files have been enhanced and saved`,
+        icon: '/favicon.ico'
+      });
+    }
+  }, [audioFiles, smartFolderOrganization, notificationsEnabled, toast]);
+
+  const handleSelectPreset = useCallback((preset: any) => {
+    setActiveTab('enhance');
+    // In a real app, this would populate the enhancement form with the preset values
+    toast({
+      title: "Preset selected",
+      description: `${preset.smartFolder} preset has been applied to the settings`,
+    });
+  }, [toast]);
 
   const stats = {
     total: audioFiles.length,
@@ -139,11 +200,12 @@ const Index = () => {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
             <div className="p-3 bg-blue-600 rounded-lg">
-              <Volume2 className="h-8 w-8" />
+              <FileAudio className="h-8 w-8" />
             </div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
               Audio Enhancer Pro
             </h1>
+            <ThemeToggle />
           </div>
           <p className="text-slate-300 text-lg">
             Transform your music collection with professional-grade audio enhancement
@@ -203,7 +265,7 @@ const Index = () => {
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-slate-800 border-slate-700">
+          <TabsList className="grid w-full grid-cols-5 bg-slate-800 border-slate-700">
             <TabsTrigger value="upload" className="data-[state=active]:bg-blue-600">
               <Upload className="h-4 w-4 mr-2" />
               Upload
@@ -220,6 +282,10 @@ const Index = () => {
               <Download className="h-4 w-4 mr-2" />
               Queue
             </TabsTrigger>
+            <TabsTrigger value="history" className="data-[state=active]:bg-blue-600">
+              <History className="h-4 w-4 mr-2" />
+              History
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="upload" className="mt-6">
@@ -233,6 +299,7 @@ const Index = () => {
                   key={file.id}
                   file={file}
                   onRemove={handleRemoveFile}
+                  onUpdate={handleUpdateFile}
                 />
               ))}
               {audioFiles.length === 0 && (
@@ -245,7 +312,9 @@ const Index = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="enhance" className="mt-6">
+          <TabsContent value="enhance" className="mt-6 space-y-6">
+            <BatchPresets onSelectPreset={handleSelectPreset} />
+            
             <EnhancementSettings
               onEnhance={handleEnhanceFiles}
               isProcessing={isProcessing}
@@ -255,6 +324,18 @@ const Index = () => {
 
           <TabsContent value="queue" className="mt-6">
             <ProcessingQueue files={audioFiles} />
+          </TabsContent>
+          
+          <TabsContent value="history" className="mt-6">
+            <ExportHistory 
+              history={[]} 
+              onClearHistory={() => {
+                toast({
+                  title: "History cleared",
+                  description: "Your enhancement history has been cleared"
+                });
+              }} 
+            />
           </TabsContent>
         </Tabs>
       </div>
