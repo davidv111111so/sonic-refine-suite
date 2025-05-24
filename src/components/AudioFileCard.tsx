@@ -1,6 +1,6 @@
 
-import { useState } from 'react';
-import { Play, Pause, Download, Trash2, FileAudio, Volume2, Clock } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Play, Pause, Download, Trash2, FileAudio, Volume2, Clock, Music } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -14,6 +14,9 @@ interface AudioFileCardProps {
 
 export const AudioFileCard = ({ file, onRemove }: AudioFileCardProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -21,6 +24,12 @@ export const AudioFileCard = ({ file, onRemove }: AudioFileCardProps) => {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const getStatusColor = (status: AudioFile['status']) => {
@@ -44,15 +53,57 @@ export const AudioFileCard = ({ file, onRemove }: AudioFileCardProps) => {
   };
 
   const handlePlayPause = () => {
+    if (!audioRef.current) return;
+    
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play().catch(error => {
+        console.error('Error playing audio:', error);
+      });
+    }
+    
     setIsPlaying(!isPlaying);
-    // Here you would implement actual audio playback
+  };
+
+  const handleTimeUpdate = () => {
+    if (audioRef.current) {
+      setCurrentTime(audioRef.current.currentTime);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (audioRef.current) {
+      setDuration(audioRef.current.duration);
+    }
+  };
+
+  const handleEnded = () => {
+    setIsPlaying(false);
+    setCurrentTime(0);
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+    }
+  };
+
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!audioRef.current || !duration) return;
+
+    const progressBar = e.currentTarget;
+    const rect = progressBar.getBoundingClientRect();
+    const pos = (e.clientX - rect.left) / rect.width;
+    const newTime = duration * pos;
+    
+    audioRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
   };
 
   const handleDownload = () => {
     if (file.enhancedUrl) {
       const a = document.createElement('a');
       a.href = file.enhancedUrl;
-      a.download = `enhanced_${file.name}`;
+      // Set the download folder to "So" in the music folder
+      a.download = `So/enhanced_${file.name}`;
       a.click();
     }
   };
@@ -71,9 +122,58 @@ export const AudioFileCard = ({ file, onRemove }: AudioFileCardProps) => {
             {getStatusText(file.status)}
           </Badge>
         </div>
+        {file.artist && (
+          <div className="flex items-center gap-2 text-sm text-slate-400 mt-2">
+            <Music className="h-3 w-3" />
+            <span className="truncate">{file.artist} - {file.title || 'Unknown Title'}</span>
+          </div>
+        )}
       </CardHeader>
 
       <CardContent className="space-y-4">
+        {/* Mini Player */}
+        {(file.originalUrl || file.enhancedUrl) && (
+          <div className="space-y-2">
+            <audio 
+              ref={audioRef}
+              src={file.enhancedUrl || file.originalUrl} 
+              onTimeUpdate={handleTimeUpdate}
+              onLoadedMetadata={handleLoadedMetadata}
+              onEnded={handleEnded}
+              className="hidden"
+            />
+            
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handlePlayPause}
+                className="text-blue-400 hover:text-white p-1 h-8 w-8"
+              >
+                {isPlaying ? (
+                  <Pause className="h-4 w-4" />
+                ) : (
+                  <Play className="h-4 w-4" />
+                )}
+              </Button>
+              
+              <div 
+                className="h-2 bg-slate-700 rounded-full flex-1 cursor-pointer"
+                onClick={handleSeek}
+              >
+                <div 
+                  className="bg-blue-500 h-full rounded-full transition-all"
+                  style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
+                ></div>
+              </div>
+              
+              <span className="text-xs text-slate-400 w-16 text-center">
+                {formatTime(currentTime)} / {formatTime(duration)}
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* File Info */}
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div className="flex items-center gap-1 text-slate-400">

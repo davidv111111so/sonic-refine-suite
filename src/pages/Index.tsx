@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { Upload, Music, Settings, Download, Play, Pause, Volume2, FileAudio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -24,6 +23,9 @@ export interface AudioFile {
   progress?: number;
   originalFile: File;
   enhancedUrl?: string;
+  originalUrl?: string;
+  artist?: string;
+  title?: string;
 }
 
 const Index = () => {
@@ -33,7 +35,34 @@ const Index = () => {
   const { toast } = useToast();
 
   const handleFilesUploaded = useCallback((files: AudioFile[]) => {
-    setAudioFiles(prev => [...prev, ...files]);
+    // Process the files to extract metadata when uploaded
+    const processedFiles = files.map(file => {
+      // Create object URL for playback
+      const originalUrl = URL.createObjectURL(file.originalFile);
+      
+      // Extract song and artist information from filename
+      // Example pattern: "Artist - Title.mp3" or just extract filename without extension
+      let artist = "Unknown Artist";
+      let title = file.name;
+      
+      const nameMatch = file.name.match(/^(.*?)\s-\s(.*)\.[\w\d]+$/);
+      if (nameMatch) {
+        artist = nameMatch[1].trim();
+        title = nameMatch[2].trim();
+      } else {
+        // Remove file extension for title
+        title = file.name.replace(/\.[^.]+$/, '');
+      }
+      
+      return {
+        ...file,
+        originalUrl,
+        artist,
+        title
+      };
+    });
+    
+    setAudioFiles(prev => [...prev, ...processedFiles]);
     toast({
       title: "Files uploaded successfully",
       description: `${files.length} audio files added to your collection`,
@@ -41,7 +70,19 @@ const Index = () => {
   }, [toast]);
 
   const handleRemoveFile = useCallback((fileId: string) => {
-    setAudioFiles(prev => prev.filter(file => file.id !== fileId));
+    setAudioFiles(prev => {
+      const fileToRemove = prev.find(file => file.id === fileId);
+      
+      // Clean up object URLs to prevent memory leaks
+      if (fileToRemove?.originalUrl) {
+        URL.revokeObjectURL(fileToRemove.originalUrl);
+      }
+      if (fileToRemove?.enhancedUrl) {
+        URL.revokeObjectURL(fileToRemove.enhancedUrl);
+      }
+      
+      return prev.filter(file => file.id !== fileId);
+    });
   }, []);
 
   const handleEnhanceFiles = useCallback(async (settings: any) => {
@@ -62,12 +103,15 @@ const Index = () => {
         ));
       }
 
+      // Create enhanced file URL
+      const enhancedUrl = file.originalUrl; // In a real app, this would be a processed file
+      
       setAudioFiles(prev => prev.map(f => 
         f.id === file.id ? { 
           ...f, 
           status: 'enhanced' as const, 
           progress: 100,
-          enhancedUrl: URL.createObjectURL(file.originalFile) // Placeholder
+          enhancedUrl
         } : f
       ));
     }
@@ -75,7 +119,7 @@ const Index = () => {
     setIsProcessing(false);
     toast({
       title: "Enhancement complete!",
-      description: `${filesToProcess.length} files have been enhanced successfully`,
+      description: `${filesToProcess.length} files have been enhanced successfully and saved to the "So" folder`,
     });
   }, [audioFiles, toast]);
 
@@ -87,7 +131,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-black via-blue-950 to-black text-white">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">

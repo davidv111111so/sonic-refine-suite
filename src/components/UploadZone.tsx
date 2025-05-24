@@ -26,6 +26,28 @@ export const UploadZone = ({ onFilesUploaded }: UploadZoneProps) => {
         continue;
       }
 
+      // Create AudioContext to extract audio metadata
+      let duration = undefined;
+      let sampleRate = undefined;
+      let bitrate = undefined;
+      
+      // Try to extract metadata if browser supports it
+      try {
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const arrayBuffer = await file.arrayBuffer();
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        
+        duration = audioBuffer.duration;
+        sampleRate = audioBuffer.sampleRate;
+        // Estimate bitrate (very roughly)
+        bitrate = Math.round((file.size * 8) / (duration * 1000));
+        
+        // Clean up
+        audioContext.close();
+      } catch (error) {
+        console.error('Error extracting audio metadata:', error);
+      }
+
       const audioFile: AudioFile = {
         id: `${Date.now()}-${i}`,
         name: file.name,
@@ -33,6 +55,9 @@ export const UploadZone = ({ onFilesUploaded }: UploadZoneProps) => {
         type: file.type,
         status: 'uploaded',
         originalFile: file,
+        duration,
+        sampleRate,
+        bitrate,
       };
 
       audioFiles.push(audioFile);
