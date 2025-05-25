@@ -3,28 +3,36 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 
 const faqs = [
   {
-    question: "What is your return policy?",
-    answer: "We offer a 30-day money-back guarantee on all products. If you're not satisfied, return the item in its original condition for a full refund."
+    question: "Are these products authentic and brand new?",
+    answer: "Yes, all our products are 100% authentic and brand new. We work directly with manufacturers and authorized distributors to ensure authenticity. Each product comes with original packaging and manufacturer warranty where applicable."
   },
   {
-    question: "How long does shipping take?",
-    answer: "Standard shipping takes 3-5 business days. Free shipping is available on orders over $50. Express shipping options are also available."
+    question: "How long does international shipping take?",
+    answer: "Standard international shipping takes 7-15 business days depending on your location. We offer express shipping (3-7 days) for faster delivery. Free shipping is available on orders over $50."
   },
   {
-    question: "Do you ship internationally?",
-    answer: "Yes, we ship to over 25 countries worldwide. International shipping costs and delivery times vary by location."
+    question: "What's your return and warranty policy?",
+    answer: "We offer a 30-day money-back guarantee on all products. Items must be returned in original condition with packaging. Most products also include manufacturer warranty ranging from 6 months to 2 years."
   },
   {
-    question: "Are your products authentic?",
-    answer: "Absolutely! All our products are 100% authentic and come directly from authorized manufacturers and distributors."
+    question: "Why are your prices so low compared to retail stores?",
+    answer: "We work directly with manufacturers and buy in bulk volumes, eliminating middlemen markup. This allows us to offer wholesale prices to individual customers while maintaining the same quality standards."
   },
   {
-    question: "How can I track my order?",
-    answer: "Once your order ships, you'll receive a tracking number via email. You can use this to track your package on our website or the carrier's site."
+    question: "Do you offer technical support for the products?",
+    answer: "Yes, our technical support team is available 24/7 to help with product setup, troubleshooting, and any technical questions. We also provide detailed user guides and video tutorials."
   },
   {
-    question: "Do you offer customer support?",
-    answer: "Yes, we provide 24/7 customer support via email, chat, and phone. Our team is always ready to help with any questions or concerns."
+    question: "Can I track my order and get updates?",
+    answer: "Absolutely! Once your order ships, you'll receive a tracking number via email and SMS. You can track your package in real-time on our website or the carrier's tracking portal."
+  },
+  {
+    question: "Do you offer bulk discounts for larger orders?",
+    answer: "Yes, we offer additional discounts for bulk orders. Contact our sales team for custom pricing on orders over $500. We also have a wholesale program for retailers and businesses."
+  },
+  {
+    question: "What payment methods do you accept?",
+    answer: "We accept all major credit cards (Visa, MasterCard, American Express), PayPal, Apple Pay, Google Pay, and for larger orders, bank transfers. All transactions are secured with SSL encryption."
   }
 ];
 
@@ -35,7 +43,7 @@ export const FAQ = () => {
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-gray-900 mb-4">Frequently Asked Questions</h2>
           <p className="text-xl text-gray-600">
-            Find answers to common questions about our products and services
+            Everything you need to know about shopping with Solo Tech
           </p>
         </div>
         

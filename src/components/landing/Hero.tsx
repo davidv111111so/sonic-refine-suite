@@ -1,6 +1,6 @@
 
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Star } from 'lucide-react';
+import { ShoppingCart, Star, Smartphone, Headphones, Watch } from 'lucide-react';
 
 export const Hero = () => {
   return (
@@ -15,36 +15,36 @@ export const Hero = () => {
                     <Star key={i} className="h-5 w-5 fill-current" />
                   ))}
                 </div>
-                <span className="text-sm font-medium">Trusted by 10,000+ customers</span>
+                <span className="text-sm font-medium">Trusted by 25,000+ tech enthusiasts</span>
               </div>
               <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
-                Premium Products
-                <span className="text-blue-600"> Delivered</span>
+                Premium Tech
+                <span className="text-blue-600"> At Unbeatable Prices</span>
               </h1>
               <p className="text-xl text-gray-600 leading-relaxed">
-                Discover our curated collection of high-quality products. Fast shipping, 
-                premium quality, and unbeatable prices guaranteed.
+                Discover cutting-edge technology products at wholesale prices. 
+                Latest gadgets, accessories, and electronics delivered fast worldwide.
               </p>
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4">
               <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg">
                 <ShoppingCart className="mr-2 h-5 w-5" />
-                Shop Now
+                Shop Tech Now
               </Button>
               <Button variant="outline" size="lg" className="px-8 py-4 text-lg border-2">
-                View Collection
+                View All Categories
               </Button>
             </div>
             
             <div className="flex items-center gap-8 pt-4">
               <div className="text-center">
-                <div className="text-2xl font-bold text-gray-900">10K+</div>
+                <div className="text-2xl font-bold text-gray-900">25K+</div>
                 <div className="text-sm text-gray-600">Happy Customers</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-gray-900">24/7</div>
-                <div className="text-sm text-gray-600">Support</div>
+                <div className="text-2xl font-bold text-gray-900">48H</div>
+                <div className="text-sm text-gray-600">Fast Shipping</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-gray-900">99%</div>
@@ -56,8 +56,8 @@ export const Hero = () => {
           <div className="relative">
             <div className="bg-gradient-to-br from-blue-100 to-purple-100 rounded-2xl p-8">
               <img 
-                src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&h=400&fit=crop"
-                alt="Premium Products"
+                src="https://images.unsplash.com/photo-1468495244123-6c6c332eeece?w=600&h=400&fit=crop"
+                alt="Latest Tech Products"
                 className="w-full h-96 object-cover rounded-xl shadow-2xl"
               />
               <div className="absolute -bottom-6 -left-6 bg-white rounded-xl p-4 shadow-lg">
@@ -67,9 +67,20 @@ export const Hero = () => {
                   </div>
                   <div>
                     <div className="font-semibold text-gray-900">Free Shipping</div>
-                    <div className="text-sm text-gray-600">On orders over $50</div>
+                    <div className="text-sm text-gray-600">Orders over $30</div>
                   </div>
                 </div>
+              </div>
+              
+              {/* Floating tech icons */}
+              <div className="absolute -top-4 -right-4 bg-white rounded-full p-3 shadow-lg animate-bounce">
+                <Smartphone className="h-6 w-6 text-blue-600" />
+              </div>
+              <div className="absolute top-1/3 -left-4 bg-white rounded-full p-3 shadow-lg animate-pulse">
+                <Headphones className="h-6 w-6 text-purple-600" />
+              </div>
+              <div className="absolute bottom-1/3 -right-4 bg-white rounded-full p-3 shadow-lg animate-bounce delay-300">
+                <Watch className="h-6 w-6 text-green-600" />
               </div>
             </div>
           </div>
