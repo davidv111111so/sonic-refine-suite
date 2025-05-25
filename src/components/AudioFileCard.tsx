@@ -1,6 +1,5 @@
-
 import { useState, useRef } from 'react';
-import { Play, Pause, Download, Trash2, FileAudio, Volume2, Clock, Music, Image, Waveform, FileCheck, Activity } from 'lucide-react';
+import { Play, Pause, Download, Trash2, FileAudio, Volume2, Clock, Music, Image, Activity, FileCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -224,7 +223,7 @@ export const AudioFileCard = ({ file, onRemove, onUpdate }: AudioFileCardProps) 
                   className="text-slate-400 hover:text-white p-1 h-8 w-8"
                   title={showWaveform ? "Show progress bar" : "Show waveform"}
                 >
-                  <Waveform className="h-4 w-4" />
+                  <Activity className="h-4 w-4" />
                 </Button>
                 
                 <span className="text-xs text-slate-400 w-16 text-center">
