@@ -1,6 +1,6 @@
 
 import { useState, useRef, useEffect } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Upload, Volume2, Equalizer } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Upload, Volume2, Sliders } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
@@ -306,7 +306,7 @@ export const MediaPlayer = () => {
       <Card className="bg-slate-800/50 border-slate-700">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
-            <Equalizer className="h-5 w-5" />
+            <Sliders className="h-5 w-5" />
             10-Band Equalizer
           </CardTitle>
         </CardHeader>

@@ -1,5 +1,6 @@
+
 import { useState } from 'react';
-import { Settings, Wand2, Volume2, Zap, Filter, Equalizer } from 'lucide-react';
+import { Settings, Wand2, Volume2, Zap, Filter, Sliders } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
@@ -321,7 +322,7 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
       <Card className="bg-slate-800/50 border-slate-700">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
-            <Equalizer className="h-5 w-5" />
+            <Sliders className="h-5 w-5" />
             10-Band Equalizer
           </CardTitle>
         </CardHeader>

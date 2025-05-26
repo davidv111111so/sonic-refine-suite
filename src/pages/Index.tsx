@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { Upload, Music, Settings, Download, FileAudio, History, Radio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -105,9 +106,9 @@ const Index = () => {
 
   const downloadFile = async (blob: Blob, filename: string, folderName: string) => {
     try {
-      if ('showDirectoryPicker' in window) {
+      if ('showDirectoryPicker' in window && typeof window.showDirectoryPicker === 'function') {
         try {
-          const dirHandle = await window.showDirectoryPicker();
+          const dirHandle = await (window as any).showDirectoryPicker();
           
           const folderHandle = await dirHandle.getDirectoryHandle(folderName, { create: true });
           
