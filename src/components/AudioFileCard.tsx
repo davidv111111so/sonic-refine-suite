@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Play, Pause, Download, Trash2, Edit2, FileAudio, TrendingUp, TrendingDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -65,11 +64,6 @@ export const AudioFileCard = ({ file, onRemove, onUpdate }: AudioFileCardProps) 
       a.download = `enhanced_${file.name}`;
       a.click();
     }
-  };
-
-  const handleTagUpdate = (updates: Partial<AudioFile>) => {
-    onUpdate(file.id, updates);
-    setShowTagEditor(false);
   };
 
   return (
@@ -190,8 +184,10 @@ export const AudioFileCard = ({ file, onRemove, onUpdate }: AudioFileCardProps) 
       {showTagEditor && (
         <ID3TagEditor
           file={file}
-          onSave={handleTagUpdate}
-          onCancel={() => setShowTagEditor(false)}
+          onUpdate={(fileId, updates) => {
+            onUpdate(fileId, updates);
+            setShowTagEditor(false);
+          }}
         />
       )}
     </>
