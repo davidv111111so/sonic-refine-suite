@@ -55,7 +55,8 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
   });
 
   const eqFrequencies = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
-  const sampleRateOptions = [22050, 44100, 48000, 96000];
+  // Enhanced sample rate options including professional and audiophile grades
+  const sampleRateOptions = [22050, 44100, 48000, 88200, 96000, 176400, 192000, 384000];
 
   const getFrequencyColor = (freq: number, bandValue: number) => {
     const intensity = Math.abs(bandValue) / 12; // Normalize to 0-1
@@ -192,6 +193,23 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
     setSettings(prev => ({ ...prev, ...preset.settings }));
   };
 
+  // Get bitrate options based on format
+  const getBitrateOptions = () => {
+    switch (settings.outputFormat) {
+      case 'mp3':
+        return { min: 128, max: 320, step: 32, options: [128, 160, 192, 224, 256, 288, 320] };
+      case 'ogg':
+        return { min: 128, max: 500, step: 32, options: [128, 160, 192, 224, 256, 320, 384, 448, 500] };
+      case 'flac':
+      case 'wav':
+        return { min: 500, max: 2000, step: 100, options: [500, 750, 1000, 1411, 1536, 2000] }; // Lossless equivalent rates
+      default:
+        return { min: 128, max: 320, step: 32, options: [128, 160, 192, 224, 256, 288, 320] };
+    }
+  };
+
+  const bitrateOptions = getBitrateOptions();
+
   return (
     <div className="space-y-4">
       {/* Specialized Presets */}
@@ -252,19 +270,30 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
             <div className="space-y-2">
               <div className="flex justify-between">
                 <label className="text-sm font-medium text-white">Target Bitrate</label>
-                <span className="text-sm text-slate-400">{settings.targetBitrate} kbps</span>
+                <span className="text-sm text-slate-400">
+                  {settings.outputFormat === 'flac' || settings.outputFormat === 'wav' 
+                    ? `${settings.targetBitrate} kbps (Lossless)`
+                    : `${settings.targetBitrate} kbps`
+                  }
+                </span>
               </div>
               <Slider
                 value={[settings.targetBitrate]}
                 onValueChange={([value]) => handleSettingChange('targetBitrate', value)}
-                min={128}
-                max={320}
-                step={32}
+                min={bitrateOptions.min}
+                max={bitrateOptions.max}
+                step={bitrateOptions.step}
                 className="w-full"
               />
+              <div className="text-xs text-slate-500">
+                {settings.outputFormat === 'flac' || settings.outputFormat === 'wav' 
+                  ? 'Lossless formats: Higher values = better dynamic range'
+                  : 'Lossy formats: Higher values = better quality'
+                }
+              </div>
             </div>
 
-            {/* Sample Rates - Checkboxes */}
+            {/* Sample Rates - Enhanced with professional options */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-white">Sample Rates</label>
               <div className="grid grid-cols-2 gap-2">
@@ -278,9 +307,13 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
                     />
                     <label htmlFor={`rate-${rate}`} className="text-sm text-slate-300">
                       {rate >= 1000 ? `${rate/1000}k` : rate} Hz
+                      {rate >= 176400 && <span className="text-xs text-green-400 ml-1">(Hi-Res)</span>}
                     </label>
                   </div>
                 ))}
+              </div>
+              <div className="text-xs text-slate-500">
+                Higher sample rates capture more audio detail. 192kHz+ for audiophile quality.
               </div>
             </div>
 
@@ -339,7 +372,6 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
 
             <Separator className="bg-slate-600" />
 
-            {/* Normalization */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-white">Audio Normalization</label>
@@ -367,7 +399,6 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
 
             <Separator className="bg-slate-600" />
 
-            {/* Dynamic Range Compression */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-white">Dynamic Compression</label>
@@ -428,7 +459,6 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
                   {Array.from({ length: 10 }).map((_, i) => (
                     <div key={i} className="relative">
                       <div className="absolute inset-0 border-l border-slate-600/30"></div>
-                      {/* Horizontal grid lines */}
                       {Array.from({ length: 9 }).map((_, j) => (
                         <div 
                           key={j} 
