@@ -24,10 +24,30 @@ export const MediaPlayer = () => {
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
   const eqNodesRef = useRef<BiquadFilterNode[]>([]);
+  const isConnectedRef = useRef(false);
   
   const { toast } = useToast();
 
   const eqFrequencies = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
+
+  const getFrequencyColor = (freq: number, bandValue: number) => {
+    const intensity = Math.abs(bandValue) / 12;
+    const alpha = 0.3 + intensity * 0.7;
+    
+    if (freq <= 125) return `rgba(239, 68, 68, ${alpha})`;
+    if (freq <= 500) return `rgba(249, 115, 22, ${alpha})`;
+    if (freq <= 2000) return `rgba(234, 179, 8, ${alpha})`;
+    if (freq <= 8000) return `rgba(34, 197, 94, ${alpha})`;
+    return `rgba(59, 130, 246, ${alpha})`;
+  };
+
+  const getFrequencyTextColor = (freq: number) => {
+    if (freq <= 125) return 'text-red-400';
+    if (freq <= 500) return 'text-orange-400';
+    if (freq <= 2000) return 'text-yellow-400';
+    if (freq <= 8000) return 'text-green-400';
+    return 'text-blue-400';
+  };
 
   useEffect(() => {
     if (audioRef.current) {
@@ -36,7 +56,7 @@ export const MediaPlayer = () => {
   }, [volume]);
 
   useEffect(() => {
-    if (audioContextRef.current && eqEnabled) {
+    if (audioContextRef.current && eqEnabled && isConnectedRef.current) {
       eqNodesRef.current.forEach((node, index) => {
         if (node) {
           node.gain.value = eqBands[index];
@@ -46,36 +66,56 @@ export const MediaPlayer = () => {
   }, [eqBands, eqEnabled]);
 
   const setupAudioContext = () => {
-    if (!audioRef.current) return;
+    if (!audioRef.current || isConnectedRef.current) return;
 
-    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-    audioContextRef.current = new AudioContext();
-    
-    sourceRef.current = audioContextRef.current.createMediaElementSource(audioRef.current);
-    gainNodeRef.current = audioContextRef.current.createGain();
-    
-    // Create EQ nodes
-    eqNodesRef.current = eqFrequencies.map((freq, index) => {
-      const filter = audioContextRef.current!.createBiquadFilter();
-      filter.type = index === 0 ? 'lowshelf' : index === eqFrequencies.length - 1 ? 'highshelf' : 'peaking';
-      filter.frequency.value = freq;
-      filter.Q.value = 1;
-      filter.gain.value = eqBands[index];
-      return filter;
-    });
+    try {
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      if (!audioContextRef.current) {
+        audioContextRef.current = new AudioContext();
+      }
+      
+      if (audioContextRef.current.state === 'suspended') {
+        audioContextRef.current.resume();
+      }
+      
+      if (!sourceRef.current) {
+        sourceRef.current = audioContextRef.current.createMediaElementSource(audioRef.current);
+        isConnectedRef.current = true;
+      }
+      
+      if (!gainNodeRef.current) {
+        gainNodeRef.current = audioContextRef.current.createGain();
+      }
+      
+      // Create EQ nodes if they don't exist
+      if (eqNodesRef.current.length === 0) {
+        eqNodesRef.current = eqFrequencies.map((freq, index) => {
+          const filter = audioContextRef.current!.createBiquadFilter();
+          filter.type = index === 0 ? 'lowshelf' : index === eqFrequencies.length - 1 ? 'highshelf' : 'peaking';
+          filter.frequency.value = freq;
+          filter.Q.value = 1;
+          filter.gain.value = eqBands[index];
+          return filter;
+        });
+      }
 
-    // Connect audio graph
-    let currentNode: AudioNode = sourceRef.current;
-    
-    if (eqEnabled) {
-      eqNodesRef.current.forEach(filter => {
-        currentNode.connect(filter);
-        currentNode = filter;
-      });
+      // Connect audio graph only if not already connected
+      if (isConnectedRef.current && sourceRef.current && gainNodeRef.current) {
+        let currentNode: AudioNode = sourceRef.current;
+        
+        if (eqEnabled) {
+          eqNodesRef.current.forEach(filter => {
+            currentNode.connect(filter);
+            currentNode = filter;
+          });
+        }
+        
+        currentNode.connect(gainNodeRef.current);
+        gainNodeRef.current.connect(audioContextRef.current.destination);
+      }
+    } catch (error) {
+      console.error('Audio context setup error:', error);
     }
-    
-    currentNode.connect(gainNodeRef.current!);
-    gainNodeRef.current!.connect(audioContextRef.current.destination);
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -91,13 +131,19 @@ export const MediaPlayer = () => {
       return;
     }
 
+    // Reset audio context connection
+    isConnectedRef.current = false;
+    sourceRef.current = null;
+    eqNodesRef.current = [];
+    gainNodeRef.current = null;
+
     setCurrentFile(file);
     const url = URL.createObjectURL(file);
     setAudioUrl(url);
     
     if (audioRef.current) {
       audioRef.current.src = url;
-      setupAudioContext();
+      audioRef.current.addEventListener('loadedmetadata', setupAudioContext, { once: true });
     }
 
     toast({
@@ -112,8 +158,12 @@ export const MediaPlayer = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handlePlayPause = () => {
+  const handlePlayPause = async () => {
     if (!audioRef.current) return;
+    
+    if (audioContextRef.current?.state === 'suspended') {
+      await audioContextRef.current.resume();
+    }
     
     if (isPlaying) {
       audioRef.current.pause();
@@ -302,7 +352,7 @@ export const MediaPlayer = () => {
         </CardContent>
       </Card>
 
-      {/* 10-Band EQ */}
+      {/* Enhanced 10-Band EQ */}
       <Card className="bg-slate-800/50 border-slate-700">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
@@ -327,28 +377,54 @@ export const MediaPlayer = () => {
           </div>
           
           {eqEnabled && (
-            <div className="grid grid-cols-5 lg:grid-cols-10 gap-4">
-              {eqFrequencies.map((freq, index) => (
-                <div key={freq} className="text-center">
-                  <div className="h-32 flex items-end justify-center mb-2">
-                    <Slider
-                      orientation="vertical"
-                      value={[eqBands[index]]}
-                      onValueChange={([value]) => handleEQBandChange(index, value)}
-                      min={-12}
-                      max={12}
-                      step={0.5}
-                      className="h-28"
-                    />
-                  </div>
-                  <div className="text-xs text-slate-400">
-                    {freq < 1000 ? `${freq}Hz` : `${freq >= 1000 ? freq/1000 : freq}${freq >= 1000 ? 'k' : ''}Hz`}
-                  </div>
-                  <div className="text-xs text-slate-300">
-                    {eqBands[index] > 0 ? '+' : ''}{eqBands[index]}dB
-                  </div>
+            <div className="relative bg-slate-900/50 rounded-lg p-6">
+              {/* Grid lines */}
+              <div className="absolute inset-6 pointer-events-none">
+                <div className="h-full w-full grid grid-cols-10 gap-3">
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <div key={i} className="relative">
+                      <div className="absolute inset-0 border-l border-slate-600/30"></div>
+                      {Array.from({ length: 9 }).map((_, j) => (
+                        <div 
+                          key={j} 
+                          className="absolute w-full border-t border-slate-600/20"
+                          style={{ top: `${(j + 1) * 11.11}%` }}
+                        ></div>
+                      ))}
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+              
+              <div className="flex justify-center items-end gap-3 py-4 relative z-10">
+                {eqFrequencies.map((freq, index) => (
+                  <div key={freq} className="flex flex-col items-center">
+                    <div className="h-32 flex items-end justify-center mb-2 relative">
+                      <div 
+                        className="absolute inset-0 rounded opacity-20"
+                        style={{ 
+                          background: `linear-gradient(to top, ${getFrequencyColor(freq, eqBands[index])}, transparent)`
+                        }}
+                      ></div>
+                      <Slider
+                        orientation="vertical"
+                        value={[eqBands[index]]}
+                        onValueChange={([value]) => handleEQBandChange(index, value)}
+                        min={-12}
+                        max={12}
+                        step={0.5}
+                        className="h-28 w-6 relative z-10"
+                      />
+                    </div>
+                    <div className={`text-xs font-medium ${getFrequencyTextColor(freq)} mb-1`}>
+                      {freq < 1000 ? `${freq}Hz` : `${freq/1000}kHz`}
+                    </div>
+                    <div className="text-xs text-slate-300">
+                      {eqBands[index] > 0 ? '+' : ''}{eqBands[index]}dB
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </CardContent>

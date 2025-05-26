@@ -57,12 +57,23 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
   const eqFrequencies = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
   const sampleRateOptions = [22050, 44100, 48000, 96000];
 
-  const getFrequencyColor = (freq: number) => {
-    if (freq <= 125) return 'text-red-400'; // Sub-bass / Bass
-    if (freq <= 500) return 'text-orange-400'; // Low-mid
-    if (freq <= 2000) return 'text-yellow-400'; // Mid
-    if (freq <= 8000) return 'text-green-400'; // High-mid
-    return 'text-blue-400'; // Treble
+  const getFrequencyColor = (freq: number, bandValue: number) => {
+    const intensity = Math.abs(bandValue) / 12; // Normalize to 0-1
+    const alpha = 0.3 + intensity * 0.7; // Base opacity + dynamic
+    
+    if (freq <= 125) return `rgba(239, 68, 68, ${alpha})`; // red
+    if (freq <= 500) return `rgba(249, 115, 22, ${alpha})`; // orange
+    if (freq <= 2000) return `rgba(234, 179, 8, ${alpha})`; // yellow
+    if (freq <= 8000) return `rgba(34, 197, 94, ${alpha})`; // green
+    return `rgba(59, 130, 246, ${alpha})`; // blue
+  };
+
+  const getFrequencyTextColor = (freq: number) => {
+    if (freq <= 125) return 'text-red-400';
+    if (freq <= 500) return 'text-orange-400';
+    if (freq <= 2000) return 'text-yellow-400';
+    if (freq <= 8000) return 'text-green-400';
+    return 'text-blue-400';
   };
 
   const handleSettingChange = (key: keyof EnhancementSettings, value: any) => {
@@ -183,7 +194,7 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
 
   return (
     <div className="space-y-4">
-      {/* Presets */}
+      {/* Specialized Presets */}
       <Card className="bg-slate-800/50 border-slate-700">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-white text-lg">
@@ -253,7 +264,7 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
               />
             </div>
 
-            {/* Sample Rates */}
+            {/* Sample Rates - Checkboxes */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-white">Sample Rates</label>
               <div className="grid grid-cols-2 gap-2">
@@ -385,7 +396,7 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
         </Card>
       </div>
 
-      {/* EQ Settings */}
+      {/* Enhanced EQ Settings */}
       <Card className="bg-slate-800/50 border-slate-700">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-white text-lg">
@@ -410,28 +421,55 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
           </div>
           
           {settings.enableEQ && (
-            <div className="flex justify-center items-end gap-3 py-4">
-              {eqFrequencies.map((freq, index) => (
-                <div key={freq} className="flex flex-col items-center">
-                  <div className="h-32 flex items-end justify-center mb-2">
-                    <Slider
-                      orientation="vertical"
-                      value={[settings.eqBands[index]]}
-                      onValueChange={([value]) => handleEQBandChange(index, value)}
-                      min={-12}
-                      max={12}
-                      step={0.5}
-                      className="h-28 w-4"
-                    />
-                  </div>
-                  <div className={`text-xs font-medium ${getFrequencyColor(freq)} mb-1`}>
-                    {freq < 1000 ? `${freq}Hz` : `${freq/1000}kHz`}
-                  </div>
-                  <div className="text-xs text-slate-300">
-                    {settings.eqBands[index] > 0 ? '+' : ''}{settings.eqBands[index]}dB
-                  </div>
+            <div className="relative bg-slate-900/50 rounded-lg p-6">
+              {/* Grid lines */}
+              <div className="absolute inset-6 pointer-events-none">
+                <div className="h-full w-full grid grid-cols-10 gap-3">
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <div key={i} className="relative">
+                      <div className="absolute inset-0 border-l border-slate-600/30"></div>
+                      {/* Horizontal grid lines */}
+                      {Array.from({ length: 9 }).map((_, j) => (
+                        <div 
+                          key={j} 
+                          className="absolute w-full border-t border-slate-600/20"
+                          style={{ top: `${(j + 1) * 11.11}%` }}
+                        ></div>
+                      ))}
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+              
+              <div className="flex justify-center items-end gap-3 py-4 relative z-10">
+                {eqFrequencies.map((freq, index) => (
+                  <div key={freq} className="flex flex-col items-center">
+                    <div className="h-32 flex items-end justify-center mb-2 relative">
+                      <div 
+                        className="absolute inset-0 rounded opacity-20"
+                        style={{ 
+                          background: `linear-gradient(to top, ${getFrequencyColor(freq, settings.eqBands[index])}, transparent)`
+                        }}
+                      ></div>
+                      <Slider
+                        orientation="vertical"
+                        value={[settings.eqBands[index]]}
+                        onValueChange={([value]) => handleEQBandChange(index, value)}
+                        min={-12}
+                        max={12}
+                        step={0.5}
+                        className="h-28 w-6 relative z-10"
+                      />
+                    </div>
+                    <div className={`text-xs font-medium ${getFrequencyTextColor(freq)} mb-1`}>
+                      {freq < 1000 ? `${freq}Hz` : `${freq/1000}kHz`}
+                    </div>
+                    <div className="text-xs text-slate-300">
+                      {settings.eqBands[index] > 0 ? '+' : ''}{settings.eqBands[index]}dB
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </CardContent>

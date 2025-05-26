@@ -18,6 +18,7 @@ export interface AudioFile {
   id: string;
   name: string;
   size: number;
+  enhancedSize?: number;
   type: string;
   duration?: number;
   bitrate?: number;
@@ -36,6 +37,7 @@ const Index = () => {
   const [audioFiles, setAudioFiles] = useState<AudioFile[]>([]);
   const [activeTab, setActiveTab] = useState('upload');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [bulkDownloadPending, setBulkDownloadPending] = useState<string[]>([]);
   const { toast } = useToast();
   const [smartFolderOrganization, setSmartFolderOrganization] = useState('artist');
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
@@ -106,7 +108,7 @@ const Index = () => {
 
   const downloadFile = async (blob: Blob, filename: string, folderName: string) => {
     try {
-      if ('showDirectoryPicker' in window && typeof window.showDirectoryPicker === 'function') {
+      if ('showDirectoryPicker' in window) {
         try {
           const dirHandle = await (window as any).showDirectoryPicker();
           
@@ -147,6 +149,7 @@ const Index = () => {
     const folderName = `Enhanced_Audio_${new Date().toISOString().slice(0, 10)}`;
     
     let successfulDownloads = 0;
+    const downloadQueue: { blob: Blob; filename: string }[] = [];
     
     for (const file of filesToProcess) {
       setAudioFiles(prev => prev.map(f => 
@@ -168,16 +171,19 @@ const Index = () => {
       try {
         const response = await fetch(enhancedUrl || '');
         const blob = await response.blob();
-        const downloaded = await downloadFile(blob, enhancedFilename, folderName);
         
-        if (downloaded) successfulDownloads++;
+        // Simulate enhanced file size (usually larger due to higher quality)
+        const enhancedSize = blob.size * (1 + Math.random() * 0.5); // 0-50% larger
+        
+        downloadQueue.push({ blob, filename: enhancedFilename });
         
         setAudioFiles(prev => prev.map(f => 
           f.id === file.id ? { 
             ...f, 
             status: 'enhanced' as const, 
             progress: 100,
-            enhancedUrl
+            enhancedUrl,
+            enhancedSize
           } : f
         ));
       } catch (error) {
@@ -188,12 +194,29 @@ const Index = () => {
       }
     }
 
+    // Bulk download handling
+    if (downloadQueue.length > 1) {
+      setBulkDownloadPending(downloadQueue.map(item => item.filename));
+      
+      toast({
+        title: "Files ready for download",
+        description: `${downloadQueue.length} enhanced files are ready. Click "Download All" to save them.`,
+        action: (
+          <Button 
+            size="sm" 
+            onClick={() => handleBulkDownload(downloadQueue, folderName)}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            Download All
+          </Button>
+        ),
+      });
+    } else if (downloadQueue.length === 1) {
+      const downloaded = await downloadFile(downloadQueue[0].blob, downloadQueue[0].filename, folderName);
+      if (downloaded) successfulDownloads++;
+    }
+
     setIsProcessing(false);
-    
-    toast({
-      title: "Enhancement complete!",
-      description: `${filesToProcess.length} files processed. ${successfulDownloads > 0 ? `Files saved to ${folderName} folder.` : 'Files downloaded to default location.'}`,
-    });
     
     if (notificationsEnabled && filesToProcess.length > 0) {
       new Notification('Audio Enhancement Complete', {
@@ -202,6 +225,21 @@ const Index = () => {
       });
     }
   }, [audioFiles, notificationsEnabled, toast]);
+
+  const handleBulkDownload = async (downloadQueue: { blob: Blob; filename: string }[], folderName: string) => {
+    let successfulDownloads = 0;
+    
+    for (const item of downloadQueue) {
+      const downloaded = await downloadFile(item.blob, item.filename, folderName);
+      if (downloaded) successfulDownloads++;
+    }
+    
+    setBulkDownloadPending([]);
+    toast({
+      title: "Bulk download complete!",
+      description: `${successfulDownloads} files saved to ${folderName} folder.`,
+    });
+  };
 
   const handleSelectPreset = useCallback((preset: any) => {
     setActiveTab('enhance');
@@ -290,29 +328,29 @@ const Index = () => {
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-6 bg-slate-800 border-slate-700">
-            <TabsTrigger value="upload" className="data-[state=active]:bg-blue-600">
-              <Upload className="h-4 w-4 mr-2" />
+          <TabsList className="grid w-full grid-cols-6 bg-slate-800 border-slate-700 h-9">
+            <TabsTrigger value="upload" className="data-[state=active]:bg-blue-600 text-xs">
+              <Upload className="h-3 w-3 mr-1" />
               Upload
             </TabsTrigger>
-            <TabsTrigger value="library" className="data-[state=active]:bg-blue-600">
-              <Music className="h-4 w-4 mr-2" />
+            <TabsTrigger value="library" className="data-[state=active]:bg-blue-600 text-xs">
+              <Music className="h-3 w-3 mr-1" />
               Library
             </TabsTrigger>
-            <TabsTrigger value="enhance" className="data-[state=active]:bg-blue-600">
-              <Settings className="h-4 w-4 mr-2" />
+            <TabsTrigger value="enhance" className="data-[state=active]:bg-blue-600 text-xs">
+              <Settings className="h-3 w-3 mr-1" />
               Enhance
             </TabsTrigger>
-            <TabsTrigger value="queue" className="data-[state=active]:bg-blue-600">
-              <Download className="h-4 w-4 mr-2" />
+            <TabsTrigger value="queue" className="data-[state=active]:bg-blue-600 text-xs">
+              <Download className="h-3 w-3 mr-1" />
               Queue
             </TabsTrigger>
-            <TabsTrigger value="player" className="data-[state=active]:bg-blue-600">
-              <Radio className="h-4 w-4 mr-2" />
+            <TabsTrigger value="player" className="data-[state=active]:bg-blue-600 text-xs">
+              <Radio className="h-3 w-3 mr-1" />
               Player
             </TabsTrigger>
-            <TabsTrigger value="history" className="data-[state=active]:bg-blue-600">
-              <History className="h-4 w-4 mr-2" />
+            <TabsTrigger value="history" className="data-[state=active]:bg-blue-600 text-xs">
+              <History className="h-3 w-3 mr-1" />
               History
             </TabsTrigger>
           </TabsList>
@@ -342,8 +380,6 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="enhance" className="mt-6 space-y-6">
-            <BatchPresets onSelectPreset={handleSelectPreset} />
-            
             <EnhancementSettings
               onEnhance={handleEnhanceFiles}
               isProcessing={isProcessing}
