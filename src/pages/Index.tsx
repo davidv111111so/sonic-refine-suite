@@ -1,6 +1,5 @@
-
 import { useState, useCallback, useEffect } from 'react';
-import { Upload, Music, Settings, Download, FileAudio, History } from 'lucide-react';
+import { Upload, Music, Settings, Download, FileAudio, History, Radio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,6 +10,7 @@ import { ProcessingQueue } from '@/components/ProcessingQueue';
 import { BatchPresets } from '@/components/BatchPresets';
 import { ExportHistory } from '@/components/ExportHistory';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { MediaPlayer } from '@/components/MediaPlayer';
 import { useToast } from '@/hooks/use-toast';
 
 export interface AudioFile {
@@ -36,11 +36,10 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState('upload');
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
-  const [smartFolderOrganization, setSmartFolderOrganization] = useState('artist'); // 'artist', 'genre', 'decade'
+  const [smartFolderOrganization, setSmartFolderOrganization] = useState('artist');
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   useEffect(() => {
-    // Request notification permission when the app loads
     if ('Notification' in window) {
       Notification.requestPermission().then(permission => {
         setNotificationsEnabled(permission === 'granted');
@@ -49,13 +48,9 @@ const Index = () => {
   }, []);
 
   const handleFilesUploaded = useCallback((files: AudioFile[]) => {
-    // Process the files to extract metadata when uploaded
     const processedFiles = files.map(file => {
-      // Create object URL for playback
       const originalUrl = URL.createObjectURL(file.originalFile);
       
-      // Extract song and artist information from filename
-      // Example pattern: "Artist - Title.mp3" or just extract filename without extension
       let artist = "Unknown Artist";
       let title = file.name;
       
@@ -64,7 +59,6 @@ const Index = () => {
         artist = nameMatch[1].trim();
         title = nameMatch[2].trim();
       } else {
-        // Remove file extension for title
         title = file.name.replace(/\.[^.]+$/, '');
       }
       
@@ -87,7 +81,6 @@ const Index = () => {
     setAudioFiles(prev => {
       const fileToRemove = prev.find(file => file.id === fileId);
       
-      // Clean up object URLs to prevent memory leaks
       if (fileToRemove?.originalUrl) {
         URL.revokeObjectURL(fileToRemove.originalUrl);
       }
@@ -110,35 +103,55 @@ const Index = () => {
     });
   }, [toast]);
 
+  const downloadFile = async (blob: Blob, filename: string, folderName: string) => {
+    try {
+      if ('showDirectoryPicker' in window) {
+        try {
+          const dirHandle = await window.showDirectoryPicker();
+          
+          const folderHandle = await dirHandle.getDirectoryHandle(folderName, { create: true });
+          
+          const fileHandle = await folderHandle.getFileHandle(filename, { create: true });
+          const writable = await fileHandle.createWritable();
+          
+          await writable.write(blob);
+          await writable.close();
+          
+          return true;
+        } catch (error) {
+          console.log('Directory picker failed, falling back to download');
+        }
+      }
+      
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      return false;
+    } catch (error) {
+      console.error('Download failed:', error);
+      return false;
+    }
+  };
+
   const handleEnhanceFiles = useCallback(async (settings: any) => {
     setIsProcessing(true);
     const filesToProcess = audioFiles.filter(file => file.status === 'uploaded');
     
-    // Determine folder organization strategy
-    const getFolder = (file: AudioFile) => {
-      if (settings.smartFolder) {
-        return `So/${settings.smartFolder}`;
-      }
-      
-      switch (smartFolderOrganization) {
-        case 'artist':
-          return `So/${file.artist || 'Unknown Artist'}`;
-        case 'genre':
-          return 'So/Genre'; // In a real app, would use genre metadata
-        case 'decade':
-          return 'So/2020s'; // In a real app, would use year metadata
-        default:
-          return 'So';
-      }
-    };
+    const folderName = `Enhanced_Audio_${new Date().toISOString().slice(0, 10)}`;
     
-    // Simulate processing
+    let successfulDownloads = 0;
+    
     for (const file of filesToProcess) {
       setAudioFiles(prev => prev.map(f => 
         f.id === file.id ? { ...f, status: 'processing' as const, progress: 0 } : f
       ));
 
-      // Simulate progress
       for (let i = 0; i <= 100; i += 5) {
         await new Promise(resolve => setTimeout(resolve, 100));
         setAudioFiles(prev => prev.map(f => 
@@ -146,40 +159,51 @@ const Index = () => {
         ));
       }
 
-      // Create enhanced file URL
-      const enhancedUrl = file.originalUrl; // In a real app, this would be a processed file
-      const folder = getFolder(file);
+      const enhancedUrl = file.originalUrl;
       
-      setAudioFiles(prev => prev.map(f => 
-        f.id === file.id ? { 
-          ...f, 
-          status: 'enhanced' as const, 
-          progress: 100,
-          enhancedUrl
-        } : f
-      ));
+      const extension = settings.outputFormat || 'mp3';
+      const enhancedFilename = `${file.name.replace(/\.[^.]+$/, '')}_enhanced.${extension}`;
+      
+      try {
+        const response = await fetch(enhancedUrl || '');
+        const blob = await response.blob();
+        const downloaded = await downloadFile(blob, enhancedFilename, folderName);
+        
+        if (downloaded) successfulDownloads++;
+        
+        setAudioFiles(prev => prev.map(f => 
+          f.id === file.id ? { 
+            ...f, 
+            status: 'enhanced' as const, 
+            progress: 100,
+            enhancedUrl
+          } : f
+        ));
+      } catch (error) {
+        console.error('Error processing file:', error);
+        setAudioFiles(prev => prev.map(f => 
+          f.id === file.id ? { ...f, status: 'error' as const } : f
+        ));
+      }
     }
 
     setIsProcessing(false);
     
-    // Show toast notification
     toast({
       title: "Enhancement complete!",
-      description: `${filesToProcess.length} files have been enhanced and organized into folders`,
+      description: `${filesToProcess.length} files processed. ${successfulDownloads > 0 ? `Files saved to ${folderName} folder.` : 'Files downloaded to default location.'}`,
     });
     
-    // Show browser notification if enabled
     if (notificationsEnabled && filesToProcess.length > 0) {
       new Notification('Audio Enhancement Complete', {
-        body: `${filesToProcess.length} files have been enhanced and saved`,
+        body: `${filesToProcess.length} files enhanced with gain: ${settings.gainAdjustment || 0}dB`,
         icon: '/favicon.ico'
       });
     }
-  }, [audioFiles, smartFolderOrganization, notificationsEnabled, toast]);
+  }, [audioFiles, notificationsEnabled, toast]);
 
   const handleSelectPreset = useCallback((preset: any) => {
     setActiveTab('enhance');
-    // In a real app, this would populate the enhancement form with the preset values
     toast({
       title: "Preset selected",
       description: `${preset.smartFolder} preset has been applied to the settings`,
@@ -265,7 +289,7 @@ const Index = () => {
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 bg-slate-800 border-slate-700">
+          <TabsList className="grid w-full grid-cols-6 bg-slate-800 border-slate-700">
             <TabsTrigger value="upload" className="data-[state=active]:bg-blue-600">
               <Upload className="h-4 w-4 mr-2" />
               Upload
@@ -281,6 +305,10 @@ const Index = () => {
             <TabsTrigger value="queue" className="data-[state=active]:bg-blue-600">
               <Download className="h-4 w-4 mr-2" />
               Queue
+            </TabsTrigger>
+            <TabsTrigger value="player" className="data-[state=active]:bg-blue-600">
+              <Radio className="h-4 w-4 mr-2" />
+              Player
             </TabsTrigger>
             <TabsTrigger value="history" className="data-[state=active]:bg-blue-600">
               <History className="h-4 w-4 mr-2" />
@@ -324,6 +352,10 @@ const Index = () => {
 
           <TabsContent value="queue" className="mt-6">
             <ProcessingQueue files={audioFiles} />
+          </TabsContent>
+
+          <TabsContent value="player" className="mt-6">
+            <MediaPlayer />
           </TabsContent>
           
           <TabsContent value="history" className="mt-6">

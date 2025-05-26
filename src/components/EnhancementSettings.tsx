@@ -1,6 +1,5 @@
-
 import { useState } from 'react';
-import { Settings, Wand2, Volume2, Zap, Filter } from 'lucide-react';
+import { Settings, Wand2, Volume2, Zap, Filter, Equalizer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
@@ -28,6 +27,9 @@ interface EnhancementSettings {
   compression: boolean;
   compressionRatio: number;
   outputFormat: string;
+  gainAdjustment: number;
+  enableEQ: boolean;
+  eqBands: number[];
 }
 
 export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: EnhancementSettingsProps) => {
@@ -45,10 +47,25 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
     compression: false,
     compressionRatio: 4,
     outputFormat: 'mp3',
+    gainAdjustment: 0,
+    enableEQ: false,
+    eqBands: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // 10-band EQ
   });
+
+  const eqFrequencies = [60, 170, 310, 600, 1000, 3000, 6000, 12000, 14000, 16000];
 
   const handleSettingChange = (key: keyof EnhancementSettings, value: any) => {
     setSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleEQBandChange = (bandIndex: number, value: number) => {
+    const newEqBands = [...settings.eqBands];
+    newEqBands[bandIndex] = value;
+    setSettings(prev => ({ ...prev, eqBands: newEqBands }));
+  };
+
+  const resetEQ = () => {
+    setSettings(prev => ({ ...prev, eqBands: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }));
   };
 
   const handleEnhance = () => {
@@ -187,6 +204,22 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Gain Adjustment */}
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <label className="text-sm font-medium text-white">Gain Adjustment</label>
+                <span className="text-sm text-slate-400">{settings.gainAdjustment > 0 ? '+' : ''}{settings.gainAdjustment} dB</span>
+              </div>
+              <Slider
+                value={[settings.gainAdjustment]}
+                onValueChange={([value]) => handleSettingChange('gainAdjustment', value)}
+                min={-12}
+                max={12}
+                step={0.5}
+                className="w-full"
+              />
+            </div>
           </CardContent>
         </Card>
 
@@ -284,6 +317,58 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
         </Card>
       </div>
 
+      {/* EQ Settings */}
+      <Card className="bg-slate-800/50 border-slate-700">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-white">
+            <Equalizer className="h-5 w-5" />
+            10-Band Equalizer
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Switch
+              checked={settings.enableEQ}
+              onCheckedChange={(checked) => handleSettingChange('enableEQ', checked)}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={resetEQ}
+              className="bg-slate-700 border-slate-600 hover:bg-slate-600 text-white"
+            >
+              Reset EQ
+            </Button>
+          </div>
+          
+          {settings.enableEQ && (
+            <div className="grid grid-cols-5 lg:grid-cols-10 gap-4">
+              {eqFrequencies.map((freq, index) => (
+                <div key={freq} className="text-center">
+                  <div className="h-32 flex items-end justify-center mb-2">
+                    <Slider
+                      orientation="vertical"
+                      value={[settings.eqBands[index]]}
+                      onValueChange={([value]) => handleEQBandChange(index, value)}
+                      min={-12}
+                      max={12}
+                      step={0.5}
+                      className="h-28"
+                    />
+                  </div>
+                  <div className="text-xs text-slate-400">
+                    {freq < 1000 ? `${freq}Hz` : `${freq/1000}kHz`}
+                  </div>
+                  <div className="text-xs text-slate-300">
+                    {settings.eqBands[index] > 0 ? '+' : ''}{settings.eqBands[index]}dB
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Enhancement Controls */}
       <Card className="bg-slate-800/50 border-slate-700">
         <CardContent className="p-6">
@@ -292,7 +377,7 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
               <h3 className="text-lg font-semibold text-white">Ready to Enhance</h3>
               <p className="text-slate-400">
                 {hasFiles 
-                  ? "All settings configured. Start processing your audio files."
+                  ? "All settings configured. Enhanced files will be saved to your Desktop."
                   : "Upload audio files first to begin enhancement."
                 }
               </p>
