@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { Upload, Music, Settings, Download, FileAudio, History, Radio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -145,165 +146,6 @@ const Index = () => {
     }
   };
 
-  // Enhanced audio processing function
-  const processAudioFile = async (file: AudioFile, settings: any): Promise<Blob> => {
-    // Get the original audio data
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const arrayBuffer = await file.originalFile.arrayBuffer();
-    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-    
-    // Calculate enhancement multiplier based on settings
-    let qualityMultiplier = 1;
-    
-    // Sample rate enhancement
-    const targetSampleRate = Math.max(...settings.sampleRates);
-    const sampleRateBoost = targetSampleRate / audioBuffer.sampleRate;
-    qualityMultiplier *= Math.max(1, sampleRateBoost);
-    
-    // Bitrate enhancement
-    const bitrateBoost = settings.targetBitrate / 128; // Base 128kbps
-    qualityMultiplier *= Math.max(1, bitrateBoost / 2);
-    
-    // EQ and processing enhancements
-    if (settings.enableEQ) {
-      const eqIntensity = settings.eqBands.reduce((sum: number, band: number) => sum + Math.abs(band), 0) / 10;
-      qualityMultiplier *= (1 + eqIntensity * 0.1);
-    }
-    
-    if (settings.noiseReduction) {
-      qualityMultiplier *= (1 + settings.noiseReductionLevel * 0.002);
-    }
-    
-    if (settings.compression) {
-      qualityMultiplier *= (1 + settings.compressionRatio * 0.05);
-    }
-    
-    // Gain adjustment effect
-    const gainEffect = Math.abs(settings.gainAdjustment) * 0.02;
-    qualityMultiplier *= (1 + gainEffect);
-    
-    // Create enhanced audio buffer with higher sample rate if specified
-    const enhancedSampleRate = targetSampleRate;
-    const enhancedBuffer = audioContext.createBuffer(
-      audioBuffer.numberOfChannels,
-      Math.floor(audioBuffer.length * (enhancedSampleRate / audioBuffer.sampleRate)),
-      enhancedSampleRate
-    );
-    
-    // Process each channel
-    for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
-      const inputData = audioBuffer.getChannelData(channel);
-      const outputData = enhancedBuffer.getChannelData(channel);
-      
-      // Simple upsampling and enhancement simulation
-      for (let i = 0; i < outputData.length; i++) {
-        const originalIndex = Math.floor(i * (audioBuffer.length / outputData.length));
-        let sample = inputData[originalIndex] || 0;
-        
-        // Apply gain adjustment
-        sample *= Math.pow(10, settings.gainAdjustment / 20);
-        
-        // Apply EQ simulation (simplified)
-        if (settings.enableEQ) {
-          const eqGain = settings.eqBands.reduce((sum: number, band: number) => sum + band, 0) / 100;
-          sample *= (1 + eqGain);
-        }
-        
-        // Apply compression simulation
-        if (settings.compression) {
-          const threshold = 0.7;
-          if (Math.abs(sample) > threshold) {
-            const excess = Math.abs(sample) - threshold;
-            const compressedExcess = excess / settings.compressionRatio;
-            sample = sample > 0 ? threshold + compressedExcess : -(threshold + compressedExcess);
-          }
-        }
-        
-        // Ensure sample stays within bounds
-        outputData[i] = Math.max(-1, Math.min(1, sample));
-      }
-    }
-    
-    // Convert back to audio file format
-    const enhancedArrayBuffer = await audioBufferToWav(enhancedBuffer);
-    
-    // Calculate enhanced file size based on quality settings
-    const baseSize = enhancedArrayBuffer.byteLength;
-    const finalSize = Math.floor(baseSize * qualityMultiplier);
-    
-    // Create a larger buffer to simulate higher quality
-    const paddedBuffer = new ArrayBuffer(finalSize);
-    const paddedView = new Uint8Array(paddedBuffer);
-    const originalView = new Uint8Array(enhancedArrayBuffer);
-    
-    // Copy original data
-    paddedView.set(originalView);
-    
-    // Fill remaining space with audio metadata simulation
-    if (finalSize > baseSize) {
-      const padding = new Uint8Array(finalSize - baseSize);
-      // Add some random data to simulate enhanced audio quality metadata
-      for (let i = 0; i < padding.length; i++) {
-        padding[i] = Math.floor(Math.random() * 256);
-      }
-      paddedView.set(padding, baseSize);
-    }
-    
-    return new Blob([paddedBuffer], { type: 'audio/wav' });
-  };
-
-  // Convert AudioBuffer to WAV format
-  const audioBufferToWav = (buffer: AudioBuffer): Promise<ArrayBuffer> => {
-    return new Promise((resolve) => {
-      const numberOfChannels = buffer.numberOfChannels;
-      const sampleRate = buffer.sampleRate;
-      const format = 1; // PCM
-      const bitDepth = 16;
-      
-      const bytesPerSample = bitDepth / 8;
-      const blockAlign = numberOfChannels * bytesPerSample;
-      const byteRate = sampleRate * blockAlign;
-      const dataSize = buffer.length * blockAlign;
-      const bufferSize = 44 + dataSize;
-      
-      const arrayBuffer = new ArrayBuffer(bufferSize);
-      const view = new DataView(arrayBuffer);
-      
-      // WAV header
-      const writeString = (offset: number, string: string) => {
-        for (let i = 0; i < string.length; i++) {
-          view.setUint8(offset + i, string.charCodeAt(i));
-        }
-      };
-      
-      writeString(0, 'RIFF');
-      view.setUint32(4, bufferSize - 8, true);
-      writeString(8, 'WAVE');
-      writeString(12, 'fmt ');
-      view.setUint32(16, 16, true);
-      view.setUint16(20, format, true);
-      view.setUint16(22, numberOfChannels, true);
-      view.setUint32(24, sampleRate, true);
-      view.setUint32(28, byteRate, true);
-      view.setUint16(32, blockAlign, true);
-      view.setUint16(34, bitDepth, true);
-      writeString(36, 'data');
-      view.setUint32(40, dataSize, true);
-      
-      // Convert float samples to 16-bit PCM
-      let offset = 44;
-      for (let i = 0; i < buffer.length; i++) {
-        for (let channel = 0; channel < numberOfChannels; channel++) {
-          const sample = Math.max(-1, Math.min(1, buffer.getChannelData(channel)[i]));
-          view.setInt16(offset, sample * 0x7FFF, true);
-          offset += 2;
-        }
-      }
-      
-      resolve(arrayBuffer);
-    });
-  };
-
   const handleEnhanceFiles = useCallback(async (settings: any) => {
     setIsProcessing(true);
     const filesToProcess = audioFiles.filter(file => file.status === 'uploaded');
@@ -402,7 +244,7 @@ const Index = () => {
         icon: '/favicon.ico'
       });
     }
-  }, [audioFiles, notificationsEnabled, toast, processAudioFile, addToHistory]);
+  }, [audioFiles, notificationsEnabled, toast, processAudioFile, addToHistory, setIsProcessing]);
 
   const handleBulkDownload = async (downloadQueue: { blob: Blob; filename: string }[], folderName: string) => {
     let successfulDownloads = 0;
