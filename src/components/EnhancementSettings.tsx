@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Settings, Wand2, Volume2, Zap, Filter, Sliders } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,6 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { AudioSettingsTooltip } from '@/components/AudioSettingsTooltip';
 
 interface EnhancementSettingsProps {
   onEnhance: (settings: EnhancementSettings) => void;
@@ -249,7 +249,10 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
           <CardContent className="pt-0 space-y-4">
             {/* Output Format */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-white">Output Format</label>
+              <label className="text-sm font-medium text-white flex items-center">
+                Output Format
+                <AudioSettingsTooltip setting="outputFormat" />
+              </label>
               <Select
                 value={settings.outputFormat}
                 onValueChange={(value) => handleSettingChange('outputFormat', value)}
@@ -269,7 +272,10 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
             {/* Target Bitrate */}
             <div className="space-y-2">
               <div className="flex justify-between">
-                <label className="text-sm font-medium text-white">Target Bitrate</label>
+                <label className="text-sm font-medium text-white flex items-center">
+                  Target Bitrate
+                  <AudioSettingsTooltip setting="targetBitrate" />
+                </label>
                 <span className="text-sm text-slate-400">
                   {settings.outputFormat === 'flac' || settings.outputFormat === 'wav' 
                     ? `${settings.targetBitrate} kbps (Lossless)`
@@ -295,7 +301,10 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
 
             {/* Sample Rates - Enhanced with professional options */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-white">Sample Rates</label>
+              <label className="text-sm font-medium text-white flex items-center">
+                Sample Rates
+                <AudioSettingsTooltip setting="sampleRate" />
+              </label>
               <div className="grid grid-cols-2 gap-2">
                 {sampleRateOptions.map((rate) => (
                   <div key={rate} className="flex items-center space-x-2">
@@ -320,7 +329,10 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
             {/* Gain Adjustment */}
             <div className="space-y-2">
               <div className="flex justify-between">
-                <label className="text-sm font-medium text-white">Gain Adjustment</label>
+                <label className="text-sm font-medium text-white flex items-center">
+                  Gain Adjustment
+                  <AudioSettingsTooltip setting="gainAdjustment" />
+                </label>
                 <span className="text-sm text-slate-400">{settings.gainAdjustment > 0 ? '+' : ''}{settings.gainAdjustment} dB</span>
               </div>
               <Slider
@@ -347,7 +359,10 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
             {/* Noise Reduction */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-white">Noise Reduction</label>
+                <label className="text-sm font-medium text-white flex items-center">
+                  Noise Reduction
+                  <AudioSettingsTooltip setting="noiseReduction" />
+                </label>
                 <Switch
                   checked={settings.noiseReduction}
                   onCheckedChange={(checked) => handleSettingChange('noiseReduction', checked)}
@@ -374,7 +389,10 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-white">Audio Normalization</label>
+                <label className="text-sm font-medium text-white flex items-center">
+                  Audio Normalization
+                  <AudioSettingsTooltip setting="normalization" />
+                </label>
                 <Switch
                   checked={settings.normalization}
                   onCheckedChange={(checked) => handleSettingChange('normalization', checked)}
@@ -401,7 +419,10 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-white">Dynamic Compression</label>
+                <label className="text-sm font-medium text-white flex items-center">
+                  Dynamic Compression
+                  <AudioSettingsTooltip setting="compression" />
+                </label>
                 <Switch
                   checked={settings.compression}
                   onCheckedChange={(checked) => handleSettingChange('compression', checked)}
@@ -433,6 +454,7 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
           <CardTitle className="flex items-center gap-2 text-white text-lg">
             <Sliders className="h-4 w-4" />
             10-Band Equalizer
+            <AudioSettingsTooltip setting="eq" />
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0 space-y-3">

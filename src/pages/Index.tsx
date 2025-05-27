@@ -11,7 +11,10 @@ import { BatchPresets } from '@/components/BatchPresets';
 import { ExportHistory } from '@/components/ExportHistory';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { MediaPlayer } from '@/components/MediaPlayer';
+import { AudioEnhancementBanner } from '@/components/AudioEnhancementBanner';
 import { useToast } from '@/hooks/use-toast';
+import { useAudioProcessing } from '@/hooks/useAudioProcessing';
+import { useEnhancementHistory } from '@/hooks/useEnhancementHistory';
 
 export interface AudioFile {
   id: string;
@@ -35,9 +38,10 @@ export interface AudioFile {
 const Index = () => {
   const [audioFiles, setAudioFiles] = useState<AudioFile[]>([]);
   const [activeTab, setActiveTab] = useState('upload');
-  const [isProcessing, setIsProcessing] = useState(false);
   const [bulkDownloadPending, setBulkDownloadPending] = useState<string[]>([]);
   const { toast } = useToast();
+  const { processAudioFile, isProcessing, setIsProcessing } = useAudioProcessing();
+  const { history, addToHistory, clearHistory } = useEnhancementHistory();
   const [smartFolderOrganization, setSmartFolderOrganization] = useState('artist');
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
@@ -314,16 +318,16 @@ const Index = () => {
         f.id === file.id ? { ...f, status: 'processing' as const, progress: 0 } : f
       ));
 
-      // Simulate processing progress
-      for (let i = 0; i <= 90; i += 10) {
-        await new Promise(resolve => setTimeout(resolve, 100));
+      // Simulate processing progress with smaller increments
+      for (let i = 0; i <= 80; i += 20) {
+        await new Promise(resolve => setTimeout(resolve, 50));
         setAudioFiles(prev => prev.map(f => 
           f.id === file.id ? { ...f, progress: i } : f
         ));
       }
 
       try {
-        // Actually process the audio file
+        // Use the optimized audio processing
         const enhancedBlob = await processAudioFile(file, settings);
         const enhancedUrl = URL.createObjectURL(enhancedBlob);
         
@@ -331,6 +335,15 @@ const Index = () => {
         const enhancedFilename = `${file.name.replace(/\.[^.]+$/, '')}_enhanced.${extension}`;
         
         downloadQueue.push({ blob: enhancedBlob, filename: enhancedFilename });
+        
+        // Add to enhancement history
+        addToHistory({
+          fileName: file.name,
+          settings,
+          originalSize: file.size,
+          enhancedSize: enhancedBlob.size,
+          status: 'success'
+        });
         
         setAudioFiles(prev => prev.map(f => 
           f.id === file.id ? { 
@@ -343,6 +356,16 @@ const Index = () => {
         ));
       } catch (error) {
         console.error('Error processing file:', error);
+        
+        // Add error to history
+        addToHistory({
+          fileName: file.name,
+          settings,
+          originalSize: file.size,
+          enhancedSize: 0,
+          status: 'error'
+        });
+        
         setAudioFiles(prev => prev.map(f => 
           f.id === file.id ? { ...f, status: 'error' as const } : f
         ));
@@ -379,7 +402,7 @@ const Index = () => {
         icon: '/favicon.ico'
       });
     }
-  }, [audioFiles, notificationsEnabled, toast]);
+  }, [audioFiles, notificationsEnabled, toast, processAudioFile, addToHistory]);
 
   const handleBulkDownload = async (downloadQueue: { blob: Blob; filename: string }[], folderName: string) => {
     let successfulDownloads = 0;
@@ -414,21 +437,11 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-blue-950 to-black text-white">
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="p-3 bg-blue-600 rounded-lg">
-              <FileAudio className="h-8 w-8" />
-            </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-              Audio Enhancer Pro
-            </h1>
-            <ThemeToggle />
-          </div>
-          <p className="text-slate-300 text-lg">
-            Transform your music collection with professional-grade audio enhancement
-          </p>
+        {/* Enhanced Header with Banner */}
+        <div className="flex items-center justify-end mb-4">
+          <ThemeToggle />
         </div>
+        <AudioEnhancementBanner />
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
@@ -552,8 +565,9 @@ const Index = () => {
           
           <TabsContent value="history" className="mt-6">
             <ExportHistory 
-              history={[]} 
+              history={history} 
               onClearHistory={() => {
+                clearHistory();
                 toast({
                   title: "History cleared",
                   description: "Your enhancement history has been cleared"

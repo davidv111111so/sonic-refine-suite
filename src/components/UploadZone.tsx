@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useRef } from 'react';
 import { Upload, FileAudio, X, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -192,11 +191,11 @@ export const UploadZone = ({ onFilesUploaded }: UploadZoneProps) => {
   const hasUploadsInProgress = Object.keys(uploadProgress).length > 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Card className={`bg-slate-800/50 border-2 border-dashed transition-all duration-300 ${
         isDragOver ? 'border-blue-400 bg-blue-900/20' : 'border-slate-600'
       }`}>
-        <CardContent className="p-12">
+        <CardContent className="p-8">
           <div
             className="text-center"
             onDrop={handleDrop}
@@ -204,30 +203,30 @@ export const UploadZone = ({ onFilesUploaded }: UploadZoneProps) => {
             onDragLeave={handleDragLeave}
           >
             <div className={`transition-all duration-300 ${isDragOver ? 'scale-110' : ''}`}>
-              <Upload className={`h-16 w-16 mx-auto mb-4 ${
+              <Upload className={`h-12 w-12 mx-auto mb-3 ${
                 isDragOver ? 'text-blue-400' : 'text-slate-400'
               }`} />
             </div>
             
-            <h3 className="text-2xl font-semibold mb-2 text-white">
+            <h3 className="text-xl font-semibold mb-2 text-white">
               {isDragOver ? 'Drop your audio files here' : 'Upload Your Audio Files'}
             </h3>
             
-            <p className="text-slate-400 mb-6">
+            <p className="text-slate-400 mb-4 text-sm">
               Drag and drop your music files or click to browse
             </p>
             
-            <p className="text-sm text-slate-500 mb-6">
+            <p className="text-xs text-slate-500 mb-4">
               Supported formats: MP3, WAV, FLAC, OGG, M4A
             </p>
 
             <Button
               onClick={handleBrowse}
               size="lg"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
               disabled={hasUploadsInProgress}
             >
-              <FileAudio className="h-5 w-5 mr-2" />
+              <FileAudio className="h-4 w-4 mr-2" />
               Choose Files
             </Button>
 
@@ -243,19 +242,19 @@ export const UploadZone = ({ onFilesUploaded }: UploadZoneProps) => {
         </CardContent>
       </Card>
 
-      {/* Upload Progress */}
+      {/* Upload Progress - Made more compact */}
       {hasUploadsInProgress && (
         <Card className="bg-slate-800/50 border-slate-700">
-          <CardContent className="p-6">
-            <h4 className="text-lg font-semibold mb-4 text-white">Uploading Files...</h4>
-            <div className="space-y-3">
+          <CardContent className="p-4">
+            <h4 className="text-base font-semibold mb-3 text-white">Uploading Files...</h4>
+            <div className="space-y-2">
               {Object.entries(uploadProgress).map(([fileId, progress]) => (
-                <div key={fileId} className="flex items-center gap-3">
-                  <FileAudio className="h-4 w-4 text-blue-400 flex-shrink-0" />
+                <div key={fileId} className="flex items-center gap-2">
+                  <FileAudio className="h-3 w-3 text-blue-400 flex-shrink-0" />
                   <div className="flex-1">
-                    <Progress value={progress} className="h-2" />
+                    <Progress value={progress} className="h-1.5" />
                   </div>
-                  <span className="text-sm text-slate-400 w-12">{progress}%</span>
+                  <span className="text-xs text-slate-400 w-10">{progress}%</span>
                 </div>
               ))}
             </div>
@@ -263,30 +262,26 @@ export const UploadZone = ({ onFilesUploaded }: UploadZoneProps) => {
         </Card>
       )}
 
-      {/* Tips */}
+      {/* Tips - Made more compact */}
       <Card className="bg-slate-800/30 border-slate-700">
-        <CardContent className="p-6">
-          <h4 className="text-lg font-semibold mb-3 text-white">Tips for Best Results</h4>
-          <ul className="space-y-2 text-slate-300">
-            <li className="flex items-start gap-2">
-              <span className="text-blue-400 mt-1">•</span>
-              Upload high-quality source files for better enhancement results
+        <CardContent className="p-4">
+          <h4 className="text-base font-semibold mb-2 text-white">Tips for Best Results</h4>
+          <ul className="space-y-1 text-slate-300 text-sm">
+            <li className="flex items-start gap-1">
+              <span className="text-blue-400 mt-0.5 text-xs">•</span>
+              <span className="text-xs">Upload high-quality source files for better enhancement results</span>
             </li>
-            <li className="flex items-start gap-2">
-              <span className="text-blue-400 mt-1">•</span>
-              FLAC and WAV files provide the best quality for processing
+            <li className="flex items-start gap-1">
+              <span className="text-blue-400 mt-0.5 text-xs">•</span>
+              <span className="text-xs">FLAC and WAV files provide the best quality for processing</span>
             </li>
-            <li className="flex items-start gap-2">
-              <span className="text-blue-400 mt-1">•</span>
-              You can upload multiple files at once for batch processing
+            <li className="flex items-start gap-1">
+              <span className="text-blue-400 mt-0.5 text-xs">•</span>
+              <span className="text-xs">You can upload multiple files at once for batch processing</span>
             </li>
-            <li className="flex items-start gap-2">
-              <span className="text-blue-400 mt-1">•</span>
-              Files are processed locally in your browser for privacy
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-blue-400 mt-1">•</span>
-              Album artwork will be extracted when available
+            <li className="flex items-start gap-1">
+              <span className="text-blue-400 mt-0.5 text-xs">•</span>
+              <span className="text-xs">Files are processed locally in your browser for privacy</span>
             </li>
           </ul>
         </CardContent>
