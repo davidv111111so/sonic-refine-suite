@@ -327,7 +327,7 @@ const Index = () => {
       }
 
       try {
-        // Use the optimized audio processing
+        // Use the optimized audio processing from the hook
         const enhancedBlob = await processAudioFile(file, settings);
         const enhancedUrl = URL.createObjectURL(enhancedBlob);
         
@@ -336,7 +336,7 @@ const Index = () => {
         
         downloadQueue.push({ blob: enhancedBlob, filename: enhancedFilename });
         
-        // Add to enhancement history
+        // Add to enhancement history with proper format
         addToHistory({
           fileName: file.name,
           settings,

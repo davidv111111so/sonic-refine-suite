@@ -5,19 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Download, History, FileCheck, Copy, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
-interface ExportHistoryItem {
-  id: string;
-  fileName: string;
-  originalFileName: string;
-  timestamp: Date;
-  settings: Record<string, any>;
-  filePath: string;
-  fileSize: number;
-}
+import { EnhancementHistoryEntry } from '@/hooks/useEnhancementHistory';
 
 interface ExportHistoryProps {
-  history: ExportHistoryItem[];
+  history: EnhancementHistoryEntry[];
   onClearHistory?: () => void;
 }
 
@@ -55,51 +46,23 @@ export const ExportHistory = ({ history = [], onClearHistory }: ExportHistoryPro
     });
   };
 
-  // In a real app, we would have actual history, but for now we'll create some mock data
-  const mockHistory: ExportHistoryItem[] = [
+  // Create mock data if no history exists
+  const mockHistory: EnhancementHistoryEntry[] = history.length === 0 ? [
     {
       id: '1',
       fileName: 'Enhanced_Song.mp3',
-      originalFileName: 'Song.mp3',
-      timestamp: new Date(Date.now() - 1000 * 60 * 10), // 10 minutes ago
+      timestamp: new Date(Date.now() - 1000 * 60 * 10),
       settings: {
         targetBitrate: 320,
         noiseReduction: true,
         normalization: true,
         outputFormat: 'mp3'
       },
-      filePath: 'So/Enhanced_Song.mp3',
-      fileSize: 4580000
-    },
-    {
-      id: '2',
-      fileName: 'Enhanced_Podcast.mp3',
-      originalFileName: 'Podcast.mp3',
-      timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-      settings: {
-        targetBitrate: 192,
-        noiseReduction: true,
-        normalization: true,
-        outputFormat: 'mp3'
-      },
-      filePath: 'So/Enhanced_Podcast.mp3',
-      fileSize: 12800000
-    },
-    {
-      id: '3',
-      fileName: 'Enhanced_Classical.flac',
-      originalFileName: 'Classical.wav',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-      settings: {
-        targetBitrate: 320,
-        noiseReduction: false,
-        normalization: true,
-        outputFormat: 'flac'
-      },
-      filePath: 'So/Enhanced_Classical.flac',
-      fileSize: 28900000
+      originalSize: 3200000,
+      enhancedSize: 4580000,
+      status: 'success'
     }
-  ];
+  ] : [];
 
   const combinedHistory = [...sortedHistory, ...mockHistory];
 
@@ -147,7 +110,7 @@ export const ExportHistory = ({ history = [], onClearHistory }: ExportHistoryPro
                       <div>
                         <h4 className="font-medium text-white truncate">{item.fileName}</h4>
                         <p className="text-xs text-slate-400 mt-1">
-                          Original: {item.originalFileName}
+                          Status: {item.status === 'success' ? '✅ Enhanced' : '❌ Failed'}
                         </p>
                       </div>
                       <span className="text-xs text-slate-500">
@@ -157,7 +120,7 @@ export const ExportHistory = ({ history = [], onClearHistory }: ExportHistoryPro
                     
                     <div className="flex justify-between items-center mt-3">
                       <span className="text-xs text-slate-400">
-                        {formatFileSize(item.fileSize)}
+                        {formatFileSize(item.originalSize)} → {formatFileSize(item.enhancedSize)}
                       </span>
                       
                       <div className="flex items-center gap-2">
@@ -169,15 +132,6 @@ export const ExportHistory = ({ history = [], onClearHistory }: ExportHistoryPro
                         >
                           <Copy className="h-3 w-3 mr-1" />
                           Settings
-                        </Button>
-                        
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-green-400 hover:text-green-300"
-                        >
-                          <Download className="h-3 w-3 mr-1" />
-                          Download
                         </Button>
                       </div>
                     </div>
@@ -197,21 +151,21 @@ export const ExportHistory = ({ history = [], onClearHistory }: ExportHistoryPro
               <div className="bg-slate-700/50 rounded p-3 text-center">
                 <p className="text-sm text-slate-400">Total Size</p>
                 <p className="text-2xl font-bold text-white">
-                  {formatFileSize(combinedHistory.reduce((total, item) => total + item.fileSize, 0))}
+                  {formatFileSize(combinedHistory.reduce((total, item) => total + item.enhancedSize, 0))}
                 </p>
               </div>
               
               <div className="bg-slate-700/50 rounded p-3 text-center">
-                <p className="text-sm text-slate-400">MP3 Files</p>
+                <p className="text-sm text-slate-400">Success Rate</p>
                 <p className="text-2xl font-bold text-white">
-                  {combinedHistory.filter(item => item.fileName.endsWith('.mp3')).length}
+                  {Math.round((combinedHistory.filter(item => item.status === 'success').length / combinedHistory.length) * 100)}%
                 </p>
               </div>
               
               <div className="bg-slate-700/50 rounded p-3 text-center">
-                <p className="text-sm text-slate-400">FLAC Files</p>
+                <p className="text-sm text-slate-400">Avg Enhancement</p>
                 <p className="text-2xl font-bold text-white">
-                  {combinedHistory.filter(item => item.fileName.endsWith('.flac')).length}
+                  {Math.round(combinedHistory.reduce((total, item) => total + (item.enhancedSize / item.originalSize), 0) / combinedHistory.length * 100)}%
                 </p>
               </div>
             </div>
