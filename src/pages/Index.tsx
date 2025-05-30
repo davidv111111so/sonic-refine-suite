@@ -295,7 +295,6 @@ const Index = () => {
       if (downloaded) successfulDownloads++;
     }
     
-    setBulkDownloadPending([]);
     toast({
       title: "Bulk download complete!",
       description: `${successfulDownloads} files saved to ${folderName} folder.`,
