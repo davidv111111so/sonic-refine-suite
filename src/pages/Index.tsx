@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { Upload, Music, Settings, Download, FileAudio, History, Radio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -40,6 +39,7 @@ const Index = () => {
   const [audioFiles, setAudioFiles] = useState<AudioFile[]>([]);
   const [activeTab, setActiveTab] = useState('upload');
   const [bulkDownloadPending, setBulkDownloadPending] = useState<string[]>([]);
+  const [bulkDownloadAuthorized, setBulkDownloadAuthorized] = useState(false);
   const { toast } = useToast();
   const { processAudioFile, isProcessing, setIsProcessing } = useAudioProcessing();
   const { history, addToHistory, clearHistory } = useEnhancementHistory();
@@ -110,14 +110,32 @@ const Index = () => {
     });
   }, [toast]);
 
-  const downloadFile = async (blob: Blob, filename: string, folderName: string) => {
+  // Improved bulk download with single authorization
+  const requestBulkDownloadAuthorization = async (fileCount: number) => {
+    if ('showDirectoryPicker' in window) {
+      try {
+        const dirHandle = await (window as any).showDirectoryPicker();
+        setBulkDownloadAuthorized(true);
+        return dirHandle;
+      } catch (error) {
+        console.log('Directory picker cancelled or failed');
+        return null;
+      }
+    }
+    
+    // Fallback: ask for confirmation for regular downloads
+    const confirmed = confirm(`Download ${fileCount} enhanced files? They will be saved to your Downloads folder.`);
+    if (confirmed) {
+      setBulkDownloadAuthorized(true);
+    }
+    return confirmed ? 'downloads' : null;
+  };
+
+  const downloadFile = async (blob: Blob, filename: string, folderName: string, dirHandle?: any) => {
     try {
-      if ('showDirectoryPicker' in window) {
+      if (dirHandle && dirHandle !== 'downloads') {
         try {
-          const dirHandle = await (window as any).showDirectoryPicker();
-          
           const folderHandle = await dirHandle.getDirectoryHandle(folderName, { create: true });
-          
           const fileHandle = await folderHandle.getFileHandle(filename, { create: true });
           const writable = await fileHandle.createWritable();
           
@@ -126,7 +144,7 @@ const Index = () => {
           
           return true;
         } catch (error) {
-          console.log('Directory picker failed, falling back to download');
+          console.log('Directory write failed, falling back to download');
         }
       }
       
@@ -148,12 +166,23 @@ const Index = () => {
 
   const handleEnhanceFiles = useCallback(async (settings: any) => {
     setIsProcessing(true);
+    setBulkDownloadAuthorized(false); // Reset authorization
     const filesToProcess = audioFiles.filter(file => file.status === 'uploaded');
     
     const folderName = `Enhanced_Audio_${new Date().toISOString().slice(0, 10)}`;
     
     let successfulDownloads = 0;
     const downloadQueue: { blob: Blob; filename: string }[] = [];
+    let dirHandle: any = null;
+
+    // Request authorization once for bulk downloads if multiple files
+    if (filesToProcess.length > 1) {
+      dirHandle = await requestBulkDownloadAuthorization(filesToProcess.length);
+      if (!dirHandle) {
+        setIsProcessing(false);
+        return;
+      }
+    }
     
     for (const file of filesToProcess) {
       setAudioFiles(prev => prev.map(f => 
@@ -214,8 +243,18 @@ const Index = () => {
       }
     }
 
-    // Bulk download handling
-    if (downloadQueue.length > 1) {
+    // Bulk download handling with authorization already granted
+    if (downloadQueue.length > 1 && bulkDownloadAuthorized) {
+      for (const item of downloadQueue) {
+        const downloaded = await downloadFile(item.blob, item.filename, folderName, dirHandle);
+        if (downloaded) successfulDownloads++;
+      }
+      
+      toast({
+        title: "Bulk download complete!",
+        description: `${successfulDownloads} files saved to ${folderName} folder.`,
+      });
+    } else if (downloadQueue.length > 1) {
       setBulkDownloadPending(downloadQueue.map(item => item.filename));
       
       toast({
@@ -244,7 +283,7 @@ const Index = () => {
         icon: '/favicon.ico'
       });
     }
-  }, [audioFiles, notificationsEnabled, toast, processAudioFile, addToHistory, setIsProcessing]);
+  }, [audioFiles, notificationsEnabled, toast, processAudioFile, addToHistory, setIsProcessing, bulkDownloadAuthorized]);
 
   const handleBulkDownload = async (downloadQueue: { blob: Blob; filename: string }[], folderName: string) => {
     let successfulDownloads = 0;

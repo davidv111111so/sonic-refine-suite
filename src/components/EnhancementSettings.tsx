@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Settings, Wand2, Volume2, Zap, Filter, Sliders } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
-import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { AudioSettingsTooltip } from '@/components/AudioSettingsTooltip';
@@ -17,7 +17,7 @@ interface EnhancementSettingsProps {
 
 interface EnhancementSettings {
   targetBitrate: number;
-  sampleRates: number[];
+  sampleRate: number; // Changed from array to single value
   noiseReduction: boolean;
   noiseReductionLevel: number;
   normalization: boolean;
@@ -37,7 +37,7 @@ interface EnhancementSettings {
 export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: EnhancementSettingsProps) => {
   const [settings, setSettings] = useState<EnhancementSettings>({
     targetBitrate: 320,
-    sampleRates: [44100],
+    sampleRate: 44100, // Default to 44.1kHz
     noiseReduction: true,
     noiseReductionLevel: 50,
     normalization: true,
@@ -50,13 +50,40 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
     compressionRatio: 4,
     outputFormat: 'mp3',
     gainAdjustment: 0,
-    enableEQ: false,
+    enableEQ: true, // Default to expanded
     eqBands: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // 10-band EQ
   });
 
   const eqFrequencies = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
-  // Enhanced sample rate options including professional and audiophile grades
-  const sampleRateOptions = [22050, 44100, 48000, 88200, 96000, 176400, 192000, 384000];
+  // Updated sample rate options (removed 22050, 48000, 88200, 384000)
+  const sampleRateOptions = [
+    { value: 44100, label: '44.1 kHz', description: 'CD Quality' },
+    { value: 96000, label: '96 kHz', description: 'Hi-Res Audio' },
+    { value: 176400, label: '176.4 kHz', description: 'Audiophile' },
+    { value: 192000, label: '192 kHz', description: 'Studio Quality' }
+  ];
+
+  // File size estimation
+  const estimatedFileSize = useMemo(() => {
+    const baseSize = 40; // MB for a typical 4-minute song
+    
+    // Sample rate multiplier
+    const sampleRateMultiplier = settings.sampleRate / 44100;
+    
+    // Bitrate multiplier
+    const bitrateMultiplier = settings.targetBitrate / 320;
+    
+    // Format multiplier
+    const formatMultiplier = settings.outputFormat === 'flac' ? 1.5 : 
+                            settings.outputFormat === 'wav' ? 2 : 1;
+    
+    // Processing effects (compression reduces size, others may increase)
+    const effectsMultiplier = settings.compression ? 0.9 : 1;
+    
+    const estimatedSize = baseSize * sampleRateMultiplier * bitrateMultiplier * formatMultiplier * effectsMultiplier;
+    
+    return estimatedSize.toFixed(1);
+  }, [settings.sampleRate, settings.targetBitrate, settings.outputFormat, settings.compression]);
 
   const getFrequencyColor = (freq: number, bandValue: number) => {
     const intensity = Math.abs(bandValue) / 12; // Normalize to 0-1
@@ -81,15 +108,6 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
     setSettings(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleSampleRateChange = (rate: number, checked: boolean) => {
-    setSettings(prev => ({
-      ...prev,
-      sampleRates: checked 
-        ? [...prev.sampleRates, rate].sort((a, b) => a - b)
-        : prev.sampleRates.filter(r => r !== rate)
-    }));
-  };
-
   const handleEQBandChange = (bandIndex: number, value: number) => {
     const newEqBands = [...settings.eqBands];
     newEqBands[bandIndex] = value;
@@ -101,15 +119,21 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
   };
 
   const handleEnhance = () => {
-    onEnhance(settings);
+    // Convert single sample rate back to array format for compatibility
+    const enhancementSettings = {
+      ...settings,
+      sampleRates: [settings.sampleRate]
+    };
+    onEnhance(enhancementSettings);
   };
 
+  // ... keep existing code (presets array and applyPreset function)
   const presets = [
     {
       name: "Vinyl Restoration",
       settings: {
         targetBitrate: 320,
-        sampleRates: [48000],
+        sampleRate: 96000,
         noiseReduction: true,
         noiseReductionLevel: 70,
         normalization: true,
@@ -123,7 +147,7 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
       name: "Voice Memo",
       settings: {
         targetBitrate: 192,
-        sampleRates: [44100],
+        sampleRate: 44100,
         noiseReduction: true,
         noiseReductionLevel: 90,
         normalization: true,
@@ -137,7 +161,7 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
       name: "Flat",
       settings: {
         targetBitrate: 320,
-        sampleRates: [48000],
+        sampleRate: 96000,
         noiseReduction: false,
         normalization: true,
         normalizationLevel: -6,
@@ -150,7 +174,7 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
       name: "Bass",
       settings: {
         targetBitrate: 320,
-        sampleRates: [44100],
+        sampleRate: 44100,
         noiseReduction: true,
         noiseReductionLevel: 30,
         normalization: true,
@@ -164,7 +188,7 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
       name: "Vocal",
       settings: {
         targetBitrate: 256,
-        sampleRates: [44100],
+        sampleRate: 44100,
         noiseReduction: true,
         noiseReductionLevel: 40,
         normalization: true,
@@ -178,7 +202,7 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
       name: "Electronic",
       settings: {
         targetBitrate: 320,
-        sampleRates: [48000],
+        sampleRate: 96000,
         noiseReduction: false,
         normalization: true,
         normalizationLevel: -3,
@@ -299,31 +323,43 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
               </div>
             </div>
 
-            {/* Sample Rates - Enhanced with professional options */}
-            <div className="space-y-2">
+            {/* Sample Rate - Updated with radio buttons */}
+            <div className="space-y-3">
               <label className="text-sm font-medium text-white flex items-center">
-                Sample Rates
+                Sample Rate
                 <AudioSettingsTooltip setting="sampleRate" />
               </label>
-              <div className="grid grid-cols-2 gap-2">
-                {sampleRateOptions.map((rate) => (
-                  <div key={rate} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`rate-${rate}`}
-                      checked={settings.sampleRates.includes(rate)}
-                      onCheckedChange={(checked) => handleSampleRateChange(rate, checked as boolean)}
-                      className="border-slate-500"
+              <RadioGroup
+                value={settings.sampleRate.toString()}
+                onValueChange={(value) => handleSettingChange('sampleRate', parseInt(value))}
+                className="grid grid-cols-1 gap-3"
+              >
+                {sampleRateOptions.map((option) => (
+                  <div key={option.value} className="flex items-center space-x-3 p-3 rounded-lg bg-slate-700/50 border border-slate-600 hover:bg-slate-700 transition-colors">
+                    <RadioGroupItem
+                      value={option.value.toString()}
+                      id={`rate-${option.value}`}
+                      className="border-slate-400 text-blue-400"
                     />
-                    <label htmlFor={`rate-${rate}`} className="text-sm text-slate-300">
-                      {rate >= 1000 ? `${rate/1000}k` : rate} Hz
-                      {rate >= 176400 && <span className="text-xs text-green-400 ml-1">(Hi-Res)</span>}
+                    <label 
+                      htmlFor={`rate-${option.value}`} 
+                      className="flex-1 cursor-pointer"
+                    >
+                      <div className="text-sm font-medium text-slate-200">{option.label}</div>
+                      <div className="text-xs text-slate-400">{option.description}</div>
                     </label>
                   </div>
                 ))}
+              </RadioGroup>
+            </div>
+
+            {/* File Size Estimation */}
+            <div className="p-3 bg-blue-900/20 border border-blue-700/30 rounded-lg">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-blue-300">Expected file size:</span>
+                <span className="text-sm font-medium text-blue-200">{estimatedFileSize} MB</span>
               </div>
-              <div className="text-xs text-slate-500">
-                Higher sample rates capture more audio detail. 192kHz+ for audiophile quality.
-              </div>
+              <div className="text-xs text-blue-400 mt-1">Per 4-minute track (approximate)</div>
             </div>
 
             {/* Gain Adjustment */}
@@ -448,7 +484,7 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
         </Card>
       </div>
 
-      {/* Enhanced EQ Settings */}
+      {/* Enhanced EQ Settings - Always expanded */}
       <Card className="bg-slate-800/50 border-slate-700">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-white text-lg">
@@ -473,6 +509,7 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
             </Button>
           </div>
           
+          {/* EQ is always visible when enabled */}
           {settings.enableEQ && (
             <div className="relative bg-slate-900/50 rounded-lg p-6">
               {/* Grid lines */}
@@ -535,7 +572,7 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
               <h3 className="text-lg font-semibold text-white">Ready to Enhance</h3>
               <p className="text-slate-400 text-sm">
                 {hasFiles 
-                  ? "All settings configured. Enhanced files will be saved to your Desktop."
+                  ? "All settings configured. Enhanced files will be saved to your selected folder."
                   : "Upload audio files first to begin enhancement."
                 }
               </p>
