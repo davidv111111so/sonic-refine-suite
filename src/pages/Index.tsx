@@ -27,6 +27,7 @@ export interface AudioFile {
   sampleRate?: number;
   status: 'uploaded' | 'processing' | 'enhanced' | 'error';
   progress?: number;
+  processingStage?: string;
   originalFile: File;
   enhancedUrl?: string;
   originalUrl?: string;
@@ -38,12 +39,11 @@ export interface AudioFile {
 const Index = () => {
   const [audioFiles, setAudioFiles] = useState<AudioFile[]>([]);
   const [activeTab, setActiveTab] = useState('upload');
-  const [bulkDownloadPending, setBulkDownloadPending] = useState<string[]>([]);
+  const [saveLocation, setSaveLocation] = useState<string | FileSystemDirectoryHandle>('downloads');
   const [bulkDownloadAuthorized, setBulkDownloadAuthorized] = useState(false);
   const { toast } = useToast();
-  const { processAudioFile, isProcessing, setIsProcessing } = useAudioProcessing();
+  const { processAudioFile, isProcessing, setIsProcessing, getProgressInfo } = useAudioProcessing();
   const { history, addToHistory, clearHistory } = useEnhancementHistory();
-  const [smartFolderOrganization, setSmartFolderOrganization] = useState('artist');
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   useEffect(() => {
@@ -110,11 +110,18 @@ const Index = () => {
     });
   }, [toast]);
 
-  // Improved bulk download with single authorization
+  // Single authorization request for bulk downloads
   const requestBulkDownloadAuthorization = async (fileCount: number) => {
+    if (typeof saveLocation === 'object' && saveLocation !== null) {
+      // Already have directory handle
+      setBulkDownloadAuthorized(true);
+      return saveLocation;
+    }
+    
     if ('showDirectoryPicker' in window) {
       try {
         const dirHandle = await (window as any).showDirectoryPicker();
+        setSaveLocation(dirHandle);
         setBulkDownloadAuthorized(true);
         return dirHandle;
       } catch (error) {
@@ -123,7 +130,6 @@ const Index = () => {
       }
     }
     
-    // Fallback: ask for confirmation for regular downloads
     const confirmed = confirm(`Download ${fileCount} enhanced files? They will be saved to your Downloads folder.`);
     if (confirmed) {
       setBulkDownloadAuthorized(true);
@@ -166,7 +172,7 @@ const Index = () => {
 
   const handleEnhanceFiles = useCallback(async (settings: any) => {
     setIsProcessing(true);
-    setBulkDownloadAuthorized(false); // Reset authorization
+    setBulkDownloadAuthorized(false);
     const filesToProcess = audioFiles.filter(file => file.status === 'uploaded');
     
     const folderName = `Enhanced_Audio_${new Date().toISOString().slice(0, 10)}`;
@@ -175,7 +181,7 @@ const Index = () => {
     const downloadQueue: { blob: Blob; filename: string }[] = [];
     let dirHandle: any = null;
 
-    // Request authorization once for bulk downloads if multiple files
+    // Request authorization once for bulk downloads
     if (filesToProcess.length > 1) {
       dirHandle = await requestBulkDownloadAuthorization(filesToProcess.length);
       if (!dirHandle) {
@@ -184,30 +190,38 @@ const Index = () => {
       }
     }
     
+    const startTime = Date.now();
+    
     for (const file of filesToProcess) {
       setAudioFiles(prev => prev.map(f => 
-        f.id === file.id ? { ...f, status: 'processing' as const, progress: 0 } : f
+        f.id === file.id ? { 
+          ...f, 
+          status: 'processing' as const, 
+          progress: 0,
+          processingStage: 'Starting...'
+        } : f
       ));
 
-      // Simulate processing progress with smaller increments
-      for (let i = 0; i <= 80; i += 20) {
-        await new Promise(resolve => setTimeout(resolve, 50));
-        setAudioFiles(prev => prev.map(f => 
-          f.id === file.id ? { ...f, progress: i } : f
-        ));
-      }
-
       try {
-        // Use the optimized audio processing from the hook
-        const enhancedBlob = await processAudioFile(file, settings);
+        // Use the real audio processing with progress callbacks
+        const enhancedBlob = await processAudioFile(file, settings, (progress, stage) => {
+          setAudioFiles(prev => prev.map(f => 
+            f.id === file.id ? { 
+              ...f, 
+              progress,
+              processingStage: stage
+            } : f
+          ));
+        });
+
         const enhancedUrl = URL.createObjectURL(enhancedBlob);
-        
         const extension = settings.outputFormat || 'wav';
         const enhancedFilename = `${file.name.replace(/\.[^.]+$/, '')}_enhanced.${extension}`;
         
         downloadQueue.push({ blob: enhancedBlob, filename: enhancedFilename });
         
-        // Add to enhancement history with proper format
+        // Add to enhancement history with correct structure
+        const processingTime = Date.now() - startTime;
         addToHistory({
           fileName: file.name,
           settings,
@@ -221,6 +235,7 @@ const Index = () => {
             ...f, 
             status: 'enhanced' as const, 
             progress: 100,
+            processingStage: 'Complete',
             enhancedUrl,
             enhancedSize: enhancedBlob.size
           } : f
@@ -228,7 +243,6 @@ const Index = () => {
       } catch (error) {
         console.error('Error processing file:', error);
         
-        // Add error to history
         addToHistory({
           fileName: file.name,
           settings,
@@ -238,12 +252,16 @@ const Index = () => {
         });
         
         setAudioFiles(prev => prev.map(f => 
-          f.id === file.id ? { ...f, status: 'error' as const } : f
+          f.id === file.id ? { 
+            ...f, 
+            status: 'error' as const,
+            processingStage: 'Failed'
+          } : f
         ));
       }
     }
 
-    // Bulk download handling with authorization already granted
+    // Handle bulk downloads with single authorization
     if (downloadQueue.length > 1 && bulkDownloadAuthorized) {
       for (const item of downloadQueue) {
         const downloaded = await downloadFile(item.blob, item.filename, folderName, dirHandle);
@@ -254,24 +272,8 @@ const Index = () => {
         title: "Bulk download complete!",
         description: `${successfulDownloads} files saved to ${folderName} folder.`,
       });
-    } else if (downloadQueue.length > 1) {
-      setBulkDownloadPending(downloadQueue.map(item => item.filename));
-      
-      toast({
-        title: "Files ready for download",
-        description: `${downloadQueue.length} enhanced files are ready. Click "Download All" to save them.`,
-        action: (
-          <Button 
-            size="sm" 
-            onClick={() => handleBulkDownload(downloadQueue, folderName)}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            Download All
-          </Button>
-        ),
-      });
     } else if (downloadQueue.length === 1) {
-      const downloaded = await downloadFile(downloadQueue[0].blob, downloadQueue[0].filename, folderName);
+      const downloaded = await downloadFile(downloadQueue[0].blob, downloadQueue[0].filename, folderName, dirHandle);
       if (downloaded) successfulDownloads++;
     }
 
@@ -433,6 +435,7 @@ const Index = () => {
               onEnhance={handleEnhanceFiles}
               isProcessing={isProcessing}
               hasFiles={stats.uploaded > 0}
+              onSaveLocationChange={setSaveLocation}
             />
           </TabsContent>
 

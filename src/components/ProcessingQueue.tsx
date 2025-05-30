@@ -1,4 +1,3 @@
-
 import { Download, CheckCircle, Clock, AlertCircle, FileAudio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -137,6 +136,9 @@ export const ProcessingQueue = ({ files }: ProcessingQueueProps) => {
                     <div className="flex items-center gap-4 mt-1">
                       <span className="text-xs text-slate-400">
                         {(file.size / 1024 / 1024).toFixed(1)} MB
+                        {file.enhancedSize && (
+                          <> → {(file.enhancedSize / 1024 / 1024).toFixed(1)} MB</>
+                        )}
                       </span>
                       <Badge variant="outline" className="text-xs">
                         {getStatusText(file.status)}
@@ -147,30 +149,44 @@ export const ProcessingQueue = ({ files }: ProcessingQueueProps) => {
 
                 <div className="flex items-center gap-3">
                   {file.status === 'processing' && (
-                    <div className="w-32">
+                    <div className="w-40">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-slate-400">
+                          {file.processingStage || 'Processing...'}
+                        </span>
+                        <span className="text-xs text-slate-400">
+                          {file.progress || 0}%
+                        </span>
+                      </div>
                       <Progress value={file.progress || 0} className="h-2" />
-                      <p className="text-xs text-slate-400 mt-1 text-center">
-                        {file.progress || 0}%
-                      </p>
                     </div>
                   )}
                   
                   {file.status === 'enhanced' && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        if (file.enhancedUrl) {
-                          const a = document.createElement('a');
-                          a.href = file.enhancedUrl;
-                          a.download = `enhanced_${file.name}`;
-                          a.click();
-                        }
-                      }}
-                      className="text-green-400 hover:text-green-300"
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <div className="text-right">
+                        <div className="text-xs text-green-400">Enhanced</div>
+                        <div className="text-xs text-slate-400">
+                          +{file.enhancedSize && file.size ? 
+                            ((file.enhancedSize - file.size) / file.size * 100).toFixed(0) : 0}%
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          if (file.enhancedUrl) {
+                            const a = document.createElement('a');
+                            a.href = file.enhancedUrl;
+                            a.download = `enhanced_${file.name}`;
+                            a.click();
+                          }
+                        }}
+                        className="text-green-400 hover:text-green-300"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -190,7 +206,7 @@ export const ProcessingQueue = ({ files }: ProcessingQueueProps) => {
           <ul className="space-y-2 text-slate-300 text-sm">
             <li className="flex items-start gap-2">
               <span className="text-blue-400 mt-1">•</span>
-              Files are processed in the order they were uploaded
+              Files are processed with real audio enhancement algorithms
             </li>
             <li className="flex items-start gap-2">
               <span className="text-blue-400 mt-1">•</span>
@@ -198,11 +214,11 @@ export const ProcessingQueue = ({ files }: ProcessingQueueProps) => {
             </li>
             <li className="flex items-start gap-2">
               <span className="text-blue-400 mt-1">•</span>
-              You can continue using the app while files are being processed
+              Progress is tracked in real-time with detailed stage information
             </li>
             <li className="flex items-start gap-2">
               <span className="text-blue-400 mt-1">•</span>
-              Enhanced files are temporarily stored in your browser for download
+              Enhanced files show actual quality improvements and size changes
             </li>
           </ul>
         </CardContent>

@@ -8,16 +8,18 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { AudioSettingsTooltip } from '@/components/AudioSettingsTooltip';
+import { SaveLocationSelector } from '@/components/SaveLocationSelector';
 
 interface EnhancementSettingsProps {
   onEnhance: (settings: EnhancementSettings) => void;
   isProcessing: boolean;
   hasFiles: boolean;
+  onSaveLocationChange?: (location: string | FileSystemDirectoryHandle) => void;
 }
 
 interface EnhancementSettings {
   targetBitrate: number;
-  sampleRate: number; // Changed from array to single value
+  sampleRate: number;
   noiseReduction: boolean;
   noiseReductionLevel: number;
   normalization: boolean;
@@ -34,10 +36,10 @@ interface EnhancementSettings {
   eqBands: number[];
 }
 
-export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: EnhancementSettingsProps) => {
+export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles, onSaveLocationChange }: EnhancementSettingsProps) => {
   const [settings, setSettings] = useState<EnhancementSettings>({
     targetBitrate: 320,
-    sampleRate: 44100, // Default to 44.1kHz
+    sampleRate: 44100,
     noiseReduction: true,
     noiseReductionLevel: 50,
     normalization: true,
@@ -50,12 +52,11 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
     compressionRatio: 4,
     outputFormat: 'mp3',
     gainAdjustment: 0,
-    enableEQ: true, // Default to expanded
-    eqBands: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // 10-band EQ
+    enableEQ: true,
+    eqBands: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
   });
 
   const eqFrequencies = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
-  // Updated sample rate options (removed 22050, 48000, 88200, 384000)
   const sampleRateOptions = [
     { value: 44100, label: '44.1 kHz', description: 'CD Quality' },
     { value: 96000, label: '96 kHz', description: 'Hi-Res Audio' },
@@ -63,37 +64,91 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
     { value: 192000, label: '192 kHz', description: 'Studio Quality' }
   ];
 
-  // File size estimation
+  // Enhanced file size estimation with more accurate calculations
   const estimatedFileSize = useMemo(() => {
-    const baseSize = 40; // MB for a typical 4-minute song
+    const baseSize = 40; // MB for a typical 4-minute song at 320kbps MP3
     
-    // Sample rate multiplier
+    // Sample rate multiplier (more accurate)
     const sampleRateMultiplier = settings.sampleRate / 44100;
     
-    // Bitrate multiplier
-    const bitrateMultiplier = settings.targetBitrate / 320;
+    // Bitrate multiplier (more accurate for different formats)
+    let bitrateMultiplier = settings.targetBitrate / 320;
     
-    // Format multiplier
-    const formatMultiplier = settings.outputFormat === 'flac' ? 1.5 : 
-                            settings.outputFormat === 'wav' ? 2 : 1;
+    // Format multiplier (more realistic)
+    let formatMultiplier = 1;
+    switch (settings.outputFormat) {
+      case 'flac':
+        formatMultiplier = 1.8; // FLAC is typically 1.5-2x larger than high-quality MP3
+        break;
+      case 'wav':
+        formatMultiplier = 2.5; // WAV is uncompressed
+        break;
+      case 'ogg':
+        formatMultiplier = 0.9; // OGG is slightly more efficient than MP3
+        break;
+      default: // mp3
+        formatMultiplier = 1;
+    }
     
-    // Processing effects (compression reduces size, others may increase)
-    const effectsMultiplier = settings.compression ? 0.9 : 1;
+    // Processing effects multiplier
+    let effectsMultiplier = 1;
+    if (settings.enableEQ) {
+      const eqIntensity = settings.eqBands.reduce((sum, band) => sum + Math.abs(band), 0) / 10;
+      effectsMultiplier *= (1 + eqIntensity * 0.05);
+    }
+    if (settings.noiseReduction) effectsMultiplier *= 1.02;
+    if (settings.compression) effectsMultiplier *= 0.95; // Compression reduces size
+    if (settings.normalization) effectsMultiplier *= 1.01;
     
-    const estimatedSize = baseSize * sampleRateMultiplier * bitrateMultiplier * formatMultiplier * effectsMultiplier;
+    // Gain adjustment impact
+    const gainMultiplier = 1 + Math.abs(settings.gainAdjustment) * 0.01;
     
-    return estimatedSize.toFixed(1);
-  }, [settings.sampleRate, settings.targetBitrate, settings.outputFormat, settings.compression]);
+    const estimatedSize = baseSize * sampleRateMultiplier * bitrateMultiplier * formatMultiplier * effectsMultiplier * gainMultiplier;
+    
+    return {
+      size: estimatedSize.toFixed(1),
+      quality: getQualityLevel(settings),
+      improvement: Math.max(1, estimatedSize / baseSize).toFixed(1)
+    };
+  }, [settings]);
+
+  const getQualityLevel = (settings: EnhancementSettings) => {
+    let score = 0;
+    
+    // Sample rate scoring
+    if (settings.sampleRate >= 192000) score += 4;
+    else if (settings.sampleRate >= 96000) score += 3;
+    else if (settings.sampleRate >= 44100) score += 2;
+    else score += 1;
+    
+    // Bitrate scoring
+    if (settings.targetBitrate >= 320) score += 2;
+    else if (settings.targetBitrate >= 256) score += 1;
+    
+    // Format scoring
+    if (settings.outputFormat === 'flac' || settings.outputFormat === 'wav') score += 2;
+    else if (settings.outputFormat === 'mp3') score += 1;
+    
+    // Processing scoring
+    if (settings.enableEQ) score += 1;
+    if (settings.noiseReduction) score += 1;
+    if (settings.normalization) score += 1;
+    
+    if (score >= 8) return 'Studio';
+    if (score >= 6) return 'High';
+    if (score >= 4) return 'Good';
+    return 'Standard';
+  };
 
   const getFrequencyColor = (freq: number, bandValue: number) => {
-    const intensity = Math.abs(bandValue) / 12; // Normalize to 0-1
-    const alpha = 0.3 + intensity * 0.7; // Base opacity + dynamic
+    const intensity = Math.abs(bandValue) / 12;
+    const alpha = 0.3 + intensity * 0.7;
     
-    if (freq <= 125) return `rgba(239, 68, 68, ${alpha})`; // red
-    if (freq <= 500) return `rgba(249, 115, 22, ${alpha})`; // orange
-    if (freq <= 2000) return `rgba(234, 179, 8, ${alpha})`; // yellow
-    if (freq <= 8000) return `rgba(34, 197, 94, ${alpha})`; // green
-    return `rgba(59, 130, 246, ${alpha})`; // blue
+    if (freq <= 125) return `rgba(239, 68, 68, ${alpha})`;
+    if (freq <= 500) return `rgba(249, 115, 22, ${alpha})`;
+    if (freq <= 2000) return `rgba(234, 179, 8, ${alpha})`;
+    if (freq <= 8000) return `rgba(34, 197, 94, ${alpha})`;
+    return `rgba(59, 130, 246, ${alpha})`;
   };
 
   const getFrequencyTextColor = (freq: number) => {
@@ -119,7 +174,6 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
   };
 
   const handleEnhance = () => {
-    // Convert single sample rate back to array format for compatibility
     const enhancementSettings = {
       ...settings,
       sampleRates: [settings.sampleRate]
@@ -140,7 +194,7 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
         normalizationLevel: -3,
         outputFormat: 'flac',
         enableEQ: true,
-        eqBands: [2, 1, 0, -1, 0, 1, 2, 1, -1, -2] // Vinyl restoration curve
+        eqBands: [2, 1, 0, -1, 0, 1, 2, 1, -1, -2]
       }
     },
     {
@@ -154,7 +208,7 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
         normalizationLevel: -1,
         outputFormat: 'mp3',
         enableEQ: true,
-        eqBands: [-3, -2, 0, 2, 4, 3, 2, 1, -1, -2] // Voice clarity
+        eqBands: [-3, -2, 0, 2, 4, 3, 2, 1, -1, -2]
       }
     },
     {
@@ -167,7 +221,7 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
         normalizationLevel: -6,
         outputFormat: 'flac',
         enableEQ: true,
-        eqBands: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] // Flat response
+        eqBands: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
       }
     },
     {
@@ -181,7 +235,7 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
         normalizationLevel: -3,
         outputFormat: 'mp3',
         enableEQ: true,
-        eqBands: [6, 4, 2, 1, 0, -1, -2, -1, 0, 1] // Bass boost
+        eqBands: [6, 4, 2, 1, 0, -1, -2, -1, 0, 1]
       }
     },
     {
@@ -195,7 +249,7 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
         normalizationLevel: -2,
         outputFormat: 'mp3',
         enableEQ: true,
-        eqBands: [-2, -1, 0, 1, 3, 4, 3, 2, 1, 0] // Vocal presence
+        eqBands: [-2, -1, 0, 1, 3, 4, 3, 2, 1, 0]
       }
     },
     {
@@ -208,7 +262,7 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
         normalizationLevel: -3,
         outputFormat: 'mp3',
         enableEQ: true,
-        eqBands: [3, 2, 1, 0, 1, 2, 3, 4, 3, 2] // Electronic music curve
+        eqBands: [3, 2, 1, 0, 1, 2, 3, 4, 3, 2]
       }
     }
   ];
@@ -217,7 +271,6 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
     setSettings(prev => ({ ...prev, ...preset.settings }));
   };
 
-  // Get bitrate options based on format
   const getBitrateOptions = () => {
     switch (settings.outputFormat) {
       case 'mp3':
@@ -226,7 +279,7 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
         return { min: 128, max: 500, step: 32, options: [128, 160, 192, 224, 256, 320, 384, 448, 500] };
       case 'flac':
       case 'wav':
-        return { min: 500, max: 2000, step: 100, options: [500, 750, 1000, 1411, 1536, 2000] }; // Lossless equivalent rates
+        return { min: 500, max: 2000, step: 100, options: [500, 750, 1000, 1411, 1536, 2000] };
       default:
         return { min: 128, max: 320, step: 32, options: [128, 160, 192, 224, 256, 288, 320] };
     }
@@ -236,6 +289,12 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
 
   return (
     <div className="space-y-4">
+      {/* Save Location Selector */}
+      <SaveLocationSelector 
+        onLocationSelected={onSaveLocationChange || (() => {})}
+        currentLocation="Downloads folder"
+      />
+
       {/* Specialized Presets */}
       <Card className="bg-slate-800/50 border-slate-700">
         <CardHeader className="pb-3">
@@ -353,13 +412,27 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
               </RadioGroup>
             </div>
 
-            {/* File Size Estimation */}
-            <div className="p-3 bg-blue-900/20 border border-blue-700/30 rounded-lg">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-blue-300">Expected file size:</span>
-                <span className="text-sm font-medium text-blue-200">{estimatedFileSize} MB</span>
+            {/* Enhanced File Size Estimation */}
+            <div className="p-4 bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-700/30 rounded-lg">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm text-blue-300">File size:</span>
+                    <span className="text-sm font-medium text-blue-200">{estimatedFileSize.size} MB</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-purple-300">Quality:</span>
+                    <span className="text-sm font-medium text-purple-200">{estimatedFileSize.quality}</span>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm text-green-300">Improvement:</span>
+                    <span className="text-sm font-medium text-green-200">{estimatedFileSize.improvement}x</span>
+                  </div>
+                  <div className="text-xs text-slate-400">Per 4-min track</div>
+                </div>
               </div>
-              <div className="text-xs text-blue-400 mt-1">Per 4-minute track (approximate)</div>
             </div>
 
             {/* Gain Adjustment */}
@@ -484,7 +557,7 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: Enhan
         </Card>
       </div>
 
-      {/* Enhanced EQ Settings - Always expanded */}
+      {/* EQ Settings - Always expanded */}
       <Card className="bg-slate-800/50 border-slate-700">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-white text-lg">
