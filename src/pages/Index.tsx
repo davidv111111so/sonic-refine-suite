@@ -36,6 +36,8 @@ export interface AudioFile {
   artworkUrl?: string;
 }
 
+const STORAGE_KEY = 'audioEnhancer_files';
+
 const Index = () => {
   const [audioFiles, setAudioFiles] = useState<AudioFile[]>([]);
   const [activeTab, setActiveTab] = useState('upload');
@@ -45,6 +47,53 @@ const Index = () => {
   const { processAudioFile, isProcessing, setIsProcessing, getProgressInfo } = useAudioProcessing();
   const { history, addToHistory, clearHistory } = useEnhancementHistory();
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+
+  // Load saved files from localStorage on component mount
+  useEffect(() => {
+    const savedFiles = localStorage.getItem(STORAGE_KEY);
+    if (savedFiles) {
+      try {
+        const parsedFiles: AudioFile[] = JSON.parse(savedFiles);
+        // Filter out enhanced and error files, keep only uploaded ones
+        const uploadedFiles = parsedFiles.filter(file => file.status === 'uploaded');
+        
+        // Recreate file objects and URLs for uploaded files
+        const restoredFiles = uploadedFiles.map(file => {
+          // Note: We can't restore the actual File object from localStorage
+          // but we keep the metadata for display purposes
+          return {
+            ...file,
+            originalFile: new File([], file.name, { type: file.type }),
+            originalUrl: undefined // Will need to be re-uploaded for processing
+          };
+        });
+        
+        setAudioFiles(restoredFiles);
+        
+        if (restoredFiles.length > 0) {
+          toast({
+            title: "Files restored",
+            description: `${restoredFiles.length} uploaded files restored from previous session`,
+          });
+        }
+      } catch (error) {
+        console.error('Error loading saved files:', error);
+      }
+    }
+  }, [toast]);
+
+  // Save files to localStorage whenever audioFiles changes
+  useEffect(() => {
+    // Only save files that are uploaded (not processed ones)
+    const filesToSave = audioFiles.filter(file => file.status === 'uploaded').map(file => ({
+      ...file,
+      originalFile: undefined, // Can't serialize File objects
+      originalUrl: undefined, // Can't serialize blob URLs
+      enhancedUrl: undefined
+    }));
+    
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(filesToSave));
+  }, [audioFiles]);
 
   useEffect(() => {
     if ('Notification' in window) {
@@ -61,12 +110,36 @@ const Index = () => {
       let artist = "Unknown Artist";
       let title = file.name;
       
-      const nameMatch = file.name.match(/^(.*?)\s-\s(.*)\.[\w\d]+$/);
-      if (nameMatch) {
-        artist = nameMatch[1].trim();
-        title = nameMatch[2].trim();
-      } else {
-        title = file.name.replace(/\.[^.]+$/, '');
+      // Enhanced filename parsing for better song name extraction
+      const nameWithoutExt = file.name.replace(/\.[^.]+$/, '');
+      
+      // Try different patterns for artist - title separation
+      const patterns = [
+        /^(.*?)\s*-\s*(.*)$/, // Artist - Title
+        /^(.*?)\s*–\s*(.*)$/, // Artist – Title (em dash)
+        /^(.*?)\s*—\s*(.*)$/, // Artist — Title (em dash)
+        /^(\d+\.?\s*)?(.*?)\s*-\s*(.*)$/, // Track number. Artist - Title
+        /^(\d+[\.\s]+)(.*)$/ // Just track number prefix
+      ];
+      
+      for (const pattern of patterns) {
+        const match = nameWithoutExt.match(pattern);
+        if (match) {
+          if (match.length === 3) {
+            artist = match[1].trim();
+            title = match[2].trim();
+            break;
+          } else if (match.length === 4) {
+            artist = match[2].trim();
+            title = match[3].trim();
+            break;
+          }
+        }
+      }
+      
+      // If no pattern matched, use the filename as title
+      if (artist === "Unknown Artist") {
+        title = nameWithoutExt;
       }
       
       return {

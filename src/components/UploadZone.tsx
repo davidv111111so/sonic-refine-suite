@@ -11,34 +11,23 @@ interface UploadZoneProps {
 
 export const UploadZone = ({ onFilesUploaded }: UploadZoneProps) => {
   const [isDragOver, setIsDragOver] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
+  const [uploadProgress, setUploadProgress] = useState<{ [key: string]: { progress: number; name: string; artist: string; title: string } }>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const extractAlbumArtwork = async (file: File): Promise<string | undefined> => {
-    // Only attempt extraction for audio files
     if (!file.type.startsWith('audio/')) return undefined;
 
     try {
-      // For MP3 files with embedded artwork
       const arrayBuffer = await file.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
       
-      // Simple ID3 tag detection (very basic implementation)
-      // Look for APIC frame which contains the artwork
       const id3v2Header = String.fromCharCode(...Array.from(uint8Array.slice(0, 3)));
       
       if (id3v2Header === 'ID3') {
-        // This is a very simplified approach to find image data
-        // A robust implementation would parse the ID3 structure properly
-        
-        // Look for JPEG header bytes (FF D8 FF)
         for (let i = 0; i < uint8Array.length - 3; i++) {
           if (uint8Array[i] === 0xFF && uint8Array[i + 1] === 0xD8 && uint8Array[i + 2] === 0xFF) {
-            // Found potential JPEG header
-            // Find the end of the JPEG (FF D9)
             for (let j = i; j < uint8Array.length - 1; j++) {
               if (uint8Array[j] === 0xFF && uint8Array[j + 1] === 0xD9) {
-                // Extract the JPEG data
                 const imageBlob = new Blob([uint8Array.slice(i, j + 2)], { type: 'image/jpeg' });
                 return URL.createObjectURL(imageBlob);
               }
@@ -46,7 +35,6 @@ export const UploadZone = ({ onFilesUploaded }: UploadZoneProps) => {
           }
         }
         
-        // Also look for PNG header bytes (89 50 4E 47)
         for (let i = 0; i < uint8Array.length - 4; i++) {
           if (
             uint8Array[i] === 0x89 && 
@@ -54,8 +42,6 @@ export const UploadZone = ({ onFilesUploaded }: UploadZoneProps) => {
             uint8Array[i + 2] === 0x4E && 
             uint8Array[i + 3] === 0x47
           ) {
-            // Found potential PNG header
-            // Find the IEND chunk which marks the end of the PNG
             for (let j = i + 4; j < uint8Array.length - 8; j++) {
               if (
                 uint8Array[j] === 0x49 && 
@@ -63,7 +49,6 @@ export const UploadZone = ({ onFilesUploaded }: UploadZoneProps) => {
                 uint8Array[j + 2] === 0x4E && 
                 uint8Array[j + 3] === 0x44
               ) {
-                // Extract PNG data (include the ending bytes)
                 const imageBlob = new Blob([uint8Array.slice(i, j + 8)], { type: 'image/png' });
                 return URL.createObjectURL(imageBlob);
               }
@@ -72,12 +57,50 @@ export const UploadZone = ({ onFilesUploaded }: UploadZoneProps) => {
         }
       }
       
-      // If we didn't find embedded artwork, return undefined
       return undefined;
     } catch (error) {
       console.error('Error extracting album artwork:', error);
       return undefined;
     }
+  };
+
+  const extractSongInfo = (fileName: string) => {
+    let artist = "Unknown Artist";
+    let title = fileName;
+    
+    // Remove file extension
+    const nameWithoutExt = fileName.replace(/\.[^.]+$/, '');
+    
+    // Enhanced parsing patterns
+    const patterns = [
+      /^(.*?)\s*-\s*(.*)$/, // Artist - Title
+      /^(.*?)\s*–\s*(.*)$/, // Artist – Title (en dash)
+      /^(.*?)\s*—\s*(.*)$/, // Artist — Title (em dash)
+      /^(\d+\.?\s*)?(.*?)\s*-\s*(.*)$/, // Track number. Artist - Title
+      /^(\d+[\.\s]+)(.*)$/ // Just track number prefix
+    ];
+    
+    for (const pattern of patterns) {
+      const match = nameWithoutExt.match(pattern);
+      if (match) {
+        if (match.length === 3) {
+          artist = match[1].trim();
+          title = match[2].trim();
+          break;
+        } else if (match.length === 4) {
+          artist = match[2].trim();
+          title = match[3].trim();
+          break;
+        }
+      }
+    }
+    
+    // If no pattern matched, use the filename as title
+    if (artist === "Unknown Artist") {
+      title = nameWithoutExt;
+    }
+    
+    return { artist, title };
   };
 
   const processFiles = useCallback(async (files: FileList) => {
@@ -91,12 +114,26 @@ export const UploadZone = ({ onFilesUploaded }: UploadZoneProps) => {
         continue;
       }
 
-      // Create AudioContext to extract audio metadata
+      // Extract song info for display during upload
+      const { artist, title } = extractSongInfo(file.name);
+
+      const fileId = `${Date.now()}-${i}`;
+      
+      // Set initial progress with song info
+      setUploadProgress(prev => ({ 
+        ...prev, 
+        [fileId]: { 
+          progress: 0, 
+          name: file.name,
+          artist,
+          title
+        }
+      }));
+
       let duration = undefined;
       let sampleRate = undefined;
       let bitrate = undefined;
       
-      // Try to extract metadata if browser supports it
       try {
         const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
         const arrayBuffer = await file.arrayBuffer();
@@ -104,33 +141,17 @@ export const UploadZone = ({ onFilesUploaded }: UploadZoneProps) => {
         
         duration = audioBuffer.duration;
         sampleRate = audioBuffer.sampleRate;
-        // Estimate bitrate (very roughly)
         bitrate = Math.round((file.size * 8) / (duration * 1000));
         
-        // Clean up
         audioContext.close();
       } catch (error) {
         console.error('Error extracting audio metadata:', error);
       }
 
-      // Extract album artwork
       const artworkUrl = await extractAlbumArtwork(file);
 
-      // Extract song and artist information from filename
-      let artist = "Unknown Artist";
-      let title = file.name;
-      
-      const nameMatch = file.name.match(/^(.*?)\s-\s(.*)\.[\w\d]+$/);
-      if (nameMatch) {
-        artist = nameMatch[1].trim();
-        title = nameMatch[2].trim();
-      } else {
-        // Remove file extension for title
-        title = file.name.replace(/\.[^.]+$/, '');
-      }
-
       const audioFile: AudioFile = {
-        id: `${Date.now()}-${i}`,
+        id: fileId,
         name: file.name,
         size: file.size,
         type: file.type,
@@ -146,12 +167,16 @@ export const UploadZone = ({ onFilesUploaded }: UploadZoneProps) => {
 
       audioFiles.push(audioFile);
 
-      // Simulate upload progress
-      setUploadProgress(prev => ({ ...prev, [audioFile.id]: 0 }));
-      
+      // Simulate upload progress with better visual feedback
       for (let progress = 0; progress <= 100; progress += 20) {
         await new Promise(resolve => setTimeout(resolve, 100));
-        setUploadProgress(prev => ({ ...prev, [audioFile.id]: progress }));
+        setUploadProgress(prev => ({ 
+          ...prev, 
+          [fileId]: { 
+            ...prev[fileId],
+            progress 
+          }
+        }));
       }
     }
 
@@ -242,19 +267,28 @@ export const UploadZone = ({ onFilesUploaded }: UploadZoneProps) => {
         </CardContent>
       </Card>
 
-      {/* Upload Progress - Made more compact */}
       {hasUploadsInProgress && (
         <Card className="bg-slate-800/50 border-slate-700">
           <CardContent className="p-4">
             <h4 className="text-base font-semibold mb-3 text-white">Uploading Files...</h4>
-            <div className="space-y-2">
-              {Object.entries(uploadProgress).map(([fileId, progress]) => (
-                <div key={fileId} className="flex items-center gap-2">
-                  <FileAudio className="h-3 w-3 text-blue-400 flex-shrink-0" />
-                  <div className="flex-1">
-                    <Progress value={progress} className="h-1.5" />
+            <div className="space-y-3">
+              {Object.entries(uploadProgress).map(([fileId, fileData]) => (
+                <div key={fileId} className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <FileAudio className="h-3 w-3 text-blue-400 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white truncate">
+                          {fileData.title}
+                        </p>
+                        <p className="text-xs text-slate-400 truncate">
+                          by {fileData.artist}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-xs text-slate-400 ml-2 flex-shrink-0">{fileData.progress}%</span>
                   </div>
-                  <span className="text-xs text-slate-400 w-10">{progress}%</span>
+                  <Progress value={fileData.progress} className="h-1.5" />
                 </div>
               ))}
             </div>
@@ -262,7 +296,6 @@ export const UploadZone = ({ onFilesUploaded }: UploadZoneProps) => {
         </Card>
       )}
 
-      {/* Tips - Made more compact */}
       <Card className="bg-slate-800/30 border-slate-700">
         <CardContent className="p-4">
           <h4 className="text-base font-semibold mb-2 text-white">Tips for Best Results</h4>
@@ -282,6 +315,10 @@ export const UploadZone = ({ onFilesUploaded }: UploadZoneProps) => {
             <li className="flex items-start gap-1">
               <span className="text-blue-400 mt-0.5 text-xs">•</span>
               <span className="text-xs">Files are processed locally in your browser for privacy</span>
+            </li>
+            <li className="flex items-start gap-1">
+              <span className="text-blue-400 mt-0.5 text-xs">•</span>
+              <span className="text-xs">Uploaded files persist until you refresh or process them</span>
             </li>
           </ul>
         </CardContent>
