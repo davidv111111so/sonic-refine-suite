@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { Upload, Music, Settings, Download, FileAudio, History, Radio, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -40,6 +41,8 @@ export interface AudioFile {
 const STORAGE_KEY = 'audioEnhancer_files';
 
 const Index = () => {
+  console.log('Index component render started');
+  
   const [audioFiles, setAudioFiles] = useState<AudioFile[]>([]);
   const [activeTab, setActiveTab] = useState('upload');
   const [saveLocation, setSaveLocation] = useState<string | FileSystemDirectoryHandle>('downloads');
@@ -390,10 +393,8 @@ const Index = () => {
     enhanced: audioFiles.filter(f => f.status === 'enhanced').length,
   };
 
-  // Add debugging for the enhance tab
   console.log('Index component render - activeTab:', activeTab);
   console.log('Index component render - stats:', stats);
-  console.log('Index component render - isProcessing:', isProcessing);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-blue-950 to-black text-white">
@@ -513,27 +514,54 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="enhance" className="mt-6 space-y-6">
-            <ErrorBoundary fallback={
-              <Card className="bg-red-900/20 border-red-500/50">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3">
-                    <AlertTriangle className="h-8 w-8 text-red-400" />
-                    <div>
-                      <h3 className="text-lg font-semibold text-red-300">Enhancement Settings Error</h3>
-                      <p className="text-red-200 text-sm">
-                        There was an error loading the enhancement settings. Please refresh the page.
-                      </p>
+            {console.log('Rendering enhance tab')}
+            <ErrorBoundary 
+              fallback={
+                <Card className="bg-red-900/20 border-red-500/50">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-3">
+                      <AlertTriangle className="h-8 w-8 text-red-400" />
+                      <div>
+                        <h3 className="text-lg font-semibold text-red-300">Enhancement Settings Error</h3>
+                        <p className="text-red-200 text-sm">
+                          There was an error loading the enhancement settings. Please refresh the page.
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            }>
-              <EnhancementSettings
-                onEnhance={handleEnhanceFiles}
-                isProcessing={isProcessing}
-                hasFiles={stats.uploaded > 0}
-                onSaveLocationChange={setSaveLocation}
-              />
+                  </CardContent>
+                </Card>
+              }
+            >
+              {(() => {
+                try {
+                  console.log('About to render EnhancementSettings with:', { isProcessing, hasFiles: stats.uploaded > 0 });
+                  return (
+                    <EnhancementSettings
+                      onEnhance={handleEnhanceFiles}
+                      isProcessing={isProcessing}
+                      hasFiles={stats.uploaded > 0}
+                      onSaveLocationChange={setSaveLocation}
+                    />
+                  );
+                } catch (error) {
+                  console.error('EnhancementSettings render error:', error);
+                  return (
+                    <Card className="bg-red-900/20 border-red-500/50">
+                      <CardContent className="p-6">
+                        <div className="flex items-center gap-3">
+                          <AlertTriangle className="h-8 w-8 text-red-400" />
+                          <div>
+                            <h3 className="text-lg font-semibold text-red-300">Enhancement Settings Failed</h3>
+                            <p className="text-red-200 text-sm">
+                              Component failed to load: {error instanceof Error ? error.message : 'Unknown error'}
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                }
+              })()}
             </ErrorBoundary>
           </TabsContent>
 
