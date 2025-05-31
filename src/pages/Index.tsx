@@ -521,18 +521,13 @@ const Index = () => {
                     <div>
                       <h3 className="text-lg font-semibold text-red-300">Enhancement Settings Error</h3>
                       <p className="text-red-200 text-sm">
-                        There was an error loading the enhancement settings. Please check the console for details.
+                        There was an error loading the enhancement settings. Please refresh the page.
                       </p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             }>
-              {console.log('Rendering EnhancementSettings with props:', {
-                isProcessing,
-                hasFiles: stats.uploaded > 0,
-                uploaded: stats.uploaded
-              })}
               <EnhancementSettings
                 onEnhance={handleEnhanceFiles}
                 isProcessing={isProcessing}
