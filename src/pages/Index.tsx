@@ -15,6 +15,7 @@ import { AudioEnhancementBanner } from '@/components/AudioEnhancementBanner';
 import { useToast } from '@/hooks/use-toast';
 import { useAudioProcessing } from '@/hooks/useAudioProcessing';
 import { useEnhancementHistory } from '@/hooks/useEnhancementHistory';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export interface AudioFile {
   id: string;
@@ -389,6 +390,11 @@ const Index = () => {
     enhanced: audioFiles.filter(f => f.status === 'enhanced').length,
   };
 
+  // Add debugging for the enhance tab
+  console.log('Index component render - activeTab:', activeTab);
+  console.log('Index component render - stats:', stats);
+  console.log('Index component render - isProcessing:', isProcessing);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-blue-950 to-black text-white">
       <div className="container mx-auto px-4 py-8">
@@ -479,57 +485,88 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="upload" className="mt-6">
-            <UploadZone onFilesUploaded={handleFilesUploaded} />
+            <ErrorBoundary>
+              <UploadZone onFilesUploaded={handleFilesUploaded} />
+            </ErrorBoundary>
           </TabsContent>
 
           <TabsContent value="library" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {audioFiles.map((file) => (
-                <AudioFileCard
-                  key={file.id}
-                  file={file}
-                  onRemove={handleRemoveFile}
-                  onUpdate={handleUpdateFile}
-                />
-              ))}
-              {audioFiles.length === 0 && (
-                <div className="col-span-full text-center py-12">
-                  <Music className="h-16 w-16 text-slate-600 mx-auto mb-4" />
-                  <p className="text-slate-400 text-lg">No audio files uploaded yet</p>
-                  <p className="text-slate-500">Upload some files to get started</p>
-                </div>
-              )}
-            </div>
+            <ErrorBoundary>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {audioFiles.map((file) => (
+                  <AudioFileCard
+                    key={file.id}
+                    file={file}
+                    onRemove={handleRemoveFile}
+                    onUpdate={handleUpdateFile}
+                  />
+                ))}
+                {audioFiles.length === 0 && (
+                  <div className="col-span-full text-center py-12">
+                    <Music className="h-16 w-16 text-slate-600 mx-auto mb-4" />
+                    <p className="text-slate-400 text-lg">No audio files uploaded yet</p>
+                    <p className="text-slate-500">Upload some files to get started</p>
+                  </div>
+                )}
+              </div>
+            </ErrorBoundary>
           </TabsContent>
 
           <TabsContent value="enhance" className="mt-6 space-y-6">
-            <EnhancementSettings
-              onEnhance={handleEnhanceFiles}
-              isProcessing={isProcessing}
-              hasFiles={stats.uploaded > 0}
-              onSaveLocationChange={setSaveLocation}
-            />
+            <ErrorBoundary fallback={
+              <Card className="bg-red-900/20 border-red-500/50">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3">
+                    <AlertTriangle className="h-8 w-8 text-red-400" />
+                    <div>
+                      <h3 className="text-lg font-semibold text-red-300">Enhancement Settings Error</h3>
+                      <p className="text-red-200 text-sm">
+                        There was an error loading the enhancement settings. Please check the console for details.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            }>
+              {console.log('Rendering EnhancementSettings with props:', {
+                isProcessing,
+                hasFiles: stats.uploaded > 0,
+                uploaded: stats.uploaded
+              })}
+              <EnhancementSettings
+                onEnhance={handleEnhanceFiles}
+                isProcessing={isProcessing}
+                hasFiles={stats.uploaded > 0}
+                onSaveLocationChange={setSaveLocation}
+              />
+            </ErrorBoundary>
           </TabsContent>
 
           <TabsContent value="queue" className="mt-6">
-            <ProcessingQueue files={audioFiles} />
+            <ErrorBoundary>
+              <ProcessingQueue files={audioFiles} />
+            </ErrorBoundary>
           </TabsContent>
 
           <TabsContent value="player" className="mt-6">
-            <MediaPlayer />
+            <ErrorBoundary>
+              <MediaPlayer />
+            </ErrorBoundary>
           </TabsContent>
           
           <TabsContent value="history" className="mt-6">
-            <ExportHistory 
-              history={history} 
-              onClearHistory={() => {
-                clearHistory();
-                toast({
-                  title: "History cleared",
-                  description: "Your enhancement history has been cleared"
-                });
-              }} 
-            />
+            <ErrorBoundary>
+              <ExportHistory 
+                history={history} 
+                onClearHistory={() => {
+                  clearHistory();
+                  toast({
+                    title: "History cleared",
+                    description: "Your enhancement history has been cleared"
+                  });
+                }} 
+              />
+            </ErrorBoundary>
           </TabsContent>
         </Tabs>
       </div>
