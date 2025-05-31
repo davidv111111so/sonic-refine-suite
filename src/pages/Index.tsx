@@ -514,7 +514,6 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="enhance" className="mt-6 space-y-6">
-            {console.log('Rendering enhance tab')}
             <ErrorBoundary 
               fallback={
                 <Card className="bg-red-900/20 border-red-500/50">
@@ -533,6 +532,7 @@ const Index = () => {
               }
             >
               {(() => {
+                console.log('Rendering enhance tab');
                 try {
                   console.log('About to render EnhancementSettings with:', { isProcessing, hasFiles: stats.uploaded > 0 });
                   return (
