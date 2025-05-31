@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from 'react';
 import { Settings, Wand2, Volume2, Zap, Filter, Sliders } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -36,6 +35,31 @@ interface EnhancementSettings {
   enableEQ: boolean;
   eqBands: number[];
 }
+
+// Move getQualityLevel function outside component to avoid hoisting issues
+const getQualityLevel = (settings: EnhancementSettings) => {
+  let score = 0;
+  
+  if (settings.sampleRate >= 192000) score += 4;
+  else if (settings.sampleRate >= 96000) score += 3;
+  else if (settings.sampleRate >= 44100) score += 2;
+  else score += 1;
+  
+  if (settings.targetBitrate >= 320) score += 2;
+  else if (settings.targetBitrate >= 256) score += 1;
+  
+  if (settings.outputFormat === 'flac' || settings.outputFormat === 'wav') score += 2;
+  else if (settings.outputFormat === 'mp3') score += 1;
+  
+  if (settings.enableEQ) score += 1;
+  if (settings.noiseReduction) score += 1;
+  if (settings.normalization) score += 1;
+  
+  if (score >= 8) return 'Studio';
+  if (score >= 6) return 'High';
+  if (score >= 4) return 'Good';
+  return 'Standard';
+};
 
 export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles, onSaveLocationChange }: EnhancementSettingsProps) => {
   const [settings, setSettings] = useState<EnhancementSettings>({
@@ -103,30 +127,6 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles, onSaveL
       improvement: Math.max(1, estimatedSize / baseSize).toFixed(1)
     };
   }, [settings]);
-
-  const getQualityLevel = (settings: EnhancementSettings) => {
-    let score = 0;
-    
-    if (settings.sampleRate >= 192000) score += 4;
-    else if (settings.sampleRate >= 96000) score += 3;
-    else if (settings.sampleRate >= 44100) score += 2;
-    else score += 1;
-    
-    if (settings.targetBitrate >= 320) score += 2;
-    else if (settings.targetBitrate >= 256) score += 1;
-    
-    if (settings.outputFormat === 'flac' || settings.outputFormat === 'wav') score += 2;
-    else if (settings.outputFormat === 'mp3') score += 1;
-    
-    if (settings.enableEQ) score += 1;
-    if (settings.noiseReduction) score += 1;
-    if (settings.normalization) score += 1;
-    
-    if (score >= 8) return 'Studio';
-    if (score >= 6) return 'High';
-    if (score >= 4) return 'Good';
-    return 'Standard';
-  };
 
   const handleSettingChange = (key: keyof EnhancementSettings, value: any) => {
     setSettings(prev => ({ ...prev, [key]: value }));
