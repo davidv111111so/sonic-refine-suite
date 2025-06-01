@@ -2,6 +2,13 @@
 import { useCallback, useState } from 'react';
 import { AudioFile } from '@/pages/Index';
 
+// Extend the Window interface to include webkitAudioContext
+declare global {
+  interface Window {
+    webkitAudioContext?: typeof AudioContext;
+  }
+}
+
 export const useAudioProcessing = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingProgress, setProcessingProgress] = useState<{[key: string]: {progress: number, stage: string}}>({});
@@ -13,7 +20,7 @@ export const useAudioProcessing = () => {
   ): Promise<Blob> => {
     return new Promise((resolve, reject) => {
       // Check if we can use Web Workers with AudioContext
-      if (typeof AudioContext === 'undefined' && typeof webkitAudioContext === 'undefined') {
+      if (typeof AudioContext === 'undefined' && typeof window.webkitAudioContext === 'undefined') {
         // Fallback: Create a simple processed version without Web Worker
         const processWithoutWorker = async () => {
           try {
