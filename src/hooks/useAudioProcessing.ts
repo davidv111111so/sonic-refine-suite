@@ -20,12 +20,14 @@ export const useAudioProcessing = () => {
   ): Promise<Blob> => {
     return new Promise(async (resolve, reject) => {
       try {
+        console.log('Starting audio processing for:', file.name);
+        
         if (onProgressUpdate) {
           onProgressUpdate(10, 'Initializing...');
         }
 
-        // Add a small delay to prevent blocking
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Much longer delay to prevent blocking
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         // Initialize AudioContext with error handling
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -40,41 +42,41 @@ export const useAudioProcessing = () => {
           onProgressUpdate(20, 'Reading audio file...');
         }
 
-        // Add delay to prevent blocking
-        await new Promise(resolve => setTimeout(resolve, 50));
+        // Longer delay
+        await new Promise(resolve => setTimeout(resolve, 300));
 
-        // Read the audio file with timeout
+        // Read the audio file with shorter timeout
         const arrayBuffer = await Promise.race([
           file.originalFile.arrayBuffer(),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('File read timeout')), 10000))
+          new Promise((_, reject) => setTimeout(() => reject(new Error('File read timeout')), 5000))
         ]) as ArrayBuffer;
         
         if (onProgressUpdate) {
           onProgressUpdate(35, 'Decoding audio...');
         }
 
-        // Add delay to prevent blocking
-        await new Promise(resolve => setTimeout(resolve, 50));
+        // Longer delay
+        await new Promise(resolve => setTimeout(resolve, 300));
 
-        // Decode the audio data with timeout
+        // Decode the audio data with shorter timeout
         const audioBuffer = await Promise.race([
           audioContext.decodeAudioData(arrayBuffer.slice(0)),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Audio decode timeout')), 15000))
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Audio decode timeout')), 8000))
         ]) as AudioBuffer;
         
         if (onProgressUpdate) {
           onProgressUpdate(50, 'Processing audio...');
         }
 
-        // Process audio in chunks to prevent blocking
+        // Process audio with much smaller chunks
         const enhancedBuffer = await processAudioInChunks(audioBuffer, audioContext, settings, onProgressUpdate);
         
         if (onProgressUpdate) {
           onProgressUpdate(80, 'Encoding audio...');
         }
 
-        // Add delay before encoding
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Longer delay before encoding
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         // Convert to target format
         const enhancedArrayBuffer = await encodeAudioBuffer(enhancedBuffer, settings);
@@ -94,6 +96,7 @@ export const useAudioProcessing = () => {
           type: getOutputMimeType(settings.outputFormat) 
         });
         
+        console.log('Audio processing completed for:', file.name);
         resolve(enhancedBlob);
         
       } catch (error) {
@@ -129,7 +132,7 @@ export const useAudioProcessing = () => {
   };
 };
 
-// Process audio in chunks to prevent main thread blocking
+// Process audio in much smaller chunks with longer delays
 const processAudioInChunks = async (
   audioBuffer: AudioBuffer, 
   audioContext: AudioContext, 
@@ -143,22 +146,23 @@ const processAudioInChunks = async (
   // Create enhanced audio buffer
   const enhancedBuffer = audioContext.createBuffer(numberOfChannels, enhancedLength, sampleRate);
   
-  const chunkSize = 8192; // Process in smaller chunks
+  // Much smaller chunk size for better yielding
+  const chunkSize = 2048;
   
   for (let channel = 0; channel < numberOfChannels; channel++) {
     const inputData = audioBuffer.getChannelData(channel);
     const outputData = enhancedBuffer.getChannelData(channel);
     
-    // Process channel in chunks
+    // Process channel in very small chunks
     for (let start = 0; start < enhancedLength; start += chunkSize) {
       const end = Math.min(start + chunkSize, enhancedLength);
       
-      // Apply basic resampling and processing
+      // Very simple processing to prevent blocking
       for (let i = start; i < end; i++) {
         let sample = 0;
         
+        // Simple resampling
         if (sampleRate !== audioBuffer.sampleRate) {
-          // Simple resampling
           const sourceIndex = i * (audioBuffer.sampleRate / sampleRate);
           const index = Math.floor(sourceIndex);
           
@@ -171,37 +175,33 @@ const processAudioInChunks = async (
           }
         }
         
-        // Apply gain adjustment
+        // Very light gain adjustment only
         if (settings.gainAdjustment && settings.gainAdjustment !== 0) {
           const gainFactor = Math.pow(10, settings.gainAdjustment / 20);
           sample *= gainFactor;
-        }
-        
-        // Apply simple compression
-        if (settings.compression && Math.abs(sample) > 0.7) {
-          const ratio = settings.compressionRatio || 4;
-          const sign = sample >= 0 ? 1 : -1;
-          const compressed = 0.7 + (Math.abs(sample) - 0.7) / ratio;
-          sample = sign * compressed;
         }
         
         // Clamp sample
         outputData[i] = Math.max(-1, Math.min(1, sample));
       }
       
-      // Update progress and yield control
-      if (onProgressUpdate && start % (chunkSize * 4) === 0) {
+      // Update progress and yield control more frequently
+      if (onProgressUpdate && start % chunkSize === 0) {
         const progress = 50 + (start / enhancedLength) * 25;
         onProgressUpdate(progress, `Processing channel ${channel + 1}/${numberOfChannels}...`);
-        await new Promise(resolve => setTimeout(resolve, 1));
+        // Longer delay to yield control
+        await new Promise(resolve => setTimeout(resolve, 10));
       }
     }
+    
+    // Longer delay between channels
+    await new Promise(resolve => setTimeout(resolve, 100));
   }
   
   return enhancedBuffer;
 };
 
-// Simplified audio encoding
+// Simplified audio encoding with chunked processing
 const encodeAudioBuffer = async (audioBuffer: AudioBuffer, settings: any): Promise<ArrayBuffer> => {
   const length = audioBuffer.length;
   const numberOfChannels = audioBuffer.numberOfChannels;
@@ -243,16 +243,26 @@ const encodeAudioBuffer = async (audioBuffer: AudioBuffer, settings: any): Promi
   view.setUint32(offset, 0x64617461, false); offset += 4; // "data"
   view.setUint32(offset, dataLength, true); offset += 4;
   
-  // Convert audio data
+  // Convert audio data in chunks
   const maxValue = 32767; // 16-bit max
+  const chunkSize = 1024;
   
-  for (let i = 0; i < length; i++) {
-    for (let channel = 0; channel < numberOfChannels; channel++) {
-      const sample = audioBuffer.getChannelData(channel)[i];
-      const clampedSample = Math.max(-1, Math.min(1, sample));
-      const intSample = Math.round(clampedSample * maxValue);
-      view.setInt16(offset, intSample, true);
-      offset += 2;
+  for (let i = 0; i < length; i += chunkSize) {
+    const end = Math.min(i + chunkSize, length);
+    
+    for (let j = i; j < end; j++) {
+      for (let channel = 0; channel < numberOfChannels; channel++) {
+        const sample = audioBuffer.getChannelData(channel)[j];
+        const clampedSample = Math.max(-1, Math.min(1, sample));
+        const intSample = Math.round(clampedSample * maxValue);
+        view.setInt16(offset, intSample, true);
+        offset += 2;
+      }
+    }
+    
+    // Yield control during encoding
+    if (i % (chunkSize * 10) === 0) {
+      await new Promise(resolve => setTimeout(resolve, 5));
     }
   }
   
