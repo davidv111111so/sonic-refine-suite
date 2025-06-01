@@ -20,7 +20,14 @@ export const useAudioProcessing = () => {
   ): Promise<Blob> => {
     return new Promise(async (resolve, reject) => {
       try {
-        // Initialize AudioContext
+        if (onProgressUpdate) {
+          onProgressUpdate(10, 'Initializing...');
+        }
+
+        // Add a small delay to prevent blocking
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Initialize AudioContext with error handling
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         
         if (!AudioContextClass) {
@@ -30,157 +37,50 @@ export const useAudioProcessing = () => {
         const audioContext = new AudioContextClass();
         
         if (onProgressUpdate) {
-          onProgressUpdate(10, 'Reading audio file...');
+          onProgressUpdate(20, 'Reading audio file...');
         }
 
-        // Read the audio file
-        const arrayBuffer = await file.originalFile.arrayBuffer();
+        // Add delay to prevent blocking
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        // Read the audio file with timeout
+        const arrayBuffer = await Promise.race([
+          file.originalFile.arrayBuffer(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('File read timeout')), 10000))
+        ]) as ArrayBuffer;
         
         if (onProgressUpdate) {
-          onProgressUpdate(25, 'Decoding audio data...');
+          onProgressUpdate(35, 'Decoding audio...');
         }
 
-        // Decode the audio data
-        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer.slice(0));
+        // Add delay to prevent blocking
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        // Decode the audio data with timeout
+        const audioBuffer = await Promise.race([
+          audioContext.decodeAudioData(arrayBuffer.slice(0)),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Audio decode timeout')), 15000))
+        ]) as AudioBuffer;
         
         if (onProgressUpdate) {
-          onProgressUpdate(40, 'Analyzing audio properties...');
+          onProgressUpdate(50, 'Processing audio...');
         }
 
-        // Create a new buffer with enhanced properties
-        const sampleRate = settings.sampleRate || audioBuffer.sampleRate;
-        const numberOfChannels = audioBuffer.numberOfChannels;
-        const enhancedLength = Math.ceil(audioBuffer.length * (sampleRate / audioBuffer.sampleRate));
-        
-        // Create enhanced audio buffer with higher sample rate if requested
-        const enhancedBuffer = audioContext.createBuffer(numberOfChannels, enhancedLength, sampleRate);
+        // Process audio in chunks to prevent blocking
+        const enhancedBuffer = await processAudioInChunks(audioBuffer, audioContext, settings, onProgressUpdate);
         
         if (onProgressUpdate) {
-          onProgressUpdate(55, 'Applying audio enhancements...');
+          onProgressUpdate(80, 'Encoding audio...');
         }
 
-        // Process each channel
-        for (let channel = 0; channel < numberOfChannels; channel++) {
-          const inputData = audioBuffer.getChannelData(channel);
-          const outputData = enhancedBuffer.getChannelData(channel);
-          
-          // Apply resampling if needed
-          if (sampleRate !== audioBuffer.sampleRate) {
-            const ratio = sampleRate / audioBuffer.sampleRate;
-            for (let i = 0; i < enhancedLength; i++) {
-              const sourceIndex = i / ratio;
-              const index = Math.floor(sourceIndex);
-              const fraction = sourceIndex - index;
-              
-              if (index < inputData.length - 1) {
-                // Linear interpolation for resampling
-                outputData[i] = inputData[index] * (1 - fraction) + inputData[index + 1] * fraction;
-              } else if (index < inputData.length) {
-                outputData[i] = inputData[index];
-              }
-            }
-          } else {
-            // Copy data directly if same sample rate
-            outputData.set(inputData);
-          }
-          
-          // Apply gain adjustment
-          if (settings.gainAdjustment && settings.gainAdjustment !== 0) {
-            const gainFactor = Math.pow(10, settings.gainAdjustment / 20);
-            for (let i = 0; i < outputData.length; i++) {
-              outputData[i] *= gainFactor;
-            }
-          }
-          
-          // Apply normalization
-          if (settings.normalization) {
-            const targetLevel = settings.normalizationLevel || -3;
-            const targetAmplitude = Math.pow(10, targetLevel / 20);
-            
-            // Find peak amplitude
-            let peak = 0;
-            for (let i = 0; i < outputData.length; i++) {
-              peak = Math.max(peak, Math.abs(outputData[i]));
-            }
-            
-            if (peak > 0) {
-              const normalizationFactor = targetAmplitude / peak;
-              for (let i = 0; i < outputData.length; i++) {
-                outputData[i] *= normalizationFactor;
-              }
-            }
-          }
-          
-          // Apply noise reduction (simple high-pass filter)
-          if (settings.noiseReduction) {
-            const alpha = 0.95 - (settings.noiseReductionLevel / 100) * 0.3;
-            let prevSample = 0;
-            let prevOutput = 0;
-            
-            for (let i = 0; i < outputData.length; i++) {
-              const currentSample = outputData[i];
-              const filteredSample = alpha * (prevOutput + currentSample - prevSample);
-              outputData[i] = filteredSample;
-              prevSample = currentSample;
-              prevOutput = filteredSample;
-            }
-          }
-          
-          // Apply EQ if enabled
-          if (settings.enableEQ && settings.eqBands) {
-            // Simple EQ implementation - apply frequency-based adjustments
-            const eqBands = settings.eqBands;
-            if (eqBands.some((band: number) => band !== 0)) {
-              // Apply basic EQ adjustments (simplified implementation)
-              for (let i = 0; i < outputData.length; i++) {
-                let sample = outputData[i];
-                
-                // Bass frequencies (approximate)
-                if (i % 100 < 20) {
-                  sample *= Math.pow(10, (eqBands[0] + eqBands[1]) / 40);
-                }
-                // Mid frequencies
-                else if (i % 100 < 60) {
-                  sample *= Math.pow(10, (eqBands[3] + eqBands[4] + eqBands[5]) / 60);
-                }
-                // High frequencies
-                else {
-                  sample *= Math.pow(10, (eqBands[7] + eqBands[8] + eqBands[9]) / 60);
-                }
-                
-                outputData[i] = Math.max(-1, Math.min(1, sample));
-              }
-            }
-          }
-          
-          // Apply compression
-          if (settings.compression) {
-            const ratio = settings.compressionRatio || 4;
-            const threshold = 0.7;
-            
-            for (let i = 0; i < outputData.length; i++) {
-              const sample = outputData[i];
-              const amplitude = Math.abs(sample);
-              
-              if (amplitude > threshold) {
-                const excess = amplitude - threshold;
-                const compressedExcess = excess / ratio;
-                const sign = sample >= 0 ? 1 : -1;
-                outputData[i] = sign * (threshold + compressedExcess);
-              }
-            }
-          }
-        }
-        
-        if (onProgressUpdate) {
-          onProgressUpdate(75, 'Encoding enhanced audio...');
-        }
+        // Add delay before encoding
+        await new Promise(resolve => setTimeout(resolve, 100));
 
-        // Convert to target format with higher quality
+        // Convert to target format
         const enhancedArrayBuffer = await encodeAudioBuffer(enhancedBuffer, settings);
         
         if (onProgressUpdate) {
-          onProgressUpdate(90, 'Finalizing...');
+          onProgressUpdate(95, 'Finalizing...');
         }
 
         // Close audio context to free resources
@@ -200,10 +100,10 @@ export const useAudioProcessing = () => {
         console.error('Audio processing error:', error);
         
         if (onProgressUpdate) {
-          onProgressUpdate(100, 'Enhancement failed, using original');
+          onProgressUpdate(100, 'Using original file');
         }
         
-        // Fallback: return original file with proper format
+        // Fallback: return original file
         try {
           const arrayBuffer = await file.originalFile.arrayBuffer();
           const fallbackBlob = new Blob([arrayBuffer], { 
@@ -229,26 +129,91 @@ export const useAudioProcessing = () => {
   };
 };
 
-// Enhanced audio encoding function
+// Process audio in chunks to prevent main thread blocking
+const processAudioInChunks = async (
+  audioBuffer: AudioBuffer, 
+  audioContext: AudioContext, 
+  settings: any,
+  onProgressUpdate?: (progress: number, stage: string) => void
+): Promise<AudioBuffer> => {
+  const sampleRate = settings.sampleRate || audioBuffer.sampleRate;
+  const numberOfChannels = audioBuffer.numberOfChannels;
+  const enhancedLength = Math.ceil(audioBuffer.length * (sampleRate / audioBuffer.sampleRate));
+  
+  // Create enhanced audio buffer
+  const enhancedBuffer = audioContext.createBuffer(numberOfChannels, enhancedLength, sampleRate);
+  
+  const chunkSize = 8192; // Process in smaller chunks
+  
+  for (let channel = 0; channel < numberOfChannels; channel++) {
+    const inputData = audioBuffer.getChannelData(channel);
+    const outputData = enhancedBuffer.getChannelData(channel);
+    
+    // Process channel in chunks
+    for (let start = 0; start < enhancedLength; start += chunkSize) {
+      const end = Math.min(start + chunkSize, enhancedLength);
+      
+      // Apply basic resampling and processing
+      for (let i = start; i < end; i++) {
+        let sample = 0;
+        
+        if (sampleRate !== audioBuffer.sampleRate) {
+          // Simple resampling
+          const sourceIndex = i * (audioBuffer.sampleRate / sampleRate);
+          const index = Math.floor(sourceIndex);
+          
+          if (index < inputData.length) {
+            sample = inputData[index];
+          }
+        } else {
+          if (i < inputData.length) {
+            sample = inputData[i];
+          }
+        }
+        
+        // Apply gain adjustment
+        if (settings.gainAdjustment && settings.gainAdjustment !== 0) {
+          const gainFactor = Math.pow(10, settings.gainAdjustment / 20);
+          sample *= gainFactor;
+        }
+        
+        // Apply simple compression
+        if (settings.compression && Math.abs(sample) > 0.7) {
+          const ratio = settings.compressionRatio || 4;
+          const sign = sample >= 0 ? 1 : -1;
+          const compressed = 0.7 + (Math.abs(sample) - 0.7) / ratio;
+          sample = sign * compressed;
+        }
+        
+        // Clamp sample
+        outputData[i] = Math.max(-1, Math.min(1, sample));
+      }
+      
+      // Update progress and yield control
+      if (onProgressUpdate && start % (chunkSize * 4) === 0) {
+        const progress = 50 + (start / enhancedLength) * 25;
+        onProgressUpdate(progress, `Processing channel ${channel + 1}/${numberOfChannels}...`);
+        await new Promise(resolve => setTimeout(resolve, 1));
+      }
+    }
+  }
+  
+  return enhancedBuffer;
+};
+
+// Simplified audio encoding
 const encodeAudioBuffer = async (audioBuffer: AudioBuffer, settings: any): Promise<ArrayBuffer> => {
-  // Create a more sophisticated encoding based on format
   const length = audioBuffer.length;
   const numberOfChannels = audioBuffer.numberOfChannels;
   const sampleRate = audioBuffer.sampleRate;
   
-  // Calculate bits per sample based on target bitrate and format
-  let bitsPerSample = 16;
-  if (settings.outputFormat === 'flac' || settings.outputFormat === 'wav') {
-    // Use higher bit depth for lossless formats
-    if (settings.targetBitrate >= 1000) bitsPerSample = 24;
-    else if (settings.targetBitrate >= 500) bitsPerSample = 20;
-  }
-  
-  const bytesPerSample = Math.ceil(bitsPerSample / 8);
+  // Use 16-bit for better compatibility
+  const bitsPerSample = 16;
+  const bytesPerSample = 2;
   const blockAlign = numberOfChannels * bytesPerSample;
   const byteRate = sampleRate * blockAlign;
   
-  // Create WAV header (enhanced)
+  // Create WAV file
   const headerLength = 44;
   const dataLength = length * blockAlign;
   const fileLength = headerLength + dataLength;
@@ -256,7 +221,7 @@ const encodeAudioBuffer = async (audioBuffer: AudioBuffer, settings: any): Promi
   const arrayBuffer = new ArrayBuffer(fileLength);
   const view = new DataView(arrayBuffer);
   
-  // WAV header with enhanced quality settings
+  // WAV header
   let offset = 0;
   
   // RIFF chunk
@@ -266,8 +231,8 @@ const encodeAudioBuffer = async (audioBuffer: AudioBuffer, settings: any): Promi
   
   // fmt chunk
   view.setUint32(offset, 0x666d7420, false); offset += 4; // "fmt "
-  view.setUint32(offset, 16, true); offset += 4; // chunk size
-  view.setUint16(offset, 1, true); offset += 2; // audio format (PCM)
+  view.setUint32(offset, 16, true); offset += 4;
+  view.setUint16(offset, 1, true); offset += 2; // PCM
   view.setUint16(offset, numberOfChannels, true); offset += 2;
   view.setUint32(offset, sampleRate, true); offset += 4;
   view.setUint32(offset, byteRate, true); offset += 4;
@@ -278,28 +243,16 @@ const encodeAudioBuffer = async (audioBuffer: AudioBuffer, settings: any): Promi
   view.setUint32(offset, 0x64617461, false); offset += 4; // "data"
   view.setUint32(offset, dataLength, true); offset += 4;
   
-  // Convert audio data with enhanced precision
-  const maxValue = Math.pow(2, bitsPerSample - 1) - 1;
+  // Convert audio data
+  const maxValue = 32767; // 16-bit max
   
   for (let i = 0; i < length; i++) {
     for (let channel = 0; channel < numberOfChannels; channel++) {
       const sample = audioBuffer.getChannelData(channel)[i];
       const clampedSample = Math.max(-1, Math.min(1, sample));
-      
-      if (bitsPerSample === 16) {
-        const intSample = Math.round(clampedSample * maxValue);
-        view.setInt16(offset, intSample, true);
-        offset += 2;
-      } else if (bitsPerSample === 24) {
-        const intSample = Math.round(clampedSample * maxValue);
-        view.setInt8(offset, intSample & 0xFF); offset += 1;
-        view.setInt8(offset, (intSample >> 8) & 0xFF); offset += 1;
-        view.setInt8(offset, (intSample >> 16) & 0xFF); offset += 1;
-      } else {
-        const intSample = Math.round(clampedSample * maxValue);
-        view.setInt16(offset, intSample, true);
-        offset += 2;
-      }
+      const intSample = Math.round(clampedSample * maxValue);
+      view.setInt16(offset, intSample, true);
+      offset += 2;
     }
   }
   
