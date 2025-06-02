@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -45,7 +46,7 @@ export const AudioFileCard = ({ file, onRemove, onUpdate }: AudioFileCardProps) 
           {file.status === 'enhanced' && (
             <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <Badge variant="success">Enhanced</Badge>
+                <Badge variant="outline" className="border-green-500 text-green-400">Enhanced</Badge>
               </div>
               <p className="text-xs text-green-400">Ready for download</p>
             </div>
