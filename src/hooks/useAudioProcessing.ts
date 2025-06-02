@@ -1,6 +1,5 @@
-
 import { useCallback, useState } from 'react';
-import { AudioFile } from '@/pages/Index';
+import { AudioFile } from '@/types/audio';
 
 // Extend the Window interface to include webkitAudioContext
 declare global {

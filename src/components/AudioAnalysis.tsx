@@ -1,6 +1,6 @@
-
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AudioFile } from '@/pages/Index';
+import { AudioFile } from '@/types/audio';
 import { Activity, BarChart4, FileAudio, Music } from 'lucide-react';
 
 interface AudioAnalysisProps {

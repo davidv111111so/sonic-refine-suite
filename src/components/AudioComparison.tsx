@@ -1,155 +1,178 @@
-
-import { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Toggle } from '@/components/ui/toggle';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { AudioWaveform } from '@/components/AudioWaveform';
-import { SpectrumAnalyzer } from '@/components/SpectrumAnalyzer';
-import { AudioFile } from '@/pages/Index';
-import { Play, Pause, SwitchCamera, PanelLeftClose, PanelRightClose } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Play, Pause, Volume2, VolumeX, RotateCcw } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+import { Badge } from '@/components/ui/badge';
+import { AudioFile } from '@/types/audio';
 
 interface AudioComparisonProps {
-  file: AudioFile;
+  originalUrl: string | undefined;
+  enhancedUrl: string | undefined;
+  filename: string;
 }
 
-export const AudioComparison = ({ file }: AudioComparisonProps) => {
-  const [isPlaying, setIsPlaying] = useState<'original' | 'enhanced' | null>(null);
-  const [showSpectrum, setShowSpectrum] = useState(false);
+export const AudioComparison = ({ originalUrl, enhancedUrl, filename }: AudioComparisonProps) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [volume, setVolume] = useState(0.5);
+  const [progress, setProgress] = useState(0);
+  const [currentAudio, setCurrentAudio] = useState<'original' | 'enhanced'>('original');
+  const originalAudioRef = useRef<HTMLAudioElement>(null);
+  const enhancedAudioRef = useRef<HTMLAudioElement>(null);
 
-  const togglePlay = (type: 'original' | 'enhanced') => {
-    if (isPlaying === type) {
-      setIsPlaying(null);
-    } else {
-      setIsPlaying(type);
+  useEffect(() => {
+    const updateProgress = () => {
+      if (originalAudioRef.current && enhancedAudioRef.current) {
+        const currentTime = currentAudio === 'original' ? originalAudioRef.current.currentTime : enhancedAudioRef.current.currentTime;
+        const duration = currentAudio === 'original' ? originalAudioRef.current.duration : enhancedAudioRef.current.duration;
+        setProgress(duration ? (currentTime / duration) * 100 : 0);
+      }
+    };
+
+    const intervalId = setInterval(updateProgress, 100);
+    return () => clearInterval(intervalId);
+  }, [currentAudio]);
+
+  useEffect(() => {
+    if (originalAudioRef.current) {
+      originalAudioRef.current.volume = volume;
+    }
+    if (enhancedAudioRef.current) {
+      enhancedAudioRef.current.volume = volume;
+    }
+  }, [volume]);
+
+  const togglePlay = () => {
+    setIsPlaying(!isPlaying);
+    if (originalAudioRef.current && enhancedAudioRef.current) {
+      if (isPlaying) {
+        originalAudioRef.current.pause();
+        enhancedAudioRef.current.pause();
+      } else {
+        if (currentAudio === 'original') {
+          originalAudioRef.current.play();
+          enhancedAudioRef.current.pause();
+        } else {
+          enhancedAudioRef.current.play();
+          originalAudioRef.current.pause();
+        }
+      }
     }
   };
 
-  const switchPlaying = () => {
-    if (isPlaying === 'original') {
-      setIsPlaying('enhanced');
-    } else if (isPlaying === 'enhanced') {
-      setIsPlaying('original');
+  const handleVolumeChange = (value: number[]) => {
+    const newVolume = value[0] / 100;
+    setVolume(newVolume);
+    if (originalAudioRef.current) {
+      originalAudioRef.current.volume = newVolume;
+    }
+    if (enhancedAudioRef.current) {
+      enhancedAudioRef.current.volume = newVolume;
+    }
+  };
+
+  const handleProgressClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (originalAudioRef.current && enhancedAudioRef.current) {
+      const progressBar = event.currentTarget;
+      const clickPosition = event.clientX - progressBar.getBoundingClientRect().left;
+      const newProgress = clickPosition / progressBar.offsetWidth;
+
+      const duration = currentAudio === 'original' ? originalAudioRef.current.duration : enhancedAudioRef.current.duration;
+      const newTime = newProgress * duration;
+
+      if (currentAudio === 'original') {
+        originalAudioRef.current.currentTime = newTime;
+      } else {
+        enhancedAudioRef.current.currentTime = newTime;
+      }
+      setProgress(newProgress * 100);
+    }
+  };
+
+  const handleAudioSwitch = (audioType: 'original' | 'enhanced') => {
+    setCurrentAudio(audioType);
+    setIsPlaying(false);
+    setProgress(0);
+
+    if (originalAudioRef.current && enhancedAudioRef.current) {
+      originalAudioRef.current.pause();
+      enhancedAudioRef.current.pause();
+      originalAudioRef.current.currentTime = 0;
+      enhancedAudioRef.current.currentTime = 0;
+    }
+  };
+
+  const handleRestart = () => {
+    if (originalAudioRef.current && enhancedAudioRef.current) {
+      originalAudioRef.current.currentTime = 0;
+      enhancedAudioRef.current.currentTime = 0;
+      setProgress(0);
+      if (isPlaying) {
+        if (currentAudio === 'original') {
+          originalAudioRef.current.play();
+        } else {
+          enhancedAudioRef.current.play();
+        }
+      }
     }
   };
 
   return (
     <Card className="bg-slate-800/50 border-slate-700">
-      <CardContent className="p-6">
-        <h3 className="text-lg font-semibold mb-4 text-white">A/B Comparison</h3>
-        
-        <div className="flex justify-end mb-4">
-          <Button
-            variant="outline" 
-            size="sm" 
-            onClick={() => setShowSpectrum(!showSpectrum)}
-            className="bg-slate-700 border-slate-600 text-white"
-          >
-            {showSpectrum ? "Show Waveform" : "Show Spectrum"}
-          </Button>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-white">{filename} Comparison</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Badge variant={currentAudio === 'original' ? 'default' : 'secondary'} onClick={() => handleAudioSwitch('original')} className="cursor-pointer">
+            Original
+          </Badge>
+          <Badge variant={currentAudio === 'enhanced' ? 'default' : 'secondary'} onClick={() => handleAudioSwitch('enhanced')} className="cursor-pointer">
+            Enhanced
+          </Badge>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Original Audio */}
-          <div className="space-y-3">
-            <h4 className="font-medium text-slate-300">Original</h4>
-            
-            {showSpectrum ? (
-              <SpectrumAnalyzer 
-                audioUrl={file.originalUrl} 
-                playing={isPlaying === 'original'}
-                height={80}
-              />
-            ) : (
-              <AudioWaveform 
-                audioUrl={file.originalUrl || ''} 
-                color="#6366f1"
-                playing={isPlaying === 'original'}
-              />
-            )}
-            
-            <div className="flex justify-between">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => togglePlay('original')}
-                className="bg-slate-700 border-slate-600 text-white"
-              >
-                {isPlaying === 'original' ? (
-                  <><Pause className="h-4 w-4 mr-2" /> Pause</>
-                ) : (
-                  <><Play className="h-4 w-4 mr-2" /> Play</>
-                )}
-              </Button>
-              
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-slate-400"
-                disabled={!file.enhancedUrl}
-              >
-                <PanelRightClose className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          {/* Enhanced Audio */}
-          <div className="space-y-3">
-            <h4 className="font-medium text-slate-300">Enhanced</h4>
-            
-            {showSpectrum ? (
-              <SpectrumAnalyzer 
-                audioUrl={file.enhancedUrl || file.originalUrl} 
-                playing={isPlaying === 'enhanced'}
-                height={80}
-              />
-            ) : (
-              <AudioWaveform 
-                audioUrl={file.enhancedUrl || file.originalUrl || ''} 
-                color="#3b82f6"
-                playing={isPlaying === 'enhanced'}
-              />
-            )}
-            
-            <div className="flex justify-between">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => togglePlay('enhanced')}
-                disabled={!file.enhancedUrl}
-                className="bg-slate-700 border-slate-600 text-white"
-              >
-                {isPlaying === 'enhanced' ? (
-                  <><Pause className="h-4 w-4 mr-2" /> Pause</>
-                ) : (
-                  <><Play className="h-4 w-4 mr-2" /> Play</>
-                )}
-              </Button>
-              
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-slate-400"
-                disabled={!file.enhancedUrl}
-              >
-                <PanelLeftClose className="h-4 w-4" />
-              </Button>
-            </div>
+        <div className="relative">
+          <audio
+            ref={originalAudioRef}
+            src={originalUrl}
+            onEnded={() => setIsPlaying(false)}
+            style={{ display: 'none' }}
+          />
+          <audio
+            ref={enhancedAudioRef}
+            src={enhancedUrl}
+            onEnded={() => setIsPlaying(false)}
+            style={{ display: 'none' }}
+          />
+          <div
+            className="h-2 bg-slate-600 rounded-full cursor-pointer"
+            onClick={handleProgressClick}
+          >
+            <Progress value={progress} className="h-2" />
           </div>
         </div>
 
-        {/* Quick Switch Button */}
-        <div className="flex justify-center mt-4">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={switchPlaying}
-            disabled={!file.enhancedUrl || isPlaying === null}
-            className="bg-slate-700 border-slate-600 text-white"
-          >
-            <SwitchCamera className="h-4 w-4 mr-2" />
-            Switch Playing
+        <div className="flex items-center justify-between">
+          <Button variant="outline" size="icon" onClick={togglePlay}>
+            {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
           </Button>
+          <Button variant="outline" size="icon" onClick={handleRestart}>
+            <RotateCcw className="h-4 w-4" />
+          </Button>
+          <div className="flex items-center space-x-2">
+            {volume === 0 ? (
+              <VolumeX className="h-4 w-4 text-white" />
+            ) : (
+              <Volume2 className="h-4 w-4 text-white" />
+            )}
+            <Slider
+              defaultValue={[volume * 100]}
+              onValueChange={handleVolumeChange}
+              className="w-[100px]"
+            />
+          </div>
         </div>
       </CardContent>
     </Card>

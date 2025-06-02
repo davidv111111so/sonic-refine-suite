@@ -1,64 +1,48 @@
-
-import { FileAudio, Music } from 'lucide-react';
+import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { AudioFile } from '@/pages/Index';
+import { AudioFileActions } from '@/components/AudioFileActions';
+import { AudioFile } from '@/types/audio';
 
 interface AudioFileHeaderProps {
   file: AudioFile;
+  onRemove: (fileId: string) => void;
+  onUpdate: (fileId: string, updates: Partial<AudioFile>) => void;
 }
 
-export const AudioFileHeader = ({ file }: AudioFileHeaderProps) => {
-  const getStatusColor = (status: AudioFile['status']) => {
-    switch (status) {
-      case 'uploaded': return 'bg-blue-600';
-      case 'processing': return 'bg-yellow-600';
-      case 'enhanced': return 'bg-green-600';
-      case 'error': return 'bg-red-600';
-      default: return 'bg-gray-600';
-    }
-  };
-
-  const getStatusText = (status: AudioFile['status']) => {
-    switch (status) {
-      case 'uploaded': return 'Ready';
-      case 'processing': return 'Processing';
-      case 'enhanced': return 'Enhanced';
-      case 'error': return 'Error';
-      default: return 'Unknown';
-    }
-  };
-
+export const AudioFileHeader = ({ file, onRemove, onUpdate }: AudioFileHeaderProps) => {
   return (
-    <>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          {file.artworkUrl ? (
-            <div className="w-10 h-10 rounded overflow-hidden flex-shrink-0">
-              <img 
-                src={file.artworkUrl} 
-                alt="Album artwork" 
-                className="w-full h-full object-cover"
-              />
-            </div>
-          ) : (
-            <div className="w-10 h-10 bg-blue-900/30 rounded flex items-center justify-center flex-shrink-0">
-              <FileAudio className="h-5 w-5 text-blue-400" />
-            </div>
-          )}
-          <span className="font-medium text-white truncate" title={file.name}>
-            {file.name}
-          </span>
+    <div className="flex items-center justify-between">
+      <div className="flex items-center">
+        <img
+          src={file.artworkUrl || '/placeholder-artwork.png'}
+          alt={file.title || 'Audio File'}
+          className="w-12 h-12 rounded-md mr-4"
+          style={{ objectFit: 'cover' }}
+        />
+        <div>
+          <h3 className="text-lg font-semibold text-white">{file.title || file.name}</h3>
+          <p className="text-sm text-slate-400">{file.artist || 'Unknown Artist'}</p>
         </div>
-        <Badge className={`${getStatusColor(file.status)} text-white border-0 flex-shrink-0`}>
-          {getStatusText(file.status)}
-        </Badge>
       </div>
-      {file.artist && (
-        <div className="flex items-center gap-2 text-sm text-slate-400 mt-2">
-          <Music className="h-3 w-3" />
-          <span className="truncate">{file.artist} - {file.title || 'Unknown Title'}</span>
-        </div>
-      )}
-    </>
+      <div className="flex items-center space-x-2">
+        {file.status === 'processing' && (
+          <Badge variant="secondary">
+            Processing
+          </Badge>
+        )}
+        {file.status === 'enhanced' && (
+          <Badge variant="outline">
+            Enhanced
+          </Badge>
+        )}
+        {file.status === 'error' && (
+          <Badge variant="destructive">
+            Error
+          </Badge>
+        )}
+        <AudioFileActions file={file} onRemove={onRemove} onUpdate={onUpdate} />
+      </div>
+    </div>
   );
 };
+

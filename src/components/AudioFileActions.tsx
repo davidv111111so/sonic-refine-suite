@@ -1,101 +1,84 @@
-
-import { useState } from 'react';
-import { Play, Pause, Download, Trash2 } from 'lucide-react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
-import { AudioFile } from '@/pages/Index';
+import { Download, Trash2, Edit, Share } from 'lucide-react';
+import { AudioFile } from '@/types/audio';
+import { ID3TagEditor } from '@/components/ID3TagEditor';
+import { useToast } from '@/hooks/use-toast';
 
 interface AudioFileActionsProps {
   file: AudioFile;
   onRemove: (fileId: string) => void;
-  onUpdate?: (fileId: string, updates: Partial<AudioFile>) => void;
-  onSetActiveDialog: (dialog: string | null) => void;
+  onUpdate: (fileId: string, updates: Partial<AudioFile>) => void;
 }
 
-export const AudioFileActions = ({ file, onRemove, onUpdate, onSetActiveDialog }: AudioFileActionsProps) => {
-  const [isPlaying, setIsPlaying] = useState(false);
+export const AudioFileActions = ({ file, onRemove, onUpdate }: AudioFileActionsProps) => {
+  const { toast } = useToast();
 
   const handleDownload = () => {
     if (file.enhancedUrl) {
       const a = document.createElement('a');
       a.href = file.enhancedUrl;
-      a.download = `So/enhanced_${file.name}`;
+      a.download = `${file.name.replace(/\.[^.]+$/, '')}_enhanced.wav`;
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
+    } else if (file.originalUrl) {
+      const a = document.createElement('a');
+      a.href = file.originalUrl;
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } else {
+      toast({
+        title: "Download failed",
+        description: "The file URL is not available.",
+        variant: "destructive",
+      });
     }
   };
 
-  const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: `Share ${file.name}`,
+        text: `Check out this audio file: ${file.name}`,
+        url: file.originalUrl || file.enhancedUrl || window.location.href,
+      }).then(() => {
+        toast({
+          title: "Shared successfully",
+          description: `You have shared ${file.name}`,
+        });
+      }).catch((error) => {
+        toast({
+          title: "Share failed",
+          description: `Sharing failed: ${error}`,
+          variant: "destructive",
+        });
+      });
+    } else {
+      toast({
+        title: "Sharing not supported",
+        description: "Web Share API is not supported in this browser.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
-    <div className="space-y-4">
-      {/* Main Actions */}
-      <div className="flex items-center justify-between pt-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handlePlayPause}
-          className="text-slate-400 hover:text-white"
-        >
-          {isPlaying ? (
-            <Pause className="h-4 w-4 mr-1" />
-          ) : (
-            <Play className="h-4 w-4 mr-1" />
-          )}
-          {isPlaying ? "Pause" : "Play"}
-        </Button>
-
-        <div className="flex items-center gap-1">
-          {file.status === 'enhanced' && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleDownload}
-              className="text-green-400 hover:text-green-300"
-            >
-              <Download className="h-4 w-4" />
-            </Button>
-          )}
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onRemove(file.id)}
-            className="text-red-400 hover:text-red-300"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Additional Actions */}
-      <div className="grid grid-cols-3 gap-2 pt-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onSetActiveDialog('comparison')}
-          className="bg-slate-700 border-slate-600 text-xs text-slate-300 h-8"
-          disabled={file.status !== 'enhanced'}
-        >
-          A/B Compare
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onSetActiveDialog('tags')}
-          className="bg-slate-700 border-slate-600 text-xs text-slate-300 h-8"
-        >
-          Edit Tags
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onSetActiveDialog('analysis')}
-          className="bg-slate-700 border-slate-600 text-xs text-slate-300 h-8"
-        >
-          Analysis
-        </Button>
-      </div>
+    <div className="flex items-center space-x-2">
+      <Button variant="ghost" size="icon" onClick={handleDownload}>
+        <Download className="h-4 w-4" />
+      </Button>
+      <Button variant="ghost" size="icon">
+        <ID3TagEditor file={file} onUpdate={onUpdate} />
+      </Button>
+      <Button variant="ghost" size="icon" onClick={handleShare}>
+        <Share className="h-4 w-4" />
+      </Button>
+      <Button variant="ghost" size="icon" onClick={() => onRemove(file.id)}>
+        <Trash2 className="h-4 w-4" />
+      </Button>
     </div>
   );
 };
