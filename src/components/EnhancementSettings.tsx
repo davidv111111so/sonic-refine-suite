@@ -1,14 +1,12 @@
 import { useState, useMemo } from 'react';
-import { Settings, Wand2, Volume2, Zap, Filter, Sliders } from 'lucide-react';
+import { Settings, Wand2, Zap, Filter, Sliders } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
-import { AudioSettingsTooltip } from '@/components/AudioSettingsTooltip';
 import { SaveLocationSelector } from '@/components/SaveLocationSelector';
+import { BasicSettings } from '@/components/enhancement/BasicSettings';
+import { AudioProcessingSettings } from '@/components/enhancement/AudioProcessingSettings';
+import { EqualizerSettings } from '@/components/enhancement/EqualizerSettings';
+import { AudioSettingsTooltip } from '@/components/AudioSettingsTooltip';
 
 interface EnhancementSettingsProps {
   onEnhance: (settings: EnhancementSettings) => void;
@@ -81,14 +79,6 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles, onSaveL
     eqBands: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
   });
 
-  const eqFrequencies = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
-  const sampleRateOptions = [
-    { value: 44100, label: '44.1 kHz', description: 'CD Quality' },
-    { value: 96000, label: '96 kHz', description: 'Hi-Res Audio' },
-    { value: 176400, label: '176.4 kHz', description: 'Audiophile' },
-    { value: 192000, label: '192 kHz', description: 'Studio Quality' }
-  ];
-
   const estimatedFileSize = useMemo(() => {
     const baseSize = 40;
     const sampleRateMultiplier = settings.sampleRate / 44100;
@@ -96,17 +86,10 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles, onSaveL
     
     let formatMultiplier = 1;
     switch (settings.outputFormat) {
-      case 'flac':
-        formatMultiplier = 1.8;
-        break;
-      case 'wav':
-        formatMultiplier = 2.5;
-        break;
-      case 'ogg':
-        formatMultiplier = 0.9;
-        break;
-      default:
-        formatMultiplier = 1;
+      case 'flac': formatMultiplier = 1.8; break;
+      case 'wav': formatMultiplier = 2.5; break;
+      case 'ogg': formatMultiplier = 0.9; break;
+      default: formatMultiplier = 1;
     }
     
     let effectsMultiplier = 1;
@@ -239,22 +222,6 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles, onSaveL
     setSettings(prev => ({ ...prev, ...preset.settings }));
   };
 
-  const getBitrateOptions = () => {
-    switch (settings.outputFormat) {
-      case 'mp3':
-        return { min: 128, max: 320, step: 32, options: [128, 160, 192, 224, 256, 288, 320] };
-      case 'ogg':
-        return { min: 128, max: 500, step: 32, options: [128, 160, 192, 224, 256, 320, 384, 448, 500] };
-      case 'flac':
-      case 'wav':
-        return { min: 500, max: 2000, step: 100, options: [500, 750, 1000, 1411, 1536, 2000] };
-      default:
-        return { min: 128, max: 320, step: 32, options: [128, 160, 192, 224, 256, 288, 320] };
-    }
-  };
-
-  const bitrateOptions = getBitrateOptions();
-
   return (
     <div className="space-y-4">
       <SaveLocationSelector 
@@ -294,119 +261,12 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles, onSaveL
               Basic Settings
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-0 space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-white flex items-center">
-                Output Format
-                <AudioSettingsTooltip setting="outputFormat" />
-              </label>
-              <Select
-                value={settings.outputFormat}
-                onValueChange={(value) => handleSettingChange('outputFormat', value)}
-              >
-                <SelectTrigger className="bg-slate-700 border-slate-600 text-white h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-700 border-slate-600">
-                  <SelectItem value="mp3">MP3</SelectItem>
-                  <SelectItem value="flac">FLAC (Lossless)</SelectItem>
-                  <SelectItem value="wav">WAV (Uncompressed)</SelectItem>
-                  <SelectItem value="ogg">OGG</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <label className="text-sm font-medium text-white flex items-center">
-                  Target Bitrate
-                  <AudioSettingsTooltip setting="targetBitrate" />
-                </label>
-                <span className="text-sm text-slate-400">
-                  {settings.outputFormat === 'flac' || settings.outputFormat === 'wav' 
-                    ? `${settings.targetBitrate} kbps (Lossless)`
-                    : `${settings.targetBitrate} kbps`
-                  }
-                </span>
-              </div>
-              <Slider
-                value={[settings.targetBitrate]}
-                onValueChange={([value]) => handleSettingChange('targetBitrate', value)}
-                min={bitrateOptions.min}
-                max={bitrateOptions.max}
-                step={bitrateOptions.step}
-                className="w-full"
-              />
-            </div>
-
-            <div className="space-y-3">
-              <label className="text-sm font-medium text-white flex items-center">
-                Sample Rate
-                <AudioSettingsTooltip setting="sampleRate" />
-              </label>
-              <RadioGroup
-                value={settings.sampleRate.toString()}
-                onValueChange={(value) => handleSettingChange('sampleRate', parseInt(value))}
-                className="grid grid-cols-1 gap-3"
-              >
-                {sampleRateOptions.map((option) => (
-                  <div key={option.value} className="flex items-center space-x-3 p-3 rounded-lg bg-slate-700/50 border border-slate-600 hover:bg-slate-700 transition-colors">
-                    <RadioGroupItem
-                      value={option.value.toString()}
-                      id={`rate-${option.value}`}
-                      className="border-slate-400 text-blue-400"
-                    />
-                    <label 
-                      htmlFor={`rate-${option.value}`} 
-                      className="flex-1 cursor-pointer"
-                    >
-                      <div className="text-sm font-medium text-slate-200">{option.label}</div>
-                      <div className="text-xs text-slate-400">{option.description}</div>
-                    </label>
-                  </div>
-                ))}
-              </RadioGroup>
-            </div>
-
-            <div className="p-4 bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-700/30 rounded-lg">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm text-blue-300">File size:</span>
-                    <span className="text-sm font-medium text-blue-200">{estimatedFileSize.size} MB</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-purple-300">Quality:</span>
-                    <span className="text-sm font-medium text-purple-200">{estimatedFileSize.quality}</span>
-                  </div>
-                </div>
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm text-green-300">Improvement:</span>
-                    <span className="text-sm font-medium text-green-200">{estimatedFileSize.improvement}x</span>
-                  </div>
-                  <div className="text-xs text-slate-400">Per 4-min track</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <label className="text-sm font-medium text-white flex items-center">
-                  Gain Adjustment
-                  <AudioSettingsTooltip setting="gainAdjustment" />
-                </label>
-                <span className="text-sm text-slate-400">{settings.gainAdjustment > 0 ? '+' : ''}{settings.gainAdjustment} dB</span>
-              </div>
-              <Slider
-                value={[settings.gainAdjustment]}
-                onValueChange={([value]) => handleSettingChange('gainAdjustment', value)}
-                min={-12}
-                max={12}
-                step={0.5}
-                className="w-full"
-              />
-            </div>
+          <CardContent className="pt-0">
+            <BasicSettings 
+              settings={settings}
+              onSettingChange={handleSettingChange}
+              estimatedFileSize={estimatedFileSize}
+            />
           </CardContent>
         </Card>
 
@@ -417,94 +277,11 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles, onSaveL
               Audio Processing
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-0 space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-white flex items-center">
-                  Noise Reduction
-                  <AudioSettingsTooltip setting="noiseReduction" />
-                </label>
-                <Switch
-                  checked={settings.noiseReduction}
-                  onCheckedChange={(checked) => handleSettingChange('noiseReduction', checked)}
-                />
-              </div>
-              {settings.noiseReduction && (
-                <div className="space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-xs text-slate-400">Intensity</span>
-                    <span className="text-xs text-slate-400">{settings.noiseReductionLevel}%</span>
-                  </div>
-                  <Slider
-                    value={[settings.noiseReductionLevel]}
-                    onValueChange={([value]) => handleSettingChange('noiseReductionLevel', value)}
-                    min={0}
-                    max={100}
-                    step={5}
-                  />
-                </div>
-              )}
-            </div>
-
-            <Separator className="bg-slate-600" />
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-white flex items-center">
-                  Audio Normalization
-                  <AudioSettingsTooltip setting="normalization" />
-                </label>
-                <Switch
-                  checked={settings.normalization}
-                  onCheckedChange={(checked) => handleSettingChange('normalization', checked)}
-                />
-              </div>
-              {settings.normalization && (
-                <div className="space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-xs text-slate-400">Target Level</span>
-                    <span className="text-xs text-slate-400">{settings.normalizationLevel} dB</span>
-                  </div>
-                  <Slider
-                    value={[settings.normalizationLevel]}
-                    onValueChange={([value]) => handleSettingChange('normalizationLevel', value)}
-                    min={-12}
-                    max={0}
-                    step={1}
-                  />
-                </div>
-              )}
-            </div>
-
-            <Separator className="bg-slate-600" />
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-white flex items-center">
-                  Dynamic Compression
-                  <AudioSettingsTooltip setting="compression" />
-                </label>
-                <Switch
-                  checked={settings.compression}
-                  onCheckedChange={(checked) => handleSettingChange('compression', checked)}
-                />
-              </div>
-              {settings.compression && (
-                <div className="space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-xs text-slate-400">Ratio</span>
-                    <span className="text-xs text-slate-400">{settings.compressionRatio}:1</span>
-                  </div>
-                  <Slider
-                    value={[settings.compressionRatio]}
-                    onValueChange={([value]) => handleSettingChange('compressionRatio', value)}
-                    min={1}
-                    max={10}
-                    step={0.5}
-                  />
-                </div>
-              )}
-            </div>
+          <CardContent className="pt-0">
+            <AudioProcessingSettings 
+              settings={settings}
+              onSettingChange={handleSettingChange}
+            />
           </CardContent>
         </Card>
       </div>
@@ -517,49 +294,13 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles, onSaveL
             <AudioSettingsTooltip setting="eq" />
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-0 space-y-3">
-          <div className="flex items-center justify-between">
-            <Switch
-              checked={settings.enableEQ}
-              onCheckedChange={(checked) => handleSettingChange('enableEQ', checked)}
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={resetEQ}
-              className="bg-slate-700 border-slate-600 hover:bg-slate-600 text-white h-8"
-            >
-              Reset EQ
-            </Button>
-          </div>
-          
-          {settings.enableEQ && (
-            <div className="relative bg-slate-900/50 rounded-lg p-6">
-              <div className="flex justify-center items-end gap-3 py-4 relative z-10">
-                {eqFrequencies.map((freq, index) => (
-                  <div key={freq} className="flex flex-col items-center">
-                    <div className="h-32 flex items-end justify-center mb-2 relative">
-                      <Slider
-                        orientation="vertical"
-                        value={[settings.eqBands[index]]}
-                        onValueChange={([value]) => handleEQBandChange(index, value)}
-                        min={-12}
-                        max={12}
-                        step={0.5}
-                        className="h-28 w-6 relative z-10"
-                      />
-                    </div>
-                    <div className="text-xs font-medium text-blue-400 mb-1">
-                      {freq < 1000 ? `${freq}Hz` : `${freq/1000}kHz`}
-                    </div>
-                    <div className="text-xs text-slate-300">
-                      {settings.eqBands[index] > 0 ? '+' : ''}{settings.eqBands[index]}dB
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+        <CardContent className="pt-0">
+          <EqualizerSettings 
+            settings={settings}
+            onSettingChange={handleSettingChange}
+            onEQBandChange={handleEQBandChange}
+            onResetEQ={resetEQ}
+          />
         </CardContent>
       </Card>
 

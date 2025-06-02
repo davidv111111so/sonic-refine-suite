@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { Upload, Music, Settings, Download, FileAudio, History, Radio, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -16,6 +15,7 @@ import { AudioEnhancementBanner } from '@/components/AudioEnhancementBanner';
 import { useToast } from '@/hooks/use-toast';
 import { useAudioProcessing } from '@/hooks/useAudioProcessing';
 import { useEnhancementHistory } from '@/hooks/useEnhancementHistory';
+import { useWebWorkerAudioProcessing } from '@/hooks/useWebWorkerAudioProcessing';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export interface AudioFile {
@@ -48,7 +48,7 @@ const Index = () => {
   const [saveLocation, setSaveLocation] = useState<string | FileSystemDirectoryHandle>('downloads');
   const [bulkDownloadAuthorized, setBulkDownloadAuthorized] = useState(false);
   const { toast } = useToast();
-  const { processAudioFile, isProcessing, setIsProcessing, getProgressInfo } = useAudioProcessing();
+  const { processAudioFile, isProcessing, setIsProcessing, getProgressInfo } = useWebWorkerAudioProcessing();
   const { history, addToHistory, clearHistory } = useEnhancementHistory();
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
@@ -280,7 +280,7 @@ const Index = () => {
       ));
 
       try {
-        // Use the real audio processing with progress callbacks
+        // Use the Web Worker audio processing with progress callbacks
         const enhancedBlob = await processAudioFile(file, settings, (progress, stage) => {
           setAudioFiles(prev => prev.map(f => 
             f.id === file.id ? { 
