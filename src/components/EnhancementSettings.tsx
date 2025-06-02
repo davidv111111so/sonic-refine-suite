@@ -7,6 +7,7 @@ import { BasicSettings } from '@/components/enhancement/BasicSettings';
 import { AudioProcessingSettings } from '@/components/enhancement/AudioProcessingSettings';
 import { EqualizerSettings } from '@/components/enhancement/EqualizerSettings';
 import { AudioSettingsTooltip } from '@/components/AudioSettingsTooltip';
+import { FFmpegReference } from '@/components/FFmpegReference';
 
 interface EnhancementSettingsProps {
   onEnhance: (settings: EnhancementSettings) => void;
@@ -304,6 +305,9 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles, onSaveL
         </CardContent>
       </Card>
 
+      {/* Add FFmpeg Reference */}
+      <FFmpegReference settings={settings} fileName="your_audio_file.wav" />
+
       <Card className="bg-slate-800/50 border-slate-700">
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
@@ -311,8 +315,8 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles, onSaveL
               <h3 className="text-lg font-semibold text-white">Ready to Enhance</h3>
               <p className="text-slate-400 text-sm">
                 {hasFiles 
-                  ? "All settings configured. Enhanced files will be saved to your selected folder."
-                  : "Upload audio files first to begin enhancement."
+                  ? "Professional audio enhancement will increase loudness, reduce noise, and improve clarity with larger file sizes."
+                  : "Upload audio files first to begin professional enhancement."
                 }
               </p>
             </div>
@@ -325,7 +329,7 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles, onSaveL
               {isProcessing ? (
                 <>
                   <Zap className="h-4 w-4 mr-2 animate-pulse" />
-                  Processing...
+                  Enhancing...
                 </>
               ) : (
                 <>
