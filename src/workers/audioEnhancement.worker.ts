@@ -1,6 +1,7 @@
 
-// Import the server audio processor
-importScripts(); // This would normally import the processor in a real server environment
+// TypeScript declarations for Web Worker environment
+declare function importScripts(...urls: string[]): void;
+declare const self: DedicatedWorkerGlobalScope;
 
 // Web Worker for real audio processing
 self.onmessage = async function(e) {
@@ -18,7 +19,7 @@ self.onmessage = async function(e) {
     self.postMessage({ type: 'progress', fileId, progress: 10, stage: 'Setting up enhancement pipeline...' });
     
     // Initialize AudioContext with target sample rate
-    const AudioContextClass = self.AudioContext || self.webkitAudioContext;
+    const AudioContextClass = self.AudioContext || (self as any).webkitAudioContext;
     if (!AudioContextClass) {
       throw new Error('AudioContext not supported');
     }
