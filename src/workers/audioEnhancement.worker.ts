@@ -1,4 +1,3 @@
-
 /// <reference lib="webworker" />
 
 // Real Audio Enhancement Worker Implementation
@@ -72,8 +71,9 @@ self.addEventListener('message', async (e) => {
 
 // Decode audio data using Web Audio API
 async function decodeAudioData(fileData: ArrayBuffer): Promise<AudioBuffer> {
-  // Create AudioContext without constructor arguments in worker
-  const audioContext = new (globalThis.AudioContext || (globalThis as any).webkitAudioContext)();
+  // Create AudioContext with proper typing for worker context
+  const AudioContextConstructor = globalThis.AudioContext || (globalThis as any).webkitAudioContext;
+  const audioContext = new AudioContextConstructor();
   
   try {
     const audioBuffer = await audioContext.decodeAudioData(fileData.slice());
@@ -91,8 +91,9 @@ async function applyRealAudioEnhancements(audioBuffer: AudioBuffer, settings: an
   const channels = audioBuffer.numberOfChannels;
   const length = audioBuffer.length;
   
-  // Create new buffer for enhanced audio - no constructor args in worker
-  const audioContext = new (globalThis.AudioContext || (globalThis as any).webkitAudioContext)();
+  // Create new buffer for enhanced audio with proper typing
+  const AudioContextConstructor = globalThis.AudioContext || (globalThis as any).webkitAudioContext;
+  const audioContext = new AudioContextConstructor();
   
   const enhancedBuffer = audioContext.createBuffer(channels, length, sampleRate);
   
