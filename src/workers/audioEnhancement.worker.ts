@@ -19,8 +19,6 @@ self.onmessage = async function(e) {
       // Try to create AudioContext in worker - this may not work in all browsers
       if (typeof AudioContext !== 'undefined') {
         audioContext = new AudioContext({ sampleRate: settings.sampleRate });
-      } else if (typeof webkitAudioContext !== 'undefined') {
-        audioContext = new webkitAudioContext({ sampleRate: settings.sampleRate });
       }
     } catch (audioError) {
       console.warn('AudioContext not available in worker, using fallback processing');

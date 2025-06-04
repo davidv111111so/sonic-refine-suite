@@ -17,7 +17,7 @@ import {
   HelpCircle,
   Download
 } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface SimpleAudioEnhancerProps {
   settings: any;
@@ -98,16 +98,14 @@ export const SimpleAudioEnhancer = ({
   };
 
   const ParameterTooltip = ({ children, content }: { children: React.ReactNode, content: string }) => (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          {children}
-        </TooltipTrigger>
-        <TooltipContent className="max-w-xs bg-slate-800 text-white border-slate-600">
-          <p className="text-sm">{content}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        {children}
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs bg-slate-800 text-white border-slate-600">
+        <p className="text-sm">{content}</p>
+      </TooltipContent>
+    </Tooltip>
   );
 
   return (
