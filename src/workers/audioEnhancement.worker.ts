@@ -65,16 +65,15 @@ self.addEventListener('message', async (e) => {
     self.postMessage({ 
       type: 'error', 
       fileId, 
-      error: `Enhancement failed: ${error.message}` 
+      error: `Enhancement failed: ${(error as Error).message}` 
     });
   }
 });
 
 // Decode audio data using Web Audio API
 async function decodeAudioData(fileData: ArrayBuffer): Promise<AudioBuffer> {
-  const audioContext = new (globalThis.AudioContext || (globalThis as any).webkitAudioContext)({
-    sampleRate: 48000 // High quality sample rate
-  });
+  // Create AudioContext without constructor arguments in worker
+  const audioContext = new (globalThis.AudioContext || (globalThis as any).webkitAudioContext)();
   
   try {
     const audioBuffer = await audioContext.decodeAudioData(fileData.slice());
@@ -92,10 +91,8 @@ async function applyRealAudioEnhancements(audioBuffer: AudioBuffer, settings: an
   const channels = audioBuffer.numberOfChannels;
   const length = audioBuffer.length;
   
-  // Create new buffer for enhanced audio
-  const audioContext = new (globalThis.AudioContext || (globalThis as any).webkitAudioContext)({
-    sampleRate: sampleRate
-  });
+  // Create new buffer for enhanced audio - no constructor args in worker
+  const audioContext = new (globalThis.AudioContext || (globalThis as any).webkitAudioContext)();
   
   const enhancedBuffer = audioContext.createBuffer(channels, length, sampleRate);
   
