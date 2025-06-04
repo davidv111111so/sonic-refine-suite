@@ -71,16 +71,14 @@ self.addEventListener('message', async (e) => {
 
 // Decode audio data using Web Audio API
 async function decodeAudioData(fileData: ArrayBuffer): Promise<AudioBuffer> {
-  // Create AudioContext with proper typing for worker context
-  const AudioContextConstructor = globalThis.AudioContext || (globalThis as any).webkitAudioContext;
-  const audioContext = new AudioContextConstructor();
+  // Use OfflineAudioContext in workers - requires sample rate, channels, and length
+  // We'll create a temporary context just for decoding
+  const tempContext = new OfflineAudioContext(2, 1, 44100);
   
   try {
-    const audioBuffer = await audioContext.decodeAudioData(fileData.slice());
-    await audioContext.close();
+    const audioBuffer = await tempContext.decodeAudioData(fileData.slice());
     return audioBuffer;
   } catch (error) {
-    await audioContext.close();
     throw new Error(`Failed to decode audio: ${(error as Error).message}`);
   }
 }
@@ -91,9 +89,8 @@ async function applyRealAudioEnhancements(audioBuffer: AudioBuffer, settings: an
   const channels = audioBuffer.numberOfChannels;
   const length = audioBuffer.length;
   
-  // Create new buffer for enhanced audio with proper typing
-  const AudioContextConstructor = globalThis.AudioContext || (globalThis as any).webkitAudioContext;
-  const audioContext = new AudioContextConstructor();
+  // Use OfflineAudioContext for processing - requires specific parameters
+  const audioContext = new OfflineAudioContext(channels, length, sampleRate);
   
   const enhancedBuffer = audioContext.createBuffer(channels, length, sampleRate);
   
@@ -109,7 +106,6 @@ async function applyRealAudioEnhancements(audioBuffer: AudioBuffer, settings: an
     await applyChannelEnhancements(outputData, settings, sampleRate, fileId, channel, channels);
   }
   
-  await audioContext.close();
   return enhancedBuffer;
 }
 
