@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from 'react';
 import { Settings, Wand2, Zap, Filter, Sliders } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,7 @@ import { BasicSettings } from '@/components/enhancement/BasicSettings';
 import { AudioProcessingSettings } from '@/components/enhancement/AudioProcessingSettings';
 import { EqualizerSettings } from '@/components/enhancement/EqualizerSettings';
 import { AudioSettingsTooltip } from '@/components/AudioSettingsTooltip';
-import { FFmpegReference } from '@/components/FFmpegReference';
+import { SimpleAudioEnhancer } from '@/components/SimpleAudioEnhancer';
 
 interface EnhancementSettingsProps {
   onEnhance: (settings: EnhancementSettings) => void;
@@ -35,7 +36,6 @@ interface EnhancementSettings {
   eqBands: number[];
 }
 
-// Move getQualityLevel function outside component to avoid hoisting issues
 const getQualityLevel = (settings: EnhancementSettings) => {
   let score = 0;
   
@@ -79,6 +79,8 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles, onSaveL
     enableEQ: true,
     eqBands: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
   });
+
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const estimatedFileSize = useMemo(() => {
     const baseSize = 40;
@@ -134,95 +136,6 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles, onSaveL
     onEnhance(enhancementSettings);
   };
 
-  const presets = [
-    {
-      name: "Vinyl Restoration",
-      settings: {
-        targetBitrate: 320,
-        sampleRate: 96000,
-        noiseReduction: true,
-        noiseReductionLevel: 70,
-        normalization: true,
-        normalizationLevel: -3,
-        outputFormat: 'flac',
-        enableEQ: true,
-        eqBands: [2, 1, 0, -1, 0, 1, 2, 1, -1, -2]
-      }
-    },
-    {
-      name: "Voice Memo",
-      settings: {
-        targetBitrate: 192,
-        sampleRate: 44100,
-        noiseReduction: true,
-        noiseReductionLevel: 90,
-        normalization: true,
-        normalizationLevel: -1,
-        outputFormat: 'mp3',
-        enableEQ: true,
-        eqBands: [-3, -2, 0, 2, 4, 3, 2, 1, -1, -2]
-      }
-    },
-    {
-      name: "Flat",
-      settings: {
-        targetBitrate: 320,
-        sampleRate: 96000,
-        noiseReduction: false,
-        normalization: true,
-        normalizationLevel: -6,
-        outputFormat: 'flac',
-        enableEQ: true,
-        eqBands: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-      }
-    },
-    {
-      name: "Bass",
-      settings: {
-        targetBitrate: 320,
-        sampleRate: 44100,
-        noiseReduction: true,
-        noiseReductionLevel: 30,
-        normalization: true,
-        normalizationLevel: -3,
-        outputFormat: 'mp3',
-        enableEQ: true,
-        eqBands: [6, 4, 2, 1, 0, -1, -2, -1, 0, 1]
-      }
-    },
-    {
-      name: "Vocal",
-      settings: {
-        targetBitrate: 256,
-        sampleRate: 44100,
-        noiseReduction: true,
-        noiseReductionLevel: 40,
-        normalization: true,
-        normalizationLevel: -2,
-        outputFormat: 'mp3',
-        enableEQ: true,
-        eqBands: [-2, -1, 0, 1, 3, 4, 3, 2, 1, 0]
-      }
-    },
-    {
-      name: "Electronic",
-      settings: {
-        targetBitrate: 320,
-        sampleRate: 96000,
-        noiseReduction: false,
-        normalization: true,
-        normalizationLevel: -3,
-        outputFormat: 'mp3',
-        enableEQ: true,
-        eqBands: [3, 2, 1, 0, 1, 2, 3, 4, 3, 2]
-      }
-    }
-  ];
-
-  const applyPreset = (preset: any) => {
-    setSettings(prev => ({ ...prev, ...preset.settings }));
-  };
-
   return (
     <div className="space-y-4">
       <SaveLocationSelector 
@@ -230,116 +143,90 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles, onSaveL
         currentLocation="Downloads folder"
       />
 
+      {/* Simple Audio Enhancer - Main Interface */}
+      <SimpleAudioEnhancer
+        settings={settings}
+        onSettingChange={handleSettingChange}
+        onEnhance={handleEnhance}
+        isProcessing={isProcessing}
+        hasFiles={hasFiles}
+      />
+
+      {/* Advanced Settings - Collapsible */}
       <Card className="bg-slate-800/50 border-slate-700">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-white text-lg">
-            <Wand2 className="h-4 w-4" />
-            Specialized Presets
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
-            {presets.map((preset) => (
-              <Button
-                key={preset.name}
-                variant="outline"
-                size="sm"
-                className="bg-slate-700 border-slate-600 hover:bg-slate-600 text-white h-auto py-2"
-                onClick={() => applyPreset(preset)}
-              >
-                {preset.name}
-              </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="bg-slate-800/50 border-slate-700">
-          <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-white text-lg">
               <Settings className="h-4 w-4" />
-              Basic Settings
+              Advanced Settings
             </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <BasicSettings 
-              settings={settings}
-              onSettingChange={handleSettingChange}
-              estimatedFileSize={estimatedFileSize}
-            />
-          </CardContent>
-        </Card>
-
-        <Card className="bg-slate-800/50 border-slate-700">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-white text-lg">
-              <Filter className="h-4 w-4" />
-              Audio Processing
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <AudioProcessingSettings 
-              settings={settings}
-              onSettingChange={handleSettingChange}
-            />
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="bg-slate-800/50 border-slate-700">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-white text-lg">
-            <Sliders className="h-4 w-4" />
-            10-Band Equalizer
-            <AudioSettingsTooltip setting="eq" />
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <EqualizerSettings 
-            settings={settings}
-            onSettingChange={handleSettingChange}
-            onEQBandChange={handleEQBandChange}
-            onResetEQ={resetEQ}
-          />
-        </CardContent>
-      </Card>
-
-      {/* Add FFmpeg Reference */}
-      <FFmpegReference settings={settings} fileName="your_audio_file.wav" />
-
-      <Card className="bg-slate-800/50 border-slate-700">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold text-white">Ready to Enhance</h3>
-              <p className="text-slate-400 text-sm">
-                {hasFiles 
-                  ? "Professional audio enhancement will increase loudness, reduce noise, and improve clarity with larger file sizes."
-                  : "Upload audio files first to begin professional enhancement."
-                }
-              </p>
-            </div>
             <Button
-              onClick={handleEnhance}
-              disabled={!hasFiles || isProcessing}
-              size="lg"
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-2"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="bg-slate-700 border-slate-600 hover:bg-slate-600 text-white"
             >
-              {isProcessing ? (
-                <>
-                  <Zap className="h-4 w-4 mr-2 animate-pulse" />
-                  Enhancing...
-                </>
-              ) : (
-                <>
-                  <Zap className="h-4 w-4 mr-2" />
-                  Enhance Audio
-                </>
-              )}
+              {showAdvanced ? 'Hide' : 'Show'} Advanced
             </Button>
           </div>
-        </CardContent>
+          <p className="text-slate-400 text-sm">
+            Fine-tune output format, quality settings, and equalizer
+          </p>
+        </CardHeader>
+        {showAdvanced && (
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+              <Card className="bg-slate-900/50 border-slate-600">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-white text-base">
+                    <Settings className="h-4 w-4" />
+                    Output Settings
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <BasicSettings 
+                    settings={settings}
+                    onSettingChange={handleSettingChange}
+                    estimatedFileSize={estimatedFileSize}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card className="bg-slate-900/50 border-slate-600">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-white text-base">
+                    <Filter className="h-4 w-4" />
+                    Processing Options
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <AudioProcessingSettings 
+                    settings={settings}
+                    onSettingChange={handleSettingChange}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card className="bg-slate-900/50 border-slate-600">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-white text-base">
+                  <Sliders className="h-4 w-4" />
+                  10-Band Equalizer
+                  <AudioSettingsTooltip setting="eq" />
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <EqualizerSettings 
+                  settings={settings}
+                  onSettingChange={handleSettingChange}
+                  onEQBandChange={handleEQBandChange}
+                  onResetEQ={resetEQ}
+                />
+              </CardContent>
+            </Card>
+          </CardContent>
+        )}
       </Card>
     </div>
   );
