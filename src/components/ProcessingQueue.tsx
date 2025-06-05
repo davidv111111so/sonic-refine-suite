@@ -4,6 +4,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Clock, CheckCircle, XCircle, Loader } from 'lucide-react';
 import { AudioFile } from '@/types/audio';
+import { ProcessingLimitations } from '@/components/ProcessingLimitations';
 
 interface ProcessingQueueProps {
   files: AudioFile[];
@@ -16,6 +17,9 @@ export const ProcessingQueue = ({ files }: ProcessingQueueProps) => {
 
   return (
     <div className="space-y-4">
+      {/* Add limitations notice at the top */}
+      <ProcessingLimitations />
+      
       {processingFiles.length > 0 && (
         <Card className="bg-slate-800/50 border-slate-700">
           <CardHeader className="pb-3">

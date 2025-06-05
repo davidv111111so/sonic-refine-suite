@@ -143,16 +143,7 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles, onSaveL
         currentLocation="Downloads folder"
       />
 
-      {/* Simple Audio Enhancer - Main Interface */}
-      <SimpleAudioEnhancer
-        settings={settings}
-        onSettingChange={handleSettingChange}
-        onEnhance={handleEnhance}
-        isProcessing={isProcessing}
-        hasFiles={hasFiles}
-      />
-
-      {/* Advanced Settings - Collapsible */}
+      {/* Advanced Settings - Now on top */}
       <Card className="bg-slate-800/50 border-slate-700">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
@@ -228,6 +219,15 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles, onSaveL
           </CardContent>
         )}
       </Card>
+
+      {/* Simple Audio Enhancer - Now below advanced settings */}
+      <SimpleAudioEnhancer
+        settings={settings}
+        onSettingChange={handleSettingChange}
+        onEnhance={handleEnhance}
+        isProcessing={isProcessing}
+        hasFiles={hasFiles}
+      />
     </div>
   );
 };

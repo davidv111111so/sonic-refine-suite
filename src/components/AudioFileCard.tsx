@@ -1,182 +1,121 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { AudioFileHeader } from '@/components/AudioFileHeader';
-import { AudioFileInfo } from '@/components/AudioFileInfo';
+import { Progress } from '@/components/ui/progress';
+import { Play, Pause, Download, Trash2, Music } from 'lucide-react';
 import { AudioFile } from '@/types/audio';
-import { AlertCircle, CheckCircle, Download, RefreshCw, Music } from 'lucide-react';
 
 interface AudioFileCardProps {
   file: AudioFile;
-  onRemove: (fileId: string) => void;
-  onUpdate: (fileId: string, updates: Partial<AudioFile>) => void;
+  onRemove: (id: string) => void;
+  onPlay?: () => void;
+  isPlaying?: boolean;
 }
 
-export const AudioFileCard = ({ file, onRemove, onUpdate }: AudioFileCardProps) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  const toggleExpanded = () => {
-    setIsExpanded(!isExpanded);
-  };
-
-  const handleRetry = () => {
-    onUpdate(file.id, { status: 'uploaded', progress: 0, processingStage: undefined });
-  };
-
-  const handleDownload = () => {
-    if (file.enhancedUrl) {
-      const a = document.createElement('a');
-      a.href = file.enhancedUrl;
-      a.download = `enhanced_${file.name}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
-  };
-
-  const getStatusColor = () => {
+export const AudioFileCard = ({ file, onRemove, onPlay, isPlaying }: AudioFileCardProps) => {
+  const getStatusBadge = () => {
     switch (file.status) {
-      case 'uploaded': return 'bg-blue-500/20 border-blue-500/30 text-blue-300';
-      case 'processing': return 'bg-yellow-500/20 border-yellow-500/30 text-yellow-300';
-      case 'enhanced': return 'bg-green-500/20 border-green-500/30 text-green-300';
-      case 'error': return 'bg-red-500/20 border-red-500/30 text-red-300';
-      default: return 'bg-slate-500/20 border-slate-500/30 text-slate-300';
-    }
-  };
-
-  const getStatusIcon = () => {
-    switch (file.status) {
-      case 'uploaded': return <Music className="h-4 w-4" />;
-      case 'processing': return <RefreshCw className="h-4 w-4 animate-spin" />;
-      case 'enhanced': return <CheckCircle className="h-4 w-4" />;
-      case 'error': return <AlertCircle className="h-4 w-4" />;
-      default: return <Music className="h-4 w-4" />;
+      case 'uploaded':
+        return <Badge variant="secondary">Ready</Badge>;
+      case 'processing':
+        return <Badge variant="default">Processing</Badge>;
+      case 'enhanced':
+        return <Badge variant="outline" className="border-green-500 text-green-400">Enhanced</Badge>;
+      case 'error':
+        return <Badge variant="destructive">Error</Badge>;
+      default:
+        return null;
     }
   };
 
   const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return (bytes / (1024 * 1024)).toFixed(1);
+  };
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   return (
-    <Card className="bg-slate-800/50 border-slate-700 hover:border-slate-600 transition-colors">
-      <AudioFileHeader file={file} onRemove={onRemove} onUpdate={onUpdate} />
+    <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-700/50 transition-colors">
       <CardContent className="p-4">
-        <AudioFileInfo file={file} />
-        <Separator className="bg-slate-600 my-3" />
-        
-        <div className="space-y-3">
-          {/* Status Badge with Enhanced Styling */}
-          <div className="flex items-center justify-between">
-            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${getStatusColor()}`}>
-              {getStatusIcon()}
-              <span className="text-sm font-medium capitalize">
-                {file.status === 'uploaded' ? 'Ready to enhance' : file.status}
-              </span>
+        <div className="flex items-center justify-between">
+          {/* File info without thumbnail */}
+          <div className="flex items-center space-x-3 flex-1">
+            <div className="flex-shrink-0">
+              <Music className="h-8 w-8 text-blue-400" />
             </div>
-            
-            {/* Action Buttons */}
-            <div className="flex items-center gap-2">
-              {file.status === 'error' && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleRetry}
-                        className="bg-slate-700 border-slate-600 hover:bg-slate-600 text-white h-8 px-3"
-                      >
-                        <RefreshCw className="h-3 w-3 mr-1" />
-                        Retry
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent className="bg-slate-800 text-white border-slate-600">
-                      <p>Try enhancing this file again</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="text-sm font-medium text-white truncate">
+                  {file.title || file.name}
+                </h3>
+                {getStatusBadge()}
+              </div>
+              <div className="flex items-center gap-3 text-xs text-slate-400">
+                <span>{file.artist || 'Unknown Artist'}</span>
+                <span>•</span>
+                <span>{formatFileSize(file.size)} MB</span>
+                {file.duration && (
+                  <>
+                    <span>•</span>
+                    <span>{formatDuration(file.duration)}</span>
+                  </>
+                )}
+              </div>
               
-              {file.status === 'enhanced' && file.enhancedUrl && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownload}
-                  className="bg-green-700 border-green-600 hover:bg-green-600 text-white h-8 px-3"
-                >
-                  <Download className="h-3 w-3 mr-1" />
-                  Download
-                </Button>
+              {/* Processing progress */}
+              {file.status === 'processing' && (
+                <div className="mt-2">
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-slate-400">{file.processingStage || 'Processing...'}</span>
+                    <span className="text-blue-400">{file.progress || 0}%</span>
+                  </div>
+                  <Progress value={file.progress || 0} className="h-1" />
+                </div>
               )}
             </div>
           </div>
 
-          {/* Processing Progress */}
-          {file.status === 'processing' && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-400">Processing Progress</span>
-                <span className="text-xs text-blue-400 font-medium">{file.progress?.toFixed(0)}%</span>
-              </div>
-              <Progress value={file.progress} className="h-2" />
-              {file.processingStage && (
-                <p className="text-xs text-slate-400 italic">{file.processingStage}</p>
-              )}
-            </div>
-          )}
-
-          {/* Enhanced File Info */}
-          {file.status === 'enhanced' && (
-            <div className="bg-green-900/20 border border-green-700/30 rounded-lg p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-green-300">Enhancement Complete</span>
-                <CheckCircle className="h-4 w-4 text-green-400" />
-              </div>
-              <div className="grid grid-cols-2 gap-4 text-xs">
-                <div>
-                  <span className="text-slate-400">Original:</span>
-                  <span className="text-white ml-1">{formatFileSize(file.size)}</span>
-                </div>
-                <div>
-                  <span className="text-slate-400">Enhanced:</span>
-                  <span className="text-green-300 ml-1 font-medium">
-                    {file.enhancedSize ? formatFileSize(file.enhancedSize) : 'N/A'}
-                  </span>
-                </div>
-              </div>
-              {file.enhancedSize && (
-                <div className="text-xs text-slate-400">
-                  Quality improvement: {((file.enhancedSize / file.size - 1) * 100).toFixed(1)}% size increase
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Error Details */}
-          {file.status === 'error' && (
-            <div className="bg-red-900/20 border border-red-700/30 rounded-lg p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-red-300">Enhancement Failed</span>
-                <AlertCircle className="h-4 w-4 text-red-400" />
-              </div>
-              <div className="text-xs text-slate-300">
-                <p>The audio enhancement process encountered an error.</p>
-                <p className="mt-1 text-slate-400">
-                  Common fixes: Check file format, ensure file isn't corrupted, or try again.
-                </p>
-              </div>
-            </div>
-          )}
+          {/* Action buttons */}
+          <div className="flex items-center space-x-2 flex-shrink-0">
+            {onPlay && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onPlay}
+                className="text-slate-400 hover:text-white"
+              >
+                {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+              </Button>
+            )}
+            
+            {file.status === 'enhanced' && file.enhancedUrl && (
+              <Button
+                variant="ghost"
+                size="sm"
+                asChild
+                className="text-green-400 hover:text-green-300"
+              >
+                <a href={file.enhancedUrl} download={`${file.name}_enhanced.wav`}>
+                  <Download className="h-4 w-4" />
+                </a>
+              </Button>
+            )}
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onRemove(file.id)}
+              className="text-red-400 hover:text-red-300"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
