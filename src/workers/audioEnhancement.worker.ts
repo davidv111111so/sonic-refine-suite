@@ -1,3 +1,4 @@
+
 /// <reference lib="webworker" />
 
 // Real Audio Enhancement Worker Implementation
@@ -69,44 +70,147 @@ self.addEventListener('message', async (e) => {
   }
 });
 
-// Decode audio data using Web Audio API
-async function decodeAudioData(fileData: ArrayBuffer): Promise<AudioBuffer> {
-  // Use OfflineAudioContext in workers - requires sample rate, channels, and length
-  // We'll create a temporary context just for decoding
-  const tempContext = new OfflineAudioContext(2, 1, 44100);
+// Simple AudioBuffer interface for worker
+interface SimpleAudioBuffer {
+  sampleRate: number;
+  numberOfChannels: number;
+  length: number;
+  duration: number;
+  getChannelData(channel: number): Float32Array;
+}
+
+// Decode audio data without using AudioContext
+async function decodeAudioData(fileData: ArrayBuffer): Promise<SimpleAudioBuffer> {
+  // Parse WAV file manually since AudioContext isn't reliable in workers
+  const view = new DataView(fileData);
   
-  try {
-    const audioBuffer = await tempContext.decodeAudioData(fileData.slice());
-    return audioBuffer;
-  } catch (error) {
-    throw new Error(`Failed to decode audio: ${(error as Error).message}`);
+  // Check for WAV header
+  if (view.getUint32(0, false) !== 0x52494646) { // "RIFF"
+    throw new Error('Not a valid WAV file');
   }
+  
+  if (view.getUint32(8, false) !== 0x57415645) { // "WAVE"
+    throw new Error('Not a valid WAV file');
+  }
+  
+  // Find fmt chunk
+  let offset = 12;
+  let fmtChunkFound = false;
+  let sampleRate = 44100;
+  let channels = 2;
+  let bitsPerSample = 16;
+  let dataOffset = 0;
+  let dataSize = 0;
+  
+  while (offset < fileData.byteLength - 8) {
+    const chunkId = view.getUint32(offset, false);
+    const chunkSize = view.getUint32(offset + 4, true);
+    
+    if (chunkId === 0x666d7420) { // "fmt "
+      fmtChunkFound = true;
+      sampleRate = view.getUint32(offset + 12, true);
+      channels = view.getUint16(offset + 10, true);
+      bitsPerSample = view.getUint16(offset + 22, true);
+    } else if (chunkId === 0x64617461) { // "data"
+      dataOffset = offset + 8;
+      dataSize = chunkSize;
+      break;
+    }
+    
+    offset += 8 + chunkSize;
+  }
+  
+  if (!fmtChunkFound) {
+    throw new Error('WAV format chunk not found');
+  }
+  
+  if (dataOffset === 0) {
+    throw new Error('WAV data chunk not found');
+  }
+  
+  // Extract audio samples
+  const bytesPerSample = bitsPerSample / 8;
+  const samplesPerChannel = dataSize / (channels * bytesPerSample);
+  const channelData: Float32Array[] = [];
+  
+  // Initialize channel arrays
+  for (let c = 0; c < channels; c++) {
+    channelData[c] = new Float32Array(samplesPerChannel);
+  }
+  
+  // Read samples based on bit depth
+  if (bitsPerSample === 16) {
+    for (let i = 0; i < samplesPerChannel; i++) {
+      for (let c = 0; c < channels; c++) {
+        const sampleOffset = dataOffset + (i * channels + c) * 2;
+        const sample = view.getInt16(sampleOffset, true);
+        channelData[c][i] = sample / 32768.0; // Convert to float -1 to 1
+      }
+    }
+  } else if (bitsPerSample === 24) {
+    for (let i = 0; i < samplesPerChannel; i++) {
+      for (let c = 0; c < channels; c++) {
+        const sampleOffset = dataOffset + (i * channels + c) * 3;
+        // Read 24-bit little-endian
+        const byte1 = view.getUint8(sampleOffset);
+        const byte2 = view.getUint8(sampleOffset + 1);
+        const byte3 = view.getUint8(sampleOffset + 2);
+        let sample = (byte3 << 16) | (byte2 << 8) | byte1;
+        if (sample >= 0x800000) sample -= 0x1000000; // Handle sign
+        channelData[c][i] = sample / 8388608.0; // Convert to float -1 to 1
+      }
+    }
+  } else if (bitsPerSample === 32) {
+    for (let i = 0; i < samplesPerChannel; i++) {
+      for (let c = 0; c < channels; c++) {
+        const sampleOffset = dataOffset + (i * channels + c) * 4;
+        const sample = view.getInt32(sampleOffset, true);
+        channelData[c][i] = sample / 2147483648.0; // Convert to float -1 to 1
+      }
+    }
+  } else {
+    throw new Error(`Unsupported bit depth: ${bitsPerSample}`);
+  }
+  
+  return {
+    sampleRate,
+    numberOfChannels: channels,
+    length: samplesPerChannel,
+    duration: samplesPerChannel / sampleRate,
+    getChannelData: (channel: number) => channelData[channel]
+  };
 }
 
 // Apply real audio enhancements
-async function applyRealAudioEnhancements(audioBuffer: AudioBuffer, settings: any, fileId: string): Promise<AudioBuffer> {
+async function applyRealAudioEnhancements(audioBuffer: SimpleAudioBuffer, settings: any, fileId: string): Promise<SimpleAudioBuffer> {
   const sampleRate = audioBuffer.sampleRate;
   const channels = audioBuffer.numberOfChannels;
   const length = audioBuffer.length;
   
-  // Use OfflineAudioContext for processing - requires specific parameters
-  const audioContext = new OfflineAudioContext(channels, length, sampleRate);
-  
-  const enhancedBuffer = audioContext.createBuffer(channels, length, sampleRate);
+  // Create enhanced buffer
+  const enhancedChannelData: Float32Array[] = [];
   
   // Process each channel
   for (let channel = 0; channel < channels; channel++) {
     const inputData = audioBuffer.getChannelData(channel);
-    const outputData = enhancedBuffer.getChannelData(channel);
+    const outputData = new Float32Array(inputData.length);
     
     // Copy input to output first
     outputData.set(inputData);
     
     // Apply enhancements based on settings
     await applyChannelEnhancements(outputData, settings, sampleRate, fileId, channel, channels);
+    
+    enhancedChannelData[channel] = outputData;
   }
   
-  return enhancedBuffer;
+  return {
+    sampleRate,
+    numberOfChannels: channels,
+    length,
+    duration: length / sampleRate,
+    getChannelData: (channel: number) => enhancedChannelData[channel]
+  };
 }
 
 // Apply enhancements to a single channel
@@ -282,7 +386,7 @@ function applyCompression(data: Float32Array, ratio: number) {
 }
 
 // Encode to high-quality WAV format
-function encodeToWAV(audioBuffer: AudioBuffer, settings: any): ArrayBuffer {
+function encodeToWAV(audioBuffer: SimpleAudioBuffer, settings: any): ArrayBuffer {
   const sampleRate = audioBuffer.sampleRate;
   const channels = audioBuffer.numberOfChannels;
   const bitsPerSample = 24; // High quality
