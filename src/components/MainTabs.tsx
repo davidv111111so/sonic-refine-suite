@@ -83,7 +83,6 @@ export const MainTabs = ({
                 key={file.id}
                 file={file}
                 onRemove={onRemoveFile}
-                onUpdate={onUpdateFile}
               />
             ))}
             {audioFiles.length === 0 && (
