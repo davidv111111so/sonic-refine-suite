@@ -10,8 +10,7 @@ import { CompactUploadZone } from '@/components/CompactUploadZone';
 import { CompactEnhancementSettings } from '@/components/CompactEnhancementSettings';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Button } from '@/components/ui/button';
-import { Download, AudioWaveform } from 'lucide-react';
+import { AudioWaveform } from 'lucide-react';
 
 const Index = () => {
   console.log('Perfect Audio app render started');
@@ -87,7 +86,7 @@ const Index = () => {
           ...f, 
           status: 'processing' as const, 
           progress: 0,
-          processingStage: 'Starting enhancement...'
+          processingStage: 'Initializing Perfect Audio enhancement...'
         } : f
       ));
 
@@ -96,7 +95,7 @@ const Index = () => {
           setAudioFiles(prev => prev.map(f => 
             f.id === file.id ? { 
               ...f, 
-              progress,
+              progress: Math.round(progress),
               processingStage: stage
             } : f
           ));
@@ -127,7 +126,7 @@ const Index = () => {
             ...f, 
             status: 'enhanced' as const, 
             progress: 100,
-            processingStage: 'Perfect Audio - Downloaded',
+            processingStage: 'Perfect Audio enhancement complete - Downloaded!',
             enhancedUrl,
             enhancedSize: enhancedBlob.size
           } : f
@@ -135,8 +134,16 @@ const Index = () => {
 
         toast({
           title: "Perfect Audio Enhancement Complete!",
-          description: `${file.name} has been enhanced and downloaded.`,
+          description: `${file.name} has been enhanced and downloaded automatically.`,
         });
+
+        // Show desktop notification when download completes
+        if (notificationsEnabled) {
+          new Notification('Perfect Audio - Download Complete', {
+            body: `${file.name} has been enhanced and downloaded successfully`,
+            icon: '/favicon.ico'
+          });
+        }
 
       } catch (error) {
         console.error('Error processing file:', error);
@@ -153,7 +160,7 @@ const Index = () => {
           f.id === file.id ? { 
             ...f, 
             status: 'error' as const,
-            processingStage: 'Enhancement failed - please try again'
+            processingStage: 'Enhancement failed - please try again with different settings'
           } : f
         ));
 
@@ -168,8 +175,8 @@ const Index = () => {
     setIsProcessing(false);
     
     if (notificationsEnabled && filesToProcess.length > 0) {
-      new Notification('Perfect Audio Enhancement Complete', {
-        body: `${filesToProcess.length} files enhanced and downloaded`,
+      new Notification('Perfect Audio - All Enhancements Complete', {
+        body: `${filesToProcess.length} files enhanced and downloaded successfully`,
         icon: '/favicon.ico'
       });
     }
@@ -186,73 +193,75 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-blue-950 to-black text-white">
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
-        {/* Enhanced Header with Branding */}
-        <div className="flex items-center justify-between mb-6">
+      <div className="container mx-auto px-4 py-6 max-w-5xl">
+        {/* Enhanced Header with Prominent Branding */}
+        <div className="flex items-center justify-between mb-8">
           <div className="relative">
-            <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+            <h1 className="text-5xl font-bold text-white flex items-center gap-4">
               <div className="relative">
-                <AudioWaveform className="h-8 w-8 text-blue-400 animate-pulse" />
-                <div className="absolute inset-0 h-8 w-8 bg-blue-400/20 rounded-full animate-ping"></div>
+                <AudioWaveform className="h-12 w-12 text-blue-400 animate-pulse" />
+                <div className="absolute inset-0 h-12 w-12 bg-blue-400/20 rounded-full animate-ping"></div>
+                <div className="absolute inset-0 h-12 w-12 bg-purple-400/10 rounded-full animate-pulse delay-300"></div>
               </div>
-              <span className="bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent drop-shadow-lg">
                 Perfect Audio
               </span>
             </h1>
-            <p className="text-slate-300 text-sm ml-11">Professional audio enhancement in your browser</p>
-            <div className="absolute -top-2 -left-2 w-12 h-12 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-full blur-xl"></div>
+            <p className="text-slate-300 text-base ml-16 mt-2 font-medium">Professional audio enhancement in your browser</p>
+            <div className="absolute -top-3 -left-3 w-16 h-16 bg-gradient-to-r from-blue-500/15 to-purple-500/15 rounded-full blur-2xl"></div>
+            <div className="absolute -top-1 -right-1 w-12 h-12 bg-gradient-to-l from-purple-500/10 to-blue-500/10 rounded-full blur-xl"></div>
           </div>
           <ThemeToggle />
         </div>
 
         {/* Enhanced Stats with White Accents */}
         {stats.total > 0 && (
-          <div className="grid grid-cols-4 gap-3 mb-6">
+          <div className="grid grid-cols-4 gap-4 mb-6">
             <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600 shadow-lg">
-              <CardContent className="p-3 text-center">
-                <div className="text-lg font-bold text-white">{stats.total}</div>
-                <div className="text-xs text-slate-300">Total Files</div>
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-white">{stats.total}</div>
+                <div className="text-sm text-slate-300">Total Files</div>
               </CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-blue-900 to-blue-800 border-blue-600 shadow-lg">
-              <CardContent className="p-3 text-center">
-                <div className="text-lg font-bold text-white">{stats.uploaded}</div>
-                <div className="text-xs text-blue-100">Ready</div>
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-white">{stats.uploaded}</div>
+                <div className="text-sm text-blue-100">Ready</div>
               </CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-yellow-900 to-yellow-800 border-yellow-600 shadow-lg">
-              <CardContent className="p-3 text-center">
-                <div className="text-lg font-bold text-white">{stats.processing}</div>
-                <div className="text-xs text-yellow-100">Processing</div>
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-white">{stats.processing}</div>
+                <div className="text-sm text-yellow-100">Processing</div>
               </CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-green-900 to-green-800 border-green-600 shadow-lg">
-              <CardContent className="p-3 text-center">
-                <div className="text-lg font-bold text-white">{stats.enhanced}</div>
-                <div className="text-xs text-green-100">Enhanced</div>
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-white">{stats.enhanced}</div>
+                <div className="text-sm text-green-100">Enhanced</div>
               </CardContent>
             </Card>
           </div>
         )}
 
-        {/* Enhanced Processing Progress */}
+        {/* Fixed Processing Progress */}
         {processingFiles.length > 0 && (
           <Card className="bg-gradient-to-r from-slate-800 to-slate-900 border-slate-600 mb-6 shadow-lg">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-white text-sm flex items-center gap-2">
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-white text-lg flex items-center gap-3">
+                <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
                 Perfect Audio Processing Status
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
               {processingFiles.map(file => (
-                <div key={file.id} className="mb-3 last:mb-0">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs text-white truncate font-medium">{file.name}</span>
-                    <span className="text-xs text-blue-300 font-bold">{file.progress}%</span>
+                <div key={file.id} className="mb-4 last:mb-0">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm text-white truncate font-medium">{file.name}</span>
+                    <span className="text-sm text-blue-300 font-bold">{file.progress}%</span>
                   </div>
-                  <Progress value={file.progress} className="h-2 mb-1" />
-                  <div className="text-xs text-slate-300">{file.processingStage}</div>
+                  <Progress value={file.progress} className="h-3 mb-2" />
+                  <div className="text-sm text-slate-300">{file.processingStage}</div>
                 </div>
               ))}
             </CardContent>
@@ -263,8 +272,8 @@ const Index = () => {
           {/* Left Column - Upload */}
           <div className="space-y-4">
             <div>
-              <h2 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-                <div className="w-1 h-6 bg-gradient-to-b from-blue-400 to-purple-400 rounded"></div>
+              <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-3">
+                <div className="w-1 h-8 bg-gradient-to-b from-blue-400 to-purple-400 rounded"></div>
                 Upload Audio Files
               </h2>
               <CompactUploadZone
@@ -278,8 +287,8 @@ const Index = () => {
           {/* Right Column - Enhancement Settings */}
           <div className="space-y-4">
             <div>
-              <h2 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-                <div className="w-1 h-6 bg-gradient-to-b from-purple-400 to-blue-400 rounded"></div>
+              <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-3">
+                <div className="w-1 h-8 bg-gradient-to-b from-purple-400 to-blue-400 rounded"></div>
                 Enhancement Settings
               </h2>
               <CompactEnhancementSettings
@@ -292,15 +301,24 @@ const Index = () => {
         </div>
 
         {/* Enhanced Processing Info */}
-        <Card className="bg-gradient-to-r from-slate-800 to-slate-900 border-slate-600 mt-6 shadow-lg">
-          <CardContent className="p-4">
-            <div className="text-center text-sm">
-              <p className="text-white font-medium">Perfect Audio - Professional Enhancement Engine</p>
-              <p className="text-slate-300 text-xs mt-1">Enhanced files are automatically downloaded to your Downloads folder</p>
-              <div className="flex justify-center gap-4 mt-2 text-xs text-slate-400">
-                <span>✓ Advanced Web Audio API</span>
-                <span>✓ Real-time Processing</span>
-                <span>✓ Studio Quality</span>
+        <Card className="bg-gradient-to-r from-slate-800 to-slate-900 border-slate-600 mt-8 shadow-lg">
+          <CardContent className="p-6">
+            <div className="text-center">
+              <p className="text-white font-bold text-lg">Perfect Audio - Professional Enhancement Engine</p>
+              <p className="text-slate-300 mt-2">Enhanced files are automatically downloaded with desktop notifications</p>
+              <div className="flex justify-center gap-6 mt-4 text-sm text-slate-400">
+                <span className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                  Advanced Web Audio API
+                </span>
+                <span className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                  Real-time Processing
+                </span>
+                <span className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                  Studio Quality
+                </span>
               </div>
             </div>
           </CardContent>

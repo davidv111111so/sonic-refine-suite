@@ -1,6 +1,6 @@
 
 import { useState, useMemo } from 'react';
-import { Settings, Wand2, HelpCircle } from 'lucide-react';
+import { Settings, Wand2, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
@@ -45,6 +45,7 @@ const SettingTooltip = ({ content, children }: { content: string; children: Reac
 );
 
 export const CompactEnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: CompactEnhancementSettingsProps) => {
+  const [showEQ, setShowEQ] = useState(true); // EQ expanded by default
   const [settings, setSettings] = useState<EnhancementSettings>({
     sampleRate: 44100,
     bitDepth: 16,
@@ -56,7 +57,7 @@ export const CompactEnhancementSettings = ({ onEnhance, isProcessing, hasFiles }
     stereoWidening: 10,
     normalization: true,
     highFreqRestoration: false,
-    outputFormat: 'mp3', // Set MP3 as default
+    outputFormat: 'mp3',
   });
 
   const handleSettingChange = (key: keyof EnhancementSettings, value: any) => {
@@ -79,6 +80,13 @@ export const CompactEnhancementSettings = ({ onEnhance, isProcessing, hasFiles }
     if (score >= 4) return 'High Quality';
     return 'Good Quality';
   }, [settings]);
+
+  // Dynamic colors for EQ bands
+  const getEQColor = (value: number) => {
+    if (value > 0) return 'from-green-500/30 to-green-400/60';
+    if (value < 0) return 'from-red-500/30 to-red-400/60';
+    return 'from-slate-500/20 to-slate-400/40';
+  };
 
   return (
     <div className="space-y-3">
@@ -130,7 +138,7 @@ export const CompactEnhancementSettings = ({ onEnhance, isProcessing, hasFiles }
         </CardContent>
       </Card>
 
-      {/* Real-Time Enhancement Options */}
+      {/* Perfect Audio Enhancement Options */}
       <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600 shadow-lg">
         <CardHeader className="pb-2">
           <CardTitle className="text-white text-sm">Perfect Audio Enhancement Options</CardTitle>
@@ -172,59 +180,92 @@ export const CompactEnhancementSettings = ({ onEnhance, isProcessing, hasFiles }
             />
           </div>
 
-          {/* EQ Boost */}
+          {/* EQ Section with Toggle */}
           <div className="space-y-2">
-            <label className="text-xs text-slate-300 font-medium">EQ Boost</label>
-            <div className="grid grid-cols-3 gap-2">
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <SettingTooltip content="Enhances low frequencies (60-250Hz). Adds warmth and punch to drums and bass instruments.">
-                    <span className="text-xs text-slate-400">Bass</span>
-                  </SettingTooltip>
-                  <span className="text-xs text-white font-bold">{settings.bassBoost > 0 ? '+' : ''}{settings.bassBoost}dB</span>
-                </div>
-                <Slider
-                  value={[settings.bassBoost]}
-                  onValueChange={([value]) => handleSettingChange('bassBoost', value)}
-                  min={-12}
-                  max={12}
-                  step={1}
-                  className="h-2"
-                />
-              </div>
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <SettingTooltip content="Adjusts mid frequencies (250Hz-4kHz). Critical for vocal clarity and instrument presence.">
-                    <span className="text-xs text-slate-400">Mid</span>
-                  </SettingTooltip>
-                  <span className="text-xs text-white font-bold">{settings.midBoost > 0 ? '+' : ''}{settings.midBoost}dB</span>
-                </div>
-                <Slider
-                  value={[settings.midBoost]}
-                  onValueChange={([value]) => handleSettingChange('midBoost', value)}
-                  min={-12}
-                  max={12}
-                  step={1}
-                  className="h-2"
-                />
-              </div>
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <SettingTooltip content="Enhances high frequencies (4kHz-20kHz). Adds sparkle, air, and detail to cymbals and vocals.">
-                    <span className="text-xs text-slate-400">Treble</span>
-                  </SettingTooltip>
-                  <span className="text-xs text-white font-bold">{settings.trebleBoost > 0 ? '+' : ''}{settings.trebleBoost}dB</span>
-                </div>
-                <Slider
-                  value={[settings.trebleBoost]}
-                  onValueChange={([value]) => handleSettingChange('trebleBoost', value)}
-                  min={-12}
-                  max={12}
-                  step={1}
-                  className="h-2"
-                />
-              </div>
+            <div className="flex items-center justify-between">
+              <SettingTooltip content="Adjust frequency response to enhance bass, midrange, and treble frequencies for optimal sound balance.">
+                <label className="text-xs text-slate-300 font-medium">EQ Boost</label>
+              </SettingTooltip>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowEQ(!showEQ)}
+                className="h-6 px-2 text-xs text-slate-400 hover:text-white"
+              >
+                {showEQ ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              </Button>
             </div>
+            
+            {showEQ && (
+              <div className="grid grid-cols-3 gap-3 p-3 bg-slate-900/50 rounded-lg">
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <SettingTooltip content="Enhances low frequencies (60-250Hz). Adds warmth and punch to drums and bass instruments.">
+                      <span className="text-xs text-slate-400 font-medium">Bass</span>
+                    </SettingTooltip>
+                    <span className="text-xs text-white font-bold">{settings.bassBoost > 0 ? '+' : ''}{settings.bassBoost}dB</span>
+                  </div>
+                  <div className="relative">
+                    <div 
+                      className={`absolute inset-0 bg-gradient-to-t ${getEQColor(settings.bassBoost)} rounded opacity-50`}
+                      style={{ transform: `scaleY(${0.2 + Math.abs(settings.bassBoost) / 12 * 0.8})` }}
+                    />
+                    <Slider
+                      value={[settings.bassBoost]}
+                      onValueChange={([value]) => handleSettingChange('bassBoost', value)}
+                      min={-12}
+                      max={12}
+                      step={1}
+                      className="h-2 relative z-10"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <SettingTooltip content="Adjusts mid frequencies (250Hz-4kHz). Critical for vocal clarity and instrument presence.">
+                      <span className="text-xs text-slate-400 font-medium">Mid</span>
+                    </SettingTooltip>
+                    <span className="text-xs text-white font-bold">{settings.midBoost > 0 ? '+' : ''}{settings.midBoost}dB</span>
+                  </div>
+                  <div className="relative">
+                    <div 
+                      className={`absolute inset-0 bg-gradient-to-t ${getEQColor(settings.midBoost)} rounded opacity-50`}
+                      style={{ transform: `scaleY(${0.2 + Math.abs(settings.midBoost) / 12 * 0.8})` }}
+                    />
+                    <Slider
+                      value={[settings.midBoost]}
+                      onValueChange={([value]) => handleSettingChange('midBoost', value)}
+                      min={-12}
+                      max={12}
+                      step={1}
+                      className="h-2 relative z-10"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <SettingTooltip content="Enhances high frequencies (4kHz-20kHz). Adds sparkle, air, and detail to cymbals and vocals.">
+                      <span className="text-xs text-slate-400 font-medium">Treble</span>
+                    </SettingTooltip>
+                    <span className="text-xs text-white font-bold">{settings.trebleBoost > 0 ? '+' : ''}{settings.trebleBoost}dB</span>
+                  </div>
+                  <div className="relative">
+                    <div 
+                      className={`absolute inset-0 bg-gradient-to-t ${getEQColor(settings.trebleBoost)} rounded opacity-50`}
+                      style={{ transform: `scaleY(${0.2 + Math.abs(settings.trebleBoost) / 12 * 0.8})` }}
+                    />
+                    <Slider
+                      value={[settings.trebleBoost]}
+                      onValueChange={([value]) => handleSettingChange('trebleBoost', value)}
+                      min={-12}
+                      max={12}
+                      step={1}
+                      className="h-2 relative z-10"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Stereo Widening */}
@@ -295,7 +336,7 @@ export const CompactEnhancementSettings = ({ onEnhance, isProcessing, hasFiles }
             <Button
               onClick={() => onEnhance(settings)}
               disabled={!hasFiles || isProcessing}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 h-8 text-xs shadow-lg"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 h-8 text-xs shadow-lg disabled:opacity-50"
             >
               {isProcessing ? (
                 <div className="flex items-center gap-2">

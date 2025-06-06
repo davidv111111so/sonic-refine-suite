@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Play, Pause, Volume2, VolumeX, Settings } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
 import { AudioFile } from '@/types/audio';
 
 interface EnhancedMiniPlayerProps {
@@ -15,8 +14,10 @@ export const EnhancedMiniPlayer = ({ file }: EnhancedMiniPlayerProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(0.5);
   const [currentTime, setCurrentTime] = useState(0);
-  const [showEQ, setShowEQ] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [showEQ, setShowEQ] = useState(true);
   const [eqBands, setEqBands] = useState([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+  const [isLoaded, setIsLoaded] = useState(false);
   
   const audioRef = useRef<HTMLAudioElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -26,8 +27,64 @@ export const EnhancedMiniPlayer = ({ file }: EnhancedMiniPlayerProps) => {
 
   const eqFrequencies = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
 
+  // Dynamic colors for EQ bands based on frequency
+  const getEQColor = (index: number, value: number) => {
+    const colors = [
+      '#8B0000', '#FF4500', '#FF8C00', '#FFD700', '#9ACD32',
+      '#00FF7F', '#00CED1', '#4169E1', '#8A2BE2', '#FF1493'
+    ];
+    const intensity = Math.abs(value) / 12;
+    const opacity = 0.3 + (intensity * 0.7);
+    return `${colors[index]}${Math.floor(opacity * 255).toString(16).padStart(2, '0')}`;
+  };
+
   useEffect(() => {
-    if (audioRef.current && !audioContextRef.current) {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleLoadedMetadata = () => {
+      setDuration(audio.duration || 0);
+      setIsLoaded(true);
+      console.log('Audio loaded successfully:', file.name);
+    };
+
+    const handleLoadedData = () => {
+      setIsLoaded(true);
+    };
+
+    const handleError = (e: any) => {
+      console.error('Audio loading error:', e);
+      setIsLoaded(false);
+    };
+
+    const handleCanPlay = () => {
+      setIsLoaded(true);
+    };
+
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('loadeddata', handleLoadedData);
+    audio.addEventListener('error', handleError);
+    audio.addEventListener('canplay', handleCanPlay);
+
+    // Set audio source
+    if (file.enhancedUrl) {
+      audio.src = file.enhancedUrl;
+    } else if (file.originalFile) {
+      audio.src = URL.createObjectURL(file.originalFile);
+    }
+
+    audio.load();
+
+    return () => {
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('loadeddata', handleLoadedData);
+      audio.removeEventListener('error', handleError);
+      audio.removeEventListener('canplay', handleCanPlay);
+    };
+  }, [file]);
+
+  useEffect(() => {
+    if (audioRef.current && !audioContextRef.current && isLoaded) {
       try {
         audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
         sourceRef.current = audioContextRef.current.createMediaElementSource(audioRef.current);
@@ -51,11 +108,13 @@ export const EnhancedMiniPlayer = ({ file }: EnhancedMiniPlayerProps) => {
         });
         previousNode.connect(gainNodeRef.current);
         gainNodeRef.current.connect(audioContextRef.current.destination);
+        
+        console.log('Audio context initialized successfully');
       } catch (error) {
         console.warn('Web Audio API not supported:', error);
       }
     }
-  }, []);
+  }, [isLoaded]);
 
   useEffect(() => {
     if (audioRef.current) {
@@ -89,7 +148,10 @@ export const EnhancedMiniPlayer = ({ file }: EnhancedMiniPlayerProps) => {
   }, []);
 
   const togglePlay = async () => {
-    if (!audioRef.current) return;
+    if (!audioRef.current || !isLoaded) {
+      console.warn('Audio not ready for playback');
+      return;
+    }
 
     try {
       if (audioContextRef.current?.state === 'suspended') {
@@ -98,10 +160,11 @@ export const EnhancedMiniPlayer = ({ file }: EnhancedMiniPlayerProps) => {
 
       if (isPlaying) {
         audioRef.current.pause();
+        setIsPlaying(false);
       } else {
         await audioRef.current.play();
+        setIsPlaying(true);
       }
-      setIsPlaying(!isPlaying);
     } catch (error) {
       console.error("Playback failed:", error);
       setIsPlaying(false);
@@ -113,7 +176,7 @@ export const EnhancedMiniPlayer = ({ file }: EnhancedMiniPlayerProps) => {
   };
 
   const handleTimeChange = (value: number[]) => {
-    if (audioRef.current) {
+    if (audioRef.current && isLoaded) {
       audioRef.current.currentTime = value[0];
       setCurrentTime(value[0]);
     }
@@ -148,45 +211,49 @@ export const EnhancedMiniPlayer = ({ file }: EnhancedMiniPlayerProps) => {
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-semibold text-white flex items-center justify-between">
           <span className="truncate">{file.name}</span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowEQ(!showEQ)}
-            className="h-6 w-6 p-0 text-slate-400 hover:text-white"
-          >
-            <Settings className="h-3 w-3" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${isLoaded ? 'bg-green-400' : 'bg-red-400'}`} />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowEQ(!showEQ)}
+              className="h-6 w-6 p-0 text-slate-400 hover:text-white"
+            >
+              <Settings className="h-3 w-3" />
+            </Button>
+          </div>
         </CardTitle>
       </CardHeader>
       
       <CardContent className="pt-0 space-y-3">
         {/* Main Player Controls */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3">
             <Button
               variant="ghost"
               size="sm"
               onClick={togglePlay}
-              className="h-8 w-8 p-0 text-white hover:bg-slate-700"
+              disabled={!isLoaded}
+              className="h-10 w-10 p-0 text-white hover:bg-slate-700 disabled:opacity-50 bg-slate-700/50 rounded-full"
             >
-              {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+              {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
             </Button>
             <div className="flex items-center space-x-2">
               <Button 
                 variant="ghost" 
                 size="sm"
-                className="h-6 w-6 p-0 text-slate-400 hover:text-white"
+                className="h-8 w-8 p-0 text-slate-400 hover:text-white bg-slate-700/30 rounded"
               >
-                {volume === 0 ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+                {volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
               </Button>
-              <div className="w-16">
+              <div className="w-20">
                 <Slider
                   value={[volume * 100]}
                   onValueChange={handleVolumeChange}
                   min={0}
                   max={100}
                   step={1}
-                  className="h-1"
+                  className="h-2"
                 />
               </div>
             </div>
@@ -194,7 +261,7 @@ export const EnhancedMiniPlayer = ({ file }: EnhancedMiniPlayerProps) => {
           <div className="flex items-center space-x-2 text-xs text-slate-400">
             <span>{formatTime(currentTime)}</span>
             <span>/</span>
-            <span>{file.duration ? formatTime(file.duration) : '0:00'}</span>
+            <span>{formatTime(duration)}</span>
           </div>
         </div>
 
@@ -203,54 +270,78 @@ export const EnhancedMiniPlayer = ({ file }: EnhancedMiniPlayerProps) => {
           <Slider
             value={[currentTime]}
             onValueChange={handleTimeChange}
-            max={file.duration || 100}
+            max={duration || 100}
             step={1}
-            className="h-1"
+            className="h-2"
+            disabled={!isLoaded}
           />
         </div>
 
-        {/* EQ Controls */}
+        {/* Enhanced EQ Controls */}
         {showEQ && (
-          <div className="bg-slate-900/50 rounded-lg p-3 space-y-3">
+          <div className="bg-slate-900/50 rounded-lg p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <h4 className="text-xs font-medium text-white">Perfect Audio EQ</h4>
+              <h4 className="text-sm font-medium text-white">Perfect Audio EQ</h4>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={resetEQ}
-                className="h-6 text-xs bg-slate-700 border-slate-600 hover:bg-slate-600 text-white"
+                className="h-7 text-xs bg-slate-700 border-slate-600 hover:bg-slate-600 text-white"
               >
                 Reset
               </Button>
             </div>
-            <div className="flex justify-center items-end gap-2">
-              {eqFrequencies.map((freq, index) => (
-                <div key={freq} className="flex flex-col items-center">
-                  <div className="h-20 flex items-end justify-center mb-1">
-                    <Slider
-                      orientation="vertical"
-                      value={[eqBands[index]]}
-                      onValueChange={([value]) => handleEQChange(index, value)}
-                      min={-12}
-                      max={12}
-                      step={0.5}
-                      className="h-16 w-4"
-                    />
+            <div className="relative">
+              {/* Vertical grid lines behind sliders */}
+              <div className="absolute inset-0 flex justify-between items-center px-2">
+                {eqFrequencies.map((_, index) => (
+                  <div
+                    key={index}
+                    className="w-px bg-slate-600/30 h-full"
+                    style={{
+                      background: `linear-gradient(to bottom, transparent, ${getEQColor(index, eqBands[index])}, transparent)`
+                    }}
+                  />
+                ))}
+              </div>
+              
+              {/* EQ Sliders */}
+              <div className="flex justify-center items-end gap-3 relative z-10">
+                {eqFrequencies.map((freq, index) => (
+                  <div key={freq} className="flex flex-col items-center">
+                    <div className="h-24 flex items-end justify-center mb-2 relative">
+                      {/* Dynamic color background */}
+                      <div 
+                        className="absolute inset-0 rounded opacity-30 transition-all duration-300"
+                        style={{
+                          background: `linear-gradient(to top, ${getEQColor(index, eqBands[index])}, transparent)`,
+                          transform: `scaleY(${0.2 + Math.abs(eqBands[index]) / 12 * 0.8})`
+                        }}
+                      />
+                      <Slider
+                        orientation="vertical"
+                        value={[eqBands[index]]}
+                        onValueChange={([value]) => handleEQChange(index, value)}
+                        min={-12}
+                        max={12}
+                        step={0.5}
+                        className="h-20 w-5 relative z-10"
+                      />
+                    </div>
+                    <div className="text-xs text-blue-400 mb-1 text-center font-medium">
+                      {freq < 1000 ? `${freq}Hz` : `${freq/1000}kHz`}
+                    </div>
+                    <div className="text-xs text-white text-center min-w-10 font-mono bg-slate-800/50 rounded px-1">
+                      {eqBands[index] > 0 ? '+' : ''}{eqBands[index]}
+                    </div>
                   </div>
-                  <div className="text-xs text-blue-400 mb-1 text-center">
-                    {freq < 1000 ? `${freq}Hz` : `${freq/1000}kHz`}
-                  </div>
-                  <div className="text-xs text-slate-300 text-center min-w-8">
-                    {eqBands[index] > 0 ? '+' : ''}{eqBands[index]}
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         )}
 
         <audio 
-          src={file.enhancedUrl || URL.createObjectURL(file.originalFile)} 
           ref={audioRef} 
           preload="metadata"
           crossOrigin="anonymous"
