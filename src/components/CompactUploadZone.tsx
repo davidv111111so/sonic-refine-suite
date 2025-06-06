@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Upload, FileAudio, AlertCircle, X } from 'lucide-react';
 import { AudioFile } from '@/types/audio';
 import { Button } from '@/components/ui/button';
+import { EnhancedMiniPlayer } from '@/components/EnhancedMiniPlayer';
 
 interface CompactUploadZoneProps {
   onFilesUploaded: (files: AudioFile[]) => void;
@@ -28,7 +29,7 @@ export const CompactUploadZone = ({ onFilesUploaded, uploadedFiles, onRemoveFile
         status: 'uploaded' as const,
         originalFile: file,
         progress: 0,
-        processingStage: 'Ready'
+        processingStage: 'Ready for Perfect Audio enhancement'
       };
     });
 
@@ -48,9 +49,9 @@ export const CompactUploadZone = ({ onFilesUploaded, uploadedFiles, onRemoveFile
         if (file.errors && file.errors.length > 0) {
           const error = file.errors[0];
           if (error.code === 'file-too-large') {
-            setErrorMessage(`File "${file.file.name}" is too large. Maximum size is 50MB.`);
+            setErrorMessage(`File "${file.file.name}" is too large. Maximum size is 50MB for optimal processing.`);
           } else if (error.code === 'file-invalid-type') {
-            setErrorMessage(`File "${file.file.name}" has an invalid file type. Only MP3, WAV, FLAC, M4A are supported.`);
+            setErrorMessage(`File "${file.file.name}" format not supported. Perfect Audio supports MP3, WAV, FLAC, and M4A.`);
           } else {
             setErrorMessage(`Error uploading "${file.file.name}": ${error.message}`);
           }
@@ -68,23 +69,23 @@ export const CompactUploadZone = ({ onFilesUploaded, uploadedFiles, onRemoveFile
   };
 
   return (
-    <div className="space-y-3">
-      <Card className="bg-slate-800/50 border-slate-700">
+    <div className="space-y-4">
+      <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600 shadow-lg">
         <CardContent className="p-3">
-          <div {...getRootProps()} className="flex flex-col items-center justify-center h-24 border-2 border-dashed rounded-md cursor-pointer bg-slate-700/20 border-slate-500/50 hover:bg-slate-700/40 transition-colors">
+          <div {...getRootProps()} className="flex flex-col items-center justify-center h-24 border-2 border-dashed rounded-md cursor-pointer bg-slate-700/20 border-slate-500/50 hover:bg-slate-700/40 hover:border-blue-400/50 transition-all duration-200">
             <input {...getInputProps()} />
             {isDragActive ? (
-              <p className="text-slate-300 text-sm">Drop the files here...</p>
+              <p className="text-blue-300 text-sm font-medium">Drop your audio files here...</p>
             ) : (
               <div className="flex flex-col items-center">
-                <Upload className="h-5 w-5 text-slate-400 mb-1" />
-                <p className="text-slate-400 text-sm text-center">Drag audio files here or click to select</p>
-                <p className="text-xs text-slate-500">MP3, WAV, FLAC, M4A (Max 50MB)</p>
+                <Upload className="h-5 w-5 text-blue-400 mb-1" />
+                <p className="text-white text-sm text-center font-medium">Drag audio files here or click to select</p>
+                <p className="text-xs text-slate-300">MP3, WAV, FLAC, M4A (Max 50MB)</p>
               </div>
             )}
           </div>
           {errorMessage && (
-            <div className="mt-2 p-2 rounded-md bg-red-100 text-red-700 flex items-center text-xs">
+            <div className="mt-2 p-2 rounded-md bg-red-900/50 border border-red-600/50 text-red-200 flex items-center text-xs">
               <AlertCircle className="h-3 w-3 mr-1 flex-shrink-0" />
               {errorMessage}
             </div>
@@ -94,45 +95,56 @@ export const CompactUploadZone = ({ onFilesUploaded, uploadedFiles, onRemoveFile
 
       {/* Uploaded Files List */}
       {uploadedFiles.length > 0 && (
-        <Card className="bg-slate-800/50 border-slate-700">
-          <CardContent className="p-3">
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium text-white mb-2">
-                Uploaded Files ({uploadedFiles.length})
-              </h4>
-              {uploadedFiles.map((file) => (
-                <div key={file.id} className="flex items-center justify-between bg-slate-700/50 rounded p-2">
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <FileAudio className="h-4 w-4 text-blue-400 flex-shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm text-white truncate">{file.name}</p>
-                      <div className="flex items-center gap-2 text-xs text-slate-400">
-                        <span>{formatFileSize(file.size)}</span>
-                        <span>•</span>
-                        <span className={
-                          file.status === 'enhanced' ? 'text-green-400' :
-                          file.status === 'processing' ? 'text-blue-400' :
-                          file.status === 'error' ? 'text-red-400' :
-                          'text-slate-400'
-                        }>
-                          {file.processingStage}
-                        </span>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-medium text-white">
+              Uploaded Files ({uploadedFiles.length})
+            </h4>
+            <div className="text-xs text-slate-400">
+              Total: {formatFileSize(uploadedFiles.reduce((sum, file) => sum + file.size, 0))}
+            </div>
+          </div>
+          
+          {uploadedFiles.map((file) => (
+            <div key={file.id} className="space-y-2">
+              <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600 shadow-lg">
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between bg-slate-700/50 rounded p-2">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <FileAudio className="h-4 w-4 text-blue-400 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm text-white truncate font-medium">{file.name}</p>
+                        <div className="flex items-center gap-2 text-xs text-slate-300">
+                          <span>{formatFileSize(file.size)}</span>
+                          <span>•</span>
+                          <span className={
+                            file.status === 'enhanced' ? 'text-green-400' :
+                            file.status === 'processing' ? 'text-blue-400' :
+                            file.status === 'error' ? 'text-red-400' :
+                            'text-slate-300'
+                          }>
+                            {file.processingStage}
+                          </span>
+                        </div>
                       </div>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onRemoveFile(file.id)}
+                      className="h-6 w-6 p-0 text-slate-400 hover:text-white hover:bg-slate-600"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onRemoveFile(file.id)}
-                    className="h-6 w-6 p-0 text-slate-400 hover:text-white hover:bg-slate-600"
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
-              ))}
+                </CardContent>
+              </Card>
+              
+              {/* Enhanced Mini Player for Preview */}
+              <EnhancedMiniPlayer file={file} />
             </div>
-          </CardContent>
-        </Card>
+          ))}
+        </div>
       )}
     </div>
   );

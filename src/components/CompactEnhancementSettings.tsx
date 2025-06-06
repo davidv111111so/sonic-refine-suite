@@ -1,11 +1,12 @@
 
 import { useState, useMemo } from 'react';
-import { Settings, Wand2, Download } from 'lucide-react';
+import { Settings, Wand2, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface CompactEnhancementSettingsProps {
   onEnhance: (settings: EnhancementSettings) => void;
@@ -27,6 +28,22 @@ interface EnhancementSettings {
   outputFormat: string;
 }
 
+const SettingTooltip = ({ content, children }: { content: string; children: React.ReactNode }) => (
+  <TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="flex items-center gap-1 cursor-help">
+          {children}
+          <HelpCircle className="h-3 w-3 text-slate-400 hover:text-white transition-colors" />
+        </div>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs bg-slate-800 border-slate-600 text-white">
+        <p className="text-xs">{content}</p>
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+);
+
 export const CompactEnhancementSettings = ({ onEnhance, isProcessing, hasFiles }: CompactEnhancementSettingsProps) => {
   const [settings, setSettings] = useState<EnhancementSettings>({
     sampleRate: 44100,
@@ -39,7 +56,7 @@ export const CompactEnhancementSettings = ({ onEnhance, isProcessing, hasFiles }
     stereoWidening: 10,
     normalization: true,
     highFreqRestoration: false,
-    outputFormat: 'wav',
+    outputFormat: 'mp3', // Set MP3 as default
   });
 
   const handleSettingChange = (key: keyof EnhancementSettings, value: any) => {
@@ -58,15 +75,15 @@ export const CompactEnhancementSettings = ({ onEnhance, isProcessing, hasFiles }
     if (settings.noiseReduction > 0) score += 1;
     if (settings.normalization) score += 1;
     
-    if (score >= 6) return 'Studio';
-    if (score >= 4) return 'High';
-    return 'Good';
+    if (score >= 6) return 'Studio Quality';
+    if (score >= 4) return 'High Quality';
+    return 'Good Quality';
   }, [settings]);
 
   return (
     <div className="space-y-3">
       {/* Audio Quality Settings */}
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600 shadow-lg">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-white text-sm">
             <Settings className="h-4 w-4" />
@@ -76,49 +93,56 @@ export const CompactEnhancementSettings = ({ onEnhance, isProcessing, hasFiles }
         <CardContent className="pt-0 space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-slate-400 mb-1 block">Sample Rate</label>
+              <SettingTooltip content="Higher sample rates capture more audio detail. 44.1kHz is CD quality, 48kHz is professional standard, 96kHz is high-resolution.">
+                <label className="text-xs text-slate-300 mb-1 block font-medium">Sample Rate</label>
+              </SettingTooltip>
               <Select value={settings.sampleRate.toString()} onValueChange={(value) => handleSettingChange('sampleRate', parseInt(value))}>
-                <SelectTrigger className="h-8 bg-slate-700 border-slate-600 text-xs">
+                <SelectTrigger className="h-8 bg-slate-700 border-slate-600 text-xs text-white">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="44100">44.1 kHz</SelectItem>
-                  <SelectItem value="48000">48.0 kHz</SelectItem>
-                  <SelectItem value="88200">88.2 kHz</SelectItem>
-                  <SelectItem value="96000">96 kHz</SelectItem>
+                <SelectContent className="bg-slate-800 border-slate-600">
+                  <SelectItem value="44100" className="text-white">44.1 kHz</SelectItem>
+                  <SelectItem value="48000" className="text-white">48.0 kHz</SelectItem>
+                  <SelectItem value="88200" className="text-white">88.2 kHz</SelectItem>
+                  <SelectItem value="96000" className="text-white">96 kHz</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="text-xs text-slate-400 mb-1 block">Bit Depth</label>
+              <SettingTooltip content="Bit depth determines dynamic range. 16-bit is CD quality with 96dB range, 24-bit provides 144dB range for professional audio.">
+                <label className="text-xs text-slate-300 mb-1 block font-medium">Bit Depth</label>
+              </SettingTooltip>
               <Select value={settings.bitDepth.toString()} onValueChange={(value) => handleSettingChange('bitDepth', parseInt(value))}>
-                <SelectTrigger className="h-8 bg-slate-700 border-slate-600 text-xs">
+                <SelectTrigger className="h-8 bg-slate-700 border-slate-600 text-xs text-white">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="16">16-bit</SelectItem>
-                  <SelectItem value="24">24-bit</SelectItem>
+                <SelectContent className="bg-slate-800 border-slate-600">
+                  <SelectItem value="16" className="text-white">16-bit</SelectItem>
+                  <SelectItem value="24" className="text-white">24-bit</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
-          <div className="text-xs text-slate-400 text-center">
-            Quality: <span className="text-blue-400 font-medium">{estimatedQuality}</span>
+          <div className="text-xs text-center">
+            <span className="text-slate-400">Quality: </span>
+            <span className="text-blue-400 font-medium">{estimatedQuality}</span>
           </div>
         </CardContent>
       </Card>
 
       {/* Real-Time Enhancement Options */}
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600 shadow-lg">
         <CardHeader className="pb-2">
-          <CardTitle className="text-white text-sm">Real-Time Enhancement Options</CardTitle>
+          <CardTitle className="text-white text-sm">Perfect Audio Enhancement Options</CardTitle>
         </CardHeader>
         <CardContent className="pt-0 space-y-3">
           {/* Noise Reduction */}
           <div>
             <div className="flex justify-between items-center mb-1">
-              <label className="text-xs text-slate-400">Noise Reduction</label>
-              <span className="text-xs text-slate-300">{settings.noiseReduction}%</span>
+              <SettingTooltip content="Removes background noise, hiss, and unwanted artifacts. Higher values provide more aggressive noise removal.">
+                <label className="text-xs text-slate-300 font-medium">Noise Reduction</label>
+              </SettingTooltip>
+              <span className="text-xs text-white font-bold">{settings.noiseReduction}%</span>
             </div>
             <Slider
               value={[settings.noiseReduction]}
@@ -133,8 +157,10 @@ export const CompactEnhancementSettings = ({ onEnhance, isProcessing, hasFiles }
           {/* Dynamic Range Compression */}
           <div>
             <div className="flex justify-between items-center mb-1">
-              <label className="text-xs text-slate-400">Dynamic Range Compression</label>
-              <span className="text-xs text-slate-300">{settings.compression}%</span>
+              <SettingTooltip content="Evens out volume differences between loud and quiet parts. Perfect for consistent listening levels.">
+                <label className="text-xs text-slate-300 font-medium">Dynamic Compression</label>
+              </SettingTooltip>
+              <span className="text-xs text-white font-bold">{settings.compression}%</span>
             </div>
             <Slider
               value={[settings.compression]}
@@ -148,12 +174,14 @@ export const CompactEnhancementSettings = ({ onEnhance, isProcessing, hasFiles }
 
           {/* EQ Boost */}
           <div className="space-y-2">
-            <label className="text-xs text-slate-400">EQ Boost</label>
+            <label className="text-xs text-slate-300 font-medium">EQ Boost</label>
             <div className="grid grid-cols-3 gap-2">
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs text-slate-500">Bass</span>
-                  <span className="text-xs text-slate-300">{settings.bassBoost > 0 ? '+' : ''}{settings.bassBoost}dB</span>
+                  <SettingTooltip content="Enhances low frequencies (60-250Hz). Adds warmth and punch to drums and bass instruments.">
+                    <span className="text-xs text-slate-400">Bass</span>
+                  </SettingTooltip>
+                  <span className="text-xs text-white font-bold">{settings.bassBoost > 0 ? '+' : ''}{settings.bassBoost}dB</span>
                 </div>
                 <Slider
                   value={[settings.bassBoost]}
@@ -166,8 +194,10 @@ export const CompactEnhancementSettings = ({ onEnhance, isProcessing, hasFiles }
               </div>
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs text-slate-500">Mid</span>
-                  <span className="text-xs text-slate-300">{settings.midBoost > 0 ? '+' : ''}{settings.midBoost}dB</span>
+                  <SettingTooltip content="Adjusts mid frequencies (250Hz-4kHz). Critical for vocal clarity and instrument presence.">
+                    <span className="text-xs text-slate-400">Mid</span>
+                  </SettingTooltip>
+                  <span className="text-xs text-white font-bold">{settings.midBoost > 0 ? '+' : ''}{settings.midBoost}dB</span>
                 </div>
                 <Slider
                   value={[settings.midBoost]}
@@ -180,8 +210,10 @@ export const CompactEnhancementSettings = ({ onEnhance, isProcessing, hasFiles }
               </div>
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs text-slate-500">Treble</span>
-                  <span className="text-xs text-slate-300">{settings.trebleBoost > 0 ? '+' : ''}{settings.trebleBoost}dB</span>
+                  <SettingTooltip content="Enhances high frequencies (4kHz-20kHz). Adds sparkle, air, and detail to cymbals and vocals.">
+                    <span className="text-xs text-slate-400">Treble</span>
+                  </SettingTooltip>
+                  <span className="text-xs text-white font-bold">{settings.trebleBoost > 0 ? '+' : ''}{settings.trebleBoost}dB</span>
                 </div>
                 <Slider
                   value={[settings.trebleBoost]}
@@ -198,8 +230,10 @@ export const CompactEnhancementSettings = ({ onEnhance, isProcessing, hasFiles }
           {/* Stereo Widening */}
           <div>
             <div className="flex justify-between items-center mb-1">
-              <label className="text-xs text-slate-400">Stereo Widening</label>
-              <span className="text-xs text-slate-300">{settings.stereoWidening}%</span>
+              <SettingTooltip content="Expands the stereo image for a wider, more immersive soundstage. Great for headphone listening.">
+                <label className="text-xs text-slate-300 font-medium">Stereo Widening</label>
+              </SettingTooltip>
+              <span className="text-xs text-white font-bold">{settings.stereoWidening}%</span>
             </div>
             <Slider
               value={[settings.stereoWidening]}
@@ -214,54 +248,64 @@ export const CompactEnhancementSettings = ({ onEnhance, isProcessing, hasFiles }
           {/* Toggles */}
           <div className="grid grid-cols-2 gap-3 pt-2">
             <div className="flex items-center space-x-2">
-              <Switch
-                checked={settings.normalization}
-                onCheckedChange={(checked) => handleSettingChange('normalization', checked)}
-              />
-              <label className="text-xs text-slate-400">Volume Normalization</label>
+              <SettingTooltip content="Automatically adjusts overall volume to a consistent level across all tracks for uniform playback.">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={settings.normalization}
+                    onCheckedChange={(checked) => handleSettingChange('normalization', checked)}
+                  />
+                  <label className="text-xs text-slate-300 font-medium">Volume Normalize</label>
+                </div>
+              </SettingTooltip>
             </div>
             <div className="flex items-center space-x-2">
-              <Switch
-                checked={settings.highFreqRestoration}
-                onCheckedChange={(checked) => handleSettingChange('highFreqRestoration', checked)}
-              />
-              <label className="text-xs text-slate-400">High-freq Restoration</label>
+              <SettingTooltip content="Restores high-frequency content lost during compression or analog-to-digital conversion.">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={settings.highFreqRestoration}
+                    onCheckedChange={(checked) => handleSettingChange('highFreqRestoration', checked)}
+                  />
+                  <label className="text-xs text-slate-300 font-medium">High-freq Restore</label>
+                </div>
+              </SettingTooltip>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Export Format & Enhancement Button */}
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600 shadow-lg">
         <CardContent className="p-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex-1">
-              <label className="text-xs text-slate-400 mb-1 block">Export Format</label>
+              <SettingTooltip content="Choose output format: MP3 (small, compatible), WAV (uncompressed, large), FLAC (lossless compression).">
+                <label className="text-xs text-slate-300 mb-1 block font-medium">Export Format</label>
+              </SettingTooltip>
               <Select value={settings.outputFormat} onValueChange={(value) => handleSettingChange('outputFormat', value)}>
-                <SelectTrigger className="h-8 bg-slate-700 border-slate-600 text-xs">
+                <SelectTrigger className="h-8 bg-slate-700 border-slate-600 text-xs text-white">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="mp3">MP3</SelectItem>
-                  <SelectItem value="wav">WAV</SelectItem>
-                  <SelectItem value="flac">FLAC</SelectItem>
+                <SelectContent className="bg-slate-800 border-slate-600">
+                  <SelectItem value="mp3" className="text-white">MP3 (Recommended)</SelectItem>
+                  <SelectItem value="wav" className="text-white">WAV (Uncompressed)</SelectItem>
+                  <SelectItem value="flac" className="text-white">FLAC (Lossless)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <Button
               onClick={() => onEnhance(settings)}
               disabled={!hasFiles || isProcessing}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 h-8 text-xs"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 h-8 text-xs shadow-lg"
             >
               {isProcessing ? (
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Processing...
+                  Enhancing...
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
                   <Wand2 className="h-3 w-3" />
-                  Enhance Audio
+                  Perfect Audio
                 </div>
               )}
             </Button>
