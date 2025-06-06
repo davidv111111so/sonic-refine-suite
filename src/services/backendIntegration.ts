@@ -200,10 +200,15 @@ export const getBackendConfig = (): BackendConfig => {
 export const isBackendAvailable = async (): Promise<boolean> => {
   try {
     const config = getBackendConfig();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
     const response = await fetch(`${config.baseUrl}/health`, {
       method: 'GET',
-      timeout: 5000
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
     return response.ok;
   } catch {
     return false;

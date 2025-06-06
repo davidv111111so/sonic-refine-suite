@@ -1,19 +1,21 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { AudioEnhancementBanner } from '@/components/AudioEnhancementBanner';
-import { StatsCards } from '@/components/StatsCards';
-import { MainTabs } from '@/components/MainTabs';
 import { useToast } from '@/hooks/use-toast';
 import { useFileManagement } from '@/hooks/useFileManagement';
-import { useAudioEnhancement } from '@/hooks/useAudioEnhancement';
+import { useAdvancedAudioProcessing } from '@/hooks/useAdvancedAudioProcessing';
 import { useEnhancementHistory } from '@/hooks/useEnhancementHistory';
 import { AudioFile, AudioStats } from '@/types/audio';
+import { CompactUploadZone } from '@/components/CompactUploadZone';
+import { CompactEnhancementSettings } from '@/components/CompactEnhancementSettings';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
+import { Download, Waveform } from 'lucide-react';
 
 const Index = () => {
   console.log('Index component render started');
   
-  const [activeTab, setActiveTab] = useState('upload');
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const { toast } = useToast();
   
@@ -25,14 +27,8 @@ const Index = () => {
     handleUpdateFile
   } = useFileManagement();
 
-  const {
-    handleEnhanceFiles,
-    saveLocation,
-    setSaveLocation,
-    isProcessing
-  } = useAudioEnhancement(audioFiles, setAudioFiles, notificationsEnabled);
-
-  const { history, clearHistory } = useEnhancementHistory();
+  const { processAudioFile, isProcessing, setIsProcessing } = useAdvancedAudioProcessing();
+  const { addToHistory } = useEnhancementHistory();
 
   useEffect(() => {
     if ('Notification' in window) {
@@ -42,21 +38,103 @@ const Index = () => {
     }
   }, []);
 
-  const handleSelectPreset = useCallback((preset: any) => {
-    setActiveTab('enhance');
-    toast({
-      title: "Preset selected",
-      description: `${preset.smartFolder} preset has been applied to the settings`,
-    });
-  }, [toast]);
+  const handleEnhanceFiles = useCallback(async (settings: any) => {
+    setIsProcessing(true);
+    const filesToProcess = audioFiles.filter(file => file.status === 'uploaded');
+    
+    for (const file of filesToProcess) {
+      setAudioFiles(prev => prev.map(f => 
+        f.id === file.id ? { 
+          ...f, 
+          status: 'processing' as const, 
+          progress: 0,
+          processingStage: 'Starting...'
+        } : f
+      ));
 
-  const handleClearHistory = () => {
-    clearHistory();
-    toast({
-      title: "History cleared",
-      description: "Your enhancement history has been cleared"
-    });
-  };
+      try {
+        const enhancedBlob = await processAudioFile(file, settings, (progress, stage) => {
+          setAudioFiles(prev => prev.map(f => 
+            f.id === file.id ? { 
+              ...f, 
+              progress,
+              processingStage: stage
+            } : f
+          ));
+        });
+
+        const enhancedUrl = URL.createObjectURL(enhancedBlob);
+        const extension = settings.outputFormat || 'wav';
+        const enhancedFilename = `${file.name.replace(/\.[^.]+$/, '')}_enhanced.${extension}`;
+        
+        // Auto-download enhanced file
+        const a = document.createElement('a');
+        a.href = enhancedUrl;
+        a.download = enhancedFilename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        addToHistory({
+          fileName: file.name,
+          settings,
+          originalSize: file.size,
+          enhancedSize: enhancedBlob.size,
+          status: 'success'
+        });
+        
+        setAudioFiles(prev => prev.map(f => 
+          f.id === file.id ? { 
+            ...f, 
+            status: 'enhanced' as const, 
+            progress: 100,
+            processingStage: 'Complete - Downloaded',
+            enhancedUrl,
+            enhancedSize: enhancedBlob.size
+          } : f
+        ));
+
+        toast({
+          title: "Enhancement complete!",
+          description: `${file.name} has been enhanced and downloaded.`,
+        });
+
+      } catch (error) {
+        console.error('Error processing file:', error);
+        
+        addToHistory({
+          fileName: file.name,
+          settings,
+          originalSize: file.size,
+          enhancedSize: 0,
+          status: 'error'
+        });
+        
+        setAudioFiles(prev => prev.map(f => 
+          f.id === file.id ? { 
+            ...f, 
+            status: 'error' as const,
+            processingStage: 'Failed'
+          } : f
+        ));
+
+        toast({
+          title: "Enhancement failed",
+          description: `Failed to process ${file.name}. Please try again.`,
+          variant: "destructive"
+        });
+      }
+    }
+
+    setIsProcessing(false);
+    
+    if (notificationsEnabled && filesToProcess.length > 0) {
+      new Notification('Audio Enhancement Complete', {
+        body: `${filesToProcess.length} files enhanced and downloaded`,
+        icon: '/favicon.ico'
+      });
+    }
+  }, [audioFiles, notificationsEnabled, toast, processAudioFile, addToHistory, setIsProcessing, setAudioFiles]);
 
   const stats: AudioStats = {
     total: audioFiles.length,
@@ -65,36 +143,109 @@ const Index = () => {
     enhanced: audioFiles.filter(f => f.status === 'enhanced').length,
   };
 
-  console.log('Index component render - activeTab:', activeTab);
-  console.log('Index component render - stats:', stats);
+  const processingFiles = audioFiles.filter(f => f.status === 'processing');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-blue-950 to-black text-white">
-      <div className="container mx-auto px-4 py-8">
-        {/* Enhanced Header with Banner */}
-        <div className="flex items-center justify-end mb-4">
+      <div className="container mx-auto px-4 py-6 max-w-4xl">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+              <Waveform className="h-6 w-6 text-blue-400" />
+              Audio Enhancer
+            </h1>
+            <p className="text-slate-400 text-sm">Professional audio enhancement in your browser</p>
+          </div>
           <ThemeToggle />
         </div>
-        <AudioEnhancementBanner />
 
-        {/* Stats Cards */}
-        <StatsCards stats={stats} />
+        {/* Quick Stats */}
+        {stats.total > 0 && (
+          <div className="grid grid-cols-4 gap-3 mb-6">
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardContent className="p-3 text-center">
+                <div className="text-lg font-bold text-white">{stats.total}</div>
+                <div className="text-xs text-slate-400">Total Files</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardContent className="p-3 text-center">
+                <div className="text-lg font-bold text-blue-400">{stats.uploaded}</div>
+                <div className="text-xs text-slate-400">Ready</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardContent className="p-3 text-center">
+                <div className="text-lg font-bold text-yellow-400">{stats.processing}</div>
+                <div className="text-xs text-slate-400">Processing</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardContent className="p-3 text-center">
+                <div className="text-lg font-bold text-green-400">{stats.enhanced}</div>
+                <div className="text-xs text-slate-400">Enhanced</div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
-        {/* Main Content */}
-        <MainTabs
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          audioFiles={audioFiles}
-          onFilesUploaded={handleFilesUploaded}
-          onRemoveFile={handleRemoveFile}
-          onUpdateFile={handleUpdateFile}
-          onEnhanceFiles={handleEnhanceFiles}
-          isProcessing={isProcessing}
-          hasFiles={stats.uploaded > 0}
-          onSaveLocationChange={setSaveLocation}
-          history={history}
-          onClearHistory={handleClearHistory}
-        />
+        {/* Processing Progress */}
+        {processingFiles.length > 0 && (
+          <Card className="bg-slate-800/50 border-slate-700 mb-6">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-white text-sm">Processing Status</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {processingFiles.map(file => (
+                <div key={file.id} className="mb-3 last:mb-0">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs text-slate-300 truncate">{file.name}</span>
+                    <span className="text-xs text-slate-400">{file.progress}%</span>
+                  </div>
+                  <Progress value={file.progress} className="h-2 mb-1" />
+                  <div className="text-xs text-slate-500">{file.processingStage}</div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left Column - Upload */}
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-lg font-semibold text-white mb-3">Upload Audio Files</h2>
+              <CompactUploadZone
+                onFilesUploaded={handleFilesUploaded}
+                uploadedFiles={audioFiles}
+                onRemoveFile={handleRemoveFile}
+              />
+            </div>
+          </div>
+
+          {/* Right Column - Enhancement Settings */}
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-lg font-semibold text-white mb-3">Enhancement Settings</h2>
+              <CompactEnhancementSettings
+                onEnhance={handleEnhanceFiles}
+                isProcessing={isProcessing}
+                hasFiles={stats.uploaded > 0}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Processing Info */}
+        <Card className="bg-slate-800/50 border-slate-700 mt-6">
+          <CardContent className="p-4">
+            <div className="text-center text-sm text-slate-400">
+              <p>Files are processed using advanced Web Audio API algorithms</p>
+              <p className="text-xs mt-1">Enhanced files are automatically downloaded to your Downloads folder</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
