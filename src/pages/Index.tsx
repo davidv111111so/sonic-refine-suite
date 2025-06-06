@@ -11,7 +11,7 @@ import { CompactEnhancementSettings } from '@/components/CompactEnhancementSetti
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { Download, Waveform } from 'lucide-react';
+import { Download, AudioWaveform } from 'lucide-react';
 
 const Index = () => {
   console.log('Index component render started');
@@ -152,7 +152,7 @@ const Index = () => {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              <Waveform className="h-6 w-6 text-blue-400" />
+              <AudioWaveform className="h-6 w-6 text-blue-400" />
               Audio Enhancer
             </h1>
             <p className="text-slate-400 text-sm">Professional audio enhancement in your browser</p>
