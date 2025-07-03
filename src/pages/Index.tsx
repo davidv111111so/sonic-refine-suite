@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AnimatedTitle } from '@/components/AnimatedTitle';
 import { EnhancedSongsList } from '@/components/EnhancedSongsList';
 import { QueueAndStory } from '@/components/QueueAndStory';
-import { Upload, Music, Settings, Download, List } from 'lucide-react';
+import { Upload, Music, Settings, Download, List, Sparkles } from 'lucide-react';
 
 const Index = () => {
   console.log('Perfect Audio app render started');
@@ -23,6 +23,7 @@ const Index = () => {
   const [eqBands, setEqBands] = useState([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
   const [eqEnabled, setEqEnabled] = useState(true);
   const [activeTab, setActiveTab] = useState('upload');
+  const [processingQueue, setProcessingQueue] = useState<AudioFile[]>([]);
   const { toast } = useToast();
   
   const {
@@ -70,29 +71,40 @@ const Index = () => {
     setIsProcessing(true);
     const filesToProcess = audioFiles.filter(file => file.status === 'uploaded');
     
+    // Set up processing queue - process one file at a time to prevent crashes
+    setProcessingQueue(filesToProcess);
+    
     const enhancedSettings = {
       ...settings,
       eqBands: eqBands,
       enableEQ: eqEnabled
     };
     
-    for (const file of filesToProcess) {
+    // Process files one by one to prevent crashes
+    for (let i = 0; i < filesToProcess.length; i++) {
+      const file = filesToProcess[i];
+      
       setAudioFiles(prev => prev.map(f => 
         f.id === file.id ? { 
           ...f, 
           status: 'processing' as const, 
           progress: 0,
-          processingStage: 'Starting Perfect Audio enhancement...'
+          processingStage: `Processing ${i + 1} of ${filesToProcess.length}...`
         } : f
       ));
 
       try {
+        // Add delay between files to prevent crashes
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
         const enhancedBlob = await processAudioFile(file, enhancedSettings, (progress, stage) => {
           setAudioFiles(prev => prev.map(f => 
             f.id === file.id ? { 
               ...f, 
               progress: Math.round(progress),
-              processingStage: stage
+              processingStage: `${stage} (${i + 1}/${filesToProcess.length})`
             } : f
           ));
         });
@@ -175,6 +187,7 @@ const Index = () => {
       }
     }
 
+    setProcessingQueue([]);
     setIsProcessing(false);
     
     if (notificationsEnabled && filesToProcess.length > 0) {
@@ -284,6 +297,9 @@ const Index = () => {
               <CardTitle className="text-white text-lg flex items-center gap-3">
                 <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
                 Perfect Audio Processing Status
+                {processingQueue.length > 0 && (
+                  <span className="text-sm text-blue-300">({processingQueue.length} in queue)</span>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
@@ -313,8 +329,8 @@ const Index = () => {
               Enhance
             </TabsTrigger>
             <TabsTrigger value="enhanced" className="data-[state=active]:bg-blue-600 text-sm">
-              <Download className="h-4 w-4 mr-2" />
-              Enhanced
+              <Sparkles className="h-4 w-4 mr-2" />
+              Perfect Audio
             </TabsTrigger>
           </TabsList>
 
@@ -370,7 +386,7 @@ const Index = () => {
                 </span>
                 <span className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                  Real-time Processing
+                  One-at-a-time Processing
                 </span>
                 <span className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-purple-400 rounded-full"></div>

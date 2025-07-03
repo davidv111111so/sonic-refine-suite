@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Settings, Zap, Volume2, Headphones } from 'lucide-react';
+import { Settings, Zap, Volume2, Headphones, Sparkles } from 'lucide-react';
 
 interface CompactEnhancementSettingsProps {
   onEnhance: (settings: any) => void;
@@ -52,13 +52,14 @@ export const CompactEnhancementSettings = ({
       onClick={onToggle}
       className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
         enabled 
-          ? `bg-${color}-500 text-white shadow-lg shadow-${color}-500/50 ring-2 ring-${color}-400/30` 
+          ? `text-white shadow-lg ring-2 ring-opacity-30` 
           : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
       }`}
       title={`Toggle ${label}`}
       style={enabled ? {
-        boxShadow: `0 0 20px ${color === 'green' ? '#10b981' : color === 'yellow' ? '#f59e0b' : '#a855f7'}40`,
-        backgroundColor: color === 'green' ? '#10b981' : color === 'yellow' ? '#f59e0b' : '#a855f7'
+        boxShadow: `0 0 20px ${color}40, 0 0 10px ${color}60`,
+        backgroundColor: color,
+        borderColor: color + '40'
       } : {}}
     >
       {icon}
@@ -82,7 +83,7 @@ export const CompactEnhancementSettings = ({
               onToggle={() => setNoiseReductionEnabled(!noiseReductionEnabled)}
               icon={<Volume2 className="h-4 w-4" />}
               label="Noise Reduction"
-              color="green"
+              color="#10b981"
             />
             <span className="text-xs text-slate-400 font-medium">Noise</span>
           </div>
@@ -92,7 +93,7 @@ export const CompactEnhancementSettings = ({
               onToggle={() => setCompressionEnabled(!compressionEnabled)}
               icon={<Zap className="h-4 w-4" />}
               label="Compression"
-              color="yellow"
+              color="#f59e0b"
             />
             <span className="text-xs text-slate-400 font-medium">Compress</span>
           </div>
@@ -102,7 +103,7 @@ export const CompactEnhancementSettings = ({
               onToggle={() => setStereoWideningEnabled(!stereoWideningEnabled)}
               icon={<Headphones className="h-4 w-4" />}
               label="Stereo Widening"
-              color="purple"
+              color="#a855f7"
             />
             <span className="text-xs text-slate-400 font-medium">Stereo</span>
           </div>
@@ -150,7 +151,8 @@ export const CompactEnhancementSettings = ({
               onValueChange={([value]) => setSettings({...settings, noiseReduction: value})}
               max={100}
               step={5}
-              className="w-full"
+              className={`w-full ${!noiseReductionEnabled ? 'opacity-50 pointer-events-none' : ''}`}
+              disabled={!noiseReductionEnabled}
             />
           </div>
 
@@ -164,7 +166,8 @@ export const CompactEnhancementSettings = ({
               onValueChange={([value]) => setSettings({...settings, compression: value})}
               max={100}
               step={5}
-              className="w-full"
+              className={`w-full ${!compressionEnabled ? 'opacity-50 pointer-events-none' : ''}`}
+              disabled={!compressionEnabled}
             />
           </div>
 
@@ -178,7 +181,8 @@ export const CompactEnhancementSettings = ({
               onValueChange={([value]) => setSettings({...settings, stereoWidening: value})}
               max={100}
               step={5}
-              className="w-full"
+              className={`w-full ${!stereoWideningEnabled ? 'opacity-50 pointer-events-none' : ''}`}
+              disabled={!stereoWideningEnabled}
             />
           </div>
         </div>
@@ -205,14 +209,22 @@ export const CompactEnhancementSettings = ({
           </div>
         </div>
 
-        {/* Enhance Button */}
+        {/* Enhanced Perfect Audio Enhancement Button */}
         <Button
           onClick={handleEnhance}
           disabled={!hasFiles || isProcessing}
-          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50"
-          size="lg"
+          className={`w-full h-12 text-lg font-bold relative overflow-hidden transition-all duration-300 ${
+            !hasFiles || isProcessing 
+              ? 'opacity-50 cursor-not-allowed' 
+              : 'bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-500 hover:from-purple-700 hover:via-blue-700 hover:to-cyan-600 shadow-lg hover:shadow-xl'
+          }`}
+          style={{
+            boxShadow: !hasFiles || isProcessing ? '' : '0 0 30px rgba(147, 51, 234, 0.4), 0 0 60px rgba(59, 130, 246, 0.3)',
+            animation: !hasFiles || isProcessing ? '' : 'pulse 2s infinite'
+          }}
         >
-          {isProcessing ? 'Enhancing...' : 'Enhance Audio'}
+          <Sparkles className="h-5 w-5 mr-2" />
+          {isProcessing ? 'Enhancing...' : 'Perfect Audio Enhancement'}
         </Button>
       </CardContent>
     </Card>

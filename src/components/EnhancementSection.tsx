@@ -2,7 +2,6 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CompactEnhancementSettings } from '@/components/CompactEnhancementSettings';
-import { CompactEqualizer } from '@/components/CompactEqualizer';
 import { EnhancementPresets } from '@/components/EnhancementPresets';
 import { Music, FileAudio } from 'lucide-react';
 import { AudioFile } from '@/types/audio';
@@ -51,14 +50,14 @@ export const EnhancementSection = ({
           </CardHeader>
           <CardContent className="pt-0">
             {uploadedFiles.length > 0 ? (
-              <div className="space-y-2 max-h-64 overflow-y-auto">
+              <div className="space-y-2 max-h-80 overflow-y-auto">
                 {uploadedFiles.map((file) => (
-                  <div key={file.id} className="flex items-center gap-3 p-2 bg-slate-800/50 rounded border border-slate-700">
+                  <div key={file.id} className="flex items-center gap-3 p-3 bg-slate-800/50 rounded border border-slate-700">
                     <FileAudio className="h-4 w-4 text-blue-400 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-white truncate font-medium">{file.name}</p>
                       <div className="text-xs text-slate-400">
-                        {formatFileSize(file.size)} • Ready for enhancement
+                        {formatFileSize(file.size)} • Ready for Perfect Audio enhancement
                       </div>
                     </div>
                   </div>
@@ -82,23 +81,6 @@ export const EnhancementSection = ({
       </div>
       
       <div className="space-y-4">
-        {/* Enhanced EQ with visible borders */}
-        <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-slate-600 shadow-lg">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-white text-lg">10-Band Equalizer</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0 border-t border-slate-700">
-            <div className="p-4 border-2 border-slate-600 rounded-lg bg-slate-800/30">
-              <CompactEqualizer
-                eqBands={eqBands}
-                onEQBandChange={onEQBandChange}
-                onResetEQ={onResetEQ}
-                enabled={eqEnabled}
-              />
-            </div>
-          </CardContent>
-        </Card>
-        
         <EnhancementPresets onApplyPreset={onApplyPreset} />
       </div>
     </div>
