@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useToast } from '@/hooks/use-toast';
@@ -10,12 +9,21 @@ import { CompactUploadZone } from '@/components/CompactUploadZone';
 import { CompactEnhancementSettings } from '@/components/CompactEnhancementSettings';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { AudioWaveform } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AnimatedTitle } from '@/components/AnimatedTitle';
+import { CompactEqualizer } from '@/components/CompactEqualizer';
+import { EnhancementPresets } from '@/components/EnhancementPresets';
+import { EnhancedSongsList } from '@/components/EnhancedSongsList';
+import { QueueAndStory } from '@/components/QueueAndStory';
+import { Upload, Music, Settings, Download, List, Headphones } from 'lucide-react';
 
 const Index = () => {
   console.log('Perfect Audio app render started');
   
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [eqBands, setEqBands] = useState([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+  const [eqEnabled, setEqEnabled] = useState(true);
+  const [activeTab, setActiveTab] = useState('upload');
   const { toast } = useToast();
   
   const {
@@ -71,9 +79,16 @@ const Index = () => {
     setIsProcessing(true);
     const filesToProcess = audioFiles.filter(file => file.status === 'uploaded');
     
+    // Apply EQ settings to enhancement settings
+    const enhancedSettings = {
+      ...settings,
+      eqBands: eqBands,
+      enableEQ: eqEnabled
+    };
+    
     // Show estimated sizes before processing
     filesToProcess.forEach(file => {
-      const estimatedSize = calculateEstimatedSize(file.size, settings);
+      const estimatedSize = calculateEstimatedSize(file.size, enhancedSettings);
       toast({
         title: "Processing Estimation",
         description: `${file.name}: Estimated output size ~${(estimatedSize / (1024 * 1024)).toFixed(1)}MB`,
@@ -91,7 +106,7 @@ const Index = () => {
       ));
 
       try {
-        const enhancedBlob = await processAudioFile(file, settings, (progress, stage) => {
+        const enhancedBlob = await processAudioFile(file, enhancedSettings, (progress, stage) => {
           setAudioFiles(prev => prev.map(f => 
             f.id === file.id ? { 
               ...f, 
@@ -102,7 +117,7 @@ const Index = () => {
         });
 
         const enhancedUrl = URL.createObjectURL(enhancedBlob);
-        const extension = settings.outputFormat || 'mp3';
+        const extension = enhancedSettings.outputFormat || 'mp3';
         const enhancedFilename = `${file.name.replace(/\.[^.]+$/, '')}_perfect.${extension}`;
         
         // Auto-download enhanced file
@@ -115,7 +130,7 @@ const Index = () => {
         
         addToHistory({
           fileName: file.name,
-          settings,
+          settings: enhancedSettings,
           originalSize: file.size,
           enhancedSize: enhancedBlob.size,
           status: 'success'
@@ -150,7 +165,7 @@ const Index = () => {
         
         addToHistory({
           fileName: file.name,
-          settings,
+          settings: enhancedSettings,
           originalSize: file.size,
           enhancedSize: 0,
           status: 'error'
@@ -180,7 +195,44 @@ const Index = () => {
         icon: '/favicon.ico'
       });
     }
-  }, [audioFiles, notificationsEnabled, toast, processAudioFile, addToHistory, setIsProcessing, setAudioFiles]);
+  }, [audioFiles, notificationsEnabled, toast, processAudioFile, addToHistory, setIsProcessing, setAudioFiles, eqBands, eqEnabled]);
+
+  const handleApplyPreset = (presetSettings: any) => {
+    setEqBands(presetSettings.eqBands);
+    toast({
+      title: "Preset Applied",
+      description: "Enhancement settings have been updated with the selected preset.",
+    });
+  };
+
+  const handleEQBandChange = (bandIndex: number, value: number) => {
+    const newEqBands = [...eqBands];
+    newEqBands[bandIndex] = value;
+    setEqBands(newEqBands);
+  };
+
+  const resetEQ = () => {
+    setEqBands([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+  };
+
+  const handleDownloadEnhanced = (file: AudioFile) => {
+    if (file.enhancedUrl) {
+      const a = document.createElement('a');
+      a.href = file.enhancedUrl;
+      a.download = `enhanced_${file.name}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  };
+
+  const handleDeleteEnhanced = (fileId: string) => {
+    setAudioFiles(prev => prev.filter(f => f.id !== fileId));
+    toast({
+      title: "File Deleted",
+      description: "Enhanced file has been removed.",
+    });
+  };
 
   const stats: AudioStats = {
     total: audioFiles.length,
@@ -190,31 +242,18 @@ const Index = () => {
   };
 
   const processingFiles = audioFiles.filter(f => f.status === 'processing');
+  const enhancedFiles = audioFiles.filter(f => f.status === 'enhanced');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-blue-950 to-black text-white">
-      <div className="container mx-auto px-4 py-6 max-w-5xl">
-        {/* Enhanced Header with Prominent Branding */}
+      <div className="container mx-auto px-4 py-6 max-w-6xl">
+        {/* Enhanced Header with Animated Title */}
         <div className="flex items-center justify-between mb-8">
-          <div className="relative">
-            <h1 className="text-5xl font-bold text-white flex items-center gap-4">
-              <div className="relative">
-                <AudioWaveform className="h-12 w-12 text-blue-400 animate-pulse" />
-                <div className="absolute inset-0 h-12 w-12 bg-blue-400/20 rounded-full animate-ping"></div>
-                <div className="absolute inset-0 h-12 w-12 bg-purple-400/10 rounded-full animate-pulse delay-300"></div>
-              </div>
-              <span className="bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent drop-shadow-lg">
-                Perfect Audio
-              </span>
-            </h1>
-            <p className="text-slate-300 text-base ml-16 mt-2 font-medium">Professional audio enhancement in your browser</p>
-            <div className="absolute -top-3 -left-3 w-16 h-16 bg-gradient-to-r from-blue-500/15 to-purple-500/15 rounded-full blur-2xl"></div>
-            <div className="absolute -top-1 -right-1 w-12 h-12 bg-gradient-to-l from-purple-500/10 to-blue-500/10 rounded-full blur-xl"></div>
-          </div>
+          <AnimatedTitle />
           <ThemeToggle />
         </div>
 
-        {/* Enhanced Stats with White Accents */}
+        {/* Enhanced Stats */}
         {stats.total > 0 && (
           <div className="grid grid-cols-4 gap-4 mb-6">
             <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600 shadow-lg">
@@ -244,7 +283,7 @@ const Index = () => {
           </div>
         )}
 
-        {/* Fixed Processing Progress */}
+        {/* Processing Progress */}
         {processingFiles.length > 0 && (
           <Card className="bg-gradient-to-r from-slate-800 to-slate-900 border-slate-600 mb-6 shadow-lg">
             <CardHeader className="pb-3">
@@ -268,37 +307,83 @@ const Index = () => {
           </Card>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left Column - Upload */}
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-3">
-                <div className="w-1 h-8 bg-gradient-to-b from-blue-400 to-purple-400 rounded"></div>
-                Upload Audio Files
-              </h2>
-              <CompactUploadZone
-                onFilesUploaded={handleFilesUploaded}
-                uploadedFiles={audioFiles}
-                onRemoveFile={handleRemoveFile}
-              />
-            </div>
-          </div>
+        {/* Main Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-5 bg-slate-800 border-slate-700 h-12 mb-6">
+            <TabsTrigger value="upload" className="data-[state=active]:bg-blue-600 text-sm">
+              <Upload className="h-4 w-4 mr-2" />
+              Upload
+            </TabsTrigger>
+            <TabsTrigger value="enhance" className="data-[state=active]:bg-blue-600 text-sm">
+              <Settings className="h-4 w-4 mr-2" />
+              Enhance
+            </TabsTrigger>
+            <TabsTrigger value="enhanced" className="data-[state=active]:bg-blue-600 text-sm">
+              <Download className="h-4 w-4 mr-2" />
+              Enhanced
+            </TabsTrigger>
+            <TabsTrigger value="queue" className="data-[state=active]:bg-blue-600 text-sm">
+              <List className="h-4 w-4 mr-2" />
+              Queue
+            </TabsTrigger>
+            <TabsTrigger value="story" className="data-[state=active]:bg-blue-600 text-sm">
+              <Headphones className="h-4 w-4 mr-2" />
+              Story
+            </TabsTrigger>
+          </TabsList>
 
-          {/* Right Column - Enhancement Settings */}
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-3">
-                <div className="w-1 h-8 bg-gradient-to-b from-purple-400 to-blue-400 rounded"></div>
-                Enhancement Settings
-              </h2>
-              <CompactEnhancementSettings
-                onEnhance={handleEnhanceFiles}
-                isProcessing={isProcessing}
-                hasFiles={stats.uploaded > 0}
-              />
+          <TabsContent value="upload">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <CompactUploadZone
+                  onFilesUploaded={handleFilesUploaded}
+                  uploadedFiles={audioFiles}
+                  onRemoveFile={handleRemoveFile}
+                />
+              </div>
+              <div>
+                <EnhancementPresets onApplyPreset={handleApplyPreset} />
+              </div>
             </div>
-          </div>
-        </div>
+          </TabsContent>
+
+          <TabsContent value="enhance">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <CompactEnhancementSettings
+                  onEnhance={handleEnhanceFiles}
+                  isProcessing={isProcessing}
+                  hasFiles={stats.uploaded > 0}
+                />
+              </div>
+              <div className="space-y-4">
+                <CompactEqualizer
+                  eqBands={eqBands}
+                  onEQBandChange={handleEQBandChange}
+                  onResetEQ={resetEQ}
+                  enabled={eqEnabled}
+                />
+                <EnhancementPresets onApplyPreset={handleApplyPreset} />
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="enhanced">
+            <EnhancedSongsList
+              enhancedFiles={enhancedFiles}
+              onDownload={handleDownloadEnhanced}
+              onDelete={handleDeleteEnhanced}
+            />
+          </TabsContent>
+
+          <TabsContent value="queue">
+            <QueueAndStory audioFiles={audioFiles} />
+          </TabsContent>
+
+          <TabsContent value="story">
+            <QueueAndStory audioFiles={audioFiles} />
+          </TabsContent>
+        </Tabs>
 
         {/* Enhanced Processing Info */}
         <Card className="bg-gradient-to-r from-slate-800 to-slate-900 border-slate-600 mt-8 shadow-lg">
