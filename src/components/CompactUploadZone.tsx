@@ -68,6 +68,9 @@ export const CompactUploadZone = ({ onFilesUploaded, uploadedFiles, onRemoveFile
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  // Show only last 20 files for performance
+  const displayFiles = uploadedFiles.slice(-20);
+
   return (
     <div className="space-y-4">
       <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600 shadow-lg">
@@ -79,8 +82,8 @@ export const CompactUploadZone = ({ onFilesUploaded, uploadedFiles, onRemoveFile
             ) : (
               <div className="flex flex-col items-center">
                 <Upload className="h-5 w-5 text-blue-400 mb-1" />
-                <p className="text-white text-sm text-center font-medium">Drag audio files here or click to select</p>
-                <p className="text-xs text-slate-300">MP3, WAV, FLAC, M4A (Max 50MB)</p>
+                <p className="text-white text-sm text-center font-medium">Drag audio files here or click to select (Max 20 files)</p>
+                <p className="text-xs text-slate-300">MP3, WAV, FLAC, M4A (Max 50MB each)</p>
               </div>
             )}
           </div>
@@ -93,19 +96,19 @@ export const CompactUploadZone = ({ onFilesUploaded, uploadedFiles, onRemoveFile
         </CardContent>
       </Card>
 
-      {/* Uploaded Files List */}
-      {uploadedFiles.length > 0 && (
+      {/* Uploaded Files List - Show last 20 */}
+      {displayFiles.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h4 className="text-sm font-medium text-white">
-              Uploaded Files ({uploadedFiles.length})
+              Uploaded Files ({uploadedFiles.length}/20)
             </h4>
             <div className="text-xs text-slate-400">
-              Total: {formatFileSize(uploadedFiles.reduce((sum, file) => sum + file.size, 0))}
+              Total: {formatFileSize(displayFiles.reduce((sum, file) => sum + file.size, 0))}
             </div>
           </div>
           
-          {uploadedFiles.map((file) => (
+          {displayFiles.map((file) => (
             <div key={file.id} className="space-y-2">
               <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600 shadow-lg">
                 <CardContent className="p-3">
@@ -144,6 +147,12 @@ export const CompactUploadZone = ({ onFilesUploaded, uploadedFiles, onRemoveFile
               <EnhancedMiniPlayer file={file} />
             </div>
           ))}
+          
+          {uploadedFiles.length > 20 && (
+            <div className="text-center text-xs text-slate-400 p-2 bg-slate-800/50 rounded">
+              Showing last 20 of {uploadedFiles.length} files. Older files are hidden for performance.
+            </div>
+          )}
         </div>
       )}
     </div>

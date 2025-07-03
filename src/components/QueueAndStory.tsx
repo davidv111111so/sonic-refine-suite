@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock, List, Music, Headphones } from 'lucide-react';
+import { Clock, List, Music } from 'lucide-react';
 import { AudioFile } from '@/types/audio';
 
 interface QueueAndStoryProps {
@@ -74,24 +74,6 @@ export const QueueAndStory = ({ audioFiles }: QueueAndStoryProps) => {
           ) : (
             <p className="text-slate-400 text-center py-4">No files in queue</p>
           )}
-        </CardContent>
-      </Card>
-
-      {/* Song Story */}
-      <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600 shadow-lg">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-white text-lg flex items-center gap-3">
-            <Headphones className="h-5 w-5 text-purple-400" />
-            Song Story
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="text-slate-400 text-sm space-y-2">
-            <p>🎵 Perfect Audio uses advanced Web Audio API processing</p>
-            <p>🔊 Real-time EQ, compression, and enhancement</p>
-            <p>✨ Professional mastering chain for studio quality</p>
-            <p>🎧 Optimized for all audio formats and genres</p>
-          </div>
         </CardContent>
       </Card>
     </div>

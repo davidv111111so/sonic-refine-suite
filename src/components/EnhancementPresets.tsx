@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Music, Mic, Zap, Coffee, Volume2, Radio } from 'lucide-react';
+import { Music, Mic, Zap, Coffee, Volume2, Radio, Headphones, Guitar, Piano, Drum } from 'lucide-react';
 
 interface Preset {
   name: string;
@@ -100,6 +100,58 @@ export const EnhancementPresets = ({ onApplyPreset }: EnhancementPresetsProps) =
         compression: 60,
         stereoWidening: 10,
         eqBands: [-1, 0, 2, 4, 3, 2, 3, 4, 2, 1]
+      }
+    },
+    {
+      name: 'Hip Hop',
+      icon: <Headphones className="h-4 w-4" />,
+      settings: {
+        bassBoost: 5,
+        midBoost: -1,
+        trebleBoost: 2,
+        noiseReduction: 15,
+        compression: 35,
+        stereoWidening: 25,
+        eqBands: [4, 5, 3, 1, -1, 0, 1, 2, 2, 1]
+      }
+    },
+    {
+      name: 'Rock',
+      icon: <Guitar className="h-4 w-4" />,
+      settings: {
+        bassBoost: 2,
+        midBoost: 1,
+        trebleBoost: 4,
+        noiseReduction: 20,
+        compression: 40,
+        stereoWidening: 35,
+        eqBands: [1, 2, 3, 2, 1, 2, 3, 4, 3, 2]
+      }
+    },
+    {
+      name: 'Classical',
+      icon: <Piano className="h-4 w-4" />,
+      settings: {
+        bassBoost: 0,
+        midBoost: 1,
+        trebleBoost: 2,
+        noiseReduction: 35,
+        compression: 10,
+        stereoWidening: 15,
+        eqBands: [0, 0, 1, 2, 1, 1, 2, 2, 1, 1]
+      }
+    },
+    {
+      name: 'Pop',
+      icon: <Drum className="h-4 w-4" />,
+      settings: {
+        bassBoost: 3,
+        midBoost: 2,
+        trebleBoost: 3,
+        noiseReduction: 25,
+        compression: 45,
+        stereoWidening: 30,
+        eqBands: [2, 3, 2, 2, 1, 2, 3, 3, 2, 2]
       }
     }
   ];

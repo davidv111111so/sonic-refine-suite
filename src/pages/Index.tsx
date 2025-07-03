@@ -6,16 +6,14 @@ import { useAdvancedAudioProcessing } from '@/hooks/useAdvancedAudioProcessing';
 import { useEnhancementHistory } from '@/hooks/useEnhancementHistory';
 import { AudioFile, AudioStats } from '@/types/audio';
 import { CompactUploadZone } from '@/components/CompactUploadZone';
-import { CompactEnhancementSettings } from '@/components/CompactEnhancementSettings';
+import { EnhancementSection } from '@/components/EnhancementSection';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AnimatedTitle } from '@/components/AnimatedTitle';
-import { CompactEqualizer } from '@/components/CompactEqualizer';
-import { EnhancementPresets } from '@/components/EnhancementPresets';
 import { EnhancedSongsList } from '@/components/EnhancedSongsList';
 import { QueueAndStory } from '@/components/QueueAndStory';
-import { Upload, Music, Settings, Download, List, Headphones } from 'lucide-react';
+import { Upload, Music, Settings, Download, List } from 'lucide-react';
 
 const Index = () => {
   console.log('Perfect Audio app render started');
@@ -23,19 +21,39 @@ const Index = () => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [eqBands, setEqBands] = useState([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
   const [eqEnabled, setEqEnabled] = useState(true);
+  const [perfectAudioEnabled, setPerfectAudioEnabled] = useState(true);
   const [activeTab, setActiveTab] = useState('upload');
   const { toast } = useToast();
   
   const {
     audioFiles,
     setAudioFiles,
-    handleFilesUploaded,
+    handleFilesUploaded: originalHandleFilesUploaded,
     handleRemoveFile,
     handleUpdateFile
   } = useFileManagement();
 
   const { processAudioFile, isProcessing, setIsProcessing } = useAdvancedAudioProcessing();
   const { addToHistory } = useEnhancementHistory();
+
+  // Limit to 20 files for performance
+  const handleFilesUploaded = useCallback((newFiles: AudioFile[]) => {
+    setAudioFiles(prev => {
+      const combined = [...prev, ...newFiles];
+      // Keep only last 20 files
+      if (combined.length > 20) {
+        return combined.slice(-20);
+      }
+      return combined;
+    });
+    
+    if (newFiles.length > 0) {
+      toast({
+        title: "Files uploaded successfully",
+        description: `${newFiles.length} audio files added (max 20 files)`,
+      });
+    }
+  }, [setAudioFiles, toast]);
 
   useEffect(() => {
     if ('Notification' in window) {
@@ -45,55 +63,20 @@ const Index = () => {
     }
   }, []);
 
-  const calculateEstimatedSize = (originalSize: number, settings: any) => {
-    let multiplier = 1;
-    
-    // Sample rate impact
-    if (settings.sampleRate > 44100) {
-      multiplier *= settings.sampleRate / 44100;
-    }
-    
-    // Bit depth impact
-    if (settings.bitDepth === 24) {
-      multiplier *= 1.5;
-    }
-    
-    // Format impact
-    switch (settings.outputFormat) {
-      case 'wav':
-        multiplier *= 10; // Uncompressed
-        break;
-      case 'flac':
-        multiplier *= 0.6; // Lossless compression
-        break;
-      case 'mp3':
-      default:
-        multiplier *= 0.1; // Compressed
-        break;
-    }
-    
-    return Math.round(originalSize * multiplier);
-  };
-
   const handleEnhanceFiles = useCallback(async (settings: any) => {
+    if (!perfectAudioEnabled && !confirm('Perfect Audio enhancement is disabled. Continue with basic enhancement?')) {
+      return;
+    }
+
     setIsProcessing(true);
     const filesToProcess = audioFiles.filter(file => file.status === 'uploaded');
     
-    // Apply EQ settings to enhancement settings
     const enhancedSettings = {
       ...settings,
       eqBands: eqBands,
-      enableEQ: eqEnabled
+      enableEQ: eqEnabled,
+      perfectAudioEnabled
     };
-    
-    // Show estimated sizes before processing
-    filesToProcess.forEach(file => {
-      const estimatedSize = calculateEstimatedSize(file.size, enhancedSettings);
-      toast({
-        title: "Processing Estimation",
-        description: `${file.name}: Estimated output size ~${(estimatedSize / (1024 * 1024)).toFixed(1)}MB`,
-      });
-    });
     
     for (const file of filesToProcess) {
       setAudioFiles(prev => prev.map(f => 
@@ -101,7 +84,7 @@ const Index = () => {
           ...f, 
           status: 'processing' as const, 
           progress: 0,
-          processingStage: 'Initializing Perfect Audio enhancement...'
+          processingStage: 'Starting Perfect Audio enhancement...'
         } : f
       ));
 
@@ -117,7 +100,7 @@ const Index = () => {
         });
 
         const enhancedUrl = URL.createObjectURL(enhancedBlob);
-        const extension = enhancedSettings.outputFormat || 'mp3';
+        const extension = enhancedSettings.outputFormat || 'wav';
         const enhancedFilename = `${file.name.replace(/\.[^.]+$/, '')}_perfect.${extension}`;
         
         // Auto-download enhanced file
@@ -152,7 +135,6 @@ const Index = () => {
           description: `${file.name} has been enhanced and downloaded automatically.`,
         });
 
-        // Show desktop notification when download completes
         if (notificationsEnabled) {
           new Notification('Perfect Audio - Download Complete', {
             body: `${file.name} has been enhanced and downloaded successfully`,
@@ -175,13 +157,13 @@ const Index = () => {
           f.id === file.id ? { 
             ...f, 
             status: 'error' as const,
-            processingStage: 'Enhancement failed - please try again with different settings'
+            processingStage: 'Enhancement failed - please try again'
           } : f
         ));
 
         toast({
           title: "Enhancement failed",
-          description: `Failed to process ${file.name}. Please try again with different settings.`,
+          description: `Failed to process ${file.name}. Please try again.`,
           variant: "destructive"
         });
       }
@@ -195,7 +177,7 @@ const Index = () => {
         icon: '/favicon.ico'
       });
     }
-  }, [audioFiles, notificationsEnabled, toast, processAudioFile, addToHistory, setIsProcessing, setAudioFiles, eqBands, eqEnabled]);
+  }, [audioFiles, notificationsEnabled, toast, processAudioFile, addToHistory, setIsProcessing, setAudioFiles, eqBands, eqEnabled, perfectAudioEnabled]);
 
   const handleApplyPreset = (presetSettings: any) => {
     setEqBands(presetSettings.eqBands);
@@ -307,9 +289,9 @@ const Index = () => {
           </Card>
         )}
 
-        {/* Main Tabs */}
+        {/* Main Tabs - Removed Story Tab */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 bg-slate-800 border-slate-700 h-12 mb-6">
+          <TabsList className="grid w-full grid-cols-4 bg-slate-800 border-slate-700 h-12 mb-6">
             <TabsTrigger value="upload" className="data-[state=active]:bg-blue-600 text-sm">
               <Upload className="h-4 w-4 mr-2" />
               Upload
@@ -326,46 +308,29 @@ const Index = () => {
               <List className="h-4 w-4 mr-2" />
               Queue
             </TabsTrigger>
-            <TabsTrigger value="story" className="data-[state=active]:bg-blue-600 text-sm">
-              <Headphones className="h-4 w-4 mr-2" />
-              Story
-            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="upload">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <CompactUploadZone
-                  onFilesUploaded={handleFilesUploaded}
-                  uploadedFiles={audioFiles}
-                  onRemoveFile={handleRemoveFile}
-                />
-              </div>
-              <div>
-                <EnhancementPresets onApplyPreset={handleApplyPreset} />
-              </div>
-            </div>
+            <CompactUploadZone
+              onFilesUploaded={handleFilesUploaded}
+              uploadedFiles={audioFiles}
+              onRemoveFile={handleRemoveFile}
+            />
           </TabsContent>
 
           <TabsContent value="enhance">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <CompactEnhancementSettings
-                  onEnhance={handleEnhanceFiles}
-                  isProcessing={isProcessing}
-                  hasFiles={stats.uploaded > 0}
-                />
-              </div>
-              <div className="space-y-4">
-                <CompactEqualizer
-                  eqBands={eqBands}
-                  onEQBandChange={handleEQBandChange}
-                  onResetEQ={resetEQ}
-                  enabled={eqEnabled}
-                />
-                <EnhancementPresets onApplyPreset={handleApplyPreset} />
-              </div>
-            </div>
+            <EnhancementSection
+              audioFiles={audioFiles}
+              onEnhance={handleEnhanceFiles}
+              isProcessing={isProcessing}
+              eqBands={eqBands}
+              onEQBandChange={handleEQBandChange}
+              onResetEQ={resetEQ}
+              eqEnabled={eqEnabled}
+              onApplyPreset={handleApplyPreset}
+              perfectAudioEnabled={perfectAudioEnabled}
+              onPerfectAudioToggle={setPerfectAudioEnabled}
+            />
           </TabsContent>
 
           <TabsContent value="enhanced">
@@ -377,10 +342,6 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="queue">
-            <QueueAndStory audioFiles={audioFiles} />
-          </TabsContent>
-
-          <TabsContent value="story">
             <QueueAndStory audioFiles={audioFiles} />
           </TabsContent>
         </Tabs>

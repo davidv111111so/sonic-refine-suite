@@ -1,150 +1,257 @@
 
 import { useCallback, useState } from 'react';
 import { AudioFile } from '@/types/audio';
-import { AdvancedAudioProcessor } from '@/utils/advancedAudioProcessor';
-import { BackendAudioService, getBackendConfig, isBackendAvailable } from '@/services/backendIntegration';
 
 export const useAdvancedAudioProcessing = () => {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [processingProgress, setProcessingProgress] = useState<{[key: string]: {progress: number, stage: string}}>({});
-  const [useBackend, setUseBackend] = useState(false);
-
-  // Check if backend is available on initialization
-  const checkBackendAvailability = useCallback(async () => {
-    const available = await isBackendAvailable();
-    setUseBackend(available);
-    return available;
-  }, []);
 
   const processAudioFile = useCallback(async (
     file: AudioFile, 
     settings: any,
     onProgressUpdate?: (progress: number, stage: string) => void
   ): Promise<Blob> => {
-    
-    setIsProcessing(true);
-    
-    try {
-      // Check if backend is available for processing
-      const backendAvailable = await checkBackendAvailability();
+    return new Promise(async (resolve, reject) => {
+      let audioContext: AudioContext | null = null;
       
-      if (backendAvailable) {
-        // Use backend processing for best quality
-        return await processWithBackend(file, settings, onProgressUpdate);
-      } else {
-        // Fallback to advanced client-side processing
-        return await processWithAdvancedClient(file, settings, onProgressUpdate);
-      }
-      
-    } catch (error) {
-      console.error('Audio processing error:', error);
-      throw error;
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [checkBackendAvailability]);
-
-  const processWithBackend = async (
-    file: AudioFile,
-    settings: any,
-    onProgressUpdate?: (progress: number, stage: string) => void
-  ): Promise<Blob> => {
-    
-    const config = getBackendConfig();
-    const backendService = new BackendAudioService(config);
-    
-    try {
-      if (onProgressUpdate) onProgressUpdate(5, 'Uploading to processing server...');
-      
-      // Upload file to backend
-      const { fileId } = await backendService.uploadFile(file.originalFile);
-      
-      if (onProgressUpdate) onProgressUpdate(15, 'Starting professional enhancement...');
-      
-      // Start backend processing
-      const { jobId } = await backendService.enhanceAudio(fileId, settings);
-      
-      // Connect to real-time progress updates
-      backendService.connectProgressUpdates((update) => {
-        if (update.jobId === jobId && onProgressUpdate) {
-          onProgressUpdate(update.progress, update.stage);
-          setProcessingProgress(prev => ({
-            ...prev,
-            [file.id]: { progress: update.progress, stage: update.stage }
-          }));
+      try {
+        console.log('Starting audio processing for:', file.name);
+        
+        if (onProgressUpdate) {
+          onProgressUpdate(5, 'Initializing audio context...');
         }
-      });
-      
-      // Poll for completion
-      let job;
-      do {
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Check every 2 seconds
-        job = await backendService.getJobStatus(jobId);
-      } while (job.status === 'processing' || job.status === 'pending');
-      
-      if (job.status === 'failed') {
-        throw new Error(job.error || 'Backend processing failed');
-      }
-      
-      if (onProgressUpdate) onProgressUpdate(95, 'Downloading enhanced file...');
-      
-      // Download the enhanced file
-      const enhancedBlob = await backendService.downloadEnhanced(jobId);
-      
-      backendService.disconnect();
-      
-      return enhancedBlob;
-      
-    } catch (error) {
-      console.warn('Backend processing failed, falling back to client-side:', error);
-      return await processWithAdvancedClient(file, settings, onProgressUpdate);
-    }
-  };
 
-  const processWithAdvancedClient = async (
-    file: AudioFile,
-    settings: any,
-    onProgressUpdate?: (progress: number, stage: string) => void
-  ): Promise<Blob> => {
-    
-    const processor = new AdvancedAudioProcessor();
-    
-    try {
-      if (onProgressUpdate) {
-        onProgressUpdate(5, 'Initializing advanced client-side processing...');
-      }
-      
-      const { blob } = await processor.processAudioFile(
-        file.originalFile,
-        settings,
-        (progress, stage) => {
-          if (onProgressUpdate) {
-            onProgressUpdate(progress, `[Client-Side] ${stage}`);
+        // Create audio context with original sample rate to maintain BPM
+        const arrayBuffer = await file.originalFile.arrayBuffer();
+        audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        
+        if (onProgressUpdate) {
+          onProgressUpdate(15, 'Decoding audio data...');
+        }
+
+        // Decode the audio with proper error handling
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        const originalSampleRate = audioBuffer.sampleRate;
+        
+        if (onProgressUpdate) {
+          onProgressUpdate(30, 'Applying Perfect Audio enhancements...');
+        }
+
+        // Create offline context with ORIGINAL sample rate to maintain BPM
+        const offlineContext = new OfflineAudioContext(
+          audioBuffer.numberOfChannels,
+          audioBuffer.length,
+          originalSampleRate // Keep original sample rate
+        );
+
+        const source = offlineContext.createBufferSource();
+        source.buffer = audioBuffer;
+        let currentNode: AudioNode = source;
+
+        if (onProgressUpdate) {
+          onProgressUpdate(50, 'Processing audio effects...');
+        }
+
+        // Apply enhancements only if Perfect Audio is enabled
+        if (settings.enableEQ && settings.eqBands) {
+          currentNode = await applyEqualizer(offlineContext, currentNode, settings.eqBands);
+        }
+
+        if (settings.noiseReduction && settings.noiseReduction > 0) {
+          currentNode = applyNoiseReduction(offlineContext, currentNode, settings.noiseReduction);
+        }
+
+        if (settings.compression && settings.compression > 0) {
+          currentNode = applyCompression(offlineContext, currentNode, settings.compression);
+        }
+
+        if (settings.bassBoost !== 0) {
+          currentNode = applyBassBoost(offlineContext, currentNode, settings.bassBoost);
+        }
+
+        if (settings.trebleBoost !== 0) {
+          currentNode = applyTrebleBoost(offlineContext, currentNode, settings.trebleBoost);
+        }
+
+        if (onProgressUpdate) {
+          onProgressUpdate(75, 'Finalizing audio...');
+        }
+
+        // Connect to destination
+        currentNode.connect(offlineContext.destination);
+        source.start();
+
+        // Render the audio
+        const renderedBuffer = await offlineContext.startRendering();
+        
+        if (onProgressUpdate) {
+          onProgressUpdate(90, 'Encoding output...');
+        }
+
+        // Convert to blob with chunked processing to prevent crashes
+        const blob = await audioBufferToBlob(renderedBuffer, settings.outputFormat || 'wav');
+        
+        if (onProgressUpdate) {
+          onProgressUpdate(100, 'Enhancement complete!');
+        }
+
+        // Clean up
+        if (audioContext.state !== 'closed') {
+          await audioContext.close();
+        }
+
+        resolve(blob);
+        
+      } catch (error) {
+        console.error('Audio processing error:', error);
+        
+        // Clean up on error
+        if (audioContext && audioContext.state !== 'closed') {
+          try {
+            await audioContext.close();
+          } catch (closeError) {
+            console.warn('Error closing audio context:', closeError);
           }
-          setProcessingProgress(prev => ({
-            ...prev,
-            [file.id]: { progress, stage: `[Client-Side] ${stage}` }
-          }));
         }
-      );
+        
+        if (onProgressUpdate) {
+          onProgressUpdate(100, 'Enhancement failed');
+        }
+        
+        reject(new Error(`Audio processing failed: ${error.message}`));
+      }
+    });
+  }, []);
+
+  return { processAudioFile, isProcessing, setIsProcessing };
+};
+
+// Helper functions for audio processing
+const applyEqualizer = async (context: OfflineAudioContext, input: AudioNode, eqBands: number[]): Promise<AudioNode> => {
+  const frequencies = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
+  let currentNode = input;
+
+  for (let i = 0; i < eqBands.length && i < frequencies.length; i++) {
+    if (eqBands[i] !== 0) {
+      const filter = context.createBiquadFilter();
       
-      return blob;
+      if (i === 0) {
+        filter.type = 'lowshelf';
+      } else if (i === frequencies.length - 1) {
+        filter.type = 'highshelf';
+      } else {
+        filter.type = 'peaking';
+        filter.Q.value = 1.0;
+      }
       
-    } finally {
-      await processor.close();
+      filter.frequency.value = frequencies[i];
+      filter.gain.value = eqBands[i];
+      
+      currentNode.connect(filter);
+      currentNode = filter;
     }
-  };
+  }
 
-  const getProgressInfo = useCallback((fileId: string) => {
-    return processingProgress[fileId] || { progress: 0, stage: 'Preparing...' };
-  }, [processingProgress]);
+  return currentNode;
+};
 
-  return { 
-    processAudioFile, 
-    isProcessing, 
-    setIsProcessing,
-    getProgressInfo,
-    useBackend,
-    checkBackendAvailability
-  };
+const applyNoiseReduction = (context: OfflineAudioContext, input: AudioNode, level: number): AudioNode => {
+  const filter = context.createBiquadFilter();
+  filter.type = 'highpass';
+  filter.frequency.value = Math.min(200, level * 2);
+  filter.Q.value = 0.7;
+  
+  input.connect(filter);
+  return filter;
+};
+
+const applyCompression = (context: OfflineAudioContext, input: AudioNode, ratio: number): AudioNode => {
+  const compressor = context.createDynamicsCompressor();
+  compressor.threshold.value = -20;
+  compressor.knee.value = 5;
+  compressor.ratio.value = Math.max(1, ratio / 10);
+  compressor.attack.value = 0.005;
+  compressor.release.value = 0.1;
+  
+  input.connect(compressor);
+  return compressor;
+};
+
+const applyBassBoost = (context: OfflineAudioContext, input: AudioNode, boost: number): AudioNode => {
+  const filter = context.createBiquadFilter();
+  filter.type = 'lowshelf';
+  filter.frequency.value = 200;
+  filter.gain.value = boost;
+  
+  input.connect(filter);
+  return filter;
+};
+
+const applyTrebleBoost = (context: OfflineAudioContext, input: AudioNode, boost: number): AudioNode => {
+  const filter = context.createBiquadFilter();
+  filter.type = 'highshelf';
+  filter.frequency.value = 3000;
+  filter.gain.value = boost;
+  
+  input.connect(filter);
+  return filter;
+};
+
+// Chunked audio buffer to blob conversion to prevent crashes
+const audioBufferToBlob = async (audioBuffer: AudioBuffer, format: string): Promise<Blob> => {
+  const numberOfChannels = audioBuffer.numberOfChannels;
+  const sampleRate = audioBuffer.sampleRate;
+  const length = audioBuffer.length;
+  
+  // Use 16-bit for compatibility and smaller file size
+  const bytesPerSample = 2;
+  const blockAlign = numberOfChannels * bytesPerSample;
+  const byteRate = sampleRate * blockAlign;
+  
+  const headerLength = 44;
+  const dataLength = length * blockAlign;
+  const fileLength = headerLength + dataLength;
+  
+  const arrayBuffer = new ArrayBuffer(fileLength);
+  const view = new DataView(arrayBuffer);
+  
+  // WAV header
+  let offset = 0;
+  view.setUint32(offset, 0x52494646, false); offset += 4; // "RIFF"
+  view.setUint32(offset, fileLength - 8, true); offset += 4;
+  view.setUint32(offset, 0x57415645, false); offset += 4; // "WAVE"
+  view.setUint32(offset, 0x666d7420, false); offset += 4; // "fmt "
+  view.setUint32(offset, 16, true); offset += 4;
+  view.setUint16(offset, 1, true); offset += 2; // PCM
+  view.setUint16(offset, numberOfChannels, true); offset += 2;
+  view.setUint32(offset, sampleRate, true); offset += 4;
+  view.setUint32(offset, byteRate, true); offset += 4;
+  view.setUint16(offset, blockAlign, true); offset += 2;
+  view.setUint16(offset, 16, true); offset += 2; // 16-bit
+  view.setUint32(offset, 0x64617461, false); offset += 4; // "data"
+  view.setUint32(offset, dataLength, true); offset += 4;
+  
+  // Convert audio data in chunks to prevent blocking
+  const chunkSize = 4096;
+  const maxValue = 32767;
+  
+  for (let i = 0; i < length; i += chunkSize) {
+    const end = Math.min(i + chunkSize, length);
+    
+    for (let j = i; j < end; j++) {
+      for (let channel = 0; channel < numberOfChannels; channel++) {
+        const sample = audioBuffer.getChannelData(channel)[j];
+        const clampedSample = Math.max(-1, Math.min(1, sample));
+        const intSample = Math.round(clampedSample * maxValue);
+        view.setInt16(offset, intSample, true);
+        offset += 2;
+      }
+    }
+    
+    // Yield control every chunk to prevent blocking
+    if (i % (chunkSize * 10) === 0) {
+      await new Promise(resolve => setTimeout(resolve, 1));
+    }
+  }
+  
+  return new Blob([arrayBuffer], { type: 'audio/wav' });
 };
