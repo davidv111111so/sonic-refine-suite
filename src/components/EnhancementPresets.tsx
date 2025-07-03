@@ -1,8 +1,8 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Music, Mic, Zap, Coffee, Volume2, Radio, Headphones, Guitar, Piano, Drum } from 'lucide-react';
+import { Music, Mic, Zap, Coffee, Volume2, Radio, Headphones, Guitar, Piano, Drum, Info } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface Preset {
   name: string;
@@ -23,6 +23,8 @@ interface EnhancementPresetsProps {
 }
 
 export const EnhancementPresets = ({ onApplyPreset }: EnhancementPresetsProps) => {
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+
   const presets: Preset[] = [
     {
       name: 'Music',
@@ -156,24 +158,54 @@ export const EnhancementPresets = ({ onApplyPreset }: EnhancementPresetsProps) =
     }
   ];
 
+  const getPresetDescription = (preset: Preset) => {
+    const desc = [];
+    if (preset.settings.bassBoost > 0) desc.push(`+${preset.settings.bassBoost}dB Bass`);
+    if (preset.settings.midBoost > 0) desc.push(`+${preset.settings.midBoost}dB Mid`);
+    if (preset.settings.trebleBoost > 0) desc.push(`+${preset.settings.trebleBoost}dB Treble`);
+    if (preset.settings.noiseReduction > 0) desc.push(`${preset.settings.noiseReduction}% Noise Reduction`);
+    if (preset.settings.compression > 0) desc.push(`${preset.settings.compression}% Compression`);
+    if (preset.settings.stereoWidening > 0) desc.push(`${preset.settings.stereoWidening}% Stereo Width`);
+    return desc.join(', ');
+  };
+
   return (
     <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600 shadow-lg">
       <CardHeader className="pb-2">
-        <CardTitle className="text-white text-sm">Enhancement Presets</CardTitle>
+        <CardTitle className="text-white text-sm flex items-center gap-2">
+          Enhancement Presets
+          <Info className="h-4 w-4 text-slate-400" />
+        </CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
         <div className="grid grid-cols-2 gap-2">
           {presets.map((preset) => (
-            <Button
-              key={preset.name}
-              variant="outline"
-              size="sm"
-              onClick={() => onApplyPreset(preset.settings)}
-              className="bg-slate-700 border-slate-600 hover:bg-slate-600 text-white h-8 text-xs flex items-center gap-2"
-            >
-              {preset.icon}
-              {preset.name}
-            </Button>
+            <Popover key={preset.name}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    onApplyPreset(preset.settings);
+                    setSelectedPreset(preset.name);
+                  }}
+                  className={`bg-slate-700 border-slate-600 hover:bg-slate-600 text-white h-8 text-xs flex items-center gap-2 ${
+                    selectedPreset === preset.name ? 'ring-2 ring-blue-400' : ''
+                  }`}
+                >
+                  {preset.icon}
+                  {preset.name}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 bg-slate-800 border-slate-700 text-white">
+                <div className="space-y-2">
+                  <h4 className="font-medium text-blue-400">{preset.name} Preset</h4>
+                  <p className="text-xs text-slate-300">
+                    {getPresetDescription(preset)}
+                  </p>
+                </div>
+              </PopoverContent>
+            </Popover>
           ))}
         </div>
       </CardContent>

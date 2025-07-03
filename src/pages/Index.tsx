@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { Guide } from '@/components/Guide';
 import { useToast } from '@/hooks/use-toast';
 import { useFileManagement } from '@/hooks/useFileManagement';
 import { useAdvancedAudioProcessing } from '@/hooks/useAdvancedAudioProcessing';
@@ -21,7 +22,6 @@ const Index = () => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [eqBands, setEqBands] = useState([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
   const [eqEnabled, setEqEnabled] = useState(true);
-  const [perfectAudioEnabled, setPerfectAudioEnabled] = useState(true);
   const [activeTab, setActiveTab] = useState('upload');
   const { toast } = useToast();
   
@@ -64,18 +64,13 @@ const Index = () => {
   }, []);
 
   const handleEnhanceFiles = useCallback(async (settings: any) => {
-    if (!perfectAudioEnabled && !confirm('Perfect Audio enhancement is disabled. Continue with basic enhancement?')) {
-      return;
-    }
-
     setIsProcessing(true);
     const filesToProcess = audioFiles.filter(file => file.status === 'uploaded');
     
     const enhancedSettings = {
       ...settings,
       eqBands: eqBands,
-      enableEQ: eqEnabled,
-      perfectAudioEnabled
+      enableEQ: eqEnabled
     };
     
     for (const file of filesToProcess) {
@@ -177,7 +172,7 @@ const Index = () => {
         icon: '/favicon.ico'
       });
     }
-  }, [audioFiles, notificationsEnabled, toast, processAudioFile, addToHistory, setIsProcessing, setAudioFiles, eqBands, eqEnabled, perfectAudioEnabled]);
+  }, [audioFiles, notificationsEnabled, toast, processAudioFile, addToHistory, setIsProcessing, setAudioFiles, eqBands, eqEnabled]);
 
   const handleApplyPreset = (presetSettings: any) => {
     setEqBands(presetSettings.eqBands);
@@ -229,10 +224,13 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-blue-950 to-black text-white">
       <div className="container mx-auto px-4 py-6 max-w-6xl">
-        {/* Enhanced Header with Animated Title */}
+        {/* Enhanced Header with Guide Button */}
         <div className="flex items-center justify-between mb-8">
           <AnimatedTitle />
-          <ThemeToggle />
+          <div className="flex items-center gap-3">
+            <Guide />
+            <ThemeToggle />
+          </div>
         </div>
 
         {/* Enhanced Stats */}
@@ -315,6 +313,10 @@ const Index = () => {
               onFilesUploaded={handleFilesUploaded}
               uploadedFiles={audioFiles}
               onRemoveFile={handleRemoveFile}
+              eqBands={eqBands}
+              onEQBandChange={handleEQBandChange}
+              onResetEQ={resetEQ}
+              eqEnabled={eqEnabled}
             />
           </TabsContent>
 
@@ -328,8 +330,6 @@ const Index = () => {
               onResetEQ={resetEQ}
               eqEnabled={eqEnabled}
               onApplyPreset={handleApplyPreset}
-              perfectAudioEnabled={perfectAudioEnabled}
-              onPerfectAudioToggle={setPerfectAudioEnabled}
             />
           </TabsContent>
 

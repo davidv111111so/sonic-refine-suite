@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CompactEnhancementSettings } from '@/components/CompactEnhancementSettings';
 import { CompactEqualizer } from '@/components/CompactEqualizer';
 import { EnhancementPresets } from '@/components/EnhancementPresets';
-import { Switch } from '@/components/ui/switch';
 import { Music, FileAudio } from 'lucide-react';
 import { AudioFile } from '@/types/audio';
 
@@ -17,8 +16,6 @@ interface EnhancementSectionProps {
   onResetEQ: () => void;
   eqEnabled: boolean;
   onApplyPreset: (settings: any) => void;
-  perfectAudioEnabled: boolean;
-  onPerfectAudioToggle: (enabled: boolean) => void;
 }
 
 export const EnhancementSection = ({
@@ -29,9 +26,7 @@ export const EnhancementSection = ({
   onEQBandChange,
   onResetEQ,
   eqEnabled,
-  onApplyPreset,
-  perfectAudioEnabled,
-  onPerfectAudioToggle
+  onApplyPreset
 }: EnhancementSectionProps) => {
   const uploadedFiles = audioFiles.filter(f => f.status === 'uploaded');
 
@@ -46,28 +41,6 @@ export const EnhancementSection = ({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <div className="space-y-4">
-        {/* Perfect Audio Toggle */}
-        <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600 shadow-lg">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-white text-lg flex items-center justify-between">
-              Perfect Audio Enhancement
-              <Switch
-                checked={perfectAudioEnabled}
-                onCheckedChange={onPerfectAudioToggle}
-                className="data-[state=checked]:bg-blue-600"
-              />
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <p className="text-slate-300 text-sm">
-              {perfectAudioEnabled 
-                ? "Advanced audio enhancement is enabled" 
-                : "Basic enhancement mode - toggle on for professional quality"
-              }
-            </p>
-          </CardContent>
-        </Card>
-
         {/* Uploaded Songs for Enhancement */}
         <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600 shadow-lg">
           <CardHeader className="pb-3">
@@ -105,7 +78,6 @@ export const EnhancementSection = ({
           onEnhance={onEnhance}
           isProcessing={isProcessing}
           hasFiles={uploadedFiles.length > 0}
-          perfectAudioEnabled={perfectAudioEnabled}
         />
       </div>
       

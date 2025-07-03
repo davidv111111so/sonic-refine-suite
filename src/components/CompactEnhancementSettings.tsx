@@ -1,56 +1,108 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Wand2, Settings, Zap } from 'lucide-react';
+import { Settings, Zap, Volume2, Headphones } from 'lucide-react';
 
 interface CompactEnhancementSettingsProps {
   onEnhance: (settings: any) => void;
   isProcessing: boolean;
   hasFiles: boolean;
-  perfectAudioEnabled?: boolean;
 }
 
 export const CompactEnhancementSettings = ({ 
   onEnhance, 
   isProcessing, 
-  hasFiles,
-  perfectAudioEnabled = true
+  hasFiles
 }: CompactEnhancementSettingsProps) => {
+  const [noiseReductionEnabled, setNoiseReductionEnabled] = useState(true);
+  const [compressionEnabled, setCompressionEnabled] = useState(true);
+  const [stereoWideningEnabled, setStereoWideningEnabled] = useState(true);
+  
   const [settings, setSettings] = useState({
-    sampleRate: 44100,
+    sampleRate: 48000,
     bitDepth: 16,
     noiseReduction: 30,
-    compression: 20,
+    compression: 40,
     bassBoost: 0,
     midBoost: 0,
     trebleBoost: 0,
     stereoWidening: 25,
-    normalization: false,
+    normalization: true,
     highFreqRestoration: true,
-    outputFormat: 'wav'
+    outputFormat: 'wav',
+    targetBitrate: 320
   });
 
   const handleEnhance = () => {
-    const enhancementSettings = {
+    const finalSettings = {
       ...settings,
-      perfectAudioEnabled
+      noiseReduction: noiseReductionEnabled ? settings.noiseReduction : 0,
+      compression: compressionEnabled ? settings.compression : 0,
+      stereoWidening: stereoWideningEnabled ? settings.stereoWidening : 0
     };
-    onEnhance(enhancementSettings);
+    onEnhance(finalSettings);
   };
+
+  const ToggleButton = ({ enabled, onToggle, icon, label, color }: any) => (
+    <button
+      onClick={onToggle}
+      className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+        enabled 
+          ? `bg-${color}-500 text-white shadow-lg shadow-${color}-500/30` 
+          : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+      }`}
+      title={`Toggle ${label}`}
+    >
+      {icon}
+    </button>
+  );
 
   return (
     <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600 shadow-lg">
       <CardHeader className="pb-3">
-        <CardTitle className="text-white text-lg flex items-center gap-2">
+        <CardTitle className="text-white text-lg flex items-center gap-3">
           <Settings className="h-5 w-5 text-blue-400" />
-          Audio Enhancement Settings
+          Enhancement Settings
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-0 space-y-4">
+        {/* Quick Toggle Switches */}
+        <div className="flex items-center justify-around p-3 bg-slate-800/50 rounded-lg border border-slate-700">
+          <div className="flex flex-col items-center gap-1">
+            <ToggleButton
+              enabled={noiseReductionEnabled}
+              onToggle={() => setNoiseReductionEnabled(!noiseReductionEnabled)}
+              icon={<Volume2 className="h-4 w-4" />}
+              label="Noise Reduction"
+              color="green"
+            />
+            <span className="text-xs text-slate-400">Noise</span>
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <ToggleButton
+              enabled={compressionEnabled}
+              onToggle={() => setCompressionEnabled(!compressionEnabled)}
+              icon={<Zap className="h-4 w-4" />}
+              label="Compression"
+              color="yellow"
+            />
+            <span className="text-xs text-slate-400">Compress</span>
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <ToggleButton
+              enabled={stereoWideningEnabled}
+              onToggle={() => setStereoWideningEnabled(!stereoWideningEnabled)}
+              icon={<Headphones className="h-4 w-4" />}
+              label="Stereo Widening"
+              color="purple"
+            />
+            <span className="text-xs text-slate-400">Stereo</span>
+          </div>
+        </div>
+
         {/* Quality Settings */}
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -152,23 +204,10 @@ export const CompactEnhancementSettings = ({
         <Button
           onClick={handleEnhance}
           disabled={!hasFiles || isProcessing}
-          className={`w-full h-10 font-semibold transition-all ${
-            perfectAudioEnabled 
-              ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700' 
-              : 'bg-slate-600 hover:bg-slate-500'
-          } disabled:opacity-50 disabled:cursor-not-allowed`}
+          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50"
+          size="lg"
         >
-          {isProcessing ? (
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              Enhancing...
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              {perfectAudioEnabled ? <Zap className="h-4 w-4" /> : <Wand2 className="h-4 w-4" />}
-              {perfectAudioEnabled ? 'Perfect Audio Enhance' : 'Basic Enhance'}
-            </div>
-          )}
+          {isProcessing ? 'Enhancing...' : 'Enhance Audio'}
         </Button>
       </CardContent>
     </Card>

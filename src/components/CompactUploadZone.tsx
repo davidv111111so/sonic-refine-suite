@@ -6,14 +6,27 @@ import { Upload, FileAudio, AlertCircle, X } from 'lucide-react';
 import { AudioFile } from '@/types/audio';
 import { Button } from '@/components/ui/button';
 import { EnhancedMiniPlayer } from '@/components/EnhancedMiniPlayer';
+import { CompactEqualizer } from '@/components/CompactEqualizer';
 
 interface CompactUploadZoneProps {
   onFilesUploaded: (files: AudioFile[]) => void;
   uploadedFiles: AudioFile[];
   onRemoveFile: (id: string) => void;
+  eqBands: number[];
+  onEQBandChange: (bandIndex: number, value: number) => void;
+  onResetEQ: () => void;
+  eqEnabled: boolean;
 }
 
-export const CompactUploadZone = ({ onFilesUploaded, uploadedFiles, onRemoveFile }: CompactUploadZoneProps) => {
+export const CompactUploadZone = ({ 
+  onFilesUploaded, 
+  uploadedFiles, 
+  onRemoveFile,
+  eqBands,
+  onEQBandChange,
+  onResetEQ,
+  eqEnabled
+}: CompactUploadZoneProps) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const onDrop = useCallback(acceptedFiles => {
@@ -70,6 +83,7 @@ export const CompactUploadZone = ({ onFilesUploaded, uploadedFiles, onRemoveFile
 
   // Show only last 20 files for performance
   const displayFiles = uploadedFiles.slice(-20);
+  const lastUploadedFile = displayFiles[displayFiles.length - 1];
 
   return (
     <div className="space-y-4">
@@ -147,6 +161,25 @@ export const CompactUploadZone = ({ onFilesUploaded, uploadedFiles, onRemoveFile
               <EnhancedMiniPlayer file={file} />
             </div>
           ))}
+          
+          {/* EQ Section - Only for last uploaded file */}
+          {lastUploadedFile && (
+            <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-slate-600 shadow-lg">
+              <CardContent className="p-4">
+                <h4 className="text-sm font-medium text-white mb-3">
+                  EQ Settings for: {lastUploadedFile.name}
+                </h4>
+                <div className="border-2 border-slate-600 rounded-lg bg-slate-800/30 p-3">
+                  <CompactEqualizer
+                    eqBands={eqBands}
+                    onEQBandChange={onEQBandChange}
+                    onResetEQ={onResetEQ}
+                    enabled={eqEnabled}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
           
           {uploadedFiles.length > 20 && (
             <div className="text-center text-xs text-slate-400 p-2 bg-slate-800/50 rounded">
