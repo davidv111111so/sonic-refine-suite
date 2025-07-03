@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,12 +50,16 @@ export const CompactEnhancementSettings = ({
   const ToggleButton = ({ enabled, onToggle, icon, label, color }: any) => (
     <button
       onClick={onToggle}
-      className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+      className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
         enabled 
-          ? `bg-${color}-500 text-white shadow-lg shadow-${color}-500/30` 
+          ? `bg-${color}-500 text-white shadow-lg shadow-${color}-500/50 ring-2 ring-${color}-400/30` 
           : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
       }`}
       title={`Toggle ${label}`}
+      style={enabled ? {
+        boxShadow: `0 0 20px ${color === 'green' ? '#10b981' : color === 'yellow' ? '#f59e0b' : '#a855f7'}40`,
+        backgroundColor: color === 'green' ? '#10b981' : color === 'yellow' ? '#f59e0b' : '#a855f7'
+      } : {}}
     >
       {icon}
     </button>
@@ -69,9 +74,9 @@ export const CompactEnhancementSettings = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-0 space-y-4">
-        {/* Quick Toggle Switches */}
-        <div className="flex items-center justify-around p-3 bg-slate-800/50 rounded-lg border border-slate-700">
-          <div className="flex flex-col items-center gap-1">
+        {/* Quick Toggle Switches with Neon Colors */}
+        <div className="flex items-center justify-around p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+          <div className="flex flex-col items-center gap-2">
             <ToggleButton
               enabled={noiseReductionEnabled}
               onToggle={() => setNoiseReductionEnabled(!noiseReductionEnabled)}
@@ -79,9 +84,9 @@ export const CompactEnhancementSettings = ({
               label="Noise Reduction"
               color="green"
             />
-            <span className="text-xs text-slate-400">Noise</span>
+            <span className="text-xs text-slate-400 font-medium">Noise</span>
           </div>
-          <div className="flex flex-col items-center gap-1">
+          <div className="flex flex-col items-center gap-2">
             <ToggleButton
               enabled={compressionEnabled}
               onToggle={() => setCompressionEnabled(!compressionEnabled)}
@@ -89,9 +94,9 @@ export const CompactEnhancementSettings = ({
               label="Compression"
               color="yellow"
             />
-            <span className="text-xs text-slate-400">Compress</span>
+            <span className="text-xs text-slate-400 font-medium">Compress</span>
           </div>
-          <div className="flex flex-col items-center gap-1">
+          <div className="flex flex-col items-center gap-2">
             <ToggleButton
               enabled={stereoWideningEnabled}
               onToggle={() => setStereoWideningEnabled(!stereoWideningEnabled)}
@@ -99,7 +104,7 @@ export const CompactEnhancementSettings = ({
               label="Stereo Widening"
               color="purple"
             />
-            <span className="text-xs text-slate-400">Stereo</span>
+            <span className="text-xs text-slate-400 font-medium">Stereo</span>
           </div>
         </div>
 

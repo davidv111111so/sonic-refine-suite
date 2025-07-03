@@ -162,31 +162,32 @@ export const CompactUploadZone = ({
             </div>
           ))}
           
-          {/* EQ Section - Only for last uploaded file */}
-          {lastUploadedFile && (
-            <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-slate-600 shadow-lg">
-              <CardContent className="p-4">
-                <h4 className="text-sm font-medium text-white mb-3">
-                  EQ Settings for: {lastUploadedFile.name}
-                </h4>
-                <div className="border-2 border-slate-600 rounded-lg bg-slate-800/30 p-3">
-                  <CompactEqualizer
-                    eqBands={eqBands}
-                    onEQBandChange={onEQBandChange}
-                    onResetEQ={onResetEQ}
-                    enabled={eqEnabled}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          
           {uploadedFiles.length > 20 && (
             <div className="text-center text-xs text-slate-400 p-2 bg-slate-800/50 rounded">
               Showing last 20 of {uploadedFiles.length} files. Older files are hidden for performance.
             </div>
           )}
         </div>
+      )}
+
+      {/* Perfect Audio EQ - Only ONE EQ for all songs */}
+      {displayFiles.length > 0 && (
+        <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-slate-600 shadow-lg">
+          <CardContent className="p-4">
+            <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
+              🎵 Perfect Audio EQ
+              <span className="text-xs text-blue-400">(applies to last uploaded: {lastUploadedFile?.name})</span>
+            </h4>
+            <div className="border-2 border-slate-600 rounded-lg bg-slate-800/30 p-3">
+              <CompactEqualizer
+                eqBands={eqBands}
+                onEQBandChange={onEQBandChange}
+                onResetEQ={onResetEQ}
+                enabled={eqEnabled}
+              />
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

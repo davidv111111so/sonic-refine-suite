@@ -63,6 +63,9 @@ const Index = () => {
     }
   }, []);
 
+  // Keep track of last 20 enhanced files for queue
+  const [enhancedHistory, setEnhancedHistory] = useState<AudioFile[]>([]);
+
   const handleEnhanceFiles = useCallback(async (settings: any) => {
     setIsProcessing(true);
     const filesToProcess = audioFiles.filter(file => file.status === 'uploaded');
@@ -114,16 +117,24 @@ const Index = () => {
           status: 'success'
         });
         
+        const enhancedFile = {
+          ...file,
+          status: 'enhanced' as const, 
+          progress: 100,
+          processingStage: 'Perfect Audio enhancement complete - Downloaded!',
+          enhancedUrl,
+          enhancedSize: enhancedBlob.size
+        };
+
         setAudioFiles(prev => prev.map(f => 
-          f.id === file.id ? { 
-            ...f, 
-            status: 'enhanced' as const, 
-            progress: 100,
-            processingStage: 'Perfect Audio enhancement complete - Downloaded!',
-            enhancedUrl,
-            enhancedSize: enhancedBlob.size
-          } : f
+          f.id === file.id ? enhancedFile : f
         ));
+
+        // Add to enhanced history (keep last 20)
+        setEnhancedHistory(prev => {
+          const updated = [...prev, enhancedFile];
+          return updated.slice(-20);
+        });
 
         toast({
           title: "Perfect Audio Enhancement Complete!",
@@ -219,7 +230,10 @@ const Index = () => {
   };
 
   const processingFiles = audioFiles.filter(f => f.status === 'processing');
-  const enhancedFiles = audioFiles.filter(f => f.status === 'enhanced');
+  const enhancedFiles = [...audioFiles.filter(f => f.status === 'enhanced'), ...enhancedHistory];
+  const uniqueEnhancedFiles = enhancedFiles.filter((file, index, arr) => 
+    arr.findIndex(f => f.id === file.id) === index
+  ).slice(-20);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-blue-950 to-black text-white">
@@ -287,9 +301,9 @@ const Index = () => {
           </Card>
         )}
 
-        {/* Main Tabs - Removed Story Tab */}
+        {/* Main Tabs - 3 tabs only */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-slate-800 border-slate-700 h-12 mb-6">
+          <TabsList className="grid w-full grid-cols-3 bg-slate-800 border-slate-700 h-12 mb-6">
             <TabsTrigger value="upload" className="data-[state=active]:bg-blue-600 text-sm">
               <Upload className="h-4 w-4 mr-2" />
               Upload
@@ -301,10 +315,6 @@ const Index = () => {
             <TabsTrigger value="enhanced" className="data-[state=active]:bg-blue-600 text-sm">
               <Download className="h-4 w-4 mr-2" />
               Enhanced
-            </TabsTrigger>
-            <TabsTrigger value="queue" className="data-[state=active]:bg-blue-600 text-sm">
-              <List className="h-4 w-4 mr-2" />
-              Queue
             </TabsTrigger>
           </TabsList>
 
@@ -334,15 +344,16 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="enhanced">
-            <EnhancedSongsList
-              enhancedFiles={enhancedFiles}
-              onDownload={handleDownloadEnhanced}
-              onDelete={handleDeleteEnhanced}
-            />
-          </TabsContent>
-
-          <TabsContent value="queue">
-            <QueueAndStory audioFiles={audioFiles} />
+            <div className="space-y-6">
+              <EnhancedSongsList
+                enhancedFiles={uniqueEnhancedFiles}
+                onDownload={handleDownloadEnhanced}
+                onDelete={handleDeleteEnhanced}
+              />
+              
+              {/* Queue Section */}
+              <QueueAndStory audioFiles={audioFiles} />
+            </div>
           </TabsContent>
         </Tabs>
 
