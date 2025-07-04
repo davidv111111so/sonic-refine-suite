@@ -2,11 +2,10 @@
 import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Card, CardContent } from '@/components/ui/card';
-import { Upload, FileAudio, AlertCircle, X } from 'lucide-react';
+import { Upload, FileAudio, AlertCircle, X, Trash2 } from 'lucide-react';
 import { AudioFile } from '@/types/audio';
 import { Button } from '@/components/ui/button';
 import { EnhancedMiniPlayer } from '@/components/EnhancedMiniPlayer';
-import { CompactEqualizer } from '@/components/CompactEqualizer';
 
 interface CompactUploadZoneProps {
   onFilesUploaded: (files: AudioFile[]) => void;
@@ -54,7 +53,7 @@ export const CompactUploadZone = ({
     accept: {
       'audio/*': ['.mp3', '.wav', '.flac', '.m4a']
     },
-    maxSize: 50 * 1024 * 1024, // 50MB
+    maxSize: 100 * 1024 * 1024, // 100MB
     multiple: true,
     onDropRejected: (rejectedFiles) => {
       const file = rejectedFiles[0];
@@ -62,7 +61,7 @@ export const CompactUploadZone = ({
         if (file.errors && file.errors.length > 0) {
           const error = file.errors[0];
           if (error.code === 'file-too-large') {
-            setErrorMessage(`File "${file.file.name}" is too large. Maximum size is 50MB for optimal processing.`);
+            setErrorMessage(`File "${file.file.name}" is too large. Maximum size is 100MB for optimal processing.`);
           } else if (error.code === 'file-invalid-type') {
             setErrorMessage(`File "${file.file.name}" format not supported. Perfect Audio supports MP3, WAV, FLAC, and M4A.`);
           } else {
@@ -96,7 +95,7 @@ export const CompactUploadZone = ({
               <div className="flex flex-col items-center">
                 <Upload className="h-5 w-5 text-blue-400 mb-1" />
                 <p className="text-white text-sm text-center font-medium">Drag audio files here or click to select (Max 20 files)</p>
-                <p className="text-xs text-slate-300">MP3, WAV, FLAC, M4A (Max 50MB each)</p>
+                <p className="text-xs text-slate-300">MP3, WAV, FLAC, M4A (Max 100MB each)</p>
               </div>
             )}
           </div>
@@ -144,14 +143,26 @@ export const CompactUploadZone = ({
                         </div>
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onRemoveFile(file.id)}
-                      className="h-6 w-6 p-0 text-slate-400 hover:text-white hover:bg-slate-600"
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
+                    <div className="flex gap-2">
+                      {file.status === 'error' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onRemoveFile(file.id)}
+                          className="h-6 w-6 p-0 text-red-400 hover:text-red-300 hover:bg-red-900/50"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onRemoveFile(file.id)}
+                        className="h-6 w-6 p-0 text-slate-400 hover:text-white hover:bg-slate-600"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -167,20 +178,6 @@ export const CompactUploadZone = ({
             </div>
           )}
         </div>
-      )}
-
-      {/* SINGLE Perfect Audio EQ - Only ONE EQ for all songs */}
-      {displayFiles.length > 0 && (
-        <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-slate-600 shadow-lg">
-          <CardContent className="p-4">
-            <CompactEqualizer
-              eqBands={eqBands}
-              onEQBandChange={onEQBandChange}
-              onResetEQ={onResetEQ}
-              enabled={eqEnabled}
-            />
-          </CardContent>
-        </Card>
       )}
     </div>
   );

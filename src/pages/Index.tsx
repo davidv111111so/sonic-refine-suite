@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Guide } from '@/components/Guide';
@@ -14,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AnimatedTitle } from '@/components/AnimatedTitle';
 import { EnhancedSongsList } from '@/components/EnhancedSongsList';
 import { QueueAndStory } from '@/components/QueueAndStory';
+import { CompactEqualizer } from '@/components/CompactEqualizer';
 import { Upload, Music, Settings, Download, List, Sparkles } from 'lucide-react';
 
 const Index = () => {
@@ -24,12 +26,13 @@ const Index = () => {
   const [eqEnabled, setEqEnabled] = useState(true);
   const [activeTab, setActiveTab] = useState('upload');
   const [processingQueue, setProcessingQueue] = useState<AudioFile[]>([]);
+  const [enhancedHistory, setEnhancedHistory] = useState<AudioFile[]>([]);
   const { toast } = useToast();
   
   const {
     audioFiles,
     setAudioFiles,
-    handleFilesUploaded: originalHandleFilesUploaded,
+    handleFilesUploaded,
     handleRemoveFile,
     handleUpdateFile
   } = useFileManagement();
@@ -37,24 +40,35 @@ const Index = () => {
   const { processAudioFile, isProcessing, setIsProcessing } = useAdvancedAudioProcessing();
   const { addToHistory } = useEnhancementHistory();
 
-  // Limit to 20 files for performance
-  const handleFilesUploaded = useCallback((newFiles: AudioFile[]) => {
-    setAudioFiles(prev => {
-      const combined = [...prev, ...newFiles];
-      // Keep only last 20 files
-      if (combined.length > 20) {
-        return combined.slice(-20);
-      }
-      return combined;
-    });
-    
-    if (newFiles.length > 0) {
-      toast({
-        title: "Files uploaded successfully",
-        description: `${newFiles.length} audio files added (max 20 files)`,
+  // Stop audio when page unloads or user leaves tab
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Stop all audio elements
+      const audioElements = document.querySelectorAll('audio');
+      audioElements.forEach(audio => {
+        audio.pause();
+        audio.currentTime = 0;
       });
-    }
-  }, [setAudioFiles, toast]);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Stop all audio when tab becomes hidden
+        const audioElements = document.querySelectorAll('audio');
+        audioElements.forEach(audio => {
+          audio.pause();
+        });
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   useEffect(() => {
     if ('Notification' in window) {
@@ -63,9 +77,6 @@ const Index = () => {
       });
     }
   }, []);
-
-  // Keep track of last 20 enhanced files for queue
-  const [enhancedHistory, setEnhancedHistory] = useState<AudioFile[]>([]);
 
   const handleEnhanceFiles = useCallback(async (settings: any) => {
     setIsProcessing(true);
@@ -138,14 +149,11 @@ const Index = () => {
           enhancedSize: enhancedBlob.size
         };
 
-        setAudioFiles(prev => prev.map(f => 
-          f.id === file.id ? enhancedFile : f
-        ));
-
-        // Add to enhanced history (keep last 20)
+        // Remove from main audioFiles and add to enhanced history
+        setAudioFiles(prev => prev.filter(f => f.id !== file.id));
         setEnhancedHistory(prev => {
           const updated = [...prev, enhancedFile];
-          return updated.slice(-20);
+          return updated.slice(-20); // Keep last 20
         });
 
         toast({
@@ -199,7 +207,9 @@ const Index = () => {
   }, [audioFiles, notificationsEnabled, toast, processAudioFile, addToHistory, setIsProcessing, setAudioFiles, eqBands, eqEnabled]);
 
   const handleApplyPreset = (presetSettings: any) => {
-    setEqBands(presetSettings.eqBands);
+    if (presetSettings.eqBands) {
+      setEqBands(presetSettings.eqBands);
+    }
     toast({
       title: "Preset Applied",
       description: "Enhancement settings have been updated with the selected preset.",
@@ -228,7 +238,7 @@ const Index = () => {
   };
 
   const handleDeleteEnhanced = (fileId: string) => {
-    setAudioFiles(prev => prev.filter(f => f.id !== fileId));
+    setEnhancedHistory(prev => prev.filter(f => f.id !== fileId));
     toast({
       title: "File Deleted",
       description: "Enhanced file has been removed.",
@@ -236,17 +246,13 @@ const Index = () => {
   };
 
   const stats: AudioStats = {
-    total: audioFiles.length,
+    total: audioFiles.length + enhancedHistory.length,
     uploaded: audioFiles.filter(f => f.status === 'uploaded').length,
     processing: audioFiles.filter(f => f.status === 'processing').length,
-    enhanced: audioFiles.filter(f => f.status === 'enhanced').length,
+    enhanced: enhancedHistory.length,
   };
 
   const processingFiles = audioFiles.filter(f => f.status === 'processing');
-  const enhancedFiles = [...audioFiles.filter(f => f.status === 'enhanced'), ...enhancedHistory];
-  const uniqueEnhancedFiles = enhancedFiles.filter((file, index, arr) => 
-    arr.findIndex(f => f.id === file.id) === index
-  ).slice(-20);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-blue-950 to-black text-white">
@@ -328,22 +334,34 @@ const Index = () => {
               <Settings className="h-4 w-4 mr-2" />
               Enhance
             </TabsTrigger>
-            <TabsTrigger value="enhanced" className="data-[state=active]:bg-blue-600 text-sm">
+            <TabsTrigger value="perfect-audio" className="data-[state=active]:bg-blue-600 text-sm">
               <Sparkles className="h-4 w-4 mr-2" />
               Perfect Audio
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="upload">
-            <CompactUploadZone
-              onFilesUploaded={handleFilesUploaded}
-              uploadedFiles={audioFiles}
-              onRemoveFile={handleRemoveFile}
-              eqBands={eqBands}
-              onEQBandChange={handleEQBandChange}
-              onResetEQ={resetEQ}
-              eqEnabled={eqEnabled}
-            />
+            <div className="space-y-6">
+              <CompactUploadZone
+                onFilesUploaded={handleFilesUploaded}
+                uploadedFiles={audioFiles}
+                onRemoveFile={handleRemoveFile}
+                eqBands={eqBands}
+                onEQBandChange={handleEQBandChange}
+                onResetEQ={resetEQ}
+                eqEnabled={eqEnabled}
+              />
+              
+              {/* Single Perfect Audio EQ at bottom */}
+              {audioFiles.length > 0 && (
+                <CompactEqualizer
+                  eqBands={eqBands}
+                  onEQBandChange={handleEQBandChange}
+                  onResetEQ={resetEQ}
+                  enabled={eqEnabled}
+                />
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="enhance">
@@ -356,13 +374,14 @@ const Index = () => {
               onResetEQ={resetEQ}
               eqEnabled={eqEnabled}
               onApplyPreset={handleApplyPreset}
+              onRemoveFile={handleRemoveFile}
             />
           </TabsContent>
 
-          <TabsContent value="enhanced">
+          <TabsContent value="perfect-audio">
             <div className="space-y-6">
               <EnhancedSongsList
-                enhancedFiles={uniqueEnhancedFiles}
+                enhancedFiles={enhancedHistory}
                 onDownload={handleDownloadEnhanced}
                 onDelete={handleDeleteEnhanced}
               />
@@ -378,7 +397,7 @@ const Index = () => {
           <CardContent className="p-6">
             <div className="text-center">
               <p className="text-white font-bold text-lg">Perfect Audio - Professional Enhancement Engine</p>
-              <p className="text-slate-300 mt-2">Enhanced files are automatically downloaded with desktop notifications</p>
+              <p className="text-slate-300 mt-2">Enhanced files automatically download • Queue processes one-at-a-time for stability</p>
               <div className="flex justify-center gap-6 mt-4 text-sm text-slate-400">
                 <span className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-green-400 rounded-full"></div>
