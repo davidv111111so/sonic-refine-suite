@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Guide } from '@/components/Guide';
@@ -255,7 +254,7 @@ const Index = () => {
   const processingFiles = audioFiles.filter(f => f.status === 'processing');
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-blue-950 to-black text-white">
+    <div className="min-h-screen bg-gradient-to-br from-black via-blue-950 to-black dark:from-gray-900 dark:via-blue-950 dark:to-gray-900 light:from-white light:via-blue-50 light:to-white text-white dark:text-white light:text-gray-900 transition-colors duration-300">
       <div className="container mx-auto px-4 py-6 max-w-6xl">
         {/* Enhanced Header with Guide Button */}
         <div className="flex items-center justify-between mb-8">
@@ -269,10 +268,10 @@ const Index = () => {
         {/* Enhanced Stats */}
         {stats.total > 0 && (
           <div className="grid grid-cols-4 gap-4 mb-6">
-            <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600 shadow-lg">
+            <Card className="bg-gradient-to-br from-slate-800 to-slate-900 dark:from-slate-800 dark:to-slate-900 light:from-white light:to-gray-50 border-slate-600 dark:border-slate-600 light:border-gray-200 shadow-lg">
               <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-white">{stats.total}</div>
-                <div className="text-sm text-slate-300">Total Files</div>
+                <div className="text-2xl font-bold text-white dark:text-white light:text-gray-900">{stats.total}</div>
+                <div className="text-sm text-slate-300 dark:text-slate-300 light:text-gray-600">Total Files</div>
               </CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-blue-900 to-blue-800 border-blue-600 shadow-lg">
@@ -325,7 +324,7 @@ const Index = () => {
 
         {/* Main Tabs - 3 tabs only */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-slate-800 border-slate-700 h-12 mb-6">
+          <TabsList className="grid w-full grid-cols-3 bg-slate-800 dark:bg-slate-800 light:bg-white border-slate-700 dark:border-slate-700 light:border-gray-200 h-12 mb-6">
             <TabsTrigger value="upload" className="data-[state=active]:bg-blue-600 text-sm">
               <Upload className="h-4 w-4 mr-2" />
               Upload
@@ -346,21 +345,7 @@ const Index = () => {
                 onFilesUploaded={handleFilesUploaded}
                 uploadedFiles={audioFiles}
                 onRemoveFile={handleRemoveFile}
-                eqBands={eqBands}
-                onEQBandChange={handleEQBandChange}
-                onResetEQ={resetEQ}
-                eqEnabled={eqEnabled}
               />
-              
-              {/* Single Perfect Audio EQ at bottom */}
-              {audioFiles.length > 0 && (
-                <CompactEqualizer
-                  eqBands={eqBands}
-                  onEQBandChange={handleEQBandChange}
-                  onResetEQ={resetEQ}
-                  enabled={eqEnabled}
-                />
-              )}
             </div>
           </TabsContent>
 
@@ -392,13 +377,23 @@ const Index = () => {
           </TabsContent>
         </Tabs>
 
+        {/* Single Perfect Audio EQ at bottom */}
+        <div className="mt-8">
+          <CompactEqualizer
+            eqBands={eqBands}
+            onEQBandChange={handleEQBandChange}
+            onResetEQ={resetEQ}
+            enabled={eqEnabled}
+          />
+        </div>
+
         {/* Enhanced Processing Info */}
-        <Card className="bg-gradient-to-r from-slate-800 to-slate-900 border-slate-600 mt-8 shadow-lg">
+        <Card className="bg-gradient-to-r from-slate-800 to-slate-900 dark:from-slate-800 dark:to-slate-900 light:from-white light:to-gray-50 border-slate-600 dark:border-slate-600 light:border-gray-200 mt-8 shadow-lg">
           <CardContent className="p-6">
             <div className="text-center">
-              <p className="text-white font-bold text-lg">Perfect Audio - Professional Enhancement Engine</p>
-              <p className="text-slate-300 mt-2">Enhanced files automatically download • Queue processes one-at-a-time for stability</p>
-              <div className="flex justify-center gap-6 mt-4 text-sm text-slate-400">
+              <p className="text-white dark:text-white light:text-gray-900 font-bold text-lg">Perfect Audio - Professional Enhancement Engine</p>
+              <p className="text-slate-300 dark:text-slate-300 light:text-gray-600 mt-2">Enhanced files automatically download • Queue processes one-at-a-time for stability</p>
+              <div className="flex justify-center gap-6 mt-4 text-sm text-slate-400 dark:text-slate-400 light:text-gray-500">
                 <span className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-green-400 rounded-full"></div>
                   Advanced Web Audio API

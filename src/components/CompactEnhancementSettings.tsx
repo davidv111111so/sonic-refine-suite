@@ -1,11 +1,13 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Settings, Zap, Volume2, Headphones, Sparkles, Trash2 } from 'lucide-react';
+import { CompactEqualizer } from '@/components/CompactEqualizer';
+import { EnhancedMiniPlayer } from '@/components/EnhancedMiniPlayer';
 
 interface CompactEnhancementSettingsProps {
   onEnhance: (settings: any) => void;
@@ -13,6 +15,11 @@ interface CompactEnhancementSettingsProps {
   hasFiles: boolean;
   uploadedFiles?: any[];
   onRemoveFile?: (id: string) => void;
+  eqBands: number[];
+  onEQBandChange: (bandIndex: number, value: number) => void;
+  onResetEQ: () => void;
+  eqEnabled: boolean;
+  onApplyPreset?: (settings: any) => void;
 }
 
 export const CompactEnhancementSettings = ({ 
@@ -20,14 +27,19 @@ export const CompactEnhancementSettings = ({
   isProcessing, 
   hasFiles,
   uploadedFiles = [],
-  onRemoveFile
+  onRemoveFile,
+  eqBands,
+  onEQBandChange,
+  onResetEQ,
+  eqEnabled,
+  onApplyPreset
 }: CompactEnhancementSettingsProps) => {
   const [noiseReductionEnabled, setNoiseReductionEnabled] = useState(true);
   const [compressionEnabled, setCompressionEnabled] = useState(true);
   const [stereoWideningEnabled, setStereoWideningEnabled] = useState(true);
   
   const [settings, setSettings] = useState({
-    sampleRate: 48000,
+    sampleRate: 44100, // Default to 44.1 kHz
     bitDepth: 16,
     noiseReduction: 30,
     compression: 40,
@@ -37,9 +49,40 @@ export const CompactEnhancementSettings = ({
     stereoWidening: 25,
     normalization: true,
     highFreqRestoration: true,
-    outputFormat: 'wav',
+    outputFormat: 'mp3', // Default to MP3
     targetBitrate: 320
   });
+
+  // Update settings when preset is applied
+  useEffect(() => {
+    if (onApplyPreset) {
+      const originalOnApplyPreset = onApplyPreset;
+      onApplyPreset = (presetSettings: any) => {
+        if (presetSettings.noiseReduction !== undefined) {
+          setSettings(prev => ({ ...prev, noiseReduction: presetSettings.noiseReduction }));
+          setNoiseReductionEnabled(presetSettings.noiseReduction > 0);
+        }
+        if (presetSettings.compression !== undefined) {
+          setSettings(prev => ({ ...prev, compression: presetSettings.compression }));
+          setCompressionEnabled(presetSettings.compression > 0);
+        }
+        if (presetSettings.stereoWidening !== undefined) {
+          setSettings(prev => ({ ...prev, stereoWidening: presetSettings.stereoWidening }));
+          setStereoWideningEnabled(presetSettings.stereoWidening > 0);
+        }
+        if (presetSettings.bassBoost !== undefined) {
+          setSettings(prev => ({ ...prev, bassBoost: presetSettings.bassBoost }));
+        }
+        if (presetSettings.midBoost !== undefined) {
+          setSettings(prev => ({ ...prev, midBoost: presetSettings.midBoost }));
+        }
+        if (presetSettings.trebleBoost !== undefined) {
+          setSettings(prev => ({ ...prev, trebleBoost: presetSettings.trebleBoost }));
+        }
+        originalOnApplyPreset(presetSettings);
+      };
+    }
+  }, [onApplyPreset]);
 
   const handleEnhance = () => {
     const finalSettings = {
@@ -125,28 +168,43 @@ export const CompactEnhancementSettings = ({
           <CardContent className="pt-0">
             <div className="space-y-2 max-h-60 overflow-y-auto">
               {uploadedFiles.map((file) => (
-                <div key={file.id} className="flex items-center justify-between p-3 bg-slate-800/50 rounded border border-slate-700">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-white truncate font-medium">{file.name}</p>
-                    <div className="text-xs text-slate-400">
-                      {formatFileSize(file.size)} • Ready for enhancement
+                <div key={file.id} className="space-y-2">
+                  <div className="flex items-center justify-between p-3 bg-slate-800/50 rounded border border-slate-700">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-white truncate font-medium">{file.name}</p>
+                      <div className="text-xs text-slate-400">
+                        {formatFileSize(file.size)} • Ready for enhancement
+                      </div>
                     </div>
+                    {(file.status === 'error' || file.status === 'uploaded') && onRemoveFile && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onRemoveFile(file.id)}
+                        className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-900/50 ml-2"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
-                  {(file.status === 'error' || file.status === 'uploaded') && onRemoveFile && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onRemoveFile(file.id)}
-                      className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-900/50 ml-2"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
+                  
+                  {/* Mini Player for each file */}
+                  <EnhancedMiniPlayer file={file} />
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* EQ with same design */}
+      {uploadedFiles.length > 0 && (
+        <CompactEqualizer
+          eqBands={eqBands}
+          onEQBandChange={onEQBandChange}
+          onResetEQ={onResetEQ}
+          enabled={eqEnabled}
+        />
       )}
 
       <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600 shadow-lg">
@@ -213,8 +271,8 @@ export const CompactEnhancementSettings = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="wav">WAV</SelectItem>
                   <SelectItem value="mp3">MP3</SelectItem>
+                  <SelectItem value="wav">WAV</SelectItem>
                   <SelectItem value="flac">FLAC</SelectItem>
                 </SelectContent>
               </Select>

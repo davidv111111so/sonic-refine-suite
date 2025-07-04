@@ -1,7 +1,8 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Music, Mic, Zap, Coffee, Volume2, Radio, Headphones, Guitar, Piano, Drum, Info } from 'lucide-react';
+import { Music, Mic, Zap, Coffee, Volume2, Radio, Headphones, Guitar, Piano, Drum, Info, Heart, Star, Sparkles, Waves, Sun, Moon } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface Preset {
@@ -154,6 +155,84 @@ export const EnhancementPresets = ({ onApplyPreset }: EnhancementPresetsProps) =
         compression: 45,
         stereoWidening: 30,
         eqBands: [2, 3, 2, 2, 1, 2, 3, 3, 2, 2]
+      }
+    },
+    {
+      name: 'Acoustic',
+      icon: <Heart className="h-4 w-4" />,
+      settings: {
+        bassBoost: 1,
+        midBoost: 3,
+        trebleBoost: 2,
+        noiseReduction: 30,
+        compression: 20,
+        stereoWidening: 20,
+        eqBands: [0, 1, 2, 3, 3, 2, 2, 2, 1, 0]
+      }
+    },
+    {
+      name: 'Blues',
+      icon: <Star className="h-4 w-4" />,
+      settings: {
+        bassBoost: 2,
+        midBoost: 2,
+        trebleBoost: 1,
+        noiseReduction: 25,
+        compression: 25,
+        stereoWidening: 25,
+        eqBands: [1, 2, 2, 3, 2, 2, 2, 1, 1, 0]
+      }
+    },
+    {
+      name: 'Ambient',
+      icon: <Sparkles className="h-4 w-4" />,
+      settings: {
+        bassBoost: 0,
+        midBoost: 0,
+        trebleBoost: 3,
+        noiseReduction: 40,
+        compression: 10,
+        stereoWidening: 50,
+        eqBands: [0, 0, 0, 1, 1, 2, 3, 3, 2, 1]
+      }
+    },
+    {
+      name: 'Lofi',
+      icon: <Waves className="h-4 w-4" />,
+      settings: {
+        bassBoost: 2,
+        midBoost: 1,
+        trebleBoost: -2,
+        noiseReduction: 10,
+        compression: 30,
+        stereoWidening: 15,
+        eqBands: [2, 2, 1, 1, 0, -1, -2, -1, 0, 0]
+      }
+    },
+    {
+      name: 'Vocal',
+      icon: <Sun className="h-4 w-4" />,
+      settings: {
+        bassBoost: -1,
+        midBoost: 4,
+        trebleBoost: 3,
+        noiseReduction: 50,
+        compression: 40,
+        stereoWidening: 10,
+        eqBands: [-1, 0, 2, 4, 4, 3, 3, 2, 1, 0]
+      }
+    },
+    {
+      name: 'Dance',
+      icon: <Moon className="h-4 w-4" />,
+      settings: {
+        bassBoost: 4,
+        midBoost: 0,
+        trebleBoost: 4,
+        noiseReduction: 15,
+        compression: 50,
+        stereoWidening: 40,
+        eqBands: [4, 4, 3, 1, 0, 1, 2, 4, 3, 2]
       }
     }
   ];

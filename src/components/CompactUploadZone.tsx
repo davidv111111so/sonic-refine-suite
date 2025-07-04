@@ -11,20 +11,12 @@ interface CompactUploadZoneProps {
   onFilesUploaded: (files: AudioFile[]) => void;
   uploadedFiles: AudioFile[];
   onRemoveFile: (id: string) => void;
-  eqBands: number[];
-  onEQBandChange: (bandIndex: number, value: number) => void;
-  onResetEQ: () => void;
-  eqEnabled: boolean;
 }
 
 export const CompactUploadZone = ({ 
   onFilesUploaded, 
   uploadedFiles, 
-  onRemoveFile,
-  eqBands,
-  onEQBandChange,
-  onResetEQ,
-  eqEnabled
+  onRemoveFile
 }: CompactUploadZoneProps) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
