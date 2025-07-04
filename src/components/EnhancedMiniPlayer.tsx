@@ -8,10 +8,12 @@ import { AudioFile } from '@/types/audio';
 
 interface EnhancedMiniPlayerProps {
   file: AudioFile;
+  onAudioElementRef?: (audioElement: HTMLAudioElement | null) => void;
 }
 
 export const EnhancedMiniPlayer = ({
-  file
+  file,
+  onAudioElementRef
 }: EnhancedMiniPlayerProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(0.5);
@@ -24,6 +26,11 @@ export const EnhancedMiniPlayer = ({
     const audio = audioRef.current;
     if (!audio) return;
 
+    // Pass audio element reference to parent
+    if (onAudioElementRef) {
+      onAudioElementRef(audio);
+    }
+
     const handleLoadedMetadata = () => {
       setDuration(audio.duration || 0);
       setIsLoaded(true);
@@ -35,7 +42,7 @@ export const EnhancedMiniPlayer = ({
     };
 
     const handleError = (e: any) => {
-      console.error('Audio loading error:', e);
+      console.error('Audio loading error for', file.name, ':', e);
       setIsLoaded(false);
     };
 
@@ -48,21 +55,31 @@ export const EnhancedMiniPlayer = ({
     audio.addEventListener('error', handleError);
     audio.addEventListener('canplay', handleCanPlay);
 
-    // Set audio source
-    if (file.enhancedUrl) {
-      audio.src = file.enhancedUrl;
-    } else if (file.originalFile) {
-      audio.src = URL.createObjectURL(file.originalFile);
+    // Set audio source with error handling
+    try {
+      if (file.enhancedUrl) {
+        audio.src = file.enhancedUrl;
+      } else if (file.originalFile) {
+        audio.src = URL.createObjectURL(file.originalFile);
+      }
+      audio.load();
+    } catch (error) {
+      console.error('Error setting audio source:', error);
+      setIsLoaded(false);
     }
-    audio.load();
 
     return () => {
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audio.removeEventListener('loadeddata', handleLoadedData);
       audio.removeEventListener('error', handleError);
       audio.removeEventListener('canplay', handleCanPlay);
+      
+      // Clean up audio element reference
+      if (onAudioElementRef) {
+        onAudioElementRef(null);
+      }
     };
-  }, [file]);
+  }, [file, onAudioElementRef]);
 
   useEffect(() => {
     if (audioRef.current) {
@@ -103,6 +120,14 @@ export const EnhancedMiniPlayer = ({
         audioRef.current.pause();
         setIsPlaying(false);
       } else {
+        // Stop other audio players
+        const allAudioElements = document.querySelectorAll('audio');
+        allAudioElements.forEach(audio => {
+          if (audio !== audioRef.current) {
+            audio.pause();
+          }
+        });
+        
         await audioRef.current.play();
         setIsPlaying(true);
       }

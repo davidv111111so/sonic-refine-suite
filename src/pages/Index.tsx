@@ -81,6 +81,16 @@ const Index = () => {
     setIsProcessing(true);
     const filesToProcess = audioFiles.filter(file => file.status === 'uploaded');
     
+    if (filesToProcess.length === 0) {
+      setIsProcessing(false);
+      toast({
+        title: "No files to process",
+        description: "Please upload some audio files first.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     // Set up processing queue - process one file at a time to prevent crashes
     setProcessingQueue(filesToProcess);
     
@@ -90,7 +100,7 @@ const Index = () => {
       enableEQ: eqEnabled
     };
     
-    // Process files one by one to prevent crashes
+    // Process files one by one to prevent crashes with delay between files
     for (let i = 0; i < filesToProcess.length; i++) {
       const file = filesToProcess[i];
       
@@ -104,9 +114,9 @@ const Index = () => {
       ));
 
       try {
-        // Add delay between files to prevent crashes
+        // Add delay between files to prevent crashes and resource exhaustion
         if (i > 0) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 2000)); // Increased delay
         }
 
         const enhancedBlob = await processAudioFile(file, enhancedSettings, (progress, stage) => {
@@ -120,7 +130,7 @@ const Index = () => {
         });
 
         const enhancedUrl = URL.createObjectURL(enhancedBlob);
-        const extension = enhancedSettings.outputFormat || 'wav';
+        const extension = enhancedSettings.outputFormat || 'mp3';
         const enhancedFilename = `${file.name.replace(/\.[^.]+$/, '')}_perfect.${extension}`;
         
         // Auto-download enhanced file
@@ -165,6 +175,11 @@ const Index = () => {
             body: `${file.name} has been enhanced and downloaded successfully`,
             icon: '/favicon.ico'
           });
+        }
+
+        // Force garbage collection if available
+        if (window.gc) {
+          window.gc();
         }
 
       } catch (error) {
@@ -345,6 +360,10 @@ const Index = () => {
                 onFilesUploaded={handleFilesUploaded}
                 uploadedFiles={audioFiles}
                 onRemoveFile={handleRemoveFile}
+                eqBands={eqBands}
+                onEQBandChange={handleEQBandChange}
+                onResetEQ={resetEQ}
+                eqEnabled={eqEnabled}
               />
             </div>
           </TabsContent>
@@ -376,16 +395,6 @@ const Index = () => {
             </div>
           </TabsContent>
         </Tabs>
-
-        {/* Single Perfect Audio EQ at bottom */}
-        <div className="mt-8">
-          <CompactEqualizer
-            eqBands={eqBands}
-            onEQBandChange={handleEQBandChange}
-            onResetEQ={resetEQ}
-            enabled={eqEnabled}
-          />
-        </div>
 
         {/* Enhanced Processing Info */}
         <Card className="bg-gradient-to-r from-slate-800 to-slate-900 dark:from-slate-800 dark:to-slate-900 light:from-white light:to-gray-50 border-slate-600 dark:border-slate-600 light:border-gray-200 mt-8 shadow-lg">

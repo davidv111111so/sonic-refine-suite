@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +5,6 @@ import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Settings, Zap, Volume2, Headphones, Sparkles, Trash2 } from 'lucide-react';
-import { CompactEqualizer } from '@/components/CompactEqualizer';
 import { EnhancedMiniPlayer } from '@/components/EnhancedMiniPlayer';
 
 interface CompactEnhancementSettingsProps {
@@ -28,10 +26,10 @@ export const CompactEnhancementSettings = ({
   hasFiles,
   uploadedFiles = [],
   onRemoveFile,
-  eqBands,
-  onEQBandChange,
-  onResetEQ,
-  eqEnabled,
+  eqBands = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  onEQBandChange = () => {},
+  onResetEQ = () => {},
+  eqEnabled = true,
   onApplyPreset
 }: CompactEnhancementSettingsProps) => {
   const [noiseReductionEnabled, setNoiseReductionEnabled] = useState(true);
@@ -195,16 +193,6 @@ export const CompactEnhancementSettings = ({
             </div>
           </CardContent>
         </Card>
-      )}
-
-      {/* EQ with same design */}
-      {uploadedFiles.length > 0 && (
-        <CompactEqualizer
-          eqBands={eqBands}
-          onEQBandChange={onEQBandChange}
-          onResetEQ={onResetEQ}
-          enabled={eqEnabled}
-        />
       )}
 
       <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600 shadow-lg">

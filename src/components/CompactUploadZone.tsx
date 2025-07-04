@@ -6,19 +6,29 @@ import { Upload, FileAudio, AlertCircle, X, Trash2 } from 'lucide-react';
 import { AudioFile } from '@/types/audio';
 import { Button } from '@/components/ui/button';
 import { EnhancedMiniPlayer } from '@/components/EnhancedMiniPlayer';
+import { FunctionalEqualizer } from '@/components/FunctionalEqualizer';
 
 interface CompactUploadZoneProps {
   onFilesUploaded: (files: AudioFile[]) => void;
   uploadedFiles: AudioFile[];
   onRemoveFile: (id: string) => void;
+  eqBands?: number[];
+  onEQBandChange?: (bandIndex: number, value: number) => void;
+  onResetEQ?: () => void;
+  eqEnabled?: boolean;
 }
 
 export const CompactUploadZone = ({ 
   onFilesUploaded, 
   uploadedFiles, 
-  onRemoveFile
+  onRemoveFile,
+  eqBands = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  onEQBandChange = () => {},
+  onResetEQ = () => {},
+  eqEnabled = true
 }: CompactUploadZoneProps) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [currentAudioElement, setCurrentAudioElement] = useState<HTMLAudioElement | null>(null);
 
   const onDrop = useCallback(acceptedFiles => {
     setErrorMessage(null);
@@ -74,6 +84,10 @@ export const CompactUploadZone = ({
 
   // Show only last 20 files for performance
   const displayFiles = uploadedFiles.slice(-20);
+
+  const handleAudioElementRef = (audioElement: HTMLAudioElement | null) => {
+    setCurrentAudioElement(audioElement);
+  };
 
   return (
     <div className="space-y-4">
@@ -160,7 +174,10 @@ export const CompactUploadZone = ({
               </Card>
               
               {/* Enhanced Mini Player for Preview */}
-              <EnhancedMiniPlayer file={file} />
+              <EnhancedMiniPlayer 
+                file={file} 
+                onAudioElementRef={handleAudioElementRef}
+              />
             </div>
           ))}
           
@@ -170,6 +187,17 @@ export const CompactUploadZone = ({
             </div>
           )}
         </div>
+      )}
+
+      {/* Functional EQ for Upload Tab */}
+      {displayFiles.length > 0 && (
+        <FunctionalEqualizer
+          eqBands={eqBands}
+          onEQBandChange={onEQBandChange}
+          onResetEQ={onResetEQ}
+          enabled={eqEnabled}
+          audioElement={currentAudioElement}
+        />
       )}
     </div>
   );
