@@ -121,12 +121,12 @@ export const Guide = () => {
                   <Upload className="h-12 w-12 mx-auto mb-4 text-blue-400" />
                   <h4 className="font-bold text-lg mb-2">1. Upload Audio Files</h4>
                   <p className="text-sm text-slate-300 dark:text-slate-300 light:text-gray-600 mb-4">Drag & drop up to 20 audio files (Max 100MB each)</p>
-                  <p className="text-xs text-slate-400 dark:text-slate-400 light:text-gray-500">Supports: MP3, WAV, FLAC, M4A</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-400 light:text-gray-500">Supports: MP3, WAV only (v2.0)</p>
                 </div>
                 <div className="text-center p-6 bg-slate-700/50 dark:bg-slate-700/50 light:bg-white rounded-lg border border-slate-600 dark:border-slate-600 light:border-gray-200">
                   <Settings className="h-12 w-12 mx-auto mb-4 text-green-400" />
                   <h4 className="font-bold text-lg mb-2">2. Configure & Enhance</h4>
-                  <p className="text-sm text-slate-300 dark:text-slate-300 light:text-gray-600 mb-4">Apply presets, adjust EQ, and enhance audio</p>
+                  <p className="text-sm text-slate-300 dark:text-slate-300 light:text-gray-600 mb-4">Save and load presets, adjust 5-band EQ, and enhance audio</p>
                   <p className="text-xs text-slate-400 dark:text-slate-400 light:text-gray-500">Real-time preview with mini players</p>
                 </div>
                 <div className="text-center p-6 bg-slate-700/50 dark:bg-slate-700/50 light:bg-white rounded-lg border border-slate-600 dark:border-slate-600 light:border-gray-200">
@@ -145,11 +145,11 @@ export const Guide = () => {
                   <ul className="space-y-2 text-slate-300 dark:text-slate-300 light:text-gray-600">
                     <li className="flex items-center gap-2">
                       <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                      <strong>Universal EQ:</strong> Single 10-band equalizer applies to all songs
+                      <strong>Universal EQ:</strong> Single 5-band equalizer applies to all songs
                     </li>
                     <li className="flex items-center gap-2">
                       <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                      <strong>Custom Presets:</strong> Save and load your own EQ settings
+                      <strong>Custom Presets:</strong> Save and load presets for your own EQ settings
                     </li>
                     <li className="flex items-center gap-2">
                       <div className="w-2 h-2 bg-purple-400 rounded-full"></div>

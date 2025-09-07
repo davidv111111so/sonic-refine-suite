@@ -33,8 +33,23 @@ export const CompactUploadZone = ({
   const onDrop = useCallback(acceptedFiles => {
     setErrorMessage(null);
 
-    const audioFiles: AudioFile[] = acceptedFiles.map(file => {
+    // Validate file formats (v2.0: MP3 and WAV only)
+    const validFiles = acceptedFiles.filter(file => {
+      const extension = file.name.toLowerCase().split('.').pop();
+      return extension === 'mp3' || extension === 'wav';
+    });
+
+    if (validFiles.length !== acceptedFiles.length) {
+      setErrorMessage('Some files were rejected. Perfect Audio v2.0 only supports MP3 and WAV formats.');
+    }
+
+    if (validFiles.length === 0) {
+      return;
+    }
+
+    const audioFiles: AudioFile[] = validFiles.map(file => {
       const id = Math.random().toString(36).substring(7);
+      const extension = file.name.toLowerCase().split('.').pop();
       return {
         id,
         name: file.name,
@@ -43,7 +58,8 @@ export const CompactUploadZone = ({
         status: 'uploaded' as const,
         originalFile: file,
         progress: 0,
-        processingStage: 'Ready for Perfect Audio enhancement'
+        processingStage: 'Ready for Perfect Audio enhancement',
+        fileType: extension === 'mp3' ? 'mp3' : 'wav' // Expose file type
       };
     });
 
@@ -53,7 +69,7 @@ export const CompactUploadZone = ({
   const {getRootProps, getInputProps, isDragActive} = useDropzone({
     onDrop,
     accept: {
-      'audio/*': ['.mp3', '.wav', '.flac', '.m4a']
+      'audio/*': ['.mp3', '.wav'] // v2.0: Removed .flac and .m4a
     },
     maxSize: 100 * 1024 * 1024, // 100MB
     multiple: true,
@@ -65,7 +81,7 @@ export const CompactUploadZone = ({
           if (error.code === 'file-too-large') {
             setErrorMessage(`File "${file.file.name}" is too large. Maximum size is 100MB for optimal processing.`);
           } else if (error.code === 'file-invalid-type') {
-            setErrorMessage(`File "${file.file.name}" format not supported. Perfect Audio supports MP3, WAV, FLAC, and M4A.`);
+            setErrorMessage(`File "${file.file.name}" format not supported. Perfect Audio v2.0 supports MP3 and WAV only.`);
           } else {
             setErrorMessage(`Error uploading "${file.file.name}": ${error.message}`);
           }
@@ -101,7 +117,7 @@ export const CompactUploadZone = ({
               <div className="flex flex-col items-center">
                 <Upload className="h-5 w-5 text-blue-400 mb-1" />
                 <p className="text-white text-sm text-center font-medium">Drag audio files here or click to select (Max 20 files)</p>
-                <p className="text-xs text-slate-300">MP3, WAV, FLAC, M4A (Max 100MB each)</p>
+                <p className="text-xs text-slate-300">MP3, WAV (Max 100MB each)</p>
               </div>
             )}
           </div>

@@ -17,6 +17,7 @@ export interface AudioFile {
   artist?: string;
   title?: string;
   artworkUrl?: string;
+  fileType?: 'mp3' | 'wav' | 'unsupported'; // v2.0: Exposed file type
 }
 
 export interface AudioStats {

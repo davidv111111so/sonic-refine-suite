@@ -1,29 +1,28 @@
 import { useState, useCallback, useEffect } from 'react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Guide } from '@/components/Guide';
+import { Footer } from '@/components/Footer';
 import { useToast } from '@/hooks/use-toast';
 import { useFileManagement } from '@/hooks/useFileManagement';
 import { useAdvancedAudioProcessing } from '@/hooks/useAdvancedAudioProcessing';
 import { useEnhancementHistory } from '@/hooks/useEnhancementHistory';
 import { AudioFile, AudioStats } from '@/types/audio';
-import { CompactUploadZone } from '@/components/CompactUploadZone';
-import { EnhancementSection } from '@/components/EnhancementSection';
+import { UploadWithConsent } from '@/components/UploadWithConsent';
+import { TrackManagementRow } from '@/components/TrackManagementRow';
+import { FiveBandEqualizer } from '@/components/FiveBandEqualizer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AnimatedTitle } from '@/components/AnimatedTitle';
-import { EnhancedSongsList } from '@/components/EnhancedSongsList';
-import { QueueAndStory } from '@/components/QueueAndStory';
-import { CompactEqualizer } from '@/components/CompactEqualizer';
-import { Upload, Music, Settings, Download, List, Sparkles } from 'lucide-react';
+import { Music, Download, Package, AlertTriangle } from 'lucide-react';
 
 const Index = () => {
   console.log('Perfect Audio app render started');
   
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [eqBands, setEqBands] = useState([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+  const [eqBands, setEqBands] = useState([0, 0, 0, 0, 0]); // 5-band EQ
   const [eqEnabled, setEqEnabled] = useState(true);
-  const [activeTab, setActiveTab] = useState('upload');
+  const [currentAudioElement, setCurrentAudioElement] = useState<HTMLAudioElement | null>(null);
   const [processingQueue, setProcessingQueue] = useState<AudioFile[]>([]);
   const [enhancedHistory, setEnhancedHistory] = useState<AudioFile[]>([]);
   const { toast } = useToast();
@@ -119,7 +118,21 @@ const Index = () => {
           await new Promise(resolve => setTimeout(resolve, 2000)); // Increased delay
         }
 
-        const enhancedBlob = await processAudioFile(file, enhancedSettings, (progress, stage) => {
+        // Set default processing to WAV 44.1kHz 16-bit as per v2.0 spec
+        const defaultSettings = {
+          outputFormat: 'wav',
+          sampleRate: 44100,
+          bitDepth: 16,
+          ...enhancedSettings
+        };
+
+        // Preserve MP3 format if input is MP3
+        const fileExtension = file.name.toLowerCase().split('.').pop();
+        if (fileExtension === 'mp3') {
+          defaultSettings.outputFormat = 'mp3';
+        }
+
+        const enhancedBlob = await processAudioFile(file, defaultSettings, (progress, stage) => {
           setAudioFiles(prev => prev.map(f => 
             f.id === file.id ? { 
               ...f, 
@@ -237,7 +250,7 @@ const Index = () => {
   };
 
   const resetEQ = () => {
-    setEqBands([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    setEqBands([0, 0, 0, 0, 0]); // Reset 5-band EQ
   };
 
   const handleDownloadEnhanced = (file: AudioFile) => {
@@ -257,6 +270,72 @@ const Index = () => {
       title: "File Deleted",
       description: "Enhanced file has been removed.",
     });
+  };
+
+  // Handle file conversion between MP3 and WAV
+  const handleConvertFile = async (file: AudioFile, targetFormat: 'mp3' | 'wav') => {
+    // This would integrate with conversion endpoints in a real implementation
+    toast({
+      title: "Conversion Started",
+      description: `Converting ${file.name} to ${targetFormat.toUpperCase()}...`,
+    });
+    
+    // Placeholder for actual conversion logic
+    console.log(`Converting ${file.name} to ${targetFormat}`);
+  };
+
+  // Download all enhanced files as ZIP
+  const handleDownloadAll = async () => {
+    const readyFiles = enhancedHistory.filter(f => f.status === 'enhanced' && f.enhancedUrl);
+    
+    if (readyFiles.length === 0) {
+      toast({
+        title: "No files ready",
+        description: "No enhanced files are available for download.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Import JSZip dynamically
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+
+      // Add each enhanced file to the ZIP
+      for (const file of readyFiles) {
+        if (file.enhancedUrl) {
+          const response = await fetch(file.enhancedUrl);
+          const blob = await response.blob();
+          const extension = file.enhancedUrl.includes('.mp3') ? 'mp3' : 'wav';
+          const fileName = `enhanced_${file.name.replace(/\.[^.]+$/, '')}.${extension}`;
+          zip.file(fileName, blob);
+        }
+      }
+
+      // Generate and download ZIP
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `perfect_audio_enhanced_${Date.now()}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Download Complete",
+        description: `${readyFiles.length} enhanced files downloaded as ZIP.`,
+      });
+    } catch (error) {
+      console.error('Error creating ZIP:', error);
+      toast({
+        title: "Download Failed",
+        description: "Failed to create ZIP file. Please try downloading files individually.",
+        variant: "destructive"
+      });
+    }
   };
 
   const stats: AudioStats = {
@@ -337,64 +416,126 @@ const Index = () => {
           </Card>
         )}
 
-        {/* Main Tabs - 3 tabs only */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-slate-800 dark:bg-slate-800 light:bg-white border-slate-700 dark:border-slate-700 light:border-gray-200 h-12 mb-6">
-            <TabsTrigger value="upload" className="data-[state=active]:bg-blue-600 text-sm">
-              <Upload className="h-4 w-4 mr-2" />
-              Upload
-            </TabsTrigger>
-            <TabsTrigger value="enhance" className="data-[state=active]:bg-blue-600 text-sm">
-              <Settings className="h-4 w-4 mr-2" />
-              Enhance
-            </TabsTrigger>
-            <TabsTrigger value="perfect-audio" className="data-[state=active]:bg-blue-600 text-sm">
-              <Sparkles className="h-4 w-4 mr-2" />
-              Perfect Audio
-            </TabsTrigger>
-          </TabsList>
+        {/* Single Unified Page - v2.0 */}
+        <div className="space-y-8">
+          {/* Upload Section with Consent */}
+          <Card className="bg-slate-800/50 border-slate-600">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-blue-400">
+                <Music className="h-5 w-5" />
+                Upload Audio Files
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <UploadWithConsent onFilesUploaded={handleFilesUploaded} />
+            </CardContent>
+          </Card>
 
-          <TabsContent value="upload">
-            <div className="space-y-6">
-              <CompactUploadZone
-                onFilesUploaded={handleFilesUploaded}
-                uploadedFiles={audioFiles}
-                onRemoveFile={handleRemoveFile}
-                eqBands={eqBands}
-                onEQBandChange={handleEQBandChange}
-                onResetEQ={resetEQ}
-                eqEnabled={eqEnabled}
-              />
-            </div>
-          </TabsContent>
+          {/* Track Management Section */}
+          {audioFiles.length > 0 && (
+            <Card className="bg-slate-800/50 border-slate-600">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-green-400">
+                    <Music className="h-5 w-5" />
+                    Track Management ({audioFiles.length} files)
+                  </CardTitle>
+                  {enhancedHistory.length > 0 && (
+                    <Button
+                      onClick={handleDownloadAll}
+                      className="bg-purple-600 hover:bg-purple-500 text-white"
+                    >
+                      <Package className="h-4 w-4 mr-2" />
+                      Download All
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {audioFiles.map((file) => (
+                    <TrackManagementRow
+                      key={file.id}
+                      file={file}
+                      onDownload={handleDownloadEnhanced}
+                      onConvert={handleConvertFile}
+                    />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-          <TabsContent value="enhance">
-            <EnhancementSection
-              audioFiles={audioFiles}
-              onEnhance={handleEnhanceFiles}
-              isProcessing={isProcessing}
-              eqBands={eqBands}
-              onEQBandChange={handleEQBandChange}
-              onResetEQ={resetEQ}
-              eqEnabled={eqEnabled}
-              onApplyPreset={handleApplyPreset}
-              onRemoveFile={handleRemoveFile}
-            />
-          </TabsContent>
+          {/* Enhanced Files Section */}
+          {enhancedHistory.length > 0 && (
+            <Card className="bg-slate-800/50 border-slate-600">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-purple-400">
+                    <Download className="h-5 w-5" />
+                    Enhanced Files ({enhancedHistory.length} ready)
+                  </CardTitle>
+                  <Button
+                    onClick={handleDownloadAll}
+                    className="bg-purple-600 hover:bg-purple-500 text-white"
+                  >
+                    <Package className="h-4 w-4 mr-2" />
+                    Download All
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {enhancedHistory.map((file) => (
+                    <TrackManagementRow
+                      key={file.id}
+                      file={file}
+                      onDownload={handleDownloadEnhanced}
+                      onConvert={handleConvertFile}
+                    />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-          <TabsContent value="perfect-audio">
-            <div className="space-y-6">
-              <EnhancedSongsList
-                enhancedFiles={enhancedHistory}
-                onDownload={handleDownloadEnhanced}
-                onDelete={handleDeleteEnhanced}
-              />
-              
-              {/* Queue Section */}
-              <QueueAndStory audioFiles={audioFiles} />
-            </div>
-          </TabsContent>
-        </Tabs>
+          {/* 5-Band EQ Section */}
+          {audioFiles.length > 0 && (
+            <Card className="bg-slate-800/50 border-slate-600">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between text-cyan-400">
+                  <span className="flex items-center gap-2">
+                    <Music className="h-5 w-5" />
+                    5-Band Audio Equalizer
+                  </span>
+                  <Button
+                    onClick={handleEnhanceFiles}
+                    disabled={isProcessing || audioFiles.filter(f => f.status === 'uploaded').length === 0}
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-semibold px-6"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Processing...
+                      </>
+                    ) : (
+                      'Perfect Audio Enhancement'
+                    )}
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <FiveBandEqualizer
+                  eqBands={eqBands}
+                  onEQBandChange={handleEQBandChange}
+                  onResetEQ={resetEQ}
+                  enabled={eqEnabled}
+                  audioElement={currentAudioElement}
+                />
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
         {/* Enhanced Processing Info */}
         <Card className="bg-gradient-to-r from-slate-800 to-slate-900 dark:from-slate-800 dark:to-slate-900 light:from-white light:to-gray-50 border-slate-600 dark:border-slate-600 light:border-gray-200 mt-8 shadow-lg">
@@ -419,6 +560,9 @@ const Index = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Footer */}
+        <Footer />
       </div>
     </div>
   );
