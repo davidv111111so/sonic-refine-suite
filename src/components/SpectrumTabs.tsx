@@ -268,36 +268,171 @@ export const SpectrumTabs = ({
       </TabsContent>
 
       <TabsContent value="enhance" className="space-y-6">
-        {/* EQ and Settings */}
+        {/* Advanced Enhancement Settings */}
         <Card className="bg-slate-800/50 border-slate-600">
-          <CardHeader>
+          <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-purple-400">
+              <CardTitle className="flex items-center gap-2 text-purple-400 text-lg">
                 <Settings className="h-5 w-5" />
-                Audio Enhancement Settings
+                Advanced Audio Enhancement
               </CardTitle>
               <EQPresetButtons 
                 eqBands={eqBands} 
                 onLoadPreset={handleLoadPreset}
               />
             </div>
+            <p className="text-slate-400 text-sm">
+              Fine-tune compression, normalization, EQ and all processing settings
+            </p>
           </CardHeader>
           <CardContent className="space-y-6">
-            <FiveBandEqualizer
-              eqBands={eqBands}
-              onEQBandChange={onEQBandChange}
-              onResetEQ={onResetEQ}
-              enabled={eqEnabled}
-            />
+            {/* Output Settings */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="bg-slate-900/50 border-slate-600">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-white text-base">
+                    <Settings className="h-4 w-4" />
+                    Output Settings
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs text-slate-300 mb-2 block font-medium">Sample Rate</label>
+                      <select className="w-full bg-slate-700 border border-slate-600 text-white rounded-md px-3 py-2 text-sm">
+                        <option value="44100">44.1 kHz</option>
+                        <option value="48000">48 kHz</option>
+                        <option value="96000">96 kHz</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-300 mb-2 block font-medium">Format</label>
+                      <select className="w-full bg-slate-700 border border-slate-600 text-white rounded-md px-3 py-2 text-sm">
+                        <option value="mp3">MP3</option>
+                        <option value="wav">WAV</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-300 mb-2 block font-medium">Target Bitrate</label>
+                    <select className="w-full bg-slate-700 border border-slate-600 text-white rounded-md px-3 py-2 text-sm">
+                      <option value="128">128 kbps</option>
+                      <option value="192">192 kbps</option>
+                      <option value="256">256 kbps</option>
+                      <option value="320">320 kbps</option>
+                    </select>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-slate-900/50 border-slate-600">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-white text-base">
+                    <Settings className="h-4 w-4" />
+                    Processing Options
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-4">
+                  {/* Noise Reduction */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium text-white">Noise Reduction</label>
+                      <input type="checkbox" className="w-4 h-4" defaultChecked />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-xs text-slate-400">Intensity</span>
+                        <span className="text-xs text-slate-400">50%</span>
+                      </div>
+                      <input type="range" min="0" max="100" defaultValue="50" className="w-full h-2 bg-slate-700 rounded-lg" />
+                    </div>
+                  </div>
+
+                  {/* Normalization */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium text-white">Audio Normalization</label>
+                      <input type="checkbox" className="w-4 h-4" defaultChecked />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-xs text-slate-400">Target Level</span>
+                        <span className="text-xs text-slate-400">-3 dB</span>
+                      </div>
+                      <input type="range" min="-12" max="0" defaultValue="-3" className="w-full h-2 bg-slate-700 rounded-lg" />
+                    </div>
+                  </div>
+
+                  {/* Compression */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium text-white">Dynamic Compression</label>
+                      <input type="checkbox" className="w-4 h-4" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-xs text-slate-400">Ratio</span>
+                        <span className="text-xs text-slate-400">4:1</span>
+                      </div>
+                      <input type="range" min="1" max="10" step="0.5" defaultValue="4" className="w-full h-2 bg-slate-700 rounded-lg" />
+                    </div>
+                  </div>
+
+                  {/* Stereo Widening */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium text-white">Stereo Widening</label>
+                      <input type="checkbox" className="w-4 h-4" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-xs text-slate-400">Width</span>
+                        <span className="text-xs text-slate-400">25%</span>
+                      </div>
+                      <input type="range" min="0" max="100" defaultValue="25" className="w-full h-2 bg-slate-700 rounded-lg" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* 5-Band Equalizer */}
+            <Card className="bg-slate-900/50 border-slate-600">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-white text-base">
+                  <Settings className="h-4 w-4" />
+                  5-Band Equalizer
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <FiveBandEqualizer
+                  eqBands={eqBands}
+                  onEQBandChange={onEQBandChange}
+                  onResetEQ={onResetEQ}
+                  enabled={eqEnabled}
+                />
+              </CardContent>
+            </Card>
             
-            <div className="flex justify-center">
+            {/* Enhancement Button */}
+            <div className="flex justify-center pt-4">
               <Button
-                onClick={() => onEnhanceFiles({ eqBands, enableEQ: eqEnabled })}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-semibold px-8 py-3"
+                onClick={() => onEnhanceFiles({ 
+                  eqBands, 
+                  enableEQ: eqEnabled,
+                  noiseReduction: 50,
+                  normalization: true,
+                  normalizationLevel: -3,
+                  compression: false,
+                  compressionRatio: 4,
+                  stereoWidening: false,
+                  stereoWideningLevel: 25
+                })}
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-semibold px-12 py-4 text-lg"
                 disabled={audioFiles.filter(f => f.status === 'uploaded').length === 0}
               >
-                <Settings className="h-5 w-5 mr-2" />
-                Start Enhancement
+                <Settings className="h-6 w-6 mr-3" />
+                Start Audio Enhancement
               </Button>
             </div>
           </CardContent>
