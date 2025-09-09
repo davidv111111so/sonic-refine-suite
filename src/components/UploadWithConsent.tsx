@@ -39,7 +39,7 @@ export const UploadWithConsent = ({ onFilesUploaded }: UploadWithConsentProps) =
         status: 'uploaded' as const,
         originalFile: file,
         progress: 0,
-        processingStage: 'Ready for Perfect Audio enhancement'
+        processingStage: 'Ready for enhancement'
       };
     });
 
@@ -62,7 +62,7 @@ export const UploadWithConsent = ({ onFilesUploaded }: UploadWithConsentProps) =
           if (error.code === 'file-too-large') {
             setErrorMessage(`File "${file.file.name}" is too large. Maximum size is 100MB for optimal processing.`);
           } else if (error.code === 'file-invalid-type') {
-            setErrorMessage(`File "${file.file.name}" format not supported. Perfect Audio v2.0 supports MP3 and WAV only.`);
+            setErrorMessage(`File "${file.file.name}" format not supported. Spectrum v2.0 supports MP3 and WAV only.`);
           } else {
             setErrorMessage(`Error uploading "${file.file.name}": ${error.message}`);
           }
@@ -85,28 +85,15 @@ export const UploadWithConsent = ({ onFilesUploaded }: UploadWithConsentProps) =
       setErrorMessage('Please accept the Terms and Conditions before uploading files.');
       return;
     }
-    // This will trigger the file dialog
+    // Trigger the hidden file input
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.click();
+    }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Copyright Disclaimer */}
-      <Card className="bg-gradient-to-r from-orange-900/30 to-red-900/30 border-orange-600/40">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-orange-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <h4 className="font-semibold text-orange-300 mb-2">Copyright Notice</h4>
-              <p className="text-orange-200 text-sm leading-relaxed">
-                We do not own or retain any rights to the processed tracks or songs, including master rights and copyrights. 
-                In the case of AI mastering, the rights will be retained by the user. We are not responsible for any 
-                infringement of master rights; each user must own the respective rights before using our services.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
+    <div className="space-y-4">
       {/* Upload Zone */}
       <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600 shadow-lg">
         <CardContent className="p-6">

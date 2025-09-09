@@ -102,7 +102,7 @@ export const Guide = () => {
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-slate-900 border-slate-700 text-white dark:bg-slate-900 dark:border-slate-700 light:bg-white light:border-gray-200 light:text-gray-900">
         <DialogHeader>
           <DialogTitle className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-            Perfect Audio - Complete User Guide
+            Spectrum - Complete User Guide
           </DialogTitle>
         </DialogHeader>
         
@@ -126,7 +126,7 @@ export const Guide = () => {
                 <div className="text-center p-6 bg-slate-700/50 dark:bg-slate-700/50 light:bg-white rounded-lg border border-slate-600 dark:border-slate-600 light:border-gray-200">
                   <Settings className="h-12 w-12 mx-auto mb-4 text-green-400" />
                   <h4 className="font-bold text-lg mb-2">2. Configure & Enhance</h4>
-                  <p className="text-sm text-slate-300 dark:text-slate-300 light:text-gray-600 mb-4">Save and load presets, adjust 5-band EQ, and enhance audio</p>
+                   <p className="text-sm text-slate-300 dark:text-slate-300 light:text-gray-600 mb-4">Save and load presets, adjust 5-band EQ, and enhance audio</p>
                   <p className="text-xs text-slate-400 dark:text-slate-400 light:text-gray-500">Real-time preview with mini players</p>
                 </div>
                 <div className="text-center p-6 bg-slate-700/50 dark:bg-slate-700/50 light:bg-white rounded-lg border border-slate-600 dark:border-slate-600 light:border-gray-200">
@@ -151,16 +151,14 @@ export const Guide = () => {
                       <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
                       <strong>Custom Presets:</strong> Save and load presets for your own EQ settings
                     </li>
-                    <li className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-                      <strong>Stable Processing:</strong> One-at-a-time prevents crashes
-                    </li>
+                     <li className="flex items-center gap-2">
+                       <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                       <strong>Stable Processing:</strong> One-at-a-time</li>
                   </ul>
                   <ul className="space-y-2 text-slate-300 dark:text-slate-300 light:text-gray-600">
-                    <li className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
-                      <strong>Auto-Download:</strong> Enhanced files download automatically
-                    </li>
+                     <li className="flex items-center gap-2">
+                       <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+                       <strong>Auto-Upload:</strong> All selected files will upload automatically</li>
                     <li className="flex items-center gap-2">
                       <div className="w-2 h-2 bg-cyan-400 rounded-full"></div>
                       <strong>Smart Flow:</strong> Songs move between tabs as processed
@@ -261,7 +259,7 @@ export const Guide = () => {
                 <div>
                   <h5 className="font-bold text-green-400 dark:text-green-400 light:text-green-600 mb-3">Optimal Performance:</h5>
                   <ul className="space-y-2 text-slate-300 dark:text-slate-300 light:text-gray-600">
-                    <li>• <strong>File Limits:</strong> Max 20 files, 100MB each for stability</li>
+                    <li>• <strong>File Limits:</strong> Max 20 files, 100MB each (free account)</li>
                     <li>• <strong>Processing:</strong> One file at a time prevents crashes</li>
                     <li>• <strong>Browser:</strong> Use Chrome/Edge for best Web Audio API support</li>
                     <li>• <strong>Memory:</strong> Close other tabs during large file processing</li>
