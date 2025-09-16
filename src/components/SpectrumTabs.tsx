@@ -1,43 +1,31 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { UploadWithConsent } from '@/components/UploadWithConsent';
-import { FiveBandEqualizer } from '@/components/FiveBandEqualizer';
-import { EQPresetButtons } from '@/components/EQPresetButtons';
+import { EnhancedTrackManagement } from '@/components/enhancement/EnhancedTrackManagement';
+import { DynamicOutputSettings } from '@/components/enhancement/DynamicOutputSettings';
+import { InteractiveProcessingOptions } from '@/components/enhancement/InteractiveProcessingOptions';
+import { ProfessionalEqualizer } from '@/components/enhancement/ProfessionalEqualizer';
+import { EnhancedEQPresets } from '@/components/enhancement/EnhancedEQPresets';
 import { AudioFile } from '@/types/audio';
-import { BarChart3, Settings, Download, Package, Loader2, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
+import { ProcessingSettings } from '@/utils/audioProcessor';
+import { BarChart3, Settings, Upload, Zap } from 'lucide-react';
 
 interface SpectrumTabsProps {
   audioFiles: AudioFile[];
   enhancedHistory: AudioFile[];
   onFilesUploaded: (files: AudioFile[]) => void;
   onDownload: (file: AudioFile) => void;
-  onConvert: (file: AudioFile, targetFormat: 'mp3' | 'wav') => void;
+  onConvert: (file: AudioFile, targetFormat: 'mp3' | 'wav' | 'flac') => void;
   onDownloadAll: () => void;
-  onEnhanceFiles: (settings: any) => void;
+  onEnhanceFiles: (settings: ProcessingSettings) => void;
   eqBands: number[];
   onEQBandChange: (bandIndex: number, value: number) => void;
   onResetEQ: () => void;
   eqEnabled: boolean;
   setEqEnabled: (enabled: boolean) => void;
 }
-
-const formatFileSizeDisplay = (bytes: number) => {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-};
-
-const getFileType = (filename: string): 'mp3' | 'wav' | 'other' => {
-  const ext = filename.toLowerCase().split('.').pop();
-  if (ext === 'mp3') return 'mp3';
-  if (ext === 'wav') return 'wav';
-  return 'other';
-};
 
 export const SpectrumTabs = ({
   audioFiles,
@@ -54,49 +42,63 @@ export const SpectrumTabs = ({
   setEqEnabled
 }: SpectrumTabsProps) => {
   
-  const getStatusBadge = (status: AudioFile['status']) => {
-    switch (status) {
-      case 'uploaded':
-        return (
-          <Badge className="bg-blue-600 text-white border-blue-500 hover:bg-blue-700">
-            <Clock className="h-3 w-3 mr-1" />
-            Queue
-          </Badge>
-        );
-      case 'processing':
-        return (
-          <Badge className="bg-orange-600 text-white border-orange-500 hover:bg-orange-700">
-            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-            Enhancing
-          </Badge>
-        );
-      case 'enhanced':
-        return (
-          <Badge className="bg-green-600 text-white border-green-500 hover:bg-green-700">
-            <CheckCircle className="h-3 w-3 mr-1" />
-            Completed
-          </Badge>
-        );
-      case 'error':
-        return (
-          <Badge className="bg-red-600 text-white border-red-500 hover:bg-red-700">
-            <AlertTriangle className="h-3 w-3 mr-1" />
-            Error
-          </Badge>
-        );
-      default:
-        return null;
+  // Processing settings state with default 44.1kHz 16-bit quality
+  const [processingSettings, setProcessingSettings] = useState<ProcessingSettings>({
+    outputFormat: 'wav',
+    sampleRate: 44100, // Default 44.1kHz
+    bitDepth: 16, // Default 16-bit
+    bitrate: 320,
+    noiseReduction: 50,
+    noiseReductionEnabled: false,
+    normalize: true,
+    normalizeLevel: -3,
+    bassBoost: 0,
+    trebleEnhancement: 0,
+    compression: 4,
+    compressionEnabled: false,
+    gainAdjustment: 0,
+    stereoWidening: 25,
+    stereoWideningEnabled: false,
+    eqBands: eqBands,
+    enableEQ: eqEnabled
+  });
+
+  const handleProcessingSettingChange = (key: keyof ProcessingSettings, value: any) => {
+    setProcessingSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleResetProcessingOptions = () => {
+    setProcessingSettings(prev => ({
+      ...prev,
+      noiseReduction: 50,
+      noiseReductionEnabled: false,
+      normalize: true,
+      normalizeLevel: -3,
+      compression: 4,
+      compressionEnabled: false,
+      stereoWidening: 25,
+      stereoWideningEnabled: false
+    }));
+  };
+
+  const handleLoadProcessingSettings = (settings: ProcessingSettings) => {
+    setProcessingSettings(settings);
+    if (settings.eqBands) {
+      settings.eqBands.forEach((value, index) => {
+        onEQBandChange(index, value);
+      });
     }
+    setEqEnabled(settings.enableEQ);
   };
 
-  const handleLoadPreset = (preset: number[]) => {
-    preset.forEach((value, index) => {
-      onEQBandChange(index, value);
-    });
+  const handleEnhanceFiles = () => {
+    const finalSettings = {
+      ...processingSettings,
+      eqBands: eqBands,
+      enableEQ: eqEnabled
+    };
+    onEnhanceFiles(finalSettings);
   };
-
-  const allFiles = [...audioFiles, ...enhancedHistory];
-  const hasEnhancedFiles = enhancedHistory.length > 0;
 
   return (
     <Tabs defaultValue="spectrum" className="w-full">
@@ -122,317 +124,125 @@ export const SpectrumTabs = ({
         <Card className="bg-slate-800/50 border-slate-600">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-cyan-400">
-              <BarChart3 className="h-5 w-5" />
+              <Upload className="h-5 w-5" />
               Upload Audio Files
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div 
-                className="flex flex-col items-center justify-center h-32 border-2 border-dashed rounded-md cursor-pointer bg-slate-700/20 border-slate-500/50 hover:bg-slate-700/40 hover:border-blue-400/50 transition-all duration-200"
-              >
-                <p className="text-white text-base text-center font-medium mb-1">
-                  Drag audio files here or click to select
-                </p>
-                <p className="text-sm text-slate-300">MP3, WAV (Max 100MB each, 20 files)</p>
-              </div>
-              
-              <Button
-                onClick={() => {
-                  const input = document.createElement('input');
-                  input.type = 'file';
-                  input.multiple = true;
-                  input.accept = '.mp3,.wav';
-                  input.onchange = (e) => {
-                    const files = (e.target as HTMLInputElement).files;
-                    if (files) {
-                      const audioFilesList: AudioFile[] = Array.from(files).map(file => ({
-                        id: Math.random().toString(36).substring(7),
-                        name: file.name,
-                        size: file.size,
-                        type: file.type,
-                        status: 'uploaded' as const,
-                        originalFile: file,
-                        progress: 0,
-                        processingStage: 'Ready for enhancement'
-                      }));
-                      onFilesUploaded(audioFilesList);
-                    }
-                  };
-                  input.click();
-                }}
-                className="w-full bg-blue-600 hover:bg-blue-500 text-white"
-              >
-                Select Files
-              </Button>
-            </div>
+            <UploadWithConsent 
+              onFilesUploaded={onFilesUploaded}
+              supportedFormats={['.mp3', '.wav', '.flac']}
+              maxFileSize={100 * 1024 * 1024} // 100MB
+              maxFiles={20}
+            />
           </CardContent>
         </Card>
 
-        {/* Track List */}
-        {allFiles.length > 0 && (
-          <Card className="bg-slate-800/50 border-slate-600">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2 text-cyan-400">
-                  <BarChart3 className="h-5 w-5" />
-                  Track List ({allFiles.length} files)
-                </CardTitle>
-                {hasEnhancedFiles && (
-                  <Button
-                    onClick={onDownloadAll}
-                    className="bg-purple-600 hover:bg-purple-500 text-white"
-                  >
-                    <Package className="h-4 w-4 mr-2" />
-                    Download All
-                  </Button>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {/* Header Row */}
-                <div className="grid grid-cols-5 gap-4 p-3 bg-slate-700/50 rounded-lg text-sm font-medium text-slate-300">
-                  <div>Song Name</div>
-                  <div>File Size</div>
-                  <div>Status</div>
-                  <div>Convert</div>
-                  <div>Download</div>
-                </div>
-                
-                {/* Track Rows */}
-                {allFiles.map((file) => {
-                  const fileType = getFileType(file.name);
-                  const canConvert = fileType === 'mp3' || fileType === 'wav';
-                  
-                  return (
-                    <div
-                      key={file.id}
-                      className="grid grid-cols-5 gap-4 p-3 bg-slate-800/50 border border-slate-600 rounded-lg hover:bg-slate-700/50 transition-all duration-200"
-                    >
-                      {/* Song Name */}
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-white font-medium truncate">{file.name}</span>
-                        <span className="text-slate-400 text-xs">{file.artist || 'Unknown Artist'}</span>
-                      </div>
-
-                      {/* File Size */}
-                      <div className="flex flex-col justify-center">
-                        <span className="text-white text-sm font-mono">
-                          {file.status === 'enhanced' && file.enhancedSize 
-                            ? `${formatFileSizeDisplay(file.enhancedSize)}`
-                            : formatFileSizeDisplay(file.size)
-                          }
-                        </span>
-                      </div>
-
-                      {/* Status */}
-                      <div className="flex items-center">
-                        {getStatusBadge(file.status)}
-                      </div>
-
-                      {/* Convert */}
-                      <div className="flex items-center">
-                        {canConvert && file.status !== 'processing' && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => onConvert(file, fileType === 'mp3' ? 'wav' : 'mp3')}
-                            className="text-xs bg-slate-700 border-slate-500 hover:bg-slate-600 text-white"
-                          >
-                            {fileType === 'mp3' ? 'To WAV' : 'To MP3'}
-                          </Button>
-                        )}
-                      </div>
-
-                      {/* Download */}
-                      <div className="flex items-center">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={file.status !== 'enhanced'}
-                          onClick={() => onDownload(file)}
-                          className="text-xs bg-green-700 border-green-500 hover:bg-green-600 text-white disabled:bg-slate-700 disabled:border-slate-500 disabled:text-slate-400"
-                        >
-                          <Download className="h-3 w-3 mr-1" />
-                          Download
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* Enhanced Track Management */}
+        <EnhancedTrackManagement
+          audioFiles={audioFiles}
+          enhancedHistory={enhancedHistory}
+          onDownload={onDownload}
+          onConvert={onConvert}
+          onDownloadAll={onDownloadAll}
+          onFileInfo={(file) => {
+            // TODO: Implement file info modal
+            console.log('Show file info for:', file);
+          }}
+        />
       </TabsContent>
 
       <TabsContent value="enhance" className="space-y-6">
-        {/* Advanced Enhancement Settings */}
+        {/* Enhanced Header with Presets */}
         <Card className="bg-slate-800/50 border-slate-600">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-purple-400 text-lg">
-                <Settings className="h-5 w-5" />
-                Advanced Audio Enhancement
-              </CardTitle>
-              <EQPresetButtons 
+              <div>
+                <CardTitle className="flex items-center gap-2 text-purple-400 text-lg">
+                  <Settings className="h-5 w-5" />
+                  Advanced Audio Enhancement
+                </CardTitle>
+                <p className="text-slate-400 text-sm mt-1">
+                  Professional-grade audio processing with 44.1kHz 16-bit default quality
+                </p>
+              </div>
+              <EnhancedEQPresets 
                 eqBands={eqBands} 
-                onLoadPreset={handleLoadPreset}
+                onLoadPreset={(preset) => {
+                  preset.forEach((value, index) => {
+                    onEQBandChange(index, value);
+                  });
+                }}
+                processingSettings={processingSettings}
+                onLoadProcessingSettings={handleLoadProcessingSettings}
               />
             </div>
-            <p className="text-slate-400 text-sm">
-              Fine-tune compression, normalization, EQ and all processing settings
-            </p>
           </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Output Settings */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-slate-900/50 border-slate-600">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-white text-base">
-                    <Settings className="h-4 w-4" />
-                    Output Settings
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs text-slate-300 mb-2 block font-medium">Sample Rate</label>
-                      <select className="w-full bg-slate-700 border border-slate-600 text-white rounded-md px-3 py-2 text-sm">
-                        <option value="44100">44.1 kHz</option>
-                        <option value="48000">48 kHz</option>
-                        <option value="96000">96 kHz</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-xs text-slate-300 mb-2 block font-medium">Format</label>
-                      <select className="w-full bg-slate-700 border border-slate-600 text-white rounded-md px-3 py-2 text-sm">
-                        <option value="mp3">MP3</option>
-                        <option value="wav">WAV</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-xs text-slate-300 mb-2 block font-medium">Target Bitrate</label>
-                    <select className="w-full bg-slate-700 border border-slate-600 text-white rounded-md px-3 py-2 text-sm">
-                      <option value="128">128 kbps</option>
-                      <option value="192">192 kbps</option>
-                      <option value="256">256 kbps</option>
-                      <option value="320">320 kbps</option>
-                    </select>
-                  </div>
-                </CardContent>
-              </Card>
+        </Card>
 
-              <Card className="bg-slate-900/50 border-slate-600">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-white text-base">
-                    <Settings className="h-4 w-4" />
-                    Processing Options
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0 space-y-4">
-                  {/* Noise Reduction */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-white">Noise Reduction</label>
-                      <input type="checkbox" className="w-4 h-4" defaultChecked />
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex justify-between">
-                        <span className="text-xs text-slate-400">Intensity</span>
-                        <span className="text-xs text-slate-400">50%</span>
-                      </div>
-                      <input type="range" min="0" max="100" defaultValue="50" className="w-full h-2 bg-slate-700 rounded-lg" />
-                    </div>
-                  </div>
+        {/* Settings Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Dynamic Output Settings */}
+          <DynamicOutputSettings
+            outputFormat={processingSettings.outputFormat}
+            sampleRate={processingSettings.sampleRate}
+            bitDepth={processingSettings.bitDepth}
+            bitrate={processingSettings.bitrate}
+            onOutputFormatChange={(format) => handleProcessingSettingChange('outputFormat', format)}
+            onSampleRateChange={(rate) => handleProcessingSettingChange('sampleRate', rate)}
+            onBitDepthChange={(depth) => handleProcessingSettingChange('bitDepth', depth)}
+            onBitrateChange={(rate) => handleProcessingSettingChange('bitrate', rate)}
+          />
 
-                  {/* Normalization */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-white">Audio Normalization</label>
-                      <input type="checkbox" className="w-4 h-4" defaultChecked />
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex justify-between">
-                        <span className="text-xs text-slate-400">Target Level</span>
-                        <span className="text-xs text-slate-400">-3 dB</span>
-                      </div>
-                      <input type="range" min="-12" max="0" defaultValue="-3" className="w-full h-2 bg-slate-700 rounded-lg" />
-                    </div>
-                  </div>
+          {/* Interactive Processing Options */}
+          <InteractiveProcessingOptions
+            noiseReduction={processingSettings.noiseReduction}
+            noiseReductionEnabled={processingSettings.noiseReductionEnabled}
+            normalize={processingSettings.normalize}
+            normalizeLevel={processingSettings.normalizeLevel}
+            compression={processingSettings.compression}
+            compressionEnabled={processingSettings.compressionEnabled}
+            stereoWidening={processingSettings.stereoWidening}
+            stereoWideningEnabled={processingSettings.stereoWideningEnabled}
+            onNoiseReductionChange={(value) => handleProcessingSettingChange('noiseReduction', value)}
+            onNoiseReductionEnabledChange={(enabled) => handleProcessingSettingChange('noiseReductionEnabled', enabled)}
+            onNormalizeChange={(enabled) => handleProcessingSettingChange('normalize', enabled)}
+            onNormalizeLevelChange={(level) => handleProcessingSettingChange('normalizeLevel', level)}
+            onCompressionChange={(value) => handleProcessingSettingChange('compression', value)}
+            onCompressionEnabledChange={(enabled) => handleProcessingSettingChange('compressionEnabled', enabled)}
+            onStereoWideningChange={(value) => handleProcessingSettingChange('stereoWidening', value)}
+            onStereoWideningEnabledChange={(enabled) => handleProcessingSettingChange('stereoWideningEnabled', enabled)}
+            onReset={handleResetProcessingOptions}
+          />
+        </div>
 
-                  {/* Compression */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-white">Dynamic Compression</label>
-                      <input type="checkbox" className="w-4 h-4" />
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex justify-between">
-                        <span className="text-xs text-slate-400">Ratio</span>
-                        <span className="text-xs text-slate-400">4:1</span>
-                      </div>
-                      <input type="range" min="1" max="10" step="0.5" defaultValue="4" className="w-full h-2 bg-slate-700 rounded-lg" />
-                    </div>
-                  </div>
+        {/* Professional Equalizer */}
+        <ProfessionalEqualizer
+          eqBands={eqBands}
+          onEQBandChange={onEQBandChange}
+          onResetEQ={onResetEQ}
+          enabled={eqEnabled}
+          onEnabledChange={setEqEnabled}
+        />
 
-                  {/* Stereo Widening */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-white">Stereo Widening</label>
-                      <input type="checkbox" className="w-4 h-4" />
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex justify-between">
-                        <span className="text-xs text-slate-400">Width</span>
-                        <span className="text-xs text-slate-400">25%</span>
-                      </div>
-                      <input type="range" min="0" max="100" defaultValue="25" className="w-full h-2 bg-slate-700 rounded-lg" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* 5-Band Equalizer */}
-            <Card className="bg-slate-900/50 border-slate-600">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-white text-base">
-                  <Settings className="h-4 w-4" />
-                  5-Band Equalizer
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <FiveBandEqualizer
-                  eqBands={eqBands}
-                  onEQBandChange={onEQBandChange}
-                  onResetEQ={onResetEQ}
-                  enabled={eqEnabled}
-                />
-              </CardContent>
-            </Card>
-            
-            {/* Enhancement Button */}
-            <div className="flex justify-center pt-4">
+        {/* Enhancement Action */}
+        <Card className="bg-gradient-to-br from-purple-900/50 to-blue-900/50 border-purple-500/50">
+          <CardContent className="pt-6">
+            <div className="text-center space-y-4">
+              <div>
+                <h3 className="text-lg font-bold text-white mb-2">Ready to Enhance</h3>
+                <p className="text-slate-300 text-sm">
+                  Process {audioFiles.length} files with your custom settings
+                </p>
+              </div>
               <Button
-                onClick={() => onEnhanceFiles({ 
-                  eqBands, 
-                  enableEQ: eqEnabled,
-                  noiseReduction: 50,
-                  normalization: true,
-                  normalizationLevel: -3,
-                  compression: false,
-                  compressionRatio: 4,
-                  stereoWidening: false,
-                  stereoWideningLevel: 25
-                })}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-semibold px-12 py-4 text-lg"
-                disabled={audioFiles.filter(f => f.status === 'uploaded').length === 0}
+                onClick={handleEnhanceFiles}
+                disabled={audioFiles.length === 0}
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold py-3 px-8 rounded-lg shadow-lg hover:shadow-purple-500/25 transition-all duration-300 disabled:opacity-50"
+                size="lg"
               >
-                <Settings className="h-6 w-6 mr-3" />
-                Start Audio Enhancement
+                <Zap className="h-5 w-5 mr-2" />
+                Enhance All Files
               </Button>
             </div>
           </CardContent>
