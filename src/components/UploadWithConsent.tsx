@@ -9,9 +9,17 @@ import { Link } from 'react-router-dom';
 
 interface UploadWithConsentProps {
   onFilesUploaded: (files: AudioFile[]) => void;
+  supportedFormats?: string[];
+  maxFileSize?: number;
+  maxFiles?: number;
 }
 
-export const UploadWithConsent = ({ onFilesUploaded }: UploadWithConsentProps) => {
+export const UploadWithConsent = ({ 
+  onFilesUploaded, 
+  supportedFormats = ['.mp3', '.wav', '.flac'],
+  maxFileSize = 100 * 1024 * 1024,
+  maxFiles = 20
+}: UploadWithConsentProps) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [hasConsented, setHasConsented] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
@@ -50,19 +58,19 @@ export const UploadWithConsent = ({ onFilesUploaded }: UploadWithConsentProps) =
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'audio/*': ['.mp3', '.wav'] // Removed .flac and .m4a as per v2.0 spec
+      'audio/*': supportedFormats
     },
-    maxSize: 100 * 1024 * 1024, // 100MB
-    multiple: true,  
+    maxSize: maxFileSize,
+    multiple: true,
     onDropRejected: (rejectedFiles) => {
       const file = rejectedFiles[0];
       if (file) {
         if (file.errors && file.errors.length > 0) {
           const error = file.errors[0];
           if (error.code === 'file-too-large') {
-            setErrorMessage(`File "${file.file.name}" is too large. Maximum size is 100MB for optimal processing.`);
+            setErrorMessage(`File "${file.file.name}" is too large. Maximum size is ${Math.round(maxFileSize / 1024 / 1024)}MB for optimal processing.`);
           } else if (error.code === 'file-invalid-type') {
-            setErrorMessage(`File "${file.file.name}" format not supported. Spectrum v2.0 supports MP3 and WAV only.`);
+            setErrorMessage(`File "${file.file.name}" format not supported. Supported formats: ${supportedFormats.join(', ')}.`);
           } else {
             setErrorMessage(`Error uploading "${file.file.name}": ${error.message}`);
           }
@@ -111,7 +119,7 @@ export const UploadWithConsent = ({ onFilesUploaded }: UploadWithConsentProps) =
                 <p className="text-white text-base text-center font-medium mb-1">
                   Drag audio files here or click to select
                 </p>
-                <p className="text-sm text-slate-300">MP3, WAV (Max 100MB each, 20 files)</p>
+                <p className="text-sm text-slate-300">{supportedFormats.join(', ').toUpperCase()} (Max {Math.round(maxFileSize / 1024 / 1024)}MB each, {maxFiles} files)</p>
               </div>
             )}
           </div>
