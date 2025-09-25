@@ -41,6 +41,7 @@ export const SpectrumTabs = ({
   eqEnabled,
   setEqEnabled
 }: SpectrumTabsProps) => {
+  const [activeTab, setActiveTab] = useState('spectrum');
   
   // Processing settings state with default 44.1kHz 16-bit quality
   const [processingSettings, setProcessingSettings] = useState<ProcessingSettings>({
@@ -91,6 +92,12 @@ export const SpectrumTabs = ({
     setEqEnabled(settings.enableEQ);
   };
 
+  const handleFilesUploaded = (files: AudioFile[]) => {
+    onFilesUploaded(files);
+    // Automatically switch to enhance tab after files are uploaded
+    setActiveTab('enhance');
+  };
+
   const handleEnhanceFiles = () => {
     const finalSettings = {
       ...processingSettings,
@@ -98,10 +105,12 @@ export const SpectrumTabs = ({
       enableEQ: eqEnabled
     };
     onEnhanceFiles(finalSettings);
+    // Automatically switch back to spectrum tab after enhancement starts
+    setActiveTab('spectrum');
   };
 
   return (
-    <Tabs defaultValue="spectrum" className="w-full">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       <TabsList className="grid w-full grid-cols-2 bg-slate-800 border-slate-600">
         <TabsTrigger 
           value="spectrum" 
@@ -130,7 +139,7 @@ export const SpectrumTabs = ({
           </CardHeader>
           <CardContent>
             <UploadWithConsent 
-              onFilesUploaded={onFilesUploaded}
+              onFilesUploaded={handleFilesUploaded}
               supportedFormats={['.mp3', '.wav', '.flac']}
               maxFileSize={100 * 1024 * 1024} // 100MB
               maxFiles={20}
@@ -145,6 +154,7 @@ export const SpectrumTabs = ({
           onDownload={onDownload}
           onConvert={onConvert}
           onDownloadAll={onDownloadAll}
+          processingSettings={processingSettings}
           onFileInfo={(file) => {
             // TODO: Implement file info modal
             console.log('Show file info for:', file);
@@ -153,7 +163,7 @@ export const SpectrumTabs = ({
       </TabsContent>
 
       <TabsContent value="enhance" className="space-y-6">
-        {/* Enhanced Header with Presets */}
+        {/* Enhanced Header with Presets and Enhance Button */}
         <Card className="bg-slate-800/50 border-slate-600">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -166,16 +176,27 @@ export const SpectrumTabs = ({
                   Professional-grade audio processing with 44.1kHz 16-bit default quality
                 </p>
               </div>
-              <EnhancedEQPresets 
-                eqBands={eqBands} 
-                onLoadPreset={(preset) => {
-                  preset.forEach((value, index) => {
-                    onEQBandChange(index, value);
-                  });
-                }}
-                processingSettings={processingSettings}
-                onLoadProcessingSettings={handleLoadProcessingSettings}
-              />
+              <div className="flex items-center gap-4">
+                <EnhancedEQPresets 
+                  eqBands={eqBands} 
+                  onLoadPreset={(preset) => {
+                    preset.forEach((value, index) => {
+                      onEQBandChange(index, value);
+                    });
+                  }}
+                  processingSettings={processingSettings}
+                  onLoadProcessingSettings={handleLoadProcessingSettings}
+                />
+                <Button
+                  onClick={handleEnhanceFiles}
+                  disabled={audioFiles.length === 0}
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold py-2 px-6 rounded-lg shadow-lg hover:shadow-purple-500/25 transition-all duration-300 disabled:opacity-50"
+                  size="lg"
+                >
+                  <Zap className="h-4 w-4 mr-2" />
+                  Enhance All Files ({audioFiles.length})
+                </Button>
+              </div>
             </div>
           </CardHeader>
         </Card>
@@ -225,28 +246,6 @@ export const SpectrumTabs = ({
           onEnabledChange={setEqEnabled}
         />
 
-        {/* Enhancement Action */}
-        <Card className="bg-gradient-to-br from-purple-900/50 to-blue-900/50 border-purple-500/50">
-          <CardContent className="pt-6">
-            <div className="text-center space-y-4">
-              <div>
-                <h3 className="text-lg font-bold text-white mb-2">Ready to Enhance</h3>
-                <p className="text-slate-300 text-sm">
-                  Process {audioFiles.length} files with your custom settings
-                </p>
-              </div>
-              <Button
-                onClick={handleEnhanceFiles}
-                disabled={audioFiles.length === 0}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold py-3 px-8 rounded-lg shadow-lg hover:shadow-purple-500/25 transition-all duration-300 disabled:opacity-50"
-                size="lg"
-              >
-                <Zap className="h-5 w-5 mr-2" />
-                Enhance All Files
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
       </TabsContent>
     </Tabs>
   );

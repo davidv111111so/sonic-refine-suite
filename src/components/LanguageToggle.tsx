@@ -1,14 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Globe } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export const LanguageToggle = () => {
-  const [isEnglish, setIsEnglish] = useState(true);
-
-  const toggleLanguage = () => {
-    setIsEnglish(!isEnglish);
-    // TODO: Implement actual language switching logic
-  };
+  const { language, toggleLanguage } = useLanguage();
 
   return (
     <Button
@@ -18,7 +14,7 @@ export const LanguageToggle = () => {
       className="bg-slate-800 border-slate-600 hover:bg-slate-700 text-white"
     >
       <Globe className="h-4 w-4 mr-2" />
-      {isEnglish ? 'ES' : 'EN'}
+      {language}
     </Button>
   );
 };

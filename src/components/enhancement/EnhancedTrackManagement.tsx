@@ -23,6 +23,7 @@ interface EnhancedTrackManagementProps {
   onConvert: (file: AudioFile, targetFormat: 'mp3' | 'wav' | 'flac') => void;
   onDownloadAll: () => void;
   onFileInfo?: (file: AudioFile) => void;
+  processingSettings?: { outputFormat?: string };
 }
 
 const formatFileSize = (bytes: number) => {
@@ -57,9 +58,20 @@ export const EnhancedTrackManagement = ({
   onDownload,
   onConvert,
   onDownloadAll,
-  onFileInfo
+  onFileInfo,
+  processingSettings
 }: EnhancedTrackManagementProps) => {
   
+  const getExpectedOutputFormat = (file: AudioFile) => {
+    if (file.status === 'enhanced') return 'WAV'; // Default enhanced format
+    if (processingSettings?.outputFormat) {
+      return processingSettings.outputFormat.toUpperCase();
+    }
+    // Default based on file type - preserve MP3, convert others to WAV
+    const fileType = getFileType(file.name);
+    return fileType === 'mp3' ? 'MP3' : 'WAV';
+  };
+
   const getStatusBadge = (status: AudioFile['status']) => {
     switch (status) {
       case 'uploaded':
@@ -225,7 +237,22 @@ export const EnhancedTrackManagement = ({
 
                 {/* Conversion Options */}
                 <div className="flex flex-col justify-center gap-1">
-                  {conversionOptions.length > 0 && file.status !== 'processing' ? (
+                  {file.status === 'processing' || file.status === 'enhanced' ? (
+                    <div className="text-xs text-slate-300">
+                      <div className="flex items-center gap-1 mb-1">
+                        <span className="text-slate-400">From:</span>
+                        <Badge variant="outline" className="text-xs px-1 py-0 bg-slate-700/50 text-slate-300 border-slate-500">
+                          {fileType.toUpperCase()}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-slate-400">To:</span>
+                        <Badge variant="outline" className="text-xs px-1 py-0 bg-blue-700/50 text-blue-300 border-blue-500">
+                          {getExpectedOutputFormat(file)}
+                        </Badge>
+                      </div>
+                    </div>
+                  ) : conversionOptions.length > 0 ? (
                     <div className="flex flex-wrap gap-1">
                       {conversionOptions.map((option) => (
                         <Button
