@@ -8,9 +8,10 @@ import { DynamicOutputSettings } from '@/components/enhancement/DynamicOutputSet
 import { InteractiveProcessingOptions } from '@/components/enhancement/InteractiveProcessingOptions';
 import { ProfessionalEqualizer } from '@/components/enhancement/ProfessionalEqualizer';
 import { EnhancedEQPresets } from '@/components/enhancement/EnhancedEQPresets';
+import { FileInfoModal } from '@/components/FileInfoModal';
 import { AudioFile } from '@/types/audio';
 import { ProcessingSettings } from '@/utils/audioProcessor';
-import { BarChart3, Settings, Upload, Zap } from 'lucide-react';
+import { BarChart3, Settings, Upload, Zap, Package } from 'lucide-react';
 
 interface SpectrumTabsProps {
   audioFiles: AudioFile[];
@@ -42,6 +43,10 @@ export const SpectrumTabs = ({
   setEqEnabled
 }: SpectrumTabsProps) => {
   const [activeTab, setActiveTab] = useState('spectrum');
+  const [fileInfoModal, setFileInfoModal] = useState<{isOpen: boolean, file: AudioFile | null}>({
+    isOpen: false,
+    file: null
+  });
   
   // Processing settings state with default 44.1kHz 16-bit quality
   const [processingSettings, setProcessingSettings] = useState<ProcessingSettings>({
@@ -156,27 +161,64 @@ export const SpectrumTabs = ({
           onDownloadAll={onDownloadAll}
           processingSettings={processingSettings}
           onFileInfo={(file) => {
-            // TODO: Implement file info modal
-            console.log('Show file info for:', file);
+            setFileInfoModal({ isOpen: true, file });
           }}
         />
+
+        {/* Download All Button at Bottom */}
+        {(enhancedHistory.some(file => file.status === 'enhanced') || audioFiles.some(file => file.status === 'enhanced')) && (
+          <div className="flex justify-center pt-4">
+            <Button
+              onClick={onDownloadAll}
+              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-3 px-8 rounded-xl shadow-xl hover:shadow-purple-500/30 transition-all duration-300"
+              size="lg"
+            >
+              <Package className="h-5 w-5 mr-2" />
+              Download All as ZIP
+            </Button>
+          </div>
+        )}
       </TabsContent>
 
       <TabsContent value="enhance" className="space-y-6">
-        {/* Enhanced Header with Presets and Enhance Button */}
-        <Card className="bg-slate-800/50 border-slate-600">
-          <CardHeader className="pb-3">
+        {/* Enhanced Header with Controls */}
+        <Card className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 border-purple-500/30 shadow-xl shadow-purple-500/10">
+          <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-purple-400 text-lg">
-                  <Settings className="h-5 w-5" />
+              {/* Left: Enhance Button */}
+              <div className="flex items-center gap-4">
+                <Button
+                  onClick={handleEnhanceFiles}
+                  disabled={audioFiles.length === 0}
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold py-3 px-8 rounded-xl shadow-xl hover:shadow-purple-500/30 transition-all duration-300 disabled:opacity-50"
+                  size="lg"
+                >
+                  <Zap className="h-5 w-5 mr-2" />
+                  Enhance All Files ({audioFiles.length})
+                </Button>
+              </div>
+
+              {/* Center: Title */}
+              <div className="text-center">
+                <CardTitle className="flex items-center justify-center gap-2 text-purple-300 text-xl font-bold">
+                  <Settings className="h-6 w-6" />
                   Advanced Audio Enhancement
                 </CardTitle>
-                <p className="text-slate-400 text-sm mt-1">
-                  Professional-grade audio processing with 44.1kHz 16-bit default quality
-                </p>
+                <div className="flex items-center justify-center gap-4 mt-2 px-4 py-2 bg-purple-800/30 rounded-full border border-purple-500/20">
+                  <div className="text-sm text-purple-200">
+                    <span className="font-semibold">Format:</span> {processingSettings.outputFormat.toUpperCase()}
+                  </div>
+                  <div className="text-sm text-purple-200">
+                    <span className="font-semibold">Quality:</span> {processingSettings.sampleRate/1000}kHz {processingSettings.bitDepth}bit
+                  </div>
+                  <div className="text-sm text-purple-200">
+                    <span className="font-semibold">Output Size:</span> <span className="text-green-300">~{Math.round(audioFiles.reduce((acc, file) => acc + file.size, 0) * 1.2 / 1024 / 1024)}MB</span>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-4">
+
+              {/* Right: Presets */}
+              <div className="flex items-center gap-2">
                 <EnhancedEQPresets 
                   eqBands={eqBands} 
                   onLoadPreset={(preset) => {
@@ -187,15 +229,6 @@ export const SpectrumTabs = ({
                   processingSettings={processingSettings}
                   onLoadProcessingSettings={handleLoadProcessingSettings}
                 />
-                <Button
-                  onClick={handleEnhanceFiles}
-                  disabled={audioFiles.length === 0}
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold py-2 px-6 rounded-lg shadow-lg hover:shadow-purple-500/25 transition-all duration-300 disabled:opacity-50"
-                  size="lg"
-                >
-                  <Zap className="h-4 w-4 mr-2" />
-                  Enhance All Files ({audioFiles.length})
-                </Button>
               </div>
             </div>
           </CardHeader>
@@ -247,6 +280,13 @@ export const SpectrumTabs = ({
         />
 
       </TabsContent>
+      
+      {/* File Info Modal */}
+      <FileInfoModal
+        file={fileInfoModal.file}
+        isOpen={fileInfoModal.isOpen}
+        onClose={() => setFileInfoModal({ isOpen: false, file: null })}
+      />
     </Tabs>
   );
 };

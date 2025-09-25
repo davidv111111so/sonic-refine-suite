@@ -156,15 +156,11 @@ export const EnhancedTrackManagement = ({
             <BarChart3 className="h-5 w-5" />
             Track List ({allFiles.length} files)
           </CardTitle>
-          {hasEnhancedFiles && (
-            <Button
-              onClick={onDownloadAll}
-              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg hover:shadow-purple-500/25 transition-all duration-300"
-            >
-              <Package className="h-4 w-4 mr-2" />
-              Download All as ZIP
-            </Button>
-          )}
+            {hasEnhancedFiles && (
+              <div className="text-center">
+                <p className="text-sm text-slate-400 mb-2">All enhanced files available</p>
+              </div>
+            )}
         </div>
       </CardHeader>
       <CardContent>
@@ -238,16 +234,16 @@ export const EnhancedTrackManagement = ({
                 {/* Conversion Options */}
                 <div className="flex flex-col justify-center gap-1">
                   {file.status === 'processing' || file.status === 'enhanced' ? (
-                    <div className="text-xs text-slate-300">
+                    <div className="text-xs">
                       <div className="flex items-center gap-1 mb-1">
-                        <span className="text-slate-400">From:</span>
-                        <Badge variant="outline" className="text-xs px-1 py-0 bg-slate-700/50 text-slate-300 border-slate-500">
+                        <span className="font-medium text-slate-300">Source:</span>
+                        <Badge variant="outline" className="text-xs px-1.5 py-0 bg-slate-700/80 text-orange-300 border-orange-500/50 font-medium">
                           {fileType.toUpperCase()}
                         </Badge>
                       </div>
                       <div className="flex items-center gap-1">
-                        <span className="text-slate-400">To:</span>
-                        <Badge variant="outline" className="text-xs px-1 py-0 bg-blue-700/50 text-blue-300 border-blue-500">
+                        <span className="font-medium text-slate-300">Output:</span>
+                        <Badge variant="outline" className="text-xs px-1.5 py-0 bg-green-700/50 text-green-300 border-green-500/50 font-medium">
                           {getExpectedOutputFormat(file)}
                         </Badge>
                       </div>

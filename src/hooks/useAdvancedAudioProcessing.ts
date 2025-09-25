@@ -29,7 +29,27 @@ export const useAdvancedAudioProcessing = () => {
         }
 
         // Decode the audio with proper error handling
-        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        let audioBuffer;
+        try {
+          audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        } catch (decodeError) {
+          console.error('Audio decoding error:', decodeError);
+          
+          // Try to handle common audio format issues
+          if (decodeError.name === 'EncodingError' || decodeError.message.includes('Unable to decode')) {
+            // Try creating a copy of the array buffer
+            const clonedBuffer = arrayBuffer.slice(0);
+            try {
+              audioBuffer = await audioContext.decodeAudioData(clonedBuffer);
+            } catch (secondError) {
+              console.error('Second decode attempt failed:', secondError);
+              throw new Error(`Audio processing failed: ${decodeError.message || 'Unable to decode audio data'}`);
+            }
+          } else {
+            throw new Error(`Audio processing failed: ${decodeError.message || 'Unable to decode audio data'}`);
+          }
+        }
+        
         const originalSampleRate = audioBuffer.sampleRate;
         
         if (onProgressUpdate) {

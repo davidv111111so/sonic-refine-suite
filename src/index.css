@@ -95,7 +95,25 @@
     @apply border-border;
   }
 
+  /* Light mode - ensure pure white background */
   body {
-    @apply bg-background text-foreground;
+    background-color: white;
+    color: hsl(var(--foreground));
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  
+  /* Dark mode - use CSS variables */
+  .dark body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+  
+  /* Ensure cards and components respect the theme */
+  .dark .bg-white {
+    background-color: hsl(var(--card)) !important;
+  }
+  
+  .dark .text-black {
+    color: hsl(var(--card-foreground)) !important;
   }
 }
