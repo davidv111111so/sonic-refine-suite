@@ -309,8 +309,28 @@ const Index = () => {
 
   const processingFiles = audioFiles.filter(f => f.status === 'processing');
 
+  // Clear downloaded files functionality
+  const handleClearDownloaded = useCallback(() => {
+    const downloadedFiles = enhancedHistory.filter(f => f.status === 'enhanced');
+    if (downloadedFiles.length === 0) {
+      toast({
+        title: "No files to clear",
+        description: "No downloaded files found.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Mark all enhanced files as downloaded (simulate download tracking)
+    setEnhancedHistory([]);
+    toast({
+      title: "Files cleared",
+      description: `${downloadedFiles.length} downloaded files have been cleared.`,
+    });
+  }, [enhancedHistory, toast]);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-blue-950 to-black dark:from-black dark:via-gray-900 dark:to-black text-white transition-colors duration-300">
+    <div className="min-h-screen bg-gradient-to-br from-black via-blue-950 to-black light:bg-white dark:from-black dark:via-gray-900 dark:to-black text-white light:text-black transition-colors duration-300">
       <div className="container mx-auto px-4 py-6 max-w-6xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -387,6 +407,7 @@ const Index = () => {
           onDownload={handleDownloadEnhanced}
           onConvert={handleConvertFile}
           onDownloadAll={handleDownloadAll}
+          onClearDownloaded={handleClearDownloaded}
           onEnhanceFiles={handleEnhanceFiles}
           eqBands={eqBands}
           onEQBandChange={handleEQBandChange}

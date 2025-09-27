@@ -84,12 +84,16 @@ export const useAdvancedAudioProcessing = () => {
           currentNode = applyCompression(offlineContext, currentNode, settings.compression);
         }
 
-        if (settings.bassBoost !== 0) {
-          currentNode = applyBassBoost(offlineContext, currentNode, settings.bassBoost);
+        // Fix: Use trebleEnhancement instead of trebleBoost and add validation
+        const bassBoostValue = settings.bassBoost || 0;
+        const trebleBoostValue = settings.trebleEnhancement || settings.trebleBoost || 0;
+        
+        if (bassBoostValue !== 0 && isFinite(bassBoostValue)) {
+          currentNode = applyBassBoost(offlineContext, currentNode, bassBoostValue);
         }
 
-        if (settings.trebleBoost !== 0) {
-          currentNode = applyTrebleBoost(offlineContext, currentNode, settings.trebleBoost);
+        if (trebleBoostValue !== 0 && isFinite(trebleBoostValue)) {
+          currentNode = applyTrebleBoost(offlineContext, currentNode, trebleBoostValue);
         }
 
         if (onProgressUpdate) {
@@ -197,20 +201,26 @@ const applyCompression = (context: OfflineAudioContext, input: AudioNode, ratio:
 };
 
 const applyBassBoost = (context: OfflineAudioContext, input: AudioNode, boost: number): AudioNode => {
+  // Validate boost value to prevent non-finite errors
+  const safeBoost = isFinite(boost) ? Math.max(-40, Math.min(40, boost)) : 0;
+  
   const filter = context.createBiquadFilter();
   filter.type = 'lowshelf';
   filter.frequency.value = 200;
-  filter.gain.value = boost;
+  filter.gain.value = safeBoost;
   
   input.connect(filter);
   return filter;
 };
 
 const applyTrebleBoost = (context: OfflineAudioContext, input: AudioNode, boost: number): AudioNode => {
+  // Validate boost value to prevent non-finite errors
+  const safeBoost = isFinite(boost) ? Math.max(-40, Math.min(40, boost)) : 0;
+  
   const filter = context.createBiquadFilter();
   filter.type = 'highshelf';
   filter.frequency.value = 3000;
-  filter.gain.value = boost;
+  filter.gain.value = safeBoost;
   
   input.connect(filter);
   return filter;

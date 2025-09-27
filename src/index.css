@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Scrollable text animation for long song titles */
+@keyframes scroll-text {
+  0% { transform: translateX(0%); }
+  25% { transform: translateX(0%); }
+  75% { transform: translateX(-50%); }
+  100% { transform: translateX(-50%); }
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -95,25 +103,9 @@
     @apply border-border;
   }
 
-  /* Light mode - ensure pure white background */
+  /* Light mode - ensure pure white background with blue accents */
   body {
-    background-color: white;
-    color: hsl(var(--foreground));
+    @apply bg-white dark:bg-background text-black dark:text-foreground;
     transition: background-color 0.3s ease, color 0.3s ease;
-  }
-  
-  /* Dark mode - use CSS variables */
-  .dark body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
-  }
-  
-  /* Ensure cards and components respect the theme */
-  .dark .bg-white {
-    background-color: hsl(var(--card)) !important;
-  }
-  
-  .dark .text-black {
-    color: hsl(var(--card-foreground)) !important;
   }
 }
