@@ -188,34 +188,49 @@ export const SpectrumTabs = ({
         <Card className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 border-purple-500/30 shadow-xl shadow-purple-500/10">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
-              {/* Left: Enhance Button */}
+              {/* Left: Spectrum Button - Main Action Button */}
               <div className="flex items-center gap-4">
                 <Button
                   onClick={handleEnhanceFiles}
                   disabled={audioFiles.length === 0}
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold py-3 px-8 rounded-xl shadow-xl hover:shadow-purple-500/30 transition-all duration-300 disabled:opacity-50"
+                  className="relative bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-500 hover:via-pink-500 hover:to-blue-500 text-white font-bold py-4 px-10 rounded-2xl shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 disabled:opacity-50 animate-pulse-slow border-2 border-white/20"
                   size="lg"
                 >
-                  <Zap className="h-5 w-5 mr-2" />
-                  Enhance All Files ({audioFiles.length})
+                  <Zap className="h-6 w-6 mr-3 animate-pulse" />
+                  <span className="text-xl tracking-wide">SPECTRUM</span>
+                  {audioFiles.length > 0 && (
+                    <span className="ml-3 bg-white/20 px-3 py-1 rounded-full text-sm">
+                      {audioFiles.length}
+                    </span>
+                  )}
                 </Button>
               </div>
 
-              {/* Center: Title */}
+              {/* Center: Title with Enhanced Output Info */}
               <div className="text-center">
                 <CardTitle className="flex items-center justify-center gap-2 text-purple-300 text-xl font-bold">
                   <Settings className="h-6 w-6" />
                   Advanced Audio Enhancement
                 </CardTitle>
-                <div className="flex items-center justify-center gap-4 mt-2 px-4 py-2 bg-purple-800/30 rounded-full border border-purple-500/20">
-                  <div className="text-sm text-purple-200">
-                    <span className="font-semibold">Format:</span> {processingSettings.outputFormat.toUpperCase()}
+                {/* Enhanced Output Display with Better Styling and Real-time Updates */}
+                <div className="flex items-center justify-center gap-4 mt-3 px-6 py-3 bg-gradient-to-r from-purple-900/40 via-blue-900/40 to-green-900/40 rounded-xl border-2 border-purple-500/30 shadow-lg">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-purple-300 font-medium">Format:</span>
+                    <span className="px-2 py-1 bg-purple-700/50 rounded-md text-sm font-bold text-white border border-purple-500/50">
+                      {processingSettings.outputFormat.toUpperCase()}
+                    </span>
                   </div>
-                  <div className="text-sm text-purple-200">
-                    <span className="font-semibold">Quality:</span> {processingSettings.sampleRate/1000}kHz {processingSettings.bitDepth}bit
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-blue-300 font-medium">Quality:</span>
+                    <span className="px-2 py-1 bg-blue-700/50 rounded-md text-sm font-bold text-white border border-blue-500/50">
+                      {processingSettings.sampleRate/1000}kHz {processingSettings.bitDepth}bit
+                    </span>
                   </div>
-                  <div className="text-sm text-purple-200">
-                    <span className="font-semibold">Output Size:</span> <span className="text-green-300">~{Math.round(audioFiles.reduce((acc, file) => acc + file.size, 0) * 1.2 / 1024 / 1024)}MB</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-green-300 font-medium">Est. Output:</span>
+                    <span className="px-2 py-1 bg-green-700/50 rounded-md text-sm font-bold text-green-200 border border-green-500/50 animate-pulse">
+                      ~{Math.round(audioFiles.reduce((acc, file) => acc + file.size, 0) * 1.35 / 1024 / 1024)}MB
+                    </span>
                   </div>
                 </div>
               </div>

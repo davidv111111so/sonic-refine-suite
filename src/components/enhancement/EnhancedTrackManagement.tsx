@@ -190,15 +190,20 @@ export const EnhancedTrackManagement = ({
                 key={file.id}
                 className="grid grid-cols-6 gap-4 p-4 bg-gradient-to-br from-slate-800/30 to-slate-900/50 border border-slate-600 rounded-lg hover:from-slate-700/40 hover:to-slate-800/60 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10"
               >
-                {/* Song Name with File Type - Scrollable Title */}
-                <div className="flex flex-col min-w-0">
+                {/* Song Name with File Type - Fixed Scrollable Title */}
+                <div className="flex flex-col min-w-0 max-w-full">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg">{getFileTypeIcon(fileType)}</span>
-                    <div className="flex-1 min-w-0">
+                    <span className="text-lg flex-shrink-0">{getFileTypeIcon(fileType)}</span>
+                    <div className="flex-1 min-w-0 overflow-hidden">
                       <div 
-                        className="text-white font-medium whitespace-nowrap overflow-hidden"
+                        className="text-white font-medium break-words"
                         style={{
-                          animation: file.name.length > 25 ? 'scroll-text 15s linear infinite' : 'none'
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                          wordBreak: 'break-word',
+                          lineHeight: '1.4'
                         }}
                         title={file.name}
                       >
@@ -206,7 +211,7 @@ export const EnhancedTrackManagement = ({
                       </div>
                     </div>
                   </div>
-                  <span className="text-slate-400 text-xs">{file.artist || 'Unknown Artist'}</span>
+                  <span className="text-slate-400 text-xs truncate">{file.artist || 'Unknown Artist'}</span>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="outline" className="text-xs px-2 py-0 bg-slate-700/50 text-slate-300 border-slate-500">
                       {fileType.toUpperCase()}

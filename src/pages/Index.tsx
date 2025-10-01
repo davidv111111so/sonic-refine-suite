@@ -250,6 +250,7 @@ const Index = () => {
     console.log(`Converting ${file.name} to ${targetFormat}`);
   };
 
+  // Persistent bulk download with confirmation dialog
   const handleDownloadAll = async () => {
     const readyFiles = enhancedHistory.filter(f => f.status === 'enhanced' && f.enhancedUrl);
     
@@ -259,6 +260,15 @@ const Index = () => {
         description: "No enhanced files are available for download.",
         variant: "destructive"
       });
+      return;
+    }
+
+    // Show confirmation dialog for bulk download
+    const confirmed = window.confirm(
+      `¿Desea descargar ${readyFiles.length} archivos?\nDo you want to download ${readyFiles.length} files?`
+    );
+    
+    if (!confirmed) {
       return;
     }
 
@@ -330,7 +340,7 @@ const Index = () => {
   }, [enhancedHistory, toast]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-blue-950 to-black light:bg-white dark:from-black dark:via-gray-900 dark:to-black text-white light:text-black transition-colors duration-300">
+    <div className="min-h-screen transition-colors duration-300">
       <div className="container mx-auto px-4 py-6 max-w-6xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">

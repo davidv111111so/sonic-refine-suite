@@ -10,119 +10,219 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-// Translation dictionary
+// Comprehensive Translation Dictionary for Full i18n Support
 const translations = {
   EN: {
-    // Header
+    // Header & Navigation
     'header.title': 'Spectrum Audio Processor',
     'header.upload': 'Upload',
     'header.enhance': 'Enhance',
     'header.settings': 'Settings',
-    // Upload
+    
+    // Upload Section
     'upload.title': 'Upload Audio Files',
     'upload.dragDrop': 'Drag & drop your audio files here',
     'upload.clickSelect': 'or click to select files',
     'upload.supportedFormats': 'MP3, WAV, FLAC, OGG, M4A, AAC',
     'upload.limits': 'Max 20 files • 100MB each',
-    // Player
-    'player.title': 'Audio Player',
-    'player.noTrack': 'No track selected',
-    'player.play': 'Play',
-    'player.pause': 'Pause',
-    'player.stop': 'Stop',
-    // Settings
-    'settings.title': 'Audio Settings',
-    'settings.save': 'Save',
-    'settings.load': 'Load',
-    'settings.outputFormat': 'Output Format',
-    'settings.sampleRate': 'Sample Rate',
-    'settings.noiseReduction': 'Noise Reduction',
-    'settings.normalization': 'Audio Normalization',
-    'settings.compression': 'Compression Ratio',
-    'settings.stereoWidth': 'Stereo Width',
-    'settings.bassBoost': 'Bass Boost',
-    'settings.trebleEnhancement': 'Treble Enhancement',
-    // Equalizer
-    'eq.title': '10-Band Equalizer',
-    'eq.reset': 'Reset',
-    'eq.presets': 'Quick Presets',
-    'eq.flat': 'Flat',
-    'eq.bassBoost': 'Bass Boost',
-    'eq.trebleBoost': 'Treble Boost',
-    'eq.vShape': 'V-Shape',
-    'eq.vocalBoost': 'Vocal Boost',
-    'eq.warmth': 'Warmth',
+    
     // Track List
     'tracks.title': 'Track List',
     'tracks.noTracks': 'No tracks uploaded yet',
     'tracks.uploadToStart': 'Upload audio files to get started',
-    'tracks.trackName': 'Track Name',
-    'tracks.duration': 'Duration',
-    'tracks.size': 'Size',
+    'tracks.songName': 'Song Name',
+    'tracks.fileSize': 'File Size',
     'tracks.status': 'Status',
-    'tracks.actions': 'Actions',
-    // Status
+    'tracks.conversion': 'Conversion',
+    'tracks.fileInfo': 'File Info',
+    'tracks.download': 'Download',
+    'tracks.totalFiles': 'Total Files',
+    'tracks.inQueue': 'In Queue',
+    'tracks.processing': 'Processing',
+    'tracks.completed': 'Completed',
+    
+    // Buttons & Actions
+    'button.spectrum': 'Spectrum',
+    'button.enhance': 'Enhance',
+    'button.enhanceAll': 'Enhance All Files',
+    'button.downloadAll': 'Download All',
+    'button.clear': 'Clear',
+    'button.clearDownloaded': 'Clear Downloaded',
+    'button.download': 'Download',
+    'button.info': 'Info',
+    'button.reset': 'Reset',
+    'button.save': 'Save',
+    'button.load': 'Load',
+    'button.cancel': 'Cancel',
+    'button.ok': 'OK',
+    
+    // Status Messages
     'status.loading': 'Loading',
     'status.ready': 'Ready',
     'status.processing': 'Processing',
     'status.error': 'Error',
-    'status.completed': 'Completed'
+    'status.enhanced': 'Enhanced',
+    'status.queue': 'Queue',
+    
+    // Enhancement Settings
+    'enhance.title': 'Advanced Audio Enhancement',
+    'enhance.format': 'Format',
+    'enhance.quality': 'Quality',
+    'enhance.outputSize': 'Output Size',
+    'enhance.outputSettings': 'Output Settings',
+    'enhance.processingOptions': 'Processing Options',
+    'enhance.equalizer': 'Equalizer & Presets',
+    
+    // Audio Settings
+    'settings.outputFormat': 'Output Format',
+    'settings.sampleRate': 'Sample Rate',
+    'settings.bitDepth': 'Bit Depth',
+    'settings.bitrate': 'Bitrate',
+    'settings.noiseReduction': 'Noise Reduction',
+    'settings.normalization': 'Audio Normalization',
+    'settings.compression': 'Dynamic Compression',
+    'settings.stereoWidening': 'Stereo Widening',
+    'settings.bassBoost': 'Bass Boost',
+    'settings.trebleEnhancement': 'Treble Enhancement',
+    'settings.gainAdjustment': 'Gain Adjustment',
+    
+    // Equalizer
+    'eq.title': '10-Band Equalizer',
+    'eq.enable': 'Enable Equalizer',
+    'eq.reset': 'Reset',
+    'eq.presets': 'EQ Presets',
+    
+    // Conversion
+    'conversion.source': 'Source',
+    'conversion.output': 'Output',
+    'conversion.size': 'Size',
+    'conversion.noConversion': 'No conversion',
+    
+    // Dialogs & Modals
+    'dialog.downloadAll.title': 'Download Multiple Files',
+    'dialog.downloadAll.message': 'Do you want to download {count} files?',
+    'dialog.downloadAll.confirm': 'Yes, download all',
+    
+    // Toast Messages
+    'toast.noFiles': 'No files to process',
+    'toast.uploadFirst': 'Please upload some audio files first',
+    'toast.enhancementComplete': 'Enhancement Complete!',
+    'toast.enhancementFailed': 'Enhancement failed',
+    'toast.downloadComplete': 'Download Complete',
+    'toast.downloadFailed': 'Download Failed',
+    'toast.filesCleared': 'Files cleared',
+    
+    // Stats
+    'stats.total': 'Total Files',
+    'stats.uploaded': 'Queue',
+    'stats.processing': 'Processing',
+    'stats.enhanced': 'Completed'
   },
   ES: {
-    // Header
+    // Header & Navigation
     'header.title': 'Procesador de Audio Spectrum',
     'header.upload': 'Subir',
     'header.enhance': 'Mejorar',
     'header.settings': 'Configuración',
-    // Upload
+    
+    // Upload Section
     'upload.title': 'Subir Archivos de Audio',
-    'upload.dragDrop': 'Arrastra archivos de audio aquí',
+    'upload.dragDrop': 'Arrastra tus archivos de audio aquí',
     'upload.clickSelect': 'o haz clic para seleccionar archivos',
     'upload.supportedFormats': 'MP3, WAV, FLAC, OGG, M4A, AAC',
     'upload.limits': 'Máx 20 archivos • 100MB cada uno',
-    // Player
-    'player.title': 'Reproductor de Audio',
-    'player.noTrack': 'Ninguna pista seleccionada',
-    'player.play': 'Reproducir',
-    'player.pause': 'Pausar',
-    'player.stop': 'Detener',
-    // Settings
-    'settings.title': 'Configuración de Audio',
-    'settings.save': 'Guardar',
-    'settings.load': 'Cargar',
-    'settings.outputFormat': 'Formato de Salida',
-    'settings.sampleRate': 'Frecuencia de Muestreo',
-    'settings.noiseReduction': 'Reducción de Ruido',
-    'settings.normalization': 'Normalización de Audio',
-    'settings.compression': 'Ratio de Compresión',
-    'settings.stereoWidth': 'Ancho Estéreo',
-    'settings.bassBoost': 'Realce de Graves',
-    'settings.trebleEnhancement': 'Realce de Agudos',
-    // Equalizer
-    'eq.title': 'Ecualizador de 10 Bandas',
-    'eq.reset': 'Restablecer',
-    'eq.presets': 'Preajustes Rápidos',
-    'eq.flat': 'Plano',
-    'eq.bassBoost': 'Realce Graves',
-    'eq.trebleBoost': 'Realce Agudos',
-    'eq.vShape': 'Forma V',
-    'eq.vocalBoost': 'Realce Vocal',
-    'eq.warmth': 'Calidez',
+    
     // Track List
     'tracks.title': 'Lista de Pistas',
     'tracks.noTracks': 'No hay pistas subidas',
     'tracks.uploadToStart': 'Sube archivos de audio para comenzar',
-    'tracks.trackName': 'Nombre de Pista',
-    'tracks.duration': 'Duración',
-    'tracks.size': 'Tamaño',
+    'tracks.songName': 'Nombre de Canción',
+    'tracks.fileSize': 'Tamaño de Archivo',
     'tracks.status': 'Estado',
-    'tracks.actions': 'Acciones',
-    // Status
+    'tracks.conversion': 'Conversión',
+    'tracks.fileInfo': 'Info de Archivo',
+    'tracks.download': 'Descargar',
+    'tracks.totalFiles': 'Archivos Totales',
+    'tracks.inQueue': 'En Cola',
+    'tracks.processing': 'Procesando',
+    'tracks.completed': 'Completados',
+    
+    // Buttons & Actions
+    'button.spectrum': 'Spectrum',
+    'button.enhance': 'Mejorar',
+    'button.enhanceAll': 'Mejorar Todos los Archivos',
+    'button.downloadAll': 'Descargar Todos',
+    'button.clear': 'Limpiar',
+    'button.clearDownloaded': 'Limpiar Descargados',
+    'button.download': 'Descargar',
+    'button.info': 'Info',
+    'button.reset': 'Restablecer',
+    'button.save': 'Guardar',
+    'button.load': 'Cargar',
+    'button.cancel': 'Cancelar',
+    'button.ok': 'Aceptar',
+    
+    // Status Messages
     'status.loading': 'Cargando',
     'status.ready': 'Listo',
     'status.processing': 'Procesando',
     'status.error': 'Error',
-    'status.completed': 'Completado'
+    'status.enhanced': 'Mejorado',
+    'status.queue': 'Cola',
+    
+    // Enhancement Settings
+    'enhance.title': 'Mejora de Audio Avanzada',
+    'enhance.format': 'Formato',
+    'enhance.quality': 'Calidad',
+    'enhance.outputSize': 'Tamaño de Salida',
+    'enhance.outputSettings': 'Configuración de Salida',
+    'enhance.processingOptions': 'Opciones de Procesamiento',
+    'enhance.equalizer': 'Ecualizador y Preajustes',
+    
+    // Audio Settings
+    'settings.outputFormat': 'Formato de Salida',
+    'settings.sampleRate': 'Frecuencia de Muestreo',
+    'settings.bitDepth': 'Profundidad de Bits',
+    'settings.bitrate': 'Tasa de Bits',
+    'settings.noiseReduction': 'Reducción de Ruido',
+    'settings.normalization': 'Normalización de Audio',
+    'settings.compression': 'Compresión Dinámica',
+    'settings.stereoWidening': 'Ampliación Estéreo',
+    'settings.bassBoost': 'Realce de Graves',
+    'settings.trebleEnhancement': 'Realce de Agudos',
+    'settings.gainAdjustment': 'Ajuste de Ganancia',
+    
+    // Equalizer
+    'eq.title': 'Ecualizador de 10 Bandas',
+    'eq.enable': 'Activar Ecualizador',
+    'eq.reset': 'Restablecer',
+    'eq.presets': 'Preajustes EQ',
+    
+    // Conversion
+    'conversion.source': 'Origen',
+    'conversion.output': 'Salida',
+    'conversion.size': 'Tamaño',
+    'conversion.noConversion': 'Sin conversión',
+    
+    // Dialogs & Modals
+    'dialog.downloadAll.title': 'Descargar Múltiples Archivos',
+    'dialog.downloadAll.message': '¿Desea descargar {count} archivos?',
+    'dialog.downloadAll.confirm': 'Sí, descargar todos',
+    
+    // Toast Messages
+    'toast.noFiles': 'No hay archivos para procesar',
+    'toast.uploadFirst': 'Por favor sube algunos archivos de audio primero',
+    'toast.enhancementComplete': '¡Mejora Completa!',
+    'toast.enhancementFailed': 'Mejora fallida',
+    'toast.downloadComplete': 'Descarga Completa',
+    'toast.downloadFailed': 'Descarga Fallida',
+    'toast.filesCleared': 'Archivos limpiados',
+    
+    // Stats
+    'stats.total': 'Archivos Totales',
+    'stats.uploaded': 'Cola',
+    'stats.processing': 'Procesando',
+    'stats.enhanced': 'Completados'
   }
 };
 
