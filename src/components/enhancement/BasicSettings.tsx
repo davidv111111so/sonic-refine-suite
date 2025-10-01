@@ -13,9 +13,8 @@ interface BasicSettingsProps {
 export const BasicSettings = ({ settings, onSettingChange, estimatedFileSize }: BasicSettingsProps) => {
   const sampleRateOptions = [
     { value: 44100, label: '44.1 kHz', description: 'CD Quality' },
-    { value: 96000, label: '96 kHz', description: 'Hi-Res Audio' },
-    { value: 176400, label: '176.4 kHz', description: 'Audiophile' },
-    { value: 192000, label: '192 kHz', description: 'Studio Quality' }
+    { value: 48000, label: '48 kHz', description: 'Professional' },
+    { value: 96000, label: '96 kHz', description: 'Hi-Res Audio' }
   ];
 
   const getBitrateOptions = () => {
@@ -109,25 +108,25 @@ export const BasicSettings = ({ settings, onSettingChange, estimatedFileSize }: 
         </RadioGroup>
       </div>
 
-      <div className="p-4 bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-700/30 rounded-lg">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-sm text-blue-300">File size:</span>
-              <span className="text-sm font-medium text-blue-200">{estimatedFileSize.size} MB</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-purple-300">Quality:</span>
-              <span className="text-sm font-medium text-purple-200">{estimatedFileSize.quality}</span>
-            </div>
+      <div className="p-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 border-2 border-blue-500/40 rounded-lg shadow-lg">
+        <div className="grid grid-cols-3 gap-3">
+          <div className="text-center">
+            <div className="text-xs text-blue-300 mb-1">Format</div>
+            <div className="text-sm font-bold text-blue-100">{settings.outputFormat.toUpperCase()}</div>
           </div>
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-sm text-green-300">Improvement:</span>
-              <span className="text-sm font-medium text-green-200">{estimatedFileSize.improvement}x</span>
-            </div>
-            <div className="text-xs text-slate-400">Per 4-min track</div>
+          <div className="text-center">
+            <div className="text-xs text-purple-300 mb-1">Quality</div>
+            <div className="text-sm font-bold text-purple-100">{estimatedFileSize.quality}</div>
           </div>
+          <div className="text-center">
+            <div className="text-xs text-green-300 mb-1">Est. Size</div>
+            <div className="text-sm font-bold text-green-100">{estimatedFileSize.size} MB</div>
+          </div>
+        </div>
+        <div className="mt-2 pt-2 border-t border-white/10 text-center">
+          <span className="text-xs text-slate-300">Size increase: </span>
+          <span className="text-xs font-semibold text-green-300">{estimatedFileSize.improvement}x</span>
+          <span className="text-xs text-slate-400"> (per 4-min track)</span>
         </div>
       </div>
 

@@ -25,6 +25,8 @@ export const AudioSettingsTooltip = ({ setting }: AudioSettingsTooltipProps) => 
         return 'Equalizer adjusts frequency response. Low frequencies (bass) on left, high frequencies (treble) on right. Boost (+) or cut (-) specific ranges.';
       case 'outputFormat':
         return 'MP3: Small files, good quality. FLAC: Lossless compression. WAV: Uncompressed, largest files. OGG: Open source alternative to MP3.';
+      case 'stereoWidening':
+        return 'Enhances stereo image by widening the soundstage. Makes audio feel more spacious and immersive. Use sparingly to avoid phase issues.';
       default:
         return 'Audio enhancement setting - hover for more information.';
     }

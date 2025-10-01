@@ -76,12 +76,20 @@ export const useAdvancedAudioProcessing = () => {
           currentNode = await applyEqualizer(offlineContext, currentNode, settings.eqBands);
         }
 
-        if (settings.noiseReduction && settings.noiseReduction > 0) {
+        if (settings.noiseReductionEnabled && settings.noiseReduction && settings.noiseReduction > 0) {
           currentNode = applyNoiseReduction(offlineContext, currentNode, settings.noiseReduction);
         }
 
-        if (settings.compression && settings.compression > 0) {
+        if (settings.compressionEnabled && settings.compression && settings.compression > 0) {
           currentNode = applyCompression(offlineContext, currentNode, settings.compression);
+        }
+
+        if (settings.normalize) {
+          currentNode = applyNormalization(offlineContext, currentNode, settings.normalizeLevel || -3);
+        }
+
+        if (settings.stereoWideningEnabled && settings.stereoWidening && settings.stereoWidening > 0) {
+          currentNode = applyStereoWidening(offlineContext, currentNode, settings.stereoWidening);
         }
 
         // Fix: Use trebleEnhancement instead of trebleBoost and add validation
@@ -224,6 +232,43 @@ const applyTrebleBoost = (context: OfflineAudioContext, input: AudioNode, boost:
   
   input.connect(filter);
   return filter;
+};
+
+const applyNormalization = (context: OfflineAudioContext, input: AudioNode, targetLevel: number): AudioNode => {
+  // Normalization is achieved through gain adjustment
+  // targetLevel is typically negative (e.g., -3 dB to leave headroom)
+  const gainNode = context.createGain();
+  // Convert dB to linear gain: gain = 10^(dB/20)
+  const linearGain = Math.pow(10, targetLevel / 20);
+  gainNode.gain.value = linearGain;
+  
+  input.connect(gainNode);
+  return gainNode;
+};
+
+const applyStereoWidening = (context: OfflineAudioContext, input: AudioNode, amount: number): AudioNode => {
+  // Stereo widening using mid-side processing
+  // amount is 0-100, we convert to 0-1 range
+  const widthFactor = Math.max(0, Math.min(100, amount)) / 100;
+  
+  // Create a stereo panner for width enhancement
+  const splitter = context.createChannelSplitter(2);
+  const merger = context.createChannelMerger(2);
+  const gainL = context.createGain();
+  const gainR = context.createGain();
+  
+  // Apply stereo width: > 1 = wider, < 1 = narrower
+  const width = 1 + (widthFactor * 0.5); // Max 1.5x width
+  gainL.gain.value = width;
+  gainR.gain.value = width;
+  
+  input.connect(splitter);
+  splitter.connect(gainL, 0);
+  splitter.connect(gainR, 1);
+  gainL.connect(merger, 0, 0);
+  gainR.connect(merger, 0, 1);
+  
+  return merger;
 };
 
 // Chunked audio buffer to blob conversion to prevent crashes

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SaveLocationSelector } from '@/components/SaveLocationSelector';
 import { BasicSettings } from '@/components/enhancement/BasicSettings';
 import { AudioProcessingSettings } from '@/components/enhancement/AudioProcessingSettings';
-import { EqualizerSettings } from '@/components/enhancement/EqualizerSettings';
+import { CompactEqualizerWithPresets } from '@/components/enhancement/CompactEqualizerWithPresets';
 import { AudioSettingsTooltip } from '@/components/AudioSettingsTooltip';
 import { SimpleAudioEnhancer } from '@/components/SimpleAudioEnhancer';
 
@@ -20,16 +20,16 @@ interface EnhancementSettingsProps {
 interface EnhancementSettings {
   targetBitrate: number;
   sampleRate: number;
-  noiseReduction: boolean;
-  noiseReductionLevel: number;
-  normalization: boolean;
-  normalizationLevel: number;
-  bassBoost: boolean;
-  bassBoostLevel: number;
-  trebleEnhancement: boolean;
-  trebleLevel: number;
-  compression: boolean;
-  compressionRatio: number;
+  noiseReduction: number;
+  noiseReductionEnabled: boolean;
+  normalize: boolean;
+  normalizeLevel: number;
+  bassBoost: number;
+  trebleEnhancement: number;
+  compression: number;
+  compressionEnabled: boolean;
+  stereoWidening: number;
+  stereoWideningEnabled: boolean;
   outputFormat: string;
   gainAdjustment: number;
   enableEQ: boolean;
@@ -51,8 +51,8 @@ const getQualityLevel = (settings: EnhancementSettings) => {
   else if (settings.outputFormat === 'mp3') score += 1;
   
   if (settings.enableEQ) score += 1;
-  if (settings.noiseReduction) score += 1;
-  if (settings.normalization) score += 1;
+  if (settings.noiseReductionEnabled) score += 1;
+  if (settings.normalize) score += 1;
   
   if (score >= 8) return 'Studio';
   if (score >= 6) return 'High';
@@ -64,16 +64,16 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles, onSaveL
   const [settings, setSettings] = useState<EnhancementSettings>({
     targetBitrate: 320,
     sampleRate: 44100,
-    noiseReduction: true,
-    noiseReductionLevel: 50,
-    normalization: true,
-    normalizationLevel: -3,
-    bassBoost: false,
-    bassBoostLevel: 20,
-    trebleEnhancement: false,
-    trebleLevel: 15,
-    compression: false,
-    compressionRatio: 4,
+    noiseReduction: 50,
+    noiseReductionEnabled: false,
+    normalize: true,
+    normalizeLevel: -3,
+    bassBoost: 0,
+    trebleEnhancement: 0,
+    compression: 4,
+    compressionEnabled: false,
+    stereoWidening: 25,
+    stereoWideningEnabled: false,
     outputFormat: 'mp3',
     gainAdjustment: 0,
     enableEQ: true,
@@ -100,9 +100,9 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles, onSaveL
       const eqIntensity = settings.eqBands.reduce((sum, band) => sum + Math.abs(band), 0) / 10;
       effectsMultiplier *= (1 + eqIntensity * 0.05);
     }
-    if (settings.noiseReduction) effectsMultiplier *= 1.02;
-    if (settings.compression) effectsMultiplier *= 0.95;
-    if (settings.normalization) effectsMultiplier *= 1.01;
+    if (settings.noiseReductionEnabled) effectsMultiplier *= 1.02;
+    if (settings.compressionEnabled) effectsMultiplier *= 0.95;
+    if (settings.normalize) effectsMultiplier *= 1.01;
     
     const gainMultiplier = 1 + Math.abs(settings.gainAdjustment) * 0.01;
     const estimatedSize = baseSize * sampleRateMultiplier * bitrateMultiplier * formatMultiplier * effectsMultiplier * gainMultiplier;
@@ -203,12 +203,11 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles, onSaveL
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-white text-base">
                   <Sliders className="h-4 w-4" />
-                  10-Band Equalizer
-                  <AudioSettingsTooltip setting="eq" />
+                  Equalizer & Presets
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <EqualizerSettings 
+                <CompactEqualizerWithPresets 
                   settings={settings}
                   onSettingChange={handleSettingChange}
                   onEQBandChange={handleEQBandChange}
