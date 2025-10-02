@@ -54,34 +54,34 @@
   }
 
   .dark {
-    /* Dark mode - Black background with white text */
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
+    /* PURE BLACK Dark mode - #000000 background with bright text */
+    --background: 0 0% 0%; /* Pure black */
+    --foreground: 0 0% 100%; /* Pure white */
 
-    --card: 0 0% 7%;
-    --card-foreground: 0 0% 98%;
+    --card: 0 0% 5%; /* Very dark cards */
+    --card-foreground: 0 0% 100%;
 
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 0 0% 5%;
+    --popover-foreground: 0 0% 100%;
 
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
+    --primary: 221 83% 53%; /* Bright blue */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 70%; /* Brighter muted text */
 
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 271 91% 65%; /* Bright purple */
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
+    --border: 0 0% 20%; /* Visible borders */
+    --input: 0 0% 20%;
+    --ring: 221 83% 53%;
     
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
@@ -111,9 +111,9 @@
     color: #000000 !important;
   }
   
-  /* Force proper dark background in dark mode */
+  /* Force PURE BLACK background in dark mode (#000000) */
   body.dark {
-    background: linear-gradient(to bottom right, #000000, #0f172a, #000000) !important;
+    background: #000000 !important;
     color: #ffffff !important;
   }
   

@@ -89,8 +89,11 @@ const translations = {
     // Equalizer
     'eq.title': '10-Band Equalizer',
     'eq.enable': 'Enable Equalizer',
-    'eq.reset': 'Reset',
     'eq.presets': 'EQ Presets',
+    'eq.enableEqualizer': 'Enable Equalizer',
+    'eq.tenBandEqualizer': '10-Band Equalizer',
+    'eq.eqPresets': 'EQ Presets',
+    'eq.reset': 'Reset',
     
     // Conversion
     'conversion.source': 'Source',
@@ -195,8 +198,11 @@ const translations = {
     // Equalizer
     'eq.title': 'Ecualizador de 10 Bandas',
     'eq.enable': 'Activar Ecualizador',
-    'eq.reset': 'Restablecer',
     'eq.presets': 'Preajustes EQ',
+    'eq.enableEqualizer': 'Activar Ecualizador',
+    'eq.tenBandEqualizer': 'Ecualizador de 10 Bandas',
+    'eq.eqPresets': 'Preajustes EQ',
+    'eq.reset': 'Restablecer',
     
     // Conversion
     'conversion.source': 'Origen',

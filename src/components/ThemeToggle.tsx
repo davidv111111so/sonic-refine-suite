@@ -37,27 +37,28 @@ export const ThemeToggle = () => {
     } else {
       setIsDarkMode(true);
       document.documentElement.classList.add('dark');
-      // High contrast dark mode
-      document.body.className = 'bg-gradient-to-br from-black via-slate-900 to-black text-white';
-      document.body.style.setProperty('--background', '0 0% 3.9%');
-      document.body.style.setProperty('--foreground', '0 0% 98%');
-      document.body.style.setProperty('--card', '0 0% 3.9%');
-      document.body.style.setProperty('--card-foreground', '0 0% 98%');
-      document.body.style.setProperty('--popover', '0 0% 3.9%');
-      document.body.style.setProperty('--popover-foreground', '0 0% 98%');
-      document.body.style.setProperty('--primary', '0 0% 98%');
-      document.body.style.setProperty('--primary-foreground', '0 0% 9%');
-      document.body.style.setProperty('--secondary', '0 0% 14.9%');
-      document.body.style.setProperty('--secondary-foreground', '0 0% 98%');
-      document.body.style.setProperty('--muted', '0 0% 14.9%');
-      document.body.style.setProperty('--muted-foreground', '0 0% 63.9%');
-      document.body.style.setProperty('--accent', '0 0% 14.9%');
-      document.body.style.setProperty('--accent-foreground', '0 0% 98%');
-      document.body.style.setProperty('--destructive', '0 62.8% 30.6%');
-      document.body.style.setProperty('--destructive-foreground', '0 0% 98%');
-      document.body.style.setProperty('--border', '0 0% 14.9%');
-      document.body.style.setProperty('--input', '0 0% 14.9%');
-      document.body.style.setProperty('--ring', '0 0% 83.1%');
+      // PURE BLACK DARK MODE - #000000 background with bright text
+      document.body.className = 'text-white';
+      document.body.style.background = '#000000';
+      document.body.style.setProperty('--background', '0 0% 0%'); // Pure black
+      document.body.style.setProperty('--foreground', '0 0% 100%'); // Pure white text
+      document.body.style.setProperty('--card', '0 0% 5%'); // Very dark cards
+      document.body.style.setProperty('--card-foreground', '0 0% 100%');
+      document.body.style.setProperty('--popover', '0 0% 5%');
+      document.body.style.setProperty('--popover-foreground', '0 0% 100%');
+      document.body.style.setProperty('--primary', '221 83% 53%'); // Bright blue
+      document.body.style.setProperty('--primary-foreground', '0 0% 100%');
+      document.body.style.setProperty('--secondary', '0 0% 15%');
+      document.body.style.setProperty('--secondary-foreground', '0 0% 100%');
+      document.body.style.setProperty('--muted', '0 0% 15%');
+      document.body.style.setProperty('--muted-foreground', '0 0% 70%');
+      document.body.style.setProperty('--accent', '271 91% 65%'); // Bright purple
+      document.body.style.setProperty('--accent-foreground', '0 0% 100%');
+      document.body.style.setProperty('--destructive', '0 84% 60%');
+      document.body.style.setProperty('--destructive-foreground', '0 0% 100%');
+      document.body.style.setProperty('--border', '0 0% 20%');
+      document.body.style.setProperty('--input', '0 0% 20%');
+      document.body.style.setProperty('--ring', '221 83% 53%');
     }
   }, []);
 
@@ -88,28 +89,29 @@ export const ThemeToggle = () => {
       localStorage.setItem('perfect-audio-theme', 'light');
       setIsDarkMode(false);
     } else {
-      // Switch to dark mode with high contrast
+      // Switch to PURE BLACK dark mode with bright text
       document.documentElement.classList.add('dark');
-      document.body.className = 'bg-gradient-to-br from-black via-slate-900 to-black text-white';
-      document.body.style.setProperty('--background', '0 0% 3.9%');
-      document.body.style.setProperty('--foreground', '0 0% 98%');
-      document.body.style.setProperty('--card', '0 0% 3.9%');
-      document.body.style.setProperty('--card-foreground', '0 0% 98%');
-      document.body.style.setProperty('--popover', '0 0% 3.9%');
-      document.body.style.setProperty('--popover-foreground', '0 0% 98%');
-      document.body.style.setProperty('--primary', '0 0% 98%');
-      document.body.style.setProperty('--primary-foreground', '0 0% 9%');
-      document.body.style.setProperty('--secondary', '0 0% 14.9%');
-      document.body.style.setProperty('--secondary-foreground', '0 0% 98%');
-      document.body.style.setProperty('--muted', '0 0% 14.9%');
-      document.body.style.setProperty('--muted-foreground', '0 0% 63.9%');
-      document.body.style.setProperty('--accent', '0 0% 14.9%');
-      document.body.style.setProperty('--accent-foreground', '0 0% 98%');
-      document.body.style.setProperty('--destructive', '0 62.8% 30.6%');
-      document.body.style.setProperty('--destructive-foreground', '0 0% 98%');
-      document.body.style.setProperty('--border', '0 0% 14.9%');
-      document.body.style.setProperty('--input', '0 0% 14.9%');
-      document.body.style.setProperty('--ring', '0 0% 83.1%');
+      document.body.className = 'text-white';
+      document.body.style.background = '#000000';
+      document.body.style.setProperty('--background', '0 0% 0%'); // Pure black
+      document.body.style.setProperty('--foreground', '0 0% 100%'); // Pure white text
+      document.body.style.setProperty('--card', '0 0% 5%'); // Very dark cards
+      document.body.style.setProperty('--card-foreground', '0 0% 100%');
+      document.body.style.setProperty('--popover', '0 0% 5%');
+      document.body.style.setProperty('--popover-foreground', '0 0% 100%');
+      document.body.style.setProperty('--primary', '221 83% 53%'); // Bright blue
+      document.body.style.setProperty('--primary-foreground', '0 0% 100%');
+      document.body.style.setProperty('--secondary', '0 0% 15%');
+      document.body.style.setProperty('--secondary-foreground', '0 0% 100%');
+      document.body.style.setProperty('--muted', '0 0% 15%');
+      document.body.style.setProperty('--muted-foreground', '0 0% 70%');
+      document.body.style.setProperty('--accent', '271 91% 65%'); // Bright purple
+      document.body.style.setProperty('--accent-foreground', '0 0% 100%');
+      document.body.style.setProperty('--destructive', '0 84% 60%');
+      document.body.style.setProperty('--destructive-foreground', '0 0% 100%');
+      document.body.style.setProperty('--border', '0 0% 20%');
+      document.body.style.setProperty('--input', '0 0% 20%');
+      document.body.style.setProperty('--ring', '221 83% 53%');
       localStorage.setItem('perfect-audio-theme', 'dark');
       setIsDarkMode(true);
     }

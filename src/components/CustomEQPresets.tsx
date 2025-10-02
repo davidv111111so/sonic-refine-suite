@@ -95,39 +95,42 @@ export const CustomEQPresets = ({ currentEQBands, onApplyPreset }: CustomEQPrese
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-0 space-y-4">
-        {/* Save Current EQ as Preset */}
-        <div className="p-3 bg-slate-800/50 rounded-lg border border-slate-700">
-          <div className="flex items-center gap-2 mb-2">
-            <Save className="h-4 w-4 text-purple-400" />
-            <span className="text-sm text-white font-medium">Save Current EQ</span>
-          </div>
-          
+        {/* Save/Load Preset Buttons - Vertically Stacked */}
+        <div className="flex flex-col gap-2">
           {isNaming ? (
-            <div className="flex gap-2">
-              <Input
-                placeholder="Enter preset name..."
-                value={presetName}
-                onChange={(e) => setPresetName(e.target.value)}
-                className="bg-slate-700 border-slate-600 text-white text-sm"
-                onKeyPress={(e) => e.key === 'Enter' && saveCurrentPreset()}
-                autoFocus
-              />
-              <Button size="sm" onClick={saveCurrentPreset} className="bg-purple-600 hover:bg-purple-700">
-                Save
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setIsNaming(false)} className="border-slate-600">
-                Cancel
-              </Button>
+            <div className="p-3 bg-slate-800/50 rounded-lg border border-slate-700">
+              <div className="flex items-center gap-2 mb-2">
+                <Save className="h-4 w-4 text-purple-400" />
+                <span className="text-xs text-white font-medium">Save Current EQ</span>
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Enter preset name..."
+                  value={presetName}
+                  onChange={(e) => setPresetName(e.target.value)}
+                  className="bg-slate-700 border-slate-600 text-white text-xs h-8"
+                  onKeyPress={(e) => e.key === 'Enter' && saveCurrentPreset()}
+                  autoFocus
+                />
+                <Button size="sm" onClick={saveCurrentPreset} className="bg-purple-600 hover:bg-purple-700 h-8 px-3 text-xs">
+                  Save
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setIsNaming(false)} className="border-slate-600 h-8 px-3 text-xs">
+                  Cancel
+                </Button>
+              </div>
             </div>
           ) : (
-            <Button 
-              size="sm" 
-              onClick={() => setIsNaming(true)}
-              className="w-full bg-purple-600 hover:bg-purple-700"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              Save Current EQ Settings
-            </Button>
+            <>
+              <Button 
+                size="sm" 
+                onClick={() => setIsNaming(true)}
+                className="w-full bg-purple-600 hover:bg-purple-700 h-9 text-xs"
+              >
+                <Save className="h-3.5 w-3.5 mr-2" />
+                Save Preset
+              </Button>
+            </>
           )}
         </div>
 
