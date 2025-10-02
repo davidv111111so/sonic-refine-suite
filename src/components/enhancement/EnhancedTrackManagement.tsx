@@ -219,20 +219,28 @@ export const EnhancedTrackManagement = ({
                   </div>
                 </div>
 
-                {/* File Size */}
+                {/* File Size - Enhanced display with Before/After */}
                 <div className="flex flex-col justify-center">
-                  <span className="text-white text-sm font-mono">
-                    {file.status === 'enhanced' && file.enhancedSize 
-                      ? (
-                        <div>
-                          <div className="text-green-400">{formatFileSize(file.enhancedSize)}</div>
-                          <div className="text-slate-500 text-xs">orig: {formatFileSize(file.size)}</div>
-                        </div>
-                      )
-                      : formatFileSize(file.size)
-                    }
-                  </span>
-                  <span className="text-xs text-slate-400">/ 100MB max</span>
+                  {file.status === 'enhanced' && file.enhancedSize ? (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-slate-400">Antes:</span>
+                        <span className="text-slate-400 text-xs font-mono line-through">{formatFileSize(file.size)}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-green-400">Después:</span>
+                        <span className="text-green-400 text-sm font-mono font-bold">{formatFileSize(file.enhancedSize)}</span>
+                      </div>
+                      <div className="text-xs text-blue-400">
+                        (+{Math.round(((file.enhancedSize - file.size) / file.size) * 100)}%)
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <span className="text-white text-sm font-mono">{formatFileSize(file.size)}</span>
+                      <span className="text-xs text-slate-400 block">/ 100MB max</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Status with Progress */}

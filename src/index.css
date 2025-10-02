@@ -99,7 +99,7 @@
     @apply border-border;
   }
 
-  /* Light mode - ensure pure white background with blue accents */
+  /* Light mode - ensure pure white background */
   body {
     @apply bg-white dark:bg-background text-black dark:text-foreground;
     transition: background-color 0.3s ease, color 0.3s ease;
@@ -107,7 +107,7 @@
   
   /* Force pure white background in light mode */
   body:not(.dark) {
-    background: linear-gradient(to bottom right, #ffffff, #f8f9fa, #ffffff) !important;
+    background: #FFFFFF !important;
     color: #000000 !important;
   }
   
@@ -115,6 +115,29 @@
   body.dark {
     background: linear-gradient(to bottom right, #000000, #0f172a, #000000) !important;
     color: #ffffff !important;
+  }
+  
+  /* Light mode - Keep buttons and overlays with visible colors */
+  body:not(.dark) .bg-slate-800,
+  body:not(.dark) .bg-slate-900 {
+    @apply bg-blue-50 border-blue-200 !important;
+  }
+  
+  body:not(.dark) .bg-slate-700 {
+    @apply bg-blue-100 !important;
+  }
+  
+  body:not(.dark) .text-white {
+    @apply text-gray-900 !important;
+  }
+  
+  body:not(.dark) .text-slate-300,
+  body:not(.dark) .text-slate-400 {
+    @apply text-gray-600 !important;
+  }
+  
+  body:not(.dark) .border-slate-600 {
+    @apply border-blue-300 !important;
   }
 }
 

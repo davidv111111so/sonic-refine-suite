@@ -12,6 +12,7 @@ import { FileInfoModal } from '@/components/FileInfoModal';
 import { AudioFile } from '@/types/audio';
 import { ProcessingSettings } from '@/utils/audioProcessor';
 import { BarChart3, Settings, Upload, Zap, Package } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface SpectrumTabsProps {
   audioFiles: AudioFile[];
@@ -44,6 +45,7 @@ export const SpectrumTabs = ({
   eqEnabled,
   setEqEnabled
 }: SpectrumTabsProps) => {
+  const { t, language } = useLanguage();
   const [activeTab, setActiveTab] = useState('spectrum');
   const [fileInfoModal, setFileInfoModal] = useState<{isOpen: boolean, file: AudioFile | null}>({
     isOpen: false,
@@ -105,7 +107,20 @@ export const SpectrumTabs = ({
     setActiveTab('enhance');
   };
 
-  const handleEnhanceFiles = () => {
+  const handleEnhanceFiles = async () => {
+    // Show confirmation dialog if 2 or more files
+    if (audioFiles.length >= 2) {
+      const message = language === 'ES' 
+        ? `¿Desea procesar y descargar ${audioFiles.length} archivos?`
+        : `Do you want to process and download ${audioFiles.length} files?`;
+      
+      const userConfirmed = window.confirm(message);
+      
+      if (!userConfirmed) {
+        return;
+      }
+    }
+    
     const finalSettings = {
       ...processingSettings,
       eqBands: eqBands,
@@ -124,14 +139,14 @@ export const SpectrumTabs = ({
           className="flex items-center gap-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white"
         >
           <BarChart3 className="h-4 w-4" />
-          Spectrum
+          {t('button.spectrum')}
         </TabsTrigger>
         <TabsTrigger 
           value="enhance" 
           className="flex items-center gap-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white"
         >
           <Settings className="h-4 w-4" />
-          Enhance
+          {t('button.enhance')}
         </TabsTrigger>
       </TabsList>
 
@@ -141,7 +156,7 @@ export const SpectrumTabs = ({
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-cyan-400">
               <Upload className="h-5 w-5" />
-              Upload Audio Files
+              {t('upload.title')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -171,14 +186,14 @@ export const SpectrumTabs = ({
         {/* Download All Button at Bottom */}
         {(enhancedHistory.some(file => file.status === 'enhanced') || audioFiles.some(file => file.status === 'enhanced')) && (
           <div className="flex justify-center pt-4">
-            <Button
-              onClick={onDownloadAll}
-              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-3 px-8 rounded-xl shadow-xl hover:shadow-purple-500/30 transition-all duration-300"
-              size="lg"
-            >
-              <Package className="h-5 w-5 mr-2" />
-              Download All as ZIP
-            </Button>
+              <Button
+                onClick={onDownloadAll}
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-3 px-8 rounded-xl shadow-xl hover:shadow-purple-500/30 transition-all duration-300"
+                size="lg"
+              >
+                <Package className="h-5 w-5 mr-2" />
+                {t('button.downloadAll')}
+              </Button>
           </div>
         )}
       </TabsContent>
@@ -193,13 +208,13 @@ export const SpectrumTabs = ({
                 <Button
                   onClick={handleEnhanceFiles}
                   disabled={audioFiles.length === 0}
-                  className="relative bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-500 hover:via-pink-500 hover:to-blue-500 text-white font-bold py-4 px-10 rounded-2xl shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 disabled:opacity-50 animate-pulse-slow border-2 border-white/20"
+                  className="relative overflow-hidden bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-500 hover:via-pink-500 hover:to-blue-500 text-white font-bold py-6 px-12 rounded-3xl shadow-2xl hover:shadow-purple-500/60 transition-all duration-300 disabled:opacity-50 border-2 border-white/30 hover:scale-105 before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent before:translate-x-[-200%] hover:before:translate-x-[200%] before:transition-transform before:duration-1000"
                   size="lg"
                 >
-                  <Zap className="h-6 w-6 mr-3 animate-pulse" />
-                  <span className="text-xl tracking-wide">SPECTRUM</span>
+                  <Zap className="h-7 w-7 mr-3 animate-pulse drop-shadow-lg" />
+                  <span className="text-2xl tracking-widest font-black drop-shadow-lg">SPECTRUM</span>
                   {audioFiles.length > 0 && (
-                    <span className="ml-3 bg-white/20 px-3 py-1 rounded-full text-sm">
+                    <span className="ml-4 bg-white/30 px-4 py-1.5 rounded-full text-base font-bold animate-pulse shadow-lg">
                       {audioFiles.length}
                     </span>
                   )}
@@ -210,24 +225,36 @@ export const SpectrumTabs = ({
               <div className="text-center">
                 <CardTitle className="flex items-center justify-center gap-2 text-purple-300 text-xl font-bold">
                   <Settings className="h-6 w-6" />
-                  Advanced Audio Enhancement
+                  {t('enhance.title')}
                 </CardTitle>
                 {/* Enhanced Output Display with Better Styling and Real-time Updates */}
                 <div className="flex items-center justify-center gap-4 mt-3 px-6 py-3 bg-gradient-to-r from-purple-900/40 via-blue-900/40 to-green-900/40 rounded-xl border-2 border-purple-500/30 shadow-lg">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-purple-300 font-medium">Format:</span>
+                    <span className="text-xs text-purple-300 font-medium">{language === 'ES' ? 'Entrada' : 'Input'}:</span>
                     <span className="px-2 py-1 bg-purple-700/50 rounded-md text-sm font-bold text-white border border-purple-500/50">
+                      {audioFiles.length > 0 ? (audioFiles[0].fileType?.toUpperCase() || audioFiles[0].name.split('.').pop()?.toUpperCase() || 'N/A') : '-'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-pink-300 font-medium">→ {language === 'ES' ? 'Salida' : 'Output'}:</span>
+                    <span className="px-2 py-1 bg-pink-700/50 rounded-md text-sm font-bold text-white border border-pink-500/50">
                       {processingSettings.outputFormat.toUpperCase()}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-blue-300 font-medium">Quality:</span>
+                    <span className="text-xs text-blue-300 font-medium">{t('enhance.quality')}:</span>
                     <span className="px-2 py-1 bg-blue-700/50 rounded-md text-sm font-bold text-white border border-blue-500/50">
                       {processingSettings.sampleRate/1000}kHz {processingSettings.bitDepth}bit
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-green-300 font-medium">Est. Output:</span>
+                    <span className="text-xs text-green-300 font-medium">{language === 'ES' ? 'Antes' : 'Before'}:</span>
+                    <span className="px-2 py-1 bg-gray-700/50 rounded-md text-sm font-bold text-gray-200 border border-gray-500/50">
+                      {Math.round(audioFiles.reduce((acc, file) => acc + file.size, 0) / 1024 / 1024)}MB
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-green-300 font-medium">→ {language === 'ES' ? 'Después' : 'After'}:</span>
                     <span className="px-2 py-1 bg-green-700/50 rounded-md text-sm font-bold text-green-200 border border-green-500/50 animate-pulse">
                       ~{Math.round(audioFiles.reduce((acc, file) => acc + file.size, 0) * 1.35 / 1024 / 1024)}MB
                     </span>
