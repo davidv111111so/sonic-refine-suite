@@ -81,7 +81,7 @@ export const TrackList: React.FC<TrackListProps> = ({
   };
 
   return (
-    <Card className="bg-slate-800/50 border-slate-600">
+    <Card className="bg-slate-900/90 dark:bg-black/90 border-slate-700 dark:border-slate-700">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-cyan-400">
           <Music className="h-5 w-5" />

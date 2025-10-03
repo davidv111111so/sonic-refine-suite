@@ -87,7 +87,7 @@ export const CustomEQPresets = ({ currentEQBands, onApplyPreset }: CustomEQPrese
   };
 
   return (
-    <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600 shadow-lg">
+    <Card className="bg-gradient-to-br from-slate-900/90 to-slate-800/80 dark:from-black/90 dark:to-slate-950/80 border-slate-700 dark:border-slate-800 shadow-lg">
       <CardHeader className="pb-3">
         <CardTitle className="text-white text-lg flex items-center gap-2">
           <Music className="h-5 w-5 text-purple-400" />
@@ -125,9 +125,9 @@ export const CustomEQPresets = ({ currentEQBands, onApplyPreset }: CustomEQPrese
               <Button 
                 size="sm" 
                 onClick={() => setIsNaming(true)}
-                className="w-full bg-purple-600 hover:bg-purple-700 h-9 text-xs"
+                className="w-full bg-purple-600 hover:bg-purple-700 h-8 text-xs"
               >
-                <Save className="h-3.5 w-3.5 mr-2" />
+                <Save className="h-3 w-3 mr-2" />
                 Save Preset
               </Button>
             </>

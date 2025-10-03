@@ -46,7 +46,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
             ? 'border-blue-400 bg-blue-400/10 scale-102' 
             : isDragReject 
             ? 'border-red-400 bg-red-400/10' 
-            : 'border-slate-600 bg-slate-800/50 hover:border-blue-400/50 hover:bg-slate-700/50'
+            : 'border-slate-700 dark:border-slate-700 bg-slate-900/90 dark:bg-black/90 hover:border-blue-400/50 hover:bg-slate-800/90'
           }
         `}
       >

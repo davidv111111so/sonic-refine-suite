@@ -44,7 +44,7 @@ export const ProfessionalEqualizer = ({
   };
 
   return (
-    <Card className="bg-slate-900/50 border-slate-600">
+    <Card className="bg-slate-900/90 dark:bg-black/90 border-slate-700 dark:border-slate-800">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-white text-base">
@@ -63,7 +63,7 @@ export const ProfessionalEqualizer = ({
               variant="outline"
               size="sm"
               onClick={onResetEQ}
-              className="h-8 text-xs bg-slate-800 border-slate-500 hover:bg-slate-700 text-white"
+              className="h-8 text-xs bg-slate-800 dark:bg-black border-slate-700 dark:border-slate-800 hover:bg-slate-700 dark:hover:bg-slate-900 text-white"
             >
               <RotateCcw className="h-3 w-3 mr-1" />
               Reset
@@ -75,7 +75,7 @@ export const ProfessionalEqualizer = ({
         {enabled ? (
           <div className="relative">
             {/* Professional DJ Console Style EQ */}
-            <div className="bg-gradient-to-br from-slate-800 via-slate-900 to-black rounded-xl p-8 border-2 border-slate-600 shadow-2xl">
+            <div className="bg-gradient-to-br from-slate-900 via-black to-slate-950 dark:from-black dark:via-slate-950 dark:to-black rounded-xl p-8 border-2 border-slate-700 dark:border-slate-800 shadow-2xl">
               
               {/* EQ Background Grid */}
               <div className="absolute inset-8 bg-slate-900/50 rounded-lg border border-slate-700">

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { UploadWithConsent } from '@/components/UploadWithConsent';
 import { EnhancedTrackManagement } from '@/components/enhancement/EnhancedTrackManagement';
 import { DynamicOutputSettings } from '@/components/enhancement/DynamicOutputSettings';
@@ -202,27 +203,26 @@ export const SpectrumTabs = ({
         {/* Enhanced Header with Controls */}
         <Card className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 border-purple-500/30 shadow-xl shadow-purple-500/10">
           <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
-              {/* Left: Spectrum Button - Main Action Button */}
-              <div className="flex items-center gap-4">
+              <div className="flex items-center justify-between">
+                {/* Left: Spectrum Button - moved to the left */}
                 <Button
                   onClick={handleEnhanceFiles}
                   disabled={audioFiles.length === 0}
-                  className="relative overflow-hidden bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-500 hover:via-pink-500 hover:to-blue-500 text-white font-bold py-6 px-12 rounded-3xl shadow-2xl hover:shadow-purple-500/60 transition-all duration-300 disabled:opacity-50 border-2 border-white/30 hover:scale-105 before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent before:translate-x-[-200%] hover:before:translate-x-[200%] before:transition-transform before:duration-1000"
+                  variant="spectrum"
                   size="lg"
+                  className="shadow-xl"
                 >
-                  <Zap className="h-7 w-7 mr-3 animate-pulse drop-shadow-lg" />
-                  <span className="text-2xl tracking-widest font-black drop-shadow-lg">SPECTRUM</span>
+                  <Zap className="h-6 w-6 mr-2 animate-pulse" />
+                  <span className="text-xl tracking-widest font-black">SPECTRUM</span>
                   {audioFiles.length > 0 && (
-                    <span className="ml-4 bg-white/30 px-4 py-1.5 rounded-full text-base font-bold animate-pulse shadow-lg">
+                    <Badge className="ml-3 bg-white/30 text-white border-white/40 px-3 py-0.5 text-sm font-bold">
                       {audioFiles.length}
-                    </span>
+                    </Badge>
                   )}
                 </Button>
-              </div>
 
               {/* Center: Title with Enhanced Output Info */}
-              <div className="text-center">
+              <div className="flex-1 text-center mx-6">
                 <CardTitle className="flex items-center justify-center gap-2 text-purple-300 text-xl font-bold">
                   <Settings className="h-6 w-6" />
                   {t('enhance.title')}

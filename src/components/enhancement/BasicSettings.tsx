@@ -44,10 +44,10 @@ export const BasicSettings = ({ settings, onSettingChange, estimatedFileSize }: 
           value={settings.outputFormat}
           onValueChange={(value) => onSettingChange('outputFormat', value)}
         >
-          <SelectTrigger className="bg-slate-700 border-slate-600 text-white h-8">
+          <SelectTrigger className="bg-slate-800 dark:bg-black border-slate-700 text-white h-8">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="bg-slate-700 border-slate-600">
+          <SelectContent className="bg-slate-800 dark:bg-black border-slate-700">
             <SelectItem value="mp3">MP3</SelectItem>
             <SelectItem value="flac">FLAC (Lossless)</SelectItem>
             <SelectItem value="wav">WAV (Uncompressed)</SelectItem>
@@ -90,7 +90,7 @@ export const BasicSettings = ({ settings, onSettingChange, estimatedFileSize }: 
           className="grid grid-cols-1 gap-3"
         >
           {sampleRateOptions.map((option) => (
-            <div key={option.value} className="flex items-center space-x-3 p-3 rounded-lg bg-slate-700/50 border border-slate-600 hover:bg-slate-700 transition-colors">
+            <div key={option.value} className="flex items-center space-x-3 p-3 rounded-lg bg-slate-800/90 dark:bg-black/80 border border-slate-700 hover:bg-slate-700 dark:hover:bg-slate-900 transition-colors">
               <RadioGroupItem
                 value={option.value.toString()}
                 id={`rate-${option.value}`}

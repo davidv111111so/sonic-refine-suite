@@ -27,6 +27,14 @@ export const AudioSettingsTooltip = ({ setting }: AudioSettingsTooltipProps) => 
         return 'MP3: Small files, good quality. FLAC: Lossless compression. WAV: Uncompressed, largest files. OGG: Open source alternative to MP3.';
       case 'stereoWidening':
         return 'Enhances stereo image by widening the soundstage. Makes audio feel more spacious and immersive. Use sparingly to avoid phase issues.';
+      case 'bassBoost':
+        return 'Boosts low frequencies (bass) to add warmth and depth. Useful for music that lacks bass presence. Can cause distortion if set too high.';
+      case 'trebleBoost':
+        return 'Enhances high frequencies (treble) for clarity and brightness. Great for vocals and cymbals. Avoid excessive boost to prevent harshness.';
+      case 'reverb':
+        return 'Adds space and depth by simulating room acoustics. Creates a sense of environment. Higher values = larger room feel.';
+      case 'limiter':
+        return 'Prevents audio from exceeding a maximum level, protecting against clipping. Essential for mastering to ensure consistent loudness.';
       default:
         return 'Audio enhancement setting - hover for more information.';
     }
@@ -34,14 +42,21 @@ export const AudioSettingsTooltip = ({ setting }: AudioSettingsTooltipProps) => 
 
   return (
     <TooltipProvider>
-      <Tooltip>
+      <Tooltip delayDuration={200}>
         <TooltipTrigger asChild>
-          <button className="ml-1 text-slate-400 hover:text-white transition-colors">
+          <button 
+            type="button"
+            className="ml-1 text-slate-400 hover:text-cyan-400 transition-colors"
+            aria-label="Help information"
+          >
             <HelpCircle className="h-4 w-4" />
           </button>
         </TooltipTrigger>
-        <TooltipContent className="max-w-xs bg-slate-800 border-slate-700 text-white">
-          <p className="text-sm">{getTooltipContent(setting)}</p>
+        <TooltipContent 
+          side="right" 
+          className="max-w-xs bg-slate-900 dark:bg-black border-slate-700 text-white shadow-xl"
+        >
+          <p className="text-sm leading-relaxed">{getTooltipContent(setting)}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

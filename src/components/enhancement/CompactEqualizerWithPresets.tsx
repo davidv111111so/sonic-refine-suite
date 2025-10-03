@@ -4,6 +4,7 @@ import { Slider } from '@/components/ui/slider';
 import { AudioSettingsTooltip } from '@/components/AudioSettingsTooltip';
 import { Music2, Mic, Headphones, Guitar, Piano, Disc3, Radio, MessageSquare, Speaker, Volume2, Waves, Music, Lightbulb } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { memo, useCallback } from 'react';
 
 interface CompactEqualizerWithPresetsProps {
   settings: any;
@@ -12,7 +13,8 @@ interface CompactEqualizerWithPresetsProps {
   onResetEQ: () => void;
 }
 
-// 10 Professional EQ Presets with Real Values for Matchering API
+// 10 Professional EQ Presets with Real dB Values for Web Audio API
+// These values map directly to BiquadFilterNode gain parameters
 const EQ_PRESETS = [
   { name: 'Jazz', nameES: 'Jazz', icon: Music2, values: [2, 1, 0, 1, 2, 3, 2, 1, 2, 2] },
   { name: 'Electronic', nameES: 'Electrónica', icon: Disc3, values: [5, 4, 2, 0, -2, 2, 3, 4, 5, 6] },
@@ -26,6 +28,47 @@ const EQ_PRESETS = [
   { name: 'Live', nameES: 'En Vivo', icon: Headphones, values: [2, 2, 1, 0, 1, 2, 3, 3, 2, 2] },
 ];
 
+// Memoized EQ Band component to prevent unnecessary re-renders
+const EQBand = memo(({ 
+  freq, 
+  index, 
+  value, 
+  onChange 
+}: { 
+  freq: number; 
+  index: number; 
+  value: number; 
+  onChange: (index: number, value: number) => void;
+}) => {
+  const handleChange = useCallback((newValue: number[]) => {
+    onChange(index, newValue[0]);
+  }, [index, onChange]);
+
+  return (
+    <div className="flex flex-col items-center">
+      <div className="h-12 flex items-end justify-center mb-1 relative">
+        <Slider
+          orientation="vertical"
+          value={[value]}
+          onValueChange={handleChange}
+          min={-12}
+          max={12}
+          step={0.5}
+          className="h-11 w-2.5"
+        />
+      </div>
+      <div className="text-[7px] font-medium text-blue-400 mb-0.5">
+        {freq < 1000 ? freq : `${freq/1000}k`}
+      </div>
+      <div className="text-[6px] text-slate-400 font-mono">
+        {value > 0 ? '+' : ''}{value}
+      </div>
+    </div>
+  );
+});
+
+EQBand.displayName = 'EQBand';
+
 export const CompactEqualizerWithPresets = ({ 
   settings, 
   onSettingChange, 
@@ -35,12 +78,12 @@ export const CompactEqualizerWithPresets = ({
   const { t, language } = useLanguage();
   const eqFrequencies = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
 
-  // Apply EQ preset values to all bands
-  const applyPreset = (values: number[]) => {
+  // Memoized preset application function
+  const applyPreset = useCallback((values: number[]) => {
     values.forEach((value, index) => {
       onEQBandChange(index, value);
     });
-  };
+  }, [onEQBandChange]);
 
   return (
     <div className="space-y-3">
@@ -60,48 +103,19 @@ export const CompactEqualizerWithPresets = ({
           variant="outline"
           size="sm"
           onClick={onResetEQ}
-          className="bg-slate-700 border-slate-600 hover:bg-slate-600 text-white h-7 text-xs px-2"
+          className="bg-slate-800 dark:bg-black border-slate-700 hover:bg-slate-700 dark:hover:bg-slate-900 text-white h-7 text-xs px-2"
         >
           {t('eq.reset')}
         </Button>
       </div>
       
       {settings.enableEQ && (
-        <div className="grid grid-cols-[1fr_1.2fr] gap-3">
-          {/* Compact Equalizer - 40% smaller */}
-          <div className="bg-gradient-to-br from-slate-900/70 to-slate-800/50 rounded-lg p-3 border border-slate-700">
-            <h4 className="text-[10px] font-semibold text-cyan-400 mb-2 tracking-wide">
-              {t('eq.tenBandEqualizer')}
-            </h4>
-            <div className="flex justify-center items-end gap-1.5">
-              {eqFrequencies.map((freq, index) => (
-                <div key={freq} className="flex flex-col items-center">
-                  <div className="h-16 flex items-end justify-center mb-1 relative">
-                    <Slider
-                      orientation="vertical"
-                      value={[settings.eqBands[index]]}
-                      onValueChange={([value]) => onEQBandChange(index, value)}
-                      min={-12}
-                      max={12}
-                      step={0.5}
-                      className="h-14 w-3"
-                    />
-                  </div>
-                  <div className="text-[8px] font-medium text-blue-400">
-                    {freq < 1000 ? freq : `${freq/1000}k`}
-                  </div>
-                  <div className="text-[7px] text-slate-400 font-mono">
-                    {settings.eqBands[index] > 0 ? '+' : ''}{settings.eqBands[index]}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* EQ Presets Strip - 10 Functional Presets */}
-          <div className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 rounded-lg p-3 border border-purple-700/50">
-            <h4 className="text-[10px] font-semibold text-purple-300 mb-2 tracking-wide">
+        <div className="space-y-3">
+          {/* EQ Presets Strip - ON TOP */}
+          <div className="bg-gradient-to-br from-purple-900/40 to-blue-900/40 dark:from-purple-950/60 dark:to-blue-950/60 rounded-lg p-2.5 border border-purple-700/50 dark:border-purple-800/70">
+            <h4 className="text-[9px] font-semibold text-purple-300 mb-2 tracking-wide flex items-center gap-1">
               {t('eq.eqPresets')}
+              <span className="text-[7px] text-purple-400/70">(Real dB values)</span>
             </h4>
             <div className="grid grid-cols-5 gap-1.5">
               {EQ_PRESETS.map((preset) => {
@@ -113,7 +127,7 @@ export const CompactEqualizerWithPresets = ({
                     variant="outline"
                     size="sm"
                     onClick={() => applyPreset(preset.values)}
-                    className="bg-slate-800/80 border-slate-600 hover:bg-gradient-to-br hover:from-purple-600 hover:to-blue-600 hover:border-purple-500 text-white h-auto py-1.5 px-1 flex flex-col items-center gap-0.5 transition-all duration-300"
+                    className="bg-slate-800/90 dark:bg-black/80 border-slate-600 dark:border-slate-700 hover:bg-gradient-to-br hover:from-purple-600 hover:to-blue-600 hover:border-purple-500 text-white h-auto py-1.5 px-1 flex flex-col items-center gap-0.5 transition-all duration-300"
                     title={displayName}
                   >
                     <Icon className="h-3 w-3" />
@@ -123,6 +137,24 @@ export const CompactEqualizerWithPresets = ({
                   </Button>
                 );
               })}
+            </div>
+          </div>
+
+          {/* Compact Equalizer - 35% smaller, below presets */}
+          <div className="bg-gradient-to-br from-slate-900/80 to-slate-800/60 dark:from-black/90 dark:to-slate-950/80 rounded-lg p-2.5 border border-slate-700 dark:border-slate-800">
+            <h4 className="text-[9px] font-semibold text-cyan-400 mb-2 tracking-wide">
+              {t('eq.tenBandEqualizer')}
+            </h4>
+            <div className="flex justify-center items-end gap-1.5">
+              {eqFrequencies.map((freq, index) => (
+                <EQBand
+                  key={freq}
+                  freq={freq}
+                  index={index}
+                  value={settings.eqBands[index]}
+                  onChange={onEQBandChange}
+                />
+              ))}
             </div>
           </div>
         </div>

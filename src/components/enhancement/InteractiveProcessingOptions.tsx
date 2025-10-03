@@ -46,7 +46,7 @@ export const InteractiveProcessingOptions = ({
 }: InteractiveProcessingOptionsProps) => {
 
   return (
-    <Card className="bg-slate-900/50 border-slate-600">
+    <Card className="bg-slate-900/90 dark:bg-black/90 border-slate-700 dark:border-slate-800">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-white text-base">
@@ -57,7 +57,7 @@ export const InteractiveProcessingOptions = ({
             variant="outline"
             size="sm"
             onClick={onReset}
-            className="h-8 text-xs bg-slate-800 border-slate-500 hover:bg-slate-700 text-white"
+            className="h-8 text-xs bg-slate-800 dark:bg-black border-slate-700 dark:border-slate-800 hover:bg-slate-700 dark:hover:bg-slate-900 text-white"
           >
             <RotateCcw className="h-3 w-3 mr-1" />
             Reset
