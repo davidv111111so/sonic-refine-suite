@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { memo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, Music2, Mic, Headphones, Guitar, Disc3, Radio, MessageSquare, Volume2, Waves, Music, Lightbulb } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ProfessionalEqualizerProps {
   eqBands: number[];
@@ -13,6 +14,20 @@ interface ProfessionalEqualizerProps {
   onEnabledChange: (enabled: boolean) => void;
 }
 
+// 10 Professional EQ Presets with Real dB Values
+const EQ_PRESETS = [
+  { name: 'Jazz', nameES: 'Jazz', icon: Music2, values: [2, 1, 0, 1, 2, 3, 2, 1, 2, 2] },
+  { name: 'Electronic', nameES: 'Electrónica', icon: Disc3, values: [5, 4, 2, 0, -2, 2, 3, 4, 5, 6] },
+  { name: 'Podcast', nameES: 'Podcast', icon: MessageSquare, values: [2, 3, 5, 4, 2, 0, -2, -3, -2, 0] },
+  { name: 'Reggae', nameES: 'Reggae', icon: Waves, values: [6, 4, 2, 0, -1, 0, 1, 2, 3, 2] },
+  { name: 'Latin', nameES: 'Latina', icon: Music, values: [3, 2, 1, 0, 1, 2, 3, 2, 1, 2] },
+  { name: 'Rock', nameES: 'Rock', icon: Guitar, values: [4, 3, 1, 0, -2, -1, 2, 3, 4, 3] },
+  { name: 'Acoustic Clarity', nameES: 'Claridad Acústica', icon: Lightbulb, values: [0, 0, 1, 2, 3, 4, 3, 2, 1, 0] },
+  { name: 'Vocal Warmth', nameES: 'Calidez Vocal', icon: Mic, values: [-1, 0, 2, 4, 5, 4, 2, 0, -1, -2] },
+  { name: 'Heavy Bass', nameES: 'Graves Potentes', icon: Volume2, values: [8, 7, 5, 3, 1, 0, 0, 0, 0, 0] },
+  { name: 'Live', nameES: 'En Vivo', icon: Headphones, values: [2, 2, 1, 0, 1, 2, 3, 3, 2, 2] },
+];
+
 export const ProfessionalEqualizer = ({ 
   eqBands, 
   onEQBandChange, 
@@ -20,9 +35,16 @@ export const ProfessionalEqualizer = ({
   enabled,
   onEnabledChange
 }: ProfessionalEqualizerProps) => {
-  // 5 band EQ frequencies and labels
-  const eqFrequencies = [60, 250, 1000, 4000, 12000];
-  const bandLabels = ['Bass', 'Low Mid', 'Mid', 'High Mid', 'Treble'];
+  const { t, language } = useLanguage();
+  
+  // 10 band EQ frequencies
+  const eqFrequencies = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
+  
+  const applyPreset = useCallback((values: number[]) => {
+    values.forEach((value, index) => {
+      onEQBandChange(index, value);
+    });
+  }, [onEQBandChange]);
   
   const getEQColor = (index: number) => {
     const colors = [
@@ -73,9 +95,38 @@ export const ProfessionalEqualizer = ({
       </CardHeader>
       <CardContent className="pt-0">
         {enabled ? (
-          <div className="relative">
-            {/* Professional DJ Console Style EQ */}
-            <div className="bg-gradient-to-br from-slate-900 via-black to-slate-950 dark:from-black dark:via-slate-950 dark:to-black rounded-xl p-8 border-2 border-slate-700 dark:border-slate-800 shadow-2xl">
+          <div className="relative space-y-4">
+            {/* EQ Presets Strip - ON TOP */}
+            <div className="bg-gradient-to-br from-purple-900/40 to-blue-900/40 dark:from-purple-950/60 dark:to-blue-950/60 rounded-lg p-3 border border-purple-700/50 dark:border-purple-800/70">
+              <h4 className="text-sm font-semibold text-purple-300 dark:text-purple-200 mb-2 tracking-wide flex items-center gap-2">
+                Professional EQ Presets
+                <span className="text-xs text-purple-400/70">(Real dB values)</span>
+              </h4>
+              <div className="grid grid-cols-5 gap-2">
+                {EQ_PRESETS.map((preset) => {
+                  const Icon = preset.icon;
+                  const displayName = language === 'ES' ? preset.nameES : preset.name;
+                  return (
+                    <Button
+                      key={preset.name}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => applyPreset(preset.values)}
+                      className="bg-slate-800/90 dark:bg-black/80 border-slate-600 dark:border-slate-700 hover:bg-gradient-to-br hover:from-purple-600 hover:to-blue-600 hover:border-purple-500 text-white h-auto py-2 px-2 flex flex-col items-center gap-1 transition-all duration-300"
+                      title={displayName}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span className="text-[9px] leading-tight text-center">
+                        {displayName}
+                      </span>
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Professional EQ - Compact 35% smaller */}
+            <div className="bg-gradient-to-br from-slate-900 via-black to-slate-950 dark:from-black dark:via-slate-950 dark:to-black rounded-xl p-5 border-2 border-slate-700 dark:border-slate-800 shadow-2xl">
               
               {/* EQ Background Grid */}
               <div className="absolute inset-8 bg-slate-900/50 rounded-lg border border-slate-700">
@@ -93,65 +144,29 @@ export const ProfessionalEqualizer = ({
                 ))}
               </div>
 
-              <div className="flex justify-center items-end gap-8 py-6 relative z-10">
+              <div className="flex justify-center items-end gap-3 py-4 relative z-10">
                 {eqFrequencies.map((freq, index) => (
                   <div key={freq} className="flex flex-col items-center group">
                     
                     {/* Frequency Label */}
-                    <div className="text-xs font-bold text-center mb-1 text-slate-300 group-hover:text-white transition-colors">
-                      {bandLabels[index]}
-                    </div>
-                    <div className="text-xs text-center mb-3 font-mono text-slate-400">
+                    <div className="text-[10px] text-center mb-2 font-mono text-blue-400 dark:text-blue-300">
                       {freq < 1000 ? `${freq}Hz` : `${freq/1000}k`}
                     </div>
 
-                    {/* Professional Fader Container */}
-                    <div className="relative h-48 w-8 mb-4">
+                    {/* Compact Fader Container - 35% smaller */}
+                    <div className="relative h-32 w-6 mb-3">
                       
-                      {/* Fader Track Background */}
+                      {/* Compact Fader Track Background */}
                       <div 
-                        className="absolute inset-x-1 inset-y-2 rounded-full border-2 shadow-inner"
+                        className="absolute inset-x-0.5 inset-y-1 rounded-full border shadow-inner"
                         style={{
-                          background: `linear-gradient(180deg, 
-                            ${getEQColor(index)}20 0%, 
-                            #1e293b 50%, 
-                            ${getEQColor(index)}20 100%)`,
+                          background: `linear-gradient(180deg, #3b82f620 0%, #1e293b 50%, #3b82f620 100%)`,
                           borderColor: '#334155',
-                          boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.5)'
+                          boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.5)'
                         }}
                       />
 
-                      {/* Tick marks */}
-                      <div className="absolute inset-y-2 -right-2 w-2">
-                        {getTickMarks().filter((_, i) => i % 2 === 0).map((mark, idx) => (
-                          <div 
-                            key={mark}
-                            className="absolute right-0 w-1 h-px bg-slate-600"
-                            style={{ top: `${((12 - mark) / 24) * 100}%` }}
-                          />
-                        ))}
-                      </div>
-
-                      {/* Active Level Indicator */}
-                      {eqBands[index] !== 0 && (
-                        <div 
-                          className="absolute inset-x-1 rounded-full transition-all duration-300"
-                          style={{
-                            background: `linear-gradient(180deg, 
-                              ${getEQColor(index)}60 0%, 
-                              ${getEQColor(index)}30 100%)`,
-                            boxShadow: `0 0 12px ${getEQColor(index)}40`,
-                            top: eqBands[index] > 0 
-                              ? `${8 + ((12 - eqBands[index]) / 24) * (192 - 16)}px`
-                              : `${8 + ((12) / 24) * (192 - 16)}px`,
-                            bottom: eqBands[index] < 0 
-                              ? `${8 + ((12 + eqBands[index]) / 24) * (192 - 16)}px`
-                              : `${8 + ((12) / 24) * (192 - 16)}px`
-                          }}
-                        />
-                      )}
-
-                      {/* Professional Slider */}
+                      {/* Compact Slider */}
                       <div className="h-full flex items-center justify-center">
                         <Slider
                           orientation="vertical"
@@ -160,58 +175,29 @@ export const ProfessionalEqualizer = ({
                           min={-12}
                           max={12}
                           step={0.5}
-                          className="h-44 w-6 professional-fader group-hover:scale-105 transition-transform duration-200"
+                          className="h-28 w-5 group-hover:scale-105 transition-transform duration-200"
                         />
                       </div>
                     </div>
 
-                    {/* Value Display */}
-                    <div 
-                      className="text-sm text-center min-w-16 font-mono bg-black/80 rounded-lg px-3 py-1 border-2 shadow-lg backdrop-blur-sm"
-                      style={{
-                        color: eqBands[index] !== 0 ? getEQColor(index) : '#94a3b8',
-                        borderColor: eqBands[index] !== 0 ? getEQColor(index) + '60' : '#475569',
-                        boxShadow: eqBands[index] !== 0 
-                          ? `0 0 15px ${getEQColor(index)}40, inset 0 1px 2px rgba(0,0,0,0.5)` 
-                          : 'inset 0 1px 2px rgba(0,0,0,0.5)'
-                      }}
-                    >
-                      {eqBands[index] > 0 ? '+' : ''}{eqBands[index]}dB
+                    {/* Compact Value Display */}
+                    <div className="text-[9px] text-center font-mono text-slate-300 dark:text-slate-200 bg-black/60 rounded px-1.5 py-0.5">
+                      {eqBands[index] > 0 ? '+' : ''}{eqBands[index]}
                     </div>
                   </div>
                 ))}
               </div>
 
               {/* Professional EQ Branding */}
-              <div className="absolute bottom-2 right-4 text-xs text-slate-500 font-mono">
-                SPECTRUM PRO EQ
+              <div className="absolute bottom-1 right-2 text-[9px] text-slate-500 dark:text-slate-600 font-mono">
+                SPECTRUM EQ
               </div>
             </div>
-
-            {/* LED-style status indicators */}
-            <div className="flex justify-center mt-4 gap-4">
-              {eqBands.map((band, index) => (
-                <div
-                  key={index}
-                  className={`w-3 h-3 rounded-full border-2 transition-all duration-300 ${
-                    band !== 0 
-                      ? 'animate-pulse shadow-lg' 
-                      : 'opacity-30'
-                  }`}
-                  style={{
-                    backgroundColor: band !== 0 ? getEQColor(index) : '#475569',
-                    borderColor: getEQColor(index),
-                    boxShadow: band !== 0 ? `0 0 10px ${getEQColor(index)}60` : 'none'
-                  }}
-                />
-              ))}
-            </div>
-
           </div>
         ) : (
-          <div className="text-center py-8 text-slate-400">
+          <div className="text-center py-8 text-slate-400 dark:text-slate-300">
             <div className="text-lg mb-2">🎚️</div>
-            <p>Enable Audio EQ to access the professional equalizer</p>
+            <p className="text-white">Enable Audio EQ to access the professional equalizer</p>
           </div>
         )}
       </CardContent>

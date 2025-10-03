@@ -175,6 +175,10 @@ export const SpectrumTabs = ({
           onConvert={onConvert}
           onDownloadAll={onDownloadAll}
           onClearDownloaded={onClearDownloaded}
+          onClearAll={() => {
+            // Clear all files
+            onClearDownloaded();
+          }}
           processingSettings={processingSettings}
           onFileInfo={(file) => {
             setFileInfoModal({ isOpen: true, file });

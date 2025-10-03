@@ -120,34 +120,34 @@ export const EnhancedEQPresets = ({
   };
 
   return (
-    <div className="space-y-3">
-      <div className="flex gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleSavePreset}
-          className={`transition-all duration-300 ${
-            isSaveActive 
-              ? 'bg-green-600 border-green-500 text-white shadow-lg shadow-green-500/50 scale-95' 
-              : 'bg-slate-700 border-slate-500 hover:bg-slate-600 text-white hover:border-green-400'
-          }`}
-        >
-          <Save className="h-4 w-4 mr-2" />
-          Save Preset
-        </Button>
-        
+    <div className="space-y-2">
+      <div className="flex flex-col gap-1.5">
         <Button
           variant="outline"
           size="sm"
           onClick={handleLoadPreset}
-          className={`transition-all duration-300 ${
+          className={`transition-all duration-300 h-7 text-xs px-2 ${
             isLoadActive 
               ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/50 scale-95' 
               : 'bg-slate-700 border-slate-500 hover:bg-slate-600 text-white hover:border-blue-400'
           }`}
         >
-          <FolderOpen className="h-4 w-4 mr-2" />
-          Load Preset
+          <FolderOpen className="h-3 w-3 mr-1" />
+          Load
+        </Button>
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleSavePreset}
+          className={`transition-all duration-300 h-7 text-xs px-2 ${
+            isSaveActive 
+              ? 'bg-green-600 border-green-500 text-white shadow-lg shadow-green-500/50 scale-95' 
+              : 'bg-slate-700 border-slate-500 hover:bg-slate-600 text-white hover:border-green-400'
+          }`}
+        >
+          <Save className="h-3 w-3 mr-1" />
+          Save
         </Button>
       </div>
 

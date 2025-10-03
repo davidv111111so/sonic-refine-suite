@@ -23,6 +23,7 @@ interface EnhancedTrackManagementProps {
   onConvert: (file: AudioFile, targetFormat: 'mp3' | 'wav' | 'flac') => void;
   onDownloadAll: () => void;
   onClearDownloaded?: () => void;
+  onClearAll?: () => void;
   onFileInfo?: (file: AudioFile) => void;
   processingSettings?: { outputFormat?: string };
 }
@@ -60,6 +61,7 @@ export const EnhancedTrackManagement = ({
   onConvert,
   onDownloadAll,
   onClearDownloaded,
+  onClearAll,
   onFileInfo,
   processingSettings
 }: EnhancedTrackManagementProps) => {
@@ -151,24 +153,35 @@ export const EnhancedTrackManagement = ({
   }
 
   return (
-    <Card className="bg-slate-800/50 border-slate-600">
+    <Card className="bg-slate-900/90 dark:bg-black/90 border-slate-700 dark:border-slate-800">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-cyan-400">
             <BarChart3 className="h-5 w-5" />
             Track List ({allFiles.length} files)
           </CardTitle>
+          <div className="flex items-center gap-2">
             {hasEnhancedFiles && (
-              <div className="text-center">
-                <p className="text-sm text-slate-400 mb-2">All enhanced files available</p>
-              </div>
+              <p className="text-sm text-slate-400">All enhanced files available</p>
             )}
+            {allFiles.length > 0 && onClearAll && (
+              <Button
+                onClick={onClearAll}
+                variant="outline"
+                size="sm"
+                className="bg-red-600/20 border-red-500 hover:bg-red-600/30 text-red-300 hover:text-red-200 h-8"
+              >
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                Clear All
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
           {/* Enhanced Header Row */}
-          <div className="grid grid-cols-6 gap-4 p-4 bg-gradient-to-r from-slate-700/50 to-slate-800/50 rounded-lg text-sm font-medium text-slate-300 border border-slate-600">
+          <div className="grid grid-cols-6 gap-4 p-4 bg-gradient-to-r from-slate-700/50 to-slate-800/50 dark:from-black/80 dark:to-slate-900/80 rounded-lg text-sm font-medium text-white border border-slate-600 dark:border-slate-700">
             <div className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Song Name
@@ -188,7 +201,7 @@ export const EnhancedTrackManagement = ({
             return (
               <div
                 key={file.id}
-                className="grid grid-cols-6 gap-4 p-4 bg-gradient-to-br from-slate-800/30 to-slate-900/50 border border-slate-600 rounded-lg hover:from-slate-700/40 hover:to-slate-800/60 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10"
+                className="grid grid-cols-6 gap-4 p-4 bg-gradient-to-br from-slate-800/30 to-slate-900/50 dark:from-black/50 dark:to-slate-900/70 border border-slate-600 dark:border-slate-700 rounded-lg hover:from-slate-700/40 hover:to-slate-800/60 dark:hover:from-slate-900/60 dark:hover:to-black/80 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10"
               >
                 {/* Song Name with File Type - Fixed Scrollable Title */}
                 <div className="flex flex-col min-w-0 max-w-full">
@@ -211,9 +224,9 @@ export const EnhancedTrackManagement = ({
                       </div>
                     </div>
                   </div>
-                  <span className="text-slate-400 text-xs truncate">{file.artist || 'Unknown Artist'}</span>
+                  <span className="text-slate-400 dark:text-slate-300 text-xs truncate">{file.artist || 'Unknown Artist'}</span>
                   <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="outline" className="text-xs px-2 py-0 bg-slate-700/50 text-slate-300 border-slate-500">
+                    <Badge variant="outline" className="text-xs px-2 py-0 bg-slate-700/50 dark:bg-black/70 text-slate-300 dark:text-slate-200 border-slate-500 dark:border-slate-600">
                       {fileType.toUpperCase()}
                     </Badge>
                   </div>
@@ -224,21 +237,21 @@ export const EnhancedTrackManagement = ({
                   {file.status === 'enhanced' && file.enhancedSize ? (
                     <div className="space-y-1">
                       <div className="flex items-center gap-1">
-                        <span className="text-xs text-slate-400">Antes:</span>
-                        <span className="text-slate-400 text-xs font-mono line-through">{formatFileSize(file.size)}</span>
+                        <span className="text-xs text-slate-400 dark:text-slate-300">Antes:</span>
+                        <span className="text-slate-400 dark:text-slate-300 text-xs font-mono line-through">{formatFileSize(file.size)}</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <span className="text-xs text-green-400">Después:</span>
-                        <span className="text-green-400 text-sm font-mono font-bold">{formatFileSize(file.enhancedSize)}</span>
+                        <span className="text-xs text-green-400 dark:text-green-300">Después:</span>
+                        <span className="text-green-400 dark:text-green-300 text-sm font-mono font-bold">{formatFileSize(file.enhancedSize)}</span>
                       </div>
-                      <div className="text-xs text-blue-400">
+                      <div className="text-xs text-blue-400 dark:text-blue-300">
                         (+{Math.round(((file.enhancedSize - file.size) / file.size) * 100)}%)
                       </div>
                     </div>
                   ) : (
                     <div>
                       <span className="text-white text-sm font-mono">{formatFileSize(file.size)}</span>
-                      <span className="text-xs text-slate-400 block">/ 100MB max</span>
+                      <span className="text-xs text-slate-400 dark:text-slate-300 block">/ 100MB max</span>
                     </div>
                   )}
                 </div>
@@ -259,23 +272,23 @@ export const EnhancedTrackManagement = ({
                 {/* Conversion Options */}
                 <div className="flex flex-col justify-center gap-1">
                   {file.status === 'processing' || file.status === 'enhanced' ? (
-                    <div className="text-xs bg-gradient-to-r from-blue-900/30 to-green-900/30 p-2 rounded-md border border-blue-500/30">
+                    <div className="text-xs bg-gradient-to-r from-blue-900/30 to-green-900/30 dark:from-blue-950/50 dark:to-green-950/50 p-2 rounded-md border border-blue-500/30 dark:border-blue-600/40">
                       <div className="flex items-center gap-1 mb-1">
-                        <span className="font-medium text-blue-300">Source:</span>
-                        <Badge variant="outline" className="text-xs px-1.5 py-0 bg-orange-700/50 text-orange-200 border-orange-500/50 font-medium">
+                        <span className="font-medium text-blue-300 dark:text-blue-200">Source:</span>
+                        <Badge variant="outline" className="text-xs px-1.5 py-0 bg-orange-700/50 dark:bg-orange-800/60 text-orange-200 dark:text-orange-100 border-orange-500/50 dark:border-orange-600/50 font-medium">
                           {fileType.toUpperCase()}
                         </Badge>
                       </div>
                       <div className="flex items-center gap-1">
-                        <span className="font-medium text-green-300">Output:</span>
-                        <Badge variant="outline" className="text-xs px-1.5 py-0 bg-green-700/50 text-green-200 border-green-500/50 font-medium">
+                        <span className="font-medium text-green-300 dark:text-green-200">Output:</span>
+                        <Badge variant="outline" className="text-xs px-1.5 py-0 bg-green-700/50 dark:bg-green-800/60 text-green-200 dark:text-green-100 border-green-500/50 dark:border-green-600/50 font-medium">
                           {getExpectedOutputFormat(file)}
                         </Badge>
                       </div>
                       {file.status === 'enhanced' && file.enhancedSize && (
                         <div className="flex items-center gap-1 mt-1">
-                          <span className="font-medium text-cyan-300">Size:</span>
-                          <Badge variant="outline" className="text-xs px-1.5 py-0 bg-cyan-700/50 text-cyan-200 border-cyan-500/50 font-medium">
+                          <span className="font-medium text-cyan-300 dark:text-cyan-200">Size:</span>
+                          <Badge variant="outline" className="text-xs px-1.5 py-0 bg-cyan-700/50 dark:bg-cyan-800/60 text-cyan-200 dark:text-cyan-100 border-cyan-500/50 dark:border-cyan-600/50 font-medium">
                             {formatFileSize(file.enhancedSize)}
                           </Badge>
                         </div>
@@ -289,7 +302,7 @@ export const EnhancedTrackManagement = ({
                           variant="outline"
                           size="sm"
                           onClick={() => onConvert(file, option.format)}
-                          className="text-xs px-2 py-1 h-7 bg-slate-700 border-slate-500 hover:bg-slate-600 text-white"
+                          className="text-xs px-2 py-1 h-7 bg-slate-700 dark:bg-black/80 border-slate-500 dark:border-slate-700 hover:bg-slate-600 dark:hover:bg-slate-900 text-white"
                           title={`Convert to ${option.label}`}
                         >
                           <RefreshCw className="h-3 w-3 mr-1" />
@@ -298,7 +311,7 @@ export const EnhancedTrackManagement = ({
                       ))}
                     </div>
                   ) : (
-                    <span className="text-xs text-slate-500">No conversion</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">No conversion</span>
                   )}
                 </div>
 
@@ -308,7 +321,7 @@ export const EnhancedTrackManagement = ({
                     variant="outline"
                     size="sm"
                     onClick={() => onFileInfo?.(file)}
-                    className="text-xs bg-slate-700 border-slate-500 hover:bg-slate-600 text-white"
+                    className="text-xs bg-slate-700 dark:bg-black/80 border-slate-500 dark:border-slate-700 hover:bg-slate-600 dark:hover:bg-slate-900 text-white"
                   >
                     <Info className="h-3 w-3 mr-1" />
                     Info
@@ -322,7 +335,7 @@ export const EnhancedTrackManagement = ({
                     size="sm"
                     disabled={file.status !== 'enhanced'}
                     onClick={() => onDownload(file)}
-                    className="text-xs bg-green-700 border-green-500 hover:bg-green-600 text-white disabled:bg-slate-700 disabled:border-slate-500 disabled:text-slate-400 disabled:cursor-not-allowed transition-all duration-200"
+                    className="text-xs bg-green-700 dark:bg-green-800/80 border-green-500 dark:border-green-600 hover:bg-green-600 dark:hover:bg-green-700 text-white disabled:bg-slate-700 dark:disabled:bg-black/80 disabled:border-slate-500 dark:disabled:border-slate-700 disabled:text-slate-400 dark:disabled:text-slate-500 disabled:cursor-not-allowed transition-all duration-200"
                   >
                     <Download className="h-3 w-3 mr-1" />
                     Download
@@ -335,7 +348,7 @@ export const EnhancedTrackManagement = ({
 
         {/* Action Buttons */}
         {allFiles.length > 0 && (
-          <div className="mt-6 pt-4 border-t border-slate-600">
+          <div className="mt-6 pt-4 border-t border-slate-600 dark:border-slate-700">
             <div className="flex justify-between items-center mb-4">
               <div className="flex gap-3">
                 {/* Download All Button - enabled when 2+ enhanced files */}
@@ -365,25 +378,25 @@ export const EnhancedTrackManagement = ({
             
             {/* Summary Stats */}
             <div className="grid grid-cols-4 gap-4 text-center">
-              <div className="bg-slate-700/30 rounded-lg p-3">
-                <div className="text-sm text-slate-400">Total Files</div>
+              <div className="bg-slate-700/30 dark:bg-black/50 rounded-lg p-3 border border-slate-600/50 dark:border-slate-700/50">
+                <div className="text-sm text-slate-400 dark:text-slate-300">Total Files</div>
                 <div className="text-xl font-bold text-white">{allFiles.length}</div>
               </div>
-              <div className="bg-blue-700/30 rounded-lg p-3">
-                <div className="text-sm text-slate-400">In Queue</div>
-                <div className="text-xl font-bold text-blue-400">
+              <div className="bg-blue-700/30 dark:bg-blue-900/40 rounded-lg p-3 border border-blue-600/50 dark:border-blue-700/50">
+                <div className="text-sm text-slate-400 dark:text-slate-300">In Queue</div>
+                <div className="text-xl font-bold text-blue-400 dark:text-blue-300">
                   {allFiles.filter(f => f.status === 'uploaded').length}
                 </div>
               </div>
-              <div className="bg-orange-700/30 rounded-lg p-3">
-                <div className="text-sm text-slate-400">Processing</div>
-                <div className="text-xl font-bold text-orange-400">
+              <div className="bg-orange-700/30 dark:bg-orange-900/40 rounded-lg p-3 border border-orange-600/50 dark:border-orange-700/50">
+                <div className="text-sm text-slate-400 dark:text-slate-300">Processing</div>
+                <div className="text-xl font-bold text-orange-400 dark:text-orange-300">
                   {allFiles.filter(f => f.status === 'processing').length}
                 </div>
               </div>
-              <div className="bg-green-700/30 rounded-lg p-3">
-                <div className="text-sm text-slate-400">Completed</div>
-                <div className="text-xl font-bold text-green-400">
+              <div className="bg-green-700/30 dark:bg-green-900/40 rounded-lg p-3 border border-green-600/50 dark:border-green-700/50">
+                <div className="text-sm text-slate-400 dark:text-slate-300">Completed</div>
+                <div className="text-xl font-bold text-green-400 dark:text-green-300">
                   {allFiles.filter(f => f.status === 'enhanced').length}
                 </div>
               </div>
