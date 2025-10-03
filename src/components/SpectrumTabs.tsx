@@ -56,8 +56,8 @@ export const SpectrumTabs = ({
   // Processing settings state with default 44.1kHz 16-bit quality
   const [processingSettings, setProcessingSettings] = useState<ProcessingSettings>({
     outputFormat: 'wav',
-    sampleRate: 44100, // Default 44.1kHz
-    bitDepth: 16, // Default 16-bit
+    sampleRate: 44100,
+    bitDepth: 16,
     bitrate: 320,
     noiseReduction: 50,
     noiseReductionEnabled: false,
@@ -104,12 +104,10 @@ export const SpectrumTabs = ({
 
   const handleFilesUploaded = (files: AudioFile[]) => {
     onFilesUploaded(files);
-    // Automatically switch to enhance tab after files are uploaded
     setActiveTab('enhance');
   };
 
   const handleEnhanceFiles = async () => {
-    // Show confirmation dialog if 2 or more files
     if (audioFiles.length >= 2) {
       const message = language === 'ES' 
         ? `¿Desea procesar y descargar ${audioFiles.length} archivos?`
@@ -128,23 +126,22 @@ export const SpectrumTabs = ({
       enableEQ: eqEnabled
     };
     onEnhanceFiles(finalSettings);
-    // Automatically switch back to spectrum tab after enhancement starts
     setActiveTab('spectrum');
   };
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid w-full grid-cols-2 bg-slate-800 border-slate-600">
+      <TabsList className="grid w-full grid-cols-2 bg-slate-800 dark:bg-black border-slate-600 dark:border-slate-700">
         <TabsTrigger 
           value="spectrum" 
-          className="flex items-center gap-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white"
+          className="flex items-center gap-2"
         >
           <BarChart3 className="h-4 w-4" />
           {t('button.spectrum')}
         </TabsTrigger>
         <TabsTrigger 
           value="enhance" 
-          className="flex items-center gap-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white"
+          className="flex items-center gap-2"
         >
           <Settings className="h-4 w-4" />
           {t('button.enhance')}
@@ -153,7 +150,7 @@ export const SpectrumTabs = ({
 
       <TabsContent value="spectrum" className="space-y-6">
         {/* Upload Section */}
-        <Card className="bg-slate-800/50 border-slate-600">
+        <Card className="bg-slate-900/90 dark:bg-black/90 border-slate-600">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-cyan-400">
               <Upload className="h-5 w-5" />
@@ -164,7 +161,7 @@ export const SpectrumTabs = ({
             <UploadWithConsent 
               onFilesUploaded={handleFilesUploaded}
               supportedFormats={['.mp3', '.wav', '.flac']}
-              maxFileSize={100 * 1024 * 1024} // 100MB
+              maxFileSize={100 * 1024 * 1024}
               maxFiles={20}
             />
           </CardContent>
@@ -184,51 +181,50 @@ export const SpectrumTabs = ({
           }}
         />
 
-        {/* Download All Button at Bottom */}
+        {/* Download All Button */}
         {(enhancedHistory.some(file => file.status === 'enhanced') || audioFiles.some(file => file.status === 'enhanced')) && (
           <div className="flex justify-center pt-4">
-              <Button
-                onClick={onDownloadAll}
-                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-3 px-8 rounded-xl shadow-xl hover:shadow-purple-500/30 transition-all duration-300"
-                size="lg"
-              >
-                <Package className="h-5 w-5 mr-2" />
-                {t('button.downloadAll')}
-              </Button>
+            <Button
+              onClick={onDownloadAll}
+              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-3 px-8 rounded-xl shadow-xl hover:shadow-purple-500/30 transition-all duration-300"
+              size="lg"
+            >
+              <Package className="h-5 w-5 mr-2" />
+              {t('button.downloadAll')}
+            </Button>
           </div>
         )}
       </TabsContent>
 
       <TabsContent value="enhance" className="space-y-6">
-        {/* Enhanced Header with Controls */}
-        <Card className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 border-purple-500/30 shadow-xl shadow-purple-500/10">
+        {/* Enhanced Header */}
+        <Card className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 dark:from-purple-950/30 dark:to-blue-950/30 border-purple-500/30 shadow-xl shadow-purple-500/10">
           <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                {/* Left: Spectrum Button - moved to the left */}
-                <Button
-                  onClick={handleEnhanceFiles}
-                  disabled={audioFiles.length === 0}
-                  variant="spectrum"
-                  size="lg"
-                  className="shadow-xl"
-                >
-                  <Zap className="h-6 w-6 mr-2 animate-pulse" />
-                  <span className="text-xl tracking-widest font-black">SPECTRUM</span>
-                  {audioFiles.length > 0 && (
-                    <Badge className="ml-3 bg-white/30 text-white border-white/40 px-3 py-0.5 text-sm font-bold">
-                      {audioFiles.length}
-                    </Badge>
-                  )}
-                </Button>
+            <div className="flex items-center justify-between gap-4">
+              {/* Spectrum Button */}
+              <Button
+                onClick={handleEnhanceFiles}
+                disabled={audioFiles.length === 0}
+                variant="spectrum"
+                size="lg"
+                className="shadow-xl shrink-0"
+              >
+                <Zap className="h-6 w-6 mr-2 animate-pulse" />
+                <span className="text-xl tracking-widest font-black">SPECTRUM</span>
+                {audioFiles.length > 0 && (
+                  <Badge className="ml-3 bg-white/30 text-white border-white/40 px-3 py-0.5 text-sm font-bold">
+                    {audioFiles.length}
+                  </Badge>
+                )}
+              </Button>
 
-              {/* Center: Title with Enhanced Output Info */}
-              <div className="flex-1 text-center mx-6">
-                <CardTitle className="flex items-center justify-center gap-2 text-purple-300 text-xl font-bold">
+              {/* Center Info */}
+              <div className="flex-1 text-center">
+                <CardTitle className="flex items-center justify-center gap-2 text-purple-300 text-xl font-bold mb-3">
                   <Settings className="h-6 w-6" />
                   {t('enhance.title')}
                 </CardTitle>
-                {/* Enhanced Output Display with Better Styling and Real-time Updates */}
-                <div className="flex items-center justify-center gap-4 mt-3 px-6 py-3 bg-gradient-to-r from-purple-900/40 via-blue-900/40 to-green-900/40 rounded-xl border-2 border-purple-500/30 shadow-lg">
+                <div className="flex items-center justify-center gap-4 px-6 py-3 bg-gradient-to-r from-purple-900/40 via-blue-900/40 to-green-900/40 dark:from-purple-950/60 dark:via-blue-950/60 dark:to-green-950/60 rounded-xl border-2 border-purple-500/30 shadow-lg">
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-purple-300 font-medium">{language === 'ES' ? 'Entrada' : 'Input'}:</span>
                     <span className="px-2 py-1 bg-purple-700/50 rounded-md text-sm font-bold text-white border border-purple-500/50">
@@ -262,8 +258,8 @@ export const SpectrumTabs = ({
                 </div>
               </div>
 
-              {/* Right: Presets */}
-              <div className="flex items-center gap-2">
+              {/* Presets */}
+              <div className="flex items-center gap-2 shrink-0">
                 <EnhancedEQPresets 
                   eqBands={eqBands} 
                   onLoadPreset={(preset) => {
@@ -281,7 +277,6 @@ export const SpectrumTabs = ({
 
         {/* Settings Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Dynamic Output Settings */}
           <DynamicOutputSettings
             outputFormat={processingSettings.outputFormat}
             sampleRate={processingSettings.sampleRate}
@@ -293,7 +288,6 @@ export const SpectrumTabs = ({
             onBitrateChange={(rate) => handleProcessingSettingChange('bitrate', rate)}
           />
 
-          {/* Interactive Processing Options */}
           <InteractiveProcessingOptions
             noiseReduction={processingSettings.noiseReduction}
             noiseReductionEnabled={processingSettings.noiseReductionEnabled}
@@ -323,7 +317,6 @@ export const SpectrumTabs = ({
           enabled={eqEnabled}
           onEnabledChange={setEqEnabled}
         />
-
       </TabsContent>
       
       {/* File Info Modal */}
