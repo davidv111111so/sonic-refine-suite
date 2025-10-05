@@ -1,20 +1,32 @@
 
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { AudioFile } from '@/types/audio';
 import { useWebWorkerAudioProcessing } from '@/hooks/useWebWorkerAudioProcessing';
 import { useEnhancementHistory } from '@/hooks/useEnhancementHistory';
 import { useToast } from '@/hooks/use-toast';
+import JSZip from 'jszip';
 
 export const useAudioEnhancement = (
   audioFiles: AudioFile[],
   setAudioFiles: React.Dispatch<React.SetStateAction<AudioFile[]>>,
   notificationsEnabled: boolean
 ) => {
-  const [saveLocation, setSaveLocation] = useState<string | FileSystemDirectoryHandle>('downloads');
+  // Persistent download folder using localStorage
+  const [saveLocation, setSaveLocation] = useState<string | FileSystemDirectoryHandle>(() => {
+    const savedPath = localStorage.getItem('spectrumDownloadPath');
+    return savedPath || 'downloads';
+  });
   const [bulkDownloadAuthorized, setBulkDownloadAuthorized] = useState(false);
   const { toast } = useToast();
   const { processAudioFile, isProcessing, setIsProcessing } = useWebWorkerAudioProcessing();
   const { addToHistory } = useEnhancementHistory();
+
+  // Persist download location
+  useEffect(() => {
+    if (typeof saveLocation === 'string') {
+      localStorage.setItem('spectrumDownloadPath', saveLocation);
+    }
+  }, [saveLocation]);
 
   // Single authorization request for bulk downloads
   const requestBulkDownloadAuthorization = async (fileCount: number) => {
@@ -193,8 +205,62 @@ export const useAudioEnhancement = (
     }
   }, [audioFiles, notificationsEnabled, toast, processAudioFile, addToHistory, setIsProcessing, bulkDownloadAuthorized, setAudioFiles]);
 
+  // Download all enhanced files as ZIP
+  const handleDownloadAllAsZip = useCallback(async () => {
+    const enhancedFiles = audioFiles.filter(file => file.status === 'enhanced' && file.enhancedUrl);
+    
+    if (enhancedFiles.length < 2) {
+      toast({
+        title: "Not enough files",
+        description: "You need at least 2 enhanced files to download as ZIP.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const zip = new JSZip();
+      const folder = zip.folder(`Spectrum_Enhanced_${new Date().toISOString().slice(0, 10)}`);
+      
+      // Add each enhanced file to the ZIP
+      for (const file of enhancedFiles) {
+        if (file.enhancedUrl) {
+          const response = await fetch(file.enhancedUrl);
+          const blob = await response.blob();
+          const extension = file.name.split('.').pop() || 'wav';
+          const filename = `${file.name.replace(/\.[^.]+$/, '')}_enhanced.${extension}`;
+          folder?.file(filename, blob);
+        }
+      }
+
+      // Generate and download ZIP
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Spectrum_Enhanced_${Date.now()}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "ZIP Downloaded!",
+        description: `${enhancedFiles.length} files downloaded successfully.`,
+      });
+    } catch (error) {
+      console.error('ZIP download failed:', error);
+      toast({
+        title: "Download Failed",
+        description: "Failed to create ZIP file. Please try downloading files individually.",
+        variant: "destructive"
+      });
+    }
+  }, [audioFiles, toast]);
+
   return {
     handleEnhanceFiles,
+    handleDownloadAllAsZip,
     saveLocation,
     setSaveLocation,
     isProcessing

@@ -98,11 +98,11 @@ export const ProfessionalEqualizer = ({
           <div className="relative space-y-4">
             {/* EQ Presets Strip - ON TOP */}
             <div className="bg-gradient-to-br from-purple-900/40 to-blue-900/40 dark:from-purple-950/60 dark:to-blue-950/60 rounded-lg p-3 border border-purple-700/50 dark:border-purple-800/70">
-              <h4 className="text-sm font-semibold text-purple-300 dark:text-purple-200 mb-2 tracking-wide flex items-center gap-2">
+              <h4 className="text-xs font-semibold text-purple-300 dark:text-purple-200 mb-2 tracking-wide flex items-center gap-2">
                 Professional EQ Presets
-                <span className="text-xs text-purple-400/70">(Real dB values)</span>
+                <span className="text-[10px] text-purple-400/70 dark:text-purple-300/60">(Real dB values)</span>
               </h4>
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-5 gap-1.5">
                 {EQ_PRESETS.map((preset) => {
                   const Icon = preset.icon;
                   const displayName = language === 'ES' ? preset.nameES : preset.name;
@@ -112,11 +112,11 @@ export const ProfessionalEqualizer = ({
                       variant="outline"
                       size="sm"
                       onClick={() => applyPreset(preset.values)}
-                      className="bg-slate-800/90 dark:bg-black/80 border-slate-600 dark:border-slate-700 hover:bg-gradient-to-br hover:from-purple-600 hover:to-blue-600 hover:border-purple-500 text-white h-auto py-2 px-2 flex flex-col items-center gap-1 transition-all duration-300"
+                      className="bg-slate-800/90 dark:bg-black/80 border-slate-600 dark:border-slate-700 hover:bg-gradient-to-br hover:from-purple-600 hover:to-blue-600 hover:border-purple-500 text-white h-auto py-1.5 px-1.5 flex flex-col items-center gap-0.5 transition-all duration-300"
                       title={displayName}
                     >
-                      <Icon className="h-4 w-4" />
-                      <span className="text-[9px] leading-tight text-center">
+                      <Icon className="h-3.5 w-3.5" />
+                      <span className="text-[8px] leading-tight text-center">
                         {displayName}
                       </span>
                     </Button>
@@ -126,35 +126,35 @@ export const ProfessionalEqualizer = ({
             </div>
 
             {/* Professional EQ - Compact 35% smaller */}
-            <div className="bg-gradient-to-br from-slate-900 via-black to-slate-950 dark:from-black dark:via-slate-950 dark:to-black rounded-xl p-5 border-2 border-slate-700 dark:border-slate-800 shadow-2xl">
+            <div className="bg-gradient-to-br from-slate-900 via-black to-slate-950 dark:from-black dark:via-slate-950 dark:to-black rounded-xl p-4 border-2 border-slate-700 dark:border-slate-800 shadow-2xl">
               
               {/* EQ Background Grid */}
-              <div className="absolute inset-8 bg-slate-900/50 rounded-lg border border-slate-700">
+              <div className="absolute inset-6 bg-slate-900/50 dark:bg-black/60 rounded-lg border border-slate-700 dark:border-slate-800">
                 {/* Horizontal grid lines */}
                 {getTickMarks().map((mark, idx) => (
                   <div 
                     key={mark}
-                    className="absolute left-0 right-0 border-t border-slate-700/30"
+                    className="absolute left-0 right-0 border-t border-slate-700/30 dark:border-slate-800/40"
                     style={{ top: `${((12 - mark) / 24) * 100}%` }}
                   >
-                    <span className="absolute -left-8 -top-2 text-xs text-slate-500 font-mono">
+                    <span className="absolute -left-7 -top-2 text-[10px] text-slate-500 dark:text-slate-600 font-mono">
                       {mark > 0 ? `+${mark}` : mark}dB
                     </span>
                   </div>
                 ))}
               </div>
 
-              <div className="flex justify-center items-end gap-3 py-4 relative z-10">
+              <div className="flex justify-center items-end gap-2 py-3 relative z-10">
                 {eqFrequencies.map((freq, index) => (
                   <div key={freq} className="flex flex-col items-center group">
                     
                     {/* Frequency Label */}
-                    <div className="text-[10px] text-center mb-2 font-mono text-blue-400 dark:text-blue-300">
+                    <div className="text-[9px] text-center mb-1.5 font-mono text-blue-400 dark:text-blue-300">
                       {freq < 1000 ? `${freq}Hz` : `${freq/1000}k`}
                     </div>
 
                     {/* Compact Fader Container - 35% smaller */}
-                    <div className="relative h-32 w-6 mb-3">
+                    <div className="relative h-28 w-5 mb-2">
                       
                       {/* Compact Fader Track Background */}
                       <div 
@@ -162,7 +162,7 @@ export const ProfessionalEqualizer = ({
                         style={{
                           background: `linear-gradient(180deg, #3b82f620 0%, #1e293b 50%, #3b82f620 100%)`,
                           borderColor: '#334155',
-                          boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.5)'
+                          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5)'
                         }}
                       />
 
@@ -175,13 +175,13 @@ export const ProfessionalEqualizer = ({
                           min={-12}
                           max={12}
                           step={0.5}
-                          className="h-28 w-5 group-hover:scale-105 transition-transform duration-200"
+                          className="h-24 w-4 group-hover:scale-105 transition-transform duration-200"
                         />
                       </div>
                     </div>
 
                     {/* Compact Value Display */}
-                    <div className="text-[9px] text-center font-mono text-slate-300 dark:text-slate-200 bg-black/60 rounded px-1.5 py-0.5">
+                    <div className="text-[8px] text-center font-mono text-slate-300 dark:text-slate-200 bg-black/60 rounded px-1 py-0.5">
                       {eqBands[index] > 0 ? '+' : ''}{eqBands[index]}
                     </div>
                   </div>
@@ -189,7 +189,7 @@ export const ProfessionalEqualizer = ({
               </div>
 
               {/* Professional EQ Branding */}
-              <div className="absolute bottom-1 right-2 text-[9px] text-slate-500 dark:text-slate-600 font-mono">
+              <div className="absolute bottom-1 right-2 text-[8px] text-slate-500 dark:text-slate-600 font-mono">
                 SPECTRUM EQ
               </div>
             </div>
@@ -197,7 +197,7 @@ export const ProfessionalEqualizer = ({
         ) : (
           <div className="text-center py-8 text-slate-400 dark:text-slate-300">
             <div className="text-lg mb-2">🎚️</div>
-            <p className="text-white">Enable Audio EQ to access the professional equalizer</p>
+            <p className="text-white text-sm">Enable Audio EQ to access the professional equalizer</p>
           </div>
         )}
       </CardContent>

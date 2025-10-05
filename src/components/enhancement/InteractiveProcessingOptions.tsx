@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Settings, RotateCcw } from 'lucide-react';
+import { AudioSettingsTooltip } from '@/components/AudioSettingsTooltip';
 
 interface InteractiveProcessingOptionsProps {
   noiseReduction: number;
@@ -68,7 +69,10 @@ export const InteractiveProcessingOptions = ({
         {/* Noise Reduction */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-white">Noise Reduction</label>
+            <label className="text-sm font-medium text-white flex items-center">
+              Noise Reduction
+              <AudioSettingsTooltip setting="noiseReduction" />
+            </label>
             <Switch
               checked={noiseReductionEnabled}
               onCheckedChange={onNoiseReductionEnabledChange}
@@ -95,7 +99,10 @@ export const InteractiveProcessingOptions = ({
         {/* Normalization */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-white">Audio Normalization</label>
+            <label className="text-sm font-medium text-white flex items-center">
+              Audio Normalization
+              <AudioSettingsTooltip setting="normalization" />
+            </label>
             <Switch
               checked={normalize}
               onCheckedChange={onNormalizeChange}
@@ -122,7 +129,10 @@ export const InteractiveProcessingOptions = ({
         {/* Dynamic Compression */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-white">Dynamic Compression</label>
+            <label className="text-sm font-medium text-white flex items-center">
+              Dynamic Compression
+              <AudioSettingsTooltip setting="compression" />
+            </label>
             <Switch
               checked={compressionEnabled}
               onCheckedChange={onCompressionEnabledChange}
@@ -149,7 +159,10 @@ export const InteractiveProcessingOptions = ({
         {/* Stereo Widening */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-white">Stereo Widening</label>
+            <label className="text-sm font-medium text-white flex items-center">
+              Stereo Widening
+              <AudioSettingsTooltip setting="stereoWidening" />
+            </label>
             <Switch
               checked={stereoWideningEnabled}
               onCheckedChange={onStereoWideningEnabledChange}

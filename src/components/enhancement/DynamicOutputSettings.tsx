@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Settings } from 'lucide-react';
+import { AudioSettingsTooltip } from '@/components/AudioSettingsTooltip';
 
 interface DynamicOutputSettingsProps {
   outputFormat: 'mp3' | 'wav' | 'flac';
@@ -37,7 +38,10 @@ export const DynamicOutputSettings = ({
       <CardContent className="pt-0 space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="text-xs text-slate-300 mb-2 block font-medium">Format</label>
+            <label className="text-xs text-white mb-2 flex items-center font-medium">
+              Format
+              <AudioSettingsTooltip setting="outputFormat" />
+            </label>
             <select 
               value={outputFormat}
               onChange={(e) => onOutputFormatChange(e.target.value as 'mp3' | 'wav' | 'flac')}
@@ -52,7 +56,10 @@ export const DynamicOutputSettings = ({
           {/* Sample Rate - Hidden for MP3, visible for lossless */}
           {outputFormat !== 'mp3' && (
             <div>
-              <label className="text-xs text-slate-300 mb-2 block font-medium">Sample Rate</label>
+              <label className="text-xs text-white mb-2 flex items-center font-medium">
+                Sample Rate
+                <AudioSettingsTooltip setting="sampleRate" />
+              </label>
               <select 
                 value={sampleRate}
                 onChange={(e) => onSampleRateChange(parseInt(e.target.value))}
@@ -70,7 +77,10 @@ export const DynamicOutputSettings = ({
         <div>
           {outputFormat === 'mp3' ? (
             <div>
-              <label className="text-xs text-slate-300 mb-2 block font-medium">Bitrate</label>
+              <label className="text-xs text-white mb-2 flex items-center font-medium">
+                Bitrate
+                <AudioSettingsTooltip setting="targetBitrate" />
+              </label>
               <select 
                 value={bitrate || 320}
                 onChange={(e) => onBitrateChange?.(parseInt(e.target.value))}
@@ -87,7 +97,10 @@ export const DynamicOutputSettings = ({
             </div>
           ) : (
             <div>
-              <label className="text-xs text-slate-300 mb-2 block font-medium">Bit Depth</label>
+              <label className="text-xs text-white mb-2 flex items-center font-medium">
+                Bit Depth
+                <AudioSettingsTooltip setting="sampleRate" />
+              </label>
               <select 
                 value={bitDepth}
                 onChange={(e) => onBitDepthChange(parseInt(e.target.value) as 16 | 24)}

@@ -121,7 +121,7 @@ export const EnhancedEQPresets = ({
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1">
         <Button
           variant="outline"
           size="sm"
@@ -129,7 +129,7 @@ export const EnhancedEQPresets = ({
           className={`transition-all duration-300 h-7 text-xs px-2 ${
             isLoadActive 
               ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/50 scale-95' 
-              : 'bg-slate-700 border-slate-500 hover:bg-slate-600 text-white hover:border-blue-400'
+              : 'bg-slate-800 dark:bg-black border-slate-600 dark:border-slate-700 hover:bg-slate-700 dark:hover:bg-slate-900 text-white hover:border-blue-400'
           }`}
         >
           <FolderOpen className="h-3 w-3 mr-1" />
@@ -143,7 +143,7 @@ export const EnhancedEQPresets = ({
           className={`transition-all duration-300 h-7 text-xs px-2 ${
             isSaveActive 
               ? 'bg-green-600 border-green-500 text-white shadow-lg shadow-green-500/50 scale-95' 
-              : 'bg-slate-700 border-slate-500 hover:bg-slate-600 text-white hover:border-green-400'
+              : 'bg-slate-800 dark:bg-black border-slate-600 dark:border-slate-700 hover:bg-slate-700 dark:hover:bg-slate-900 text-white hover:border-green-400'
           }`}
         >
           <Save className="h-3 w-3 mr-1" />
@@ -162,8 +162,8 @@ export const EnhancedEQPresets = ({
 
       {/* Show loaded preset name */}
       {loadedPresetName && (
-        <div className="text-xs text-slate-400 bg-slate-800/50 px-3 py-2 rounded border border-slate-600">
-          <span className="text-blue-400 font-medium">Active Preset:</span> {loadedPresetName}
+        <div className="text-[10px] text-slate-300 dark:text-slate-400 bg-slate-800/50 dark:bg-black/70 px-2 py-1 rounded border border-slate-600 dark:border-slate-700">
+          <span className="text-blue-400 dark:text-blue-300 font-medium">Active:</span> {loadedPresetName}
         </div>
       )}
     </div>
