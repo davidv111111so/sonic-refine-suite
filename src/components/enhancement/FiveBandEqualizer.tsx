@@ -1,0 +1,216 @@
+import React, { memo, useCallback } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
+import { RotateCcw, Music2, Mic, Headphones, Guitar, Disc3 } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
+
+interface FiveBandEqualizerProps {
+  eqBands: number[];
+  onEQBandChange: (bandIndex: number, value: number) => void;
+  onResetEQ: () => void;
+  enabled: boolean;
+  onEnabledChange: (enabled: boolean) => void;
+}
+
+// 5 Professional EQ Presets with Real dB Values (5-band)
+const EQ_PRESETS = [
+  { name: 'Flat', nameES: 'Plano', icon: Music2, values: [0, 0, 0, 0, 0] },
+  { name: 'Bass Boost', nameES: 'Realce de Graves', icon: Disc3, values: [6, 3, 0, 0, 0] },
+  { name: 'Treble Boost', nameES: 'Realce de Agudos', icon: Headphones, values: [0, 0, 0, 3, 6] },
+  { name: 'V-Shape', nameES: 'Forma V', icon: Guitar, values: [5, 2, -2, 2, 5] },
+  { name: 'Vocal', nameES: 'Vocal', icon: Mic, values: [0, 2, 4, 2, 0] },
+];
+
+export const FiveBandEqualizer = memo(({ 
+  eqBands, 
+  onEQBandChange, 
+  onResetEQ,
+  enabled,
+  onEnabledChange
+}: FiveBandEqualizerProps) => {
+  const { t, language } = useLanguage();
+  
+  // 5 band EQ frequencies (Bass, Low Mid, Mid, High Mid, Treble)
+  const eqFrequencies = [60, 250, 1000, 4000, 12000];
+  const bandLabels = ['Bass', 'Low Mid', 'Mid', 'High Mid', 'Treble'];
+  
+  const applyPreset = useCallback((values: number[]) => {
+    // Pad values to 10 bands if needed (keep middle bands at 0)
+    const paddedValues = [...values];
+    while (paddedValues.length < 10) {
+      paddedValues.splice(Math.floor(paddedValues.length / 2), 0, 0);
+    }
+    
+    paddedValues.forEach((value, index) => {
+      onEQBandChange(index, value);
+    });
+  }, [onEQBandChange]);
+  
+  const getEQColor = (index: number) => {
+    const colors = [
+      '#ff1744', // Red for Bass
+      '#ff6d00', // Orange for Low Mid  
+      '#ffc400', // Yellow for Mid
+      '#3d5afe', // Blue for High Mid
+      '#651fff'  // Purple for Treble
+    ];
+    return colors[index];
+  };
+
+  const getTickMarks = () => {
+    const marks = [];
+    for (let i = -12; i <= 12; i += 3) {
+      marks.push(i);
+    }
+    return marks;
+  };
+
+  // Map 5 bands to the first 5 of the 10-band array
+  const bandIndices = [0, 2, 4, 7, 9];
+
+  return (
+    <Card className="bg-slate-900/90 dark:bg-black/90 border-slate-700 dark:border-slate-800">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-white text-base">
+            <div className="w-4 h-4 bg-gradient-to-r from-blue-400 to-purple-400 rounded"></div>
+            Equalizer
+          </CardTitle>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-white">Audio EQ</span>
+              <Switch
+                checked={enabled}
+                onCheckedChange={onEnabledChange}
+              />
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onResetEQ}
+              className="h-8 text-xs bg-slate-800 dark:bg-black border-slate-700 dark:border-slate-800 hover:bg-slate-700 dark:hover:bg-slate-900 text-white"
+            >
+              <RotateCcw className="h-3 w-3 mr-1" />
+              Reset
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0">
+        {enabled ? (
+          <div className="relative space-y-4">
+            {/* EQ Presets Strip - ON TOP */}
+            <div className="bg-gradient-to-br from-purple-900/40 to-blue-900/40 dark:from-purple-950/60 dark:to-blue-950/60 rounded-lg p-3 border border-purple-700/50 dark:border-purple-800/70">
+              <h4 className="text-xs font-semibold text-white mb-2 tracking-wide flex items-center gap-2">
+                EQ Presets
+                <span className="text-[10px] text-white/70">(Quick adjustments)</span>
+              </h4>
+              <div className="flex gap-2 flex-wrap">
+                {EQ_PRESETS.map((preset) => {
+                  const Icon = preset.icon;
+                  const displayName = language === 'ES' ? preset.nameES : preset.name;
+                  return (
+                    <Button
+                      key={preset.name}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => applyPreset(preset.values)}
+                      className="bg-slate-800/90 dark:bg-black/80 border-slate-600 dark:border-slate-700 hover:bg-gradient-to-br hover:from-purple-600 hover:to-blue-600 hover:border-purple-500 text-white h-auto py-2 px-3 flex items-center gap-2 transition-all duration-300"
+                      title={displayName}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span className="text-xs font-medium">
+                        {displayName}
+                      </span>
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 5-Band EQ */}
+            <div className="bg-gradient-to-br from-slate-900 via-black to-slate-950 dark:from-black dark:via-slate-950 dark:to-black rounded-xl p-6 border-2 border-slate-700 dark:border-slate-800 shadow-2xl">
+              
+              {/* EQ Background Grid */}
+              <div className="absolute inset-8 bg-slate-900/50 dark:bg-black/60 rounded-lg border border-slate-700 dark:border-slate-800">
+                {/* Horizontal grid lines */}
+                {getTickMarks().map((mark) => (
+                  <div 
+                    key={mark}
+                    className="absolute left-0 right-0 border-t border-slate-700/30 dark:border-slate-800/40"
+                    style={{ top: `${((12 - mark) / 24) * 100}%` }}
+                  >
+                    <span className="absolute -left-9 -top-2 text-[10px] text-white font-mono">
+                      {mark > 0 ? `+${mark}` : mark}dB
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex justify-center items-end gap-6 py-4 relative z-10">
+                {bandIndices.map((bandIndex, visualIndex) => (
+                  <div key={bandIndex} className="flex flex-col items-center group">
+                    
+                    {/* Frequency Label */}
+                    <div className="text-xs text-center mb-2 font-mono text-white">
+                      {bandLabels[visualIndex]}
+                    </div>
+                    <div className="text-[10px] text-center mb-2 font-mono text-white/70">
+                      {eqFrequencies[visualIndex] < 1000 ? `${eqFrequencies[visualIndex]}Hz` : `${eqFrequencies[visualIndex]/1000}k`}
+                    </div>
+
+                    {/* Fader Container */}
+                    <div className="relative h-40 w-8 mb-3">
+                      
+                      {/* Fader Track Background */}
+                      <div 
+                        className="absolute inset-x-1 inset-y-2 rounded-full border shadow-inner"
+                        style={{
+                          background: `linear-gradient(180deg, ${getEQColor(visualIndex)}40 0%, #1e293b 50%, ${getEQColor(visualIndex)}40 100%)`,
+                          borderColor: '#334155',
+                          boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5)'
+                        }}
+                      />
+
+                      {/* Slider */}
+                      <div className="h-full flex items-center justify-center">
+                        <Slider
+                          orientation="vertical"
+                          value={[eqBands[bandIndex] || 0]}
+                          onValueChange={([value]) => onEQBandChange(bandIndex, value)}
+                          min={-12}
+                          max={12}
+                          step={0.5}
+                          className="h-36 w-6 group-hover:scale-110 transition-transform duration-200"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Value Display */}
+                    <div className="text-xs text-center font-mono text-white bg-black/80 rounded px-2 py-1 min-w-[3rem]">
+                      {eqBands[bandIndex] > 0 ? '+' : ''}{eqBands[bandIndex]}dB
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* EQ Branding */}
+              <div className="absolute bottom-2 right-3 text-[10px] text-white/50 font-mono">
+                SPECTRUM 5-BAND EQ
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8 text-white">
+            <div className="text-lg mb-2">🎚️</div>
+            <p className="text-white text-sm">Enable Audio EQ to access the equalizer</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+});
+
+FiveBandEqualizer.displayName = 'FiveBandEqualizer';

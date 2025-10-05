@@ -7,7 +7,7 @@ import { UploadWithConsent } from '@/components/UploadWithConsent';
 import { EnhancedTrackManagement } from '@/components/enhancement/EnhancedTrackManagement';
 import { DynamicOutputSettings } from '@/components/enhancement/DynamicOutputSettings';
 import { InteractiveProcessingOptions } from '@/components/enhancement/InteractiveProcessingOptions';
-import { ProfessionalEqualizer } from '@/components/enhancement/ProfessionalEqualizer';
+import { FiveBandEqualizer } from '@/components/enhancement/FiveBandEqualizer';
 import { EnhancedEQPresets } from '@/components/enhancement/EnhancedEQPresets';
 import { FileInfoModal } from '@/components/FileInfoModal';
 import { AudioFile } from '@/types/audio';
@@ -313,8 +313,8 @@ export const SpectrumTabs = ({
           />
         </div>
 
-        {/* Professional Equalizer */}
-        <ProfessionalEqualizer
+        {/* 5-Band Equalizer */}
+        <FiveBandEqualizer
           eqBands={eqBands}
           onEQBandChange={onEQBandChange}
           onResetEQ={onResetEQ}

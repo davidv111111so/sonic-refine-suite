@@ -81,8 +81,8 @@ export const InteractiveProcessingOptions = ({
           {noiseReductionEnabled && (
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span className="text-xs text-slate-400">Intensity</span>
-                <span className="text-xs text-slate-300 font-mono">{noiseReduction}%</span>
+                <span className="text-xs text-white">Intensity</span>
+                <span className="text-xs text-white font-mono">{noiseReduction}%</span>
               </div>
               <Slider
                 value={[noiseReduction]}
@@ -111,8 +111,8 @@ export const InteractiveProcessingOptions = ({
           {normalize && (
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span className="text-xs text-slate-400">Target Level</span>
-                <span className="text-xs text-slate-300 font-mono">{normalizeLevel} dB</span>
+                <span className="text-xs text-white">Target Level</span>
+                <span className="text-xs text-white font-mono">{normalizeLevel} dB</span>
               </div>
               <Slider
                 value={[normalizeLevel]}
@@ -141,8 +141,8 @@ export const InteractiveProcessingOptions = ({
           {compressionEnabled && (
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span className="text-xs text-slate-400">Ratio</span>
-                <span className="text-xs text-slate-300 font-mono">{compression}:1</span>
+                <span className="text-xs text-white">Ratio</span>
+                <span className="text-xs text-white font-mono">{compression}:1</span>
               </div>
               <Slider
                 value={[compression]}
@@ -171,8 +171,8 @@ export const InteractiveProcessingOptions = ({
           {stereoWideningEnabled && (
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span className="text-xs text-slate-400">Width</span>
-                <span className="text-xs text-slate-300 font-mono">{stereoWidening}%</span>
+                <span className="text-xs text-white">Width</span>
+                <span className="text-xs text-white font-mono">{stereoWidening}%</span>
               </div>
               <Slider
                 value={[stereoWidening]}

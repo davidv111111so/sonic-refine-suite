@@ -91,7 +91,7 @@ export const DynamicOutputSettings = ({
                 <option value="256">256 kbps</option>
                 <option value="320">320 kbps</option>
               </select>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-white mt-1">
                 Sample Rate: 44.1 kHz (locked for MP3)
               </p>
             </div>
@@ -115,13 +115,13 @@ export const DynamicOutputSettings = ({
 
         {/* Format Info */}
         <div className="bg-slate-800/60 dark:bg-black/80 p-3 rounded border border-slate-700 dark:border-slate-800">
-          <div className="text-xs text-slate-300 space-y-1">
+          <div className="text-xs text-white space-y-1">
             <div className="flex justify-between">
-              <span className="text-slate-400">Format:</span>
+              <span className="text-white">Format:</span>
               <span className="text-white font-medium">{outputFormat.toUpperCase()}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">Quality:</span>
+              <span className="text-white">Quality:</span>
               <span className="text-white font-medium">
                 {outputFormat === 'mp3' 
                   ? `${bitrate} kbps, 44.1 kHz` 
@@ -130,7 +130,7 @@ export const DynamicOutputSettings = ({
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">Type:</span>
+              <span className="text-white">Type:</span>
               <span className="text-white font-medium">
                 {isLossless ? 'Lossless' : 'Compressed'}
               </span>
