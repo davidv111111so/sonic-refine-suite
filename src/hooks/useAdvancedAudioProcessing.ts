@@ -163,7 +163,9 @@ const applyEqualizer = async (context: OfflineAudioContext, input: AudioNode, eq
   let currentNode = input;
 
   for (let i = 0; i < eqBands.length && i < frequencies.length; i++) {
-    if (eqBands[i] !== 0) {
+    // Validate band value is finite and not undefined
+    const bandValue = eqBands[i];
+    if (bandValue !== undefined && isFinite(bandValue) && bandValue !== 0) {
       const filter = context.createBiquadFilter();
       
       if (i === 0) {
@@ -176,7 +178,7 @@ const applyEqualizer = async (context: OfflineAudioContext, input: AudioNode, eq
       }
       
       filter.frequency.value = frequencies[i];
-      filter.gain.value = eqBands[i];
+      filter.gain.value = bandValue;
       
       currentNode.connect(filter);
       currentNode = filter;

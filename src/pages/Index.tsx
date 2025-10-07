@@ -18,7 +18,7 @@ const Index = () => {
   console.log('Spectrum app render started');
   
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [eqBands, setEqBands] = useState([0, 0, 0, 0, 0]); // 5-band EQ
+  const [eqBands, setEqBands] = useState([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]); // 10-band EQ (5 bands mapped to specific indices)
   const [eqEnabled, setEqEnabled] = useState(true);
   const [processingQueue, setProcessingQueue] = useState<AudioFile[]>([]);
   const [enhancedHistory, setEnhancedHistory] = useState<AudioFile[]>([]);
@@ -136,13 +136,6 @@ const Index = () => {
         const extension = enhancedSettings.outputFormat || 'mp3';
         const enhancedFilename = `${file.name.replace(/\.[^.]+$/, '')}_enhanced.${extension}`;
         
-        const a = document.createElement('a');
-        a.href = enhancedUrl;
-        a.download = enhancedFilename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        
         addToHistory({
           fileName: file.name,
           settings: enhancedSettings,
@@ -168,12 +161,12 @@ const Index = () => {
 
         toast({
           title: "Enhancement Complete!",
-          description: `${file.name} has been enhanced and downloaded automatically.`,
+          description: `${file.name} is ready for download.`,
         });
 
         if (notificationsEnabled) {
-          new Notification('Spectrum - Download Complete', {
-            body: `${file.name} has been enhanced and downloaded successfully`,
+          new Notification('Spectrum - Enhancement Complete', {
+            body: `${file.name} is ready for download`,
             icon: '/favicon.ico'
           });
         }
@@ -214,7 +207,7 @@ const Index = () => {
     
     if (notificationsEnabled && filesToProcess.length > 0) {
       new Notification('Spectrum - All Enhancements Complete', {
-        body: `${filesToProcess.length} files enhanced and downloaded successfully`,
+        body: `${filesToProcess.length} files ready for download`,
         icon: '/favicon.ico'
       });
     }
@@ -227,7 +220,7 @@ const Index = () => {
   };
 
   const resetEQ = () => {
-    setEqBands([0, 0, 0, 0, 0]);
+    setEqBands([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
   };
 
   const handleDownloadEnhanced = (file: AudioFile) => {

@@ -102,10 +102,10 @@ export const FiveBandEqualizer = memo(({
         {enabled ? (
           <div className="relative space-y-4">
             {/* EQ Presets Strip - ON TOP */}
-            <div className="bg-gradient-to-br from-purple-900/40 to-blue-900/40 dark:from-purple-950/60 dark:to-blue-950/60 rounded-lg p-3 border border-purple-700/50 dark:border-purple-800/70">
-              <h4 className="text-xs font-semibold text-white mb-2 tracking-wide flex items-center gap-2">
-                EQ Presets
-                <span className="text-[10px] text-white/70">(Quick adjustments)</span>
+            <div className="bg-gradient-to-br from-purple-900/60 via-blue-900/60 to-indigo-900/60 dark:from-purple-950/80 dark:via-blue-950/80 dark:to-indigo-950/80 rounded-xl p-4 border-2 border-purple-600/60 dark:border-purple-700/80 shadow-2xl shadow-purple-900/50">
+              <h4 className="text-sm font-bold text-white mb-3 tracking-wide flex items-center gap-2">
+                <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">EQ Presets</span>
+                <span className="text-[10px] text-white/80 font-normal">(Quick adjustments)</span>
               </h4>
               <div className="flex gap-2 flex-wrap">
                 {EQ_PRESETS.map((preset) => {
@@ -117,11 +117,11 @@ export const FiveBandEqualizer = memo(({
                       variant="outline"
                       size="sm"
                       onClick={() => applyPreset(preset.values)}
-                      className="bg-slate-800/90 dark:bg-black/80 border-slate-600 dark:border-slate-700 hover:bg-gradient-to-br hover:from-purple-600 hover:to-blue-600 hover:border-purple-500 text-white h-auto py-2 px-3 flex items-center gap-2 transition-all duration-300"
+                      className="bg-gradient-to-br from-slate-800/90 via-slate-900/90 to-black/90 dark:from-black/90 dark:via-slate-950/90 dark:to-black/90 border-2 border-slate-600/80 dark:border-slate-700/80 hover:bg-gradient-to-br hover:from-purple-600 hover:to-blue-600 hover:border-purple-400 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/50 text-white h-auto py-2.5 px-4 flex items-center gap-2 transition-all duration-300 font-semibold"
                       title={displayName}
                     >
-                      <Icon className="h-4 w-4" />
-                      <span className="text-xs font-medium">
+                      <Icon className="h-4 w-4 text-purple-300" />
+                      <span className="text-xs">
                         {displayName}
                       </span>
                     </Button>
@@ -131,10 +131,10 @@ export const FiveBandEqualizer = memo(({
             </div>
 
             {/* 5-Band EQ */}
-            <div className="bg-gradient-to-br from-slate-900 via-black to-slate-950 dark:from-black dark:via-slate-950 dark:to-black rounded-xl p-6 border-2 border-slate-700 dark:border-slate-800 shadow-2xl">
+            <div className="relative bg-gradient-to-br from-slate-900 via-black to-slate-950 dark:from-black dark:via-slate-950 dark:to-black rounded-xl p-6 border-2 border-slate-700 dark:border-slate-800 shadow-2xl">
               
               {/* EQ Background Grid */}
-              <div className="absolute inset-8 bg-slate-900/50 dark:bg-black/60 rounded-lg border border-slate-700 dark:border-slate-800">
+              <div className="absolute left-6 right-6 top-6 bottom-6 bg-slate-900/50 dark:bg-black/60 rounded-lg border border-slate-700 dark:border-slate-800">
                 {/* Horizontal grid lines */}
                 {getTickMarks().map((mark) => (
                   <div 
