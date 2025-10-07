@@ -176,8 +176,8 @@ export const SpectrumTabs = ({
           onDownloadAll={onDownloadAll}
           onClearDownloaded={onClearDownloaded}
           onClearAll={() => {
-            // Clear all files
-            onClearDownloaded();
+            // Clear only unprocessed files (uploaded status)
+            // This will be implemented in the parent component
           }}
           processingSettings={processingSettings}
           onFileInfo={(file) => {
@@ -185,25 +185,30 @@ export const SpectrumTabs = ({
           }}
         />
 
-        {/* Download All and Clear Buttons */}
-        {enhancedHistory.length > 0 && (
+        {/* Bottom Action Buttons - Always visible when there are files */}
+        {(audioFiles.length > 0 || enhancedHistory.length > 0) && (
           <div className="flex justify-center gap-4 pt-6">
-            <Button
-              onClick={onDownloadAll}
-              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3 px-8 rounded-xl shadow-xl hover:shadow-green-500/30 transition-all duration-300"
-              size="lg"
-            >
-              <Package className="h-5 w-5 mr-2" />
-              Download All ({enhancedHistory.length})
-            </Button>
-            <Button
-              onClick={onClearDownloaded}
-              variant="outline"
-              className="border-2 border-slate-600 text-white hover:bg-slate-800 dark:border-slate-700 dark:hover:bg-slate-900 font-bold py-3 px-8 rounded-xl transition-all duration-300"
-              size="lg"
-            >
-              Clear Downloaded Files
-            </Button>
+            {enhancedHistory.filter(f => f.status === 'enhanced').length >= 2 && (
+              <Button
+                onClick={onDownloadAll}
+                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3 px-8 rounded-xl shadow-xl hover:shadow-green-500/30 transition-all duration-300"
+                size="lg"
+              >
+                <Package className="h-5 w-5 mr-2" />
+                Download All ({enhancedHistory.filter(f => f.status === 'enhanced').length})
+              </Button>
+            )}
+            
+            {enhancedHistory.length > 0 && (
+              <Button
+                onClick={onClearDownloaded}
+                variant="outline"
+                className="border-2 border-red-500 text-red-300 hover:bg-red-600/20 dark:border-red-600 dark:hover:bg-red-700/20 font-bold py-3 px-8 rounded-xl transition-all duration-300"
+                size="lg"
+              >
+                Clear Downloaded ({enhancedHistory.length})
+              </Button>
+            )}
           </div>
         )}
       </TabsContent>

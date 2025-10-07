@@ -14,13 +14,20 @@ interface FiveBandEqualizerProps {
   onEnabledChange: (enabled: boolean) => void;
 }
 
-// 5 Professional EQ Presets with Real dB Values (5-band)
+// 12 Professional EQ Presets with Real dB Values (5-band)
 const EQ_PRESETS = [
   { name: 'Flat', nameES: 'Plano', icon: Music2, values: [0, 0, 0, 0, 0] },
   { name: 'Bass Boost', nameES: 'Realce de Graves', icon: Disc3, values: [6, 3, 0, 0, 0] },
   { name: 'Treble Boost', nameES: 'Realce de Agudos', icon: Headphones, values: [0, 0, 0, 3, 6] },
   { name: 'V-Shape', nameES: 'Forma V', icon: Guitar, values: [5, 2, -2, 2, 5] },
   { name: 'Vocal', nameES: 'Vocal', icon: Mic, values: [0, 2, 4, 2, 0] },
+  { name: 'Rock', nameES: 'Rock', icon: Guitar, values: [4, 2, 0, 2, 4] },
+  { name: 'Jazz', nameES: 'Jazz', icon: Music2, values: [3, 1, -1, 1, 3] },
+  { name: 'Classical', nameES: 'Clásica', icon: Music2, values: [0, 1, 2, 1, 0] },
+  { name: 'Electronic', nameES: 'Electrónica', icon: Disc3, values: [5, 0, -2, 0, 4] },
+  { name: 'Hip-Hop', nameES: 'Hip-Hop', icon: Disc3, values: [6, 4, 1, -1, 2] },
+  { name: 'Podcast', nameES: 'Podcast', icon: Mic, values: [-2, 1, 3, 1, -2] },
+  { name: 'Live', nameES: 'En Vivo', icon: Headphones, values: [2, 3, 2, 3, 2] },
 ];
 
 export const FiveBandEqualizer = memo(({ 
@@ -101,13 +108,13 @@ export const FiveBandEqualizer = memo(({
       <CardContent className="pt-0">
         {enabled ? (
           <div className="relative space-y-4">
-            {/* EQ Presets Strip - ON TOP */}
-            <div className="bg-gradient-to-br from-purple-900/60 via-blue-900/60 to-indigo-900/60 dark:from-purple-950/80 dark:via-blue-950/80 dark:to-indigo-950/80 rounded-xl p-4 border-2 border-purple-600/60 dark:border-purple-700/80 shadow-2xl shadow-purple-900/50">
-              <h4 className="text-sm font-bold text-white mb-3 tracking-wide flex items-center gap-2">
-                <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">EQ Presets</span>
-                <span className="text-[10px] text-white/80 font-normal">(Quick adjustments)</span>
+            {/* EQ Presets Strip - ON TOP with better styling */}
+            <div className="bg-gradient-to-br from-purple-900/70 via-blue-900/70 to-indigo-900/70 dark:from-purple-950/90 dark:via-blue-950/90 dark:to-indigo-950/90 rounded-xl p-4 border-2 border-purple-500/70 dark:border-purple-600/90 shadow-2xl shadow-purple-900/60 backdrop-blur-sm">
+              <h4 className="text-sm font-bold mb-3 tracking-wide flex items-center gap-2">
+                <span className="bg-gradient-to-r from-purple-300 to-blue-300 bg-clip-text text-transparent text-lg">EQ Presets</span>
+                <span className="text-[10px] text-white/90 font-normal">(Quick adjustments)</span>
               </h4>
-              <div className="flex gap-2 flex-wrap">
+              <div className="grid grid-cols-6 gap-2">
                 {EQ_PRESETS.map((preset) => {
                   const Icon = preset.icon;
                   const displayName = language === 'ES' ? preset.nameES : preset.name;
@@ -117,11 +124,11 @@ export const FiveBandEqualizer = memo(({
                       variant="outline"
                       size="sm"
                       onClick={() => applyPreset(preset.values)}
-                      className="bg-gradient-to-br from-slate-800/90 via-slate-900/90 to-black/90 dark:from-black/90 dark:via-slate-950/90 dark:to-black/90 border-2 border-slate-600/80 dark:border-slate-700/80 hover:bg-gradient-to-br hover:from-purple-600 hover:to-blue-600 hover:border-purple-400 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/50 text-white h-auto py-2.5 px-4 flex items-center gap-2 transition-all duration-300 font-semibold"
+                      className="bg-gradient-to-br from-slate-700/90 via-slate-800/90 to-slate-900/90 dark:from-black/90 dark:via-slate-950/90 dark:to-black/90 border-2 border-slate-500/80 dark:border-slate-600/80 hover:bg-gradient-to-br hover:from-purple-600 hover:via-purple-500 hover:to-blue-600 hover:border-purple-300 hover:scale-110 hover:shadow-xl hover:shadow-purple-500/60 text-white h-auto py-2.5 px-3 flex flex-col items-center gap-1.5 transition-all duration-300 font-bold"
                       title={displayName}
                     >
-                      <Icon className="h-4 w-4 text-purple-300" />
-                      <span className="text-xs">
+                      <Icon className="h-4 w-4 text-purple-200" />
+                      <span className="text-[10px] leading-tight text-center whitespace-nowrap">
                         {displayName}
                       </span>
                     </Button>
@@ -130,8 +137,8 @@ export const FiveBandEqualizer = memo(({
               </div>
             </div>
 
-            {/* 5-Band EQ */}
-            <div className="relative bg-gradient-to-br from-slate-900 via-black to-slate-950 dark:from-black dark:via-slate-950 dark:to-black rounded-xl p-6 border-2 border-slate-700 dark:border-slate-800 shadow-2xl">
+            {/* 5-Band EQ with better background */}
+            <div className="relative bg-gradient-to-br from-slate-900 via-slate-950 to-black dark:from-black dark:via-black dark:to-slate-950 rounded-xl p-6 border-2 border-slate-600 dark:border-slate-700 shadow-2xl backdrop-blur-sm" style={{ background: 'radial-gradient(circle at 50% 50%, rgba(30, 41, 59, 0.4) 0%, rgba(0, 0, 0, 0.8) 100%)' }}>
               
               {/* EQ Background Grid */}
               <div className="absolute left-6 right-6 top-6 bottom-6 bg-slate-900/50 dark:bg-black/60 rounded-lg border border-slate-700 dark:border-slate-800">

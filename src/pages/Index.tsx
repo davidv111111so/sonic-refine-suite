@@ -4,6 +4,7 @@ import { Guide } from '@/components/Guide';
 import { Footer } from '@/components/Footer';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { CopyrightNotice } from '@/components/CopyrightNotice';
+import { UserHeader } from '@/components/UserHeader';
 import { SpectrumTabs } from '@/components/SpectrumTabs';
 import { useToast } from '@/hooks/use-toast';
 import { useFileManagement } from '@/hooks/useFileManagement';
@@ -339,6 +340,7 @@ const Index = () => {
         <div className="flex items-center justify-between mb-8">
           <AnimatedTitle />
           <div className="flex items-center gap-3">
+            <UserHeader />
             <LanguageToggle />
             <Guide />
             <ThemeToggle />
