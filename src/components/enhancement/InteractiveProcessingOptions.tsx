@@ -50,8 +50,8 @@ export const InteractiveProcessingOptions = ({
     <Card className="bg-slate-900/90 dark:bg-black/90 border-slate-700 dark:border-slate-800">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-white text-base">
-            <Settings className="h-4 w-4" />
+          <CardTitle className="flex items-center gap-2 bg-gradient-to-r from-purple-200 via-pink-200 to-blue-200 bg-clip-text text-transparent text-base font-bold">
+            <Settings className="h-4 w-4 text-pink-400" />
             Processing Options
           </CardTitle>
           <Button
@@ -69,7 +69,7 @@ export const InteractiveProcessingOptions = ({
         {/* Noise Reduction */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-white flex items-center">
+            <label className="text-sm font-bold bg-gradient-to-r from-cyan-200 to-blue-200 bg-clip-text text-transparent flex items-center">
               Noise Reduction
               <AudioSettingsTooltip setting="noiseReduction" />
             </label>
@@ -81,8 +81,8 @@ export const InteractiveProcessingOptions = ({
           {noiseReductionEnabled && (
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span className="text-xs text-white">Intensity</span>
-                <span className="text-xs text-white font-mono">{noiseReduction}%</span>
+                <span className="text-xs bg-gradient-to-r from-slate-200 to-gray-200 bg-clip-text text-transparent font-semibold">Intensity</span>
+                <span className="text-xs text-white font-mono font-bold">{noiseReduction}%</span>
               </div>
               <Slider
                 value={[noiseReduction]}
@@ -99,7 +99,7 @@ export const InteractiveProcessingOptions = ({
         {/* Normalization */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-white flex items-center">
+            <label className="text-sm font-bold bg-gradient-to-r from-purple-200 to-pink-200 bg-clip-text text-transparent flex items-center">
               Audio Normalization
               <AudioSettingsTooltip setting="normalization" />
             </label>
@@ -111,8 +111,8 @@ export const InteractiveProcessingOptions = ({
           {normalize && (
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span className="text-xs text-white">Target Level</span>
-                <span className="text-xs text-white font-mono">{normalizeLevel} dB</span>
+                <span className="text-xs bg-gradient-to-r from-slate-200 to-gray-200 bg-clip-text text-transparent font-semibold">Target Level</span>
+                <span className="text-xs text-white font-mono font-bold">{normalizeLevel} dB</span>
               </div>
               <Slider
                 value={[normalizeLevel]}
@@ -129,7 +129,7 @@ export const InteractiveProcessingOptions = ({
         {/* Dynamic Compression */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-white flex items-center">
+            <label className="text-sm font-bold bg-gradient-to-r from-green-200 to-emerald-200 bg-clip-text text-transparent flex items-center">
               Dynamic Compression
               <AudioSettingsTooltip setting="compression" />
             </label>
@@ -141,8 +141,8 @@ export const InteractiveProcessingOptions = ({
           {compressionEnabled && (
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span className="text-xs text-white">Ratio</span>
-                <span className="text-xs text-white font-mono">{compression}:1</span>
+                <span className="text-xs bg-gradient-to-r from-slate-200 to-gray-200 bg-clip-text text-transparent font-semibold">Ratio</span>
+                <span className="text-xs text-white font-mono font-bold">{compression}:1</span>
               </div>
               <Slider
                 value={[compression]}
@@ -159,7 +159,7 @@ export const InteractiveProcessingOptions = ({
         {/* Stereo Widening */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-white flex items-center">
+            <label className="text-sm font-bold bg-gradient-to-r from-blue-200 to-cyan-200 bg-clip-text text-transparent flex items-center">
               Stereo Widening
               <AudioSettingsTooltip setting="stereoWidening" />
             </label>
@@ -171,8 +171,8 @@ export const InteractiveProcessingOptions = ({
           {stereoWideningEnabled && (
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span className="text-xs text-white">Width</span>
-                <span className="text-xs text-white font-mono">{stereoWidening}%</span>
+                <span className="text-xs bg-gradient-to-r from-slate-200 to-gray-200 bg-clip-text text-transparent font-semibold">Width</span>
+                <span className="text-xs text-white font-mono font-bold">{stereoWidening}%</span>
               </div>
               <Slider
                 value={[stereoWidening]}

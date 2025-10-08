@@ -44,14 +44,9 @@ export const FiveBandEqualizer = memo(({
   const bandLabels = ['Bass', 'Low Mid', 'Mid', 'High Mid', 'Treble'];
   
   const applyPreset = useCallback((values: number[]) => {
-    // Pad values to 10 bands if needed (keep middle bands at 0)
-    const paddedValues = [...values];
-    while (paddedValues.length < 10) {
-      paddedValues.splice(Math.floor(paddedValues.length / 2), 0, 0);
-    }
-    
-    paddedValues.forEach((value, index) => {
-      onEQBandChange(index, value);
+    // Apply the 5 preset values directly to the 5 visual band indices
+    bandIndices.forEach((bandIndex, visualIndex) => {
+      onEQBandChange(bandIndex, values[visualIndex] || 0);
     });
   }, [onEQBandChange]);
   
@@ -108,13 +103,16 @@ export const FiveBandEqualizer = memo(({
       <CardContent className="pt-0">
         {enabled ? (
           <div className="relative space-y-4">
-            {/* EQ Presets Strip - ON TOP with better styling */}
-            <div className="bg-gradient-to-br from-purple-900/70 via-blue-900/70 to-indigo-900/70 dark:from-purple-950/90 dark:via-blue-950/90 dark:to-indigo-950/90 rounded-xl p-4 border-2 border-purple-500/70 dark:border-purple-600/90 shadow-2xl shadow-purple-900/60 backdrop-blur-sm">
-              <h4 className="text-sm font-bold mb-3 tracking-wide flex items-center gap-2">
-                <span className="bg-gradient-to-r from-purple-300 to-blue-300 bg-clip-text text-transparent text-lg">EQ Presets</span>
-                <span className="text-[10px] text-white/90 font-normal">(Quick adjustments)</span>
+            {/* EQ Presets Strip - Vibrant & Stylish */}
+            <div className="bg-gradient-to-br from-purple-600/80 via-pink-600/80 to-blue-600/80 dark:from-purple-700/90 dark:via-pink-700/90 dark:to-blue-700/90 rounded-2xl p-5 border-3 border-white/20 shadow-2xl shadow-purple-500/50 backdrop-blur-md relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 animate-pulse"></div>
+              <h4 className="text-base font-black mb-4 tracking-wide flex items-center gap-2 relative z-10">
+                <span className="bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent text-xl drop-shadow-lg">
+                  ✨ EQ Presets
+                </span>
+                <span className="text-[11px] text-white/95 font-semibold bg-black/30 px-2 py-1 rounded-full">(Quick Adjustments)</span>
               </h4>
-              <div className="grid grid-cols-6 gap-2">
+              <div className="grid grid-cols-6 gap-2.5 relative z-10">
                 {EQ_PRESETS.map((preset) => {
                   const Icon = preset.icon;
                   const displayName = language === 'ES' ? preset.nameES : preset.name;
@@ -124,11 +122,12 @@ export const FiveBandEqualizer = memo(({
                       variant="outline"
                       size="sm"
                       onClick={() => applyPreset(preset.values)}
-                      className="bg-gradient-to-br from-slate-700/90 via-slate-800/90 to-slate-900/90 dark:from-black/90 dark:via-slate-950/90 dark:to-black/90 border-2 border-slate-500/80 dark:border-slate-600/80 hover:bg-gradient-to-br hover:from-purple-600 hover:via-purple-500 hover:to-blue-600 hover:border-purple-300 hover:scale-110 hover:shadow-xl hover:shadow-purple-500/60 text-white h-auto py-2.5 px-3 flex flex-col items-center gap-1.5 transition-all duration-300 font-bold"
+                      className="bg-gradient-to-br from-slate-800 via-slate-900 to-black border-2 border-purple-400/60 hover:border-cyan-300 hover:scale-125 hover:shadow-2xl hover:shadow-cyan-400/70 hover:from-purple-700 hover:via-pink-600 hover:to-blue-700 text-white h-auto py-3 px-3 flex flex-col items-center gap-2 transition-all duration-300 font-bold relative group overflow-hidden"
                       title={displayName}
                     >
-                      <Icon className="h-4 w-4 text-purple-200" />
-                      <span className="text-[10px] leading-tight text-center whitespace-nowrap">
+                      <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-pink-500/20 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <Icon className="h-5 w-5 text-cyan-300 group-hover:text-white relative z-10 drop-shadow-lg" />
+                      <span className="text-[10px] leading-tight text-center whitespace-nowrap text-white relative z-10 font-bold">
                         {displayName}
                       </span>
                     </Button>
@@ -137,47 +136,53 @@ export const FiveBandEqualizer = memo(({
               </div>
             </div>
 
-            {/* 5-Band EQ with better background */}
-            <div className="relative bg-gradient-to-br from-slate-900 via-slate-950 to-black dark:from-black dark:via-black dark:to-slate-950 rounded-xl p-6 border-2 border-slate-600 dark:border-slate-700 shadow-2xl backdrop-blur-sm" style={{ background: 'radial-gradient(circle at 50% 50%, rgba(30, 41, 59, 0.4) 0%, rgba(0, 0, 0, 0.8) 100%)' }}>
+            {/* 5-Band EQ - Professional & Colorful */}
+            <div className="relative bg-gradient-to-br from-slate-900 via-purple-950 to-blue-950 rounded-2xl p-6 border-3 border-purple-400/40 shadow-2xl shadow-purple-500/30 backdrop-blur-sm overflow-hidden">
+              
+              {/* Animated Background */}
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/10 to-pink-500/5 animate-pulse"></div>
               
               {/* EQ Background Grid */}
-              <div className="absolute left-6 right-6 top-6 bottom-6 bg-slate-900/50 dark:bg-black/60 rounded-lg border border-slate-700 dark:border-slate-800">
-                {/* Horizontal grid lines */}
+              <div className="absolute left-6 right-6 top-6 bottom-6 bg-black/40 rounded-xl border-2 border-cyan-500/20 shadow-inner">
+                {/* Horizontal grid lines with glow */}
                 {getTickMarks().map((mark) => (
                   <div 
                     key={mark}
-                    className="absolute left-0 right-0 border-t border-slate-700/30 dark:border-slate-800/40"
-                    style={{ top: `${((12 - mark) / 24) * 100}%` }}
+                    className="absolute left-0 right-0 border-t border-cyan-400/20"
+                    style={{ 
+                      top: `${((12 - mark) / 24) * 100}%`,
+                      boxShadow: '0 0 10px rgba(34, 211, 238, 0.1)'
+                    }}
                   >
-                    <span className="absolute -left-9 -top-2 text-[10px] text-white font-mono">
-                      {mark > 0 ? `+${mark}` : mark}dB
+                    <span className="absolute -left-10 -top-2.5 text-xs text-white font-mono font-bold drop-shadow-lg">
+                      {mark > 0 ? '+' : ''}{mark}dB
                     </span>
                   </div>
                 ))}
               </div>
 
-              <div className="flex justify-center items-end gap-6 py-4 relative z-10">
+              <div className="flex justify-center items-end gap-7 py-4 relative z-10">
                 {bandIndices.map((bandIndex, visualIndex) => (
                   <div key={bandIndex} className="flex flex-col items-center group">
                     
-                    {/* Frequency Label */}
-                    <div className="text-xs text-center mb-2 font-mono text-white">
+                    {/* Band Label */}
+                    <div className="text-sm text-center mb-1 font-black text-white drop-shadow-lg">
                       {bandLabels[visualIndex]}
                     </div>
-                    <div className="text-[10px] text-center mb-2 font-mono text-white/70">
+                    <div className="text-xs text-center mb-3 font-mono text-cyan-300 font-semibold">
                       {eqFrequencies[visualIndex] < 1000 ? `${eqFrequencies[visualIndex]}Hz` : `${eqFrequencies[visualIndex]/1000}k`}
                     </div>
 
-                    {/* Fader Container */}
-                    <div className="relative h-40 w-8 mb-3">
+                    {/* Fader Container with Glow */}
+                    <div className="relative h-44 w-10 mb-3">
                       
-                      {/* Fader Track Background */}
+                      {/* Fader Track with Vibrant Colors */}
                       <div 
-                        className="absolute inset-x-1 inset-y-2 rounded-full border shadow-inner"
+                        className="absolute inset-x-1 inset-y-2 rounded-full border-2 shadow-inner"
                         style={{
-                          background: `linear-gradient(180deg, ${getEQColor(visualIndex)}40 0%, #1e293b 50%, ${getEQColor(visualIndex)}40 100%)`,
-                          borderColor: '#334155',
-                          boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5)'
+                          background: `linear-gradient(180deg, ${getEQColor(visualIndex)}60 0%, #0f172a 50%, ${getEQColor(visualIndex)}60 100%)`,
+                          borderColor: getEQColor(visualIndex),
+                          boxShadow: `inset 0 3px 6px rgba(0,0,0,0.6), 0 0 20px ${getEQColor(visualIndex)}40`
                         }}
                       />
 
@@ -190,29 +195,50 @@ export const FiveBandEqualizer = memo(({
                           min={-12}
                           max={12}
                           step={0.5}
-                          className="h-36 w-6 group-hover:scale-110 transition-transform duration-200"
+                          className="h-40 w-7 group-hover:scale-110 transition-transform duration-300"
                         />
                       </div>
+                      
+                      {/* Visual Level Indicator */}
+                      <div 
+                        className="absolute inset-x-0 bottom-2 rounded-t-lg transition-all duration-300 pointer-events-none"
+                        style={{
+                          height: `${((eqBands[bandIndex] || 0) + 12) / 24 * 100}%`,
+                          background: `linear-gradient(180deg, ${getEQColor(visualIndex)}80, ${getEQColor(visualIndex)}20)`,
+                          boxShadow: `0 0 30px ${getEQColor(visualIndex)}60`,
+                          opacity: 0.4
+                        }}
+                      />
                     </div>
 
-                    {/* Value Display */}
-                    <div className="text-xs text-center font-mono text-white bg-black/80 rounded px-2 py-1 min-w-[3rem]">
+                    {/* Value Display with Color */}
+                    <div 
+                      className="text-sm text-center font-mono font-black rounded-lg px-3 py-1.5 min-w-[4rem] border-2 shadow-lg"
+                      style={{
+                        color: 'white',
+                        backgroundColor: `${getEQColor(visualIndex)}30`,
+                        borderColor: getEQColor(visualIndex),
+                        boxShadow: `0 0 20px ${getEQColor(visualIndex)}50, inset 0 0 10px ${getEQColor(visualIndex)}20`
+                      }}
+                    >
                       {eqBands[bandIndex] > 0 ? '+' : ''}{eqBands[bandIndex]}dB
                     </div>
                   </div>
                 ))}
               </div>
 
-              {/* EQ Branding */}
-              <div className="absolute bottom-2 right-3 text-[10px] text-white/50 font-mono">
-                SPECTRUM 5-BAND EQ
+              {/* EQ Branding with Glow */}
+              <div className="absolute bottom-3 right-4 text-xs text-cyan-300 font-mono font-bold drop-shadow-lg">
+                SPECTRUM 5-BAND EQ ✨
               </div>
             </div>
           </div>
         ) : (
-          <div className="text-center py-8 text-white">
-            <div className="text-lg mb-2">🎚️</div>
-            <p className="text-white text-sm">Enable Audio EQ to access the equalizer</p>
+          <div className="text-center py-8">
+            <div className="text-4xl mb-3">🎚️</div>
+            <p className="bg-gradient-to-r from-blue-200 via-purple-200 to-pink-200 bg-clip-text text-transparent text-base font-bold">
+              Enable Audio EQ to access the equalizer
+            </p>
           </div>
         )}
       </CardContent>

@@ -215,7 +215,7 @@ export const SpectrumTabs = ({
 
       <TabsContent value="enhance" className="space-y-6">
         {/* Enhanced Header */}
-        <Card className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 dark:from-purple-950/30 dark:to-blue-950/30 border-purple-500/30 shadow-xl shadow-purple-500/10">
+        <Card className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 dark:from-purple-950/40 dark:to-blue-950/40 border-purple-400/40 shadow-xl shadow-purple-500/20">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between gap-4">
               {/* Spectrum Button */}
@@ -237,38 +237,38 @@ export const SpectrumTabs = ({
 
               {/* Center Info */}
               <div className="flex-1 text-center">
-                <CardTitle className="flex items-center justify-center gap-2 text-white text-xl font-bold mb-3">
-                  <Settings className="h-6 w-6" />
+                <CardTitle className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-200 via-purple-200 to-pink-200 bg-clip-text text-transparent text-2xl font-black mb-3 drop-shadow-lg">
+                  <Settings className="h-6 w-6 text-purple-300" />
                   {t('enhance.title')}
                 </CardTitle>
-                <div className="flex items-center justify-center gap-4 px-6 py-3 bg-gradient-to-r from-purple-900/40 via-blue-900/40 to-green-900/40 dark:from-purple-950/60 dark:via-blue-950/60 dark:to-green-950/60 rounded-xl border-2 border-purple-500/30 shadow-lg">
+                <div className="flex items-center justify-center gap-4 px-6 py-3 bg-gradient-to-r from-purple-800/60 via-blue-800/60 to-green-800/60 dark:from-purple-900/70 dark:via-blue-900/70 dark:to-green-900/70 rounded-xl border-2 border-purple-400/50 shadow-lg">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-white font-medium">{language === 'ES' ? 'Entrada' : 'Input'}:</span>
-                    <span className="px-2 py-1 bg-purple-700/50 rounded-md text-sm font-bold text-white border border-purple-500/50">
+                    <span className="text-xs bg-gradient-to-r from-cyan-200 to-blue-200 bg-clip-text text-transparent font-bold">{language === 'ES' ? 'Entrada' : 'Input'}:</span>
+                    <span className="px-2 py-1 bg-purple-600/60 rounded-md text-sm font-bold text-white border border-purple-400/60 shadow-lg">
                       {audioFiles.length > 0 ? (audioFiles[0].fileType?.toUpperCase() || audioFiles[0].name.split('.').pop()?.toUpperCase() || 'N/A') : '-'}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-white font-medium">→ {language === 'ES' ? 'Salida' : 'Output'}:</span>
-                    <span className="px-2 py-1 bg-pink-700/50 rounded-md text-sm font-bold text-white border border-pink-500/50">
+                    <span className="text-xs bg-gradient-to-r from-pink-200 to-purple-200 bg-clip-text text-transparent font-bold">→ {language === 'ES' ? 'Salida' : 'Output'}:</span>
+                    <span className="px-2 py-1 bg-pink-600/60 rounded-md text-sm font-bold text-white border border-pink-400/60 shadow-lg">
                       {processingSettings.outputFormat.toUpperCase()}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-white font-medium">{t('enhance.quality')}:</span>
-                    <span className="px-2 py-1 bg-blue-700/50 rounded-md text-sm font-bold text-white border border-blue-500/50">
+                    <span className="text-xs bg-gradient-to-r from-blue-200 to-cyan-200 bg-clip-text text-transparent font-bold">{t('enhance.quality')}:</span>
+                    <span className="px-2 py-1 bg-blue-600/60 rounded-md text-sm font-bold text-white border border-blue-400/60 shadow-lg">
                       {processingSettings.sampleRate/1000}kHz {processingSettings.bitDepth}bit
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-white font-medium">{language === 'ES' ? 'Antes' : 'Before'}:</span>
-                    <span className="px-2 py-1 bg-gray-700/50 rounded-md text-sm font-bold text-white border border-gray-500/50">
+                    <span className="text-xs bg-gradient-to-r from-slate-200 to-gray-200 bg-clip-text text-transparent font-bold">{language === 'ES' ? 'Antes' : 'Before'}:</span>
+                    <span className="px-2 py-1 bg-gray-600/60 rounded-md text-sm font-bold text-white border border-gray-400/60 shadow-lg">
                       {Math.round(audioFiles.reduce((acc, file) => acc + file.size, 0) / 1024 / 1024)}MB
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-white font-medium">→ {language === 'ES' ? 'Después' : 'After'}:</span>
-                    <span className="px-2 py-1 bg-green-700/50 rounded-md text-sm font-bold text-white border border-green-500/50 animate-pulse">
+                    <span className="text-xs bg-gradient-to-r from-green-200 to-emerald-200 bg-clip-text text-transparent font-bold">→ {language === 'ES' ? 'Después' : 'After'}:</span>
+                    <span className="px-2 py-1 bg-green-600/60 rounded-md text-sm font-bold text-white border border-green-400/60 shadow-lg animate-pulse">
                       ~{Math.round(audioFiles.reduce((acc, file) => acc + file.size, 0) * 1.35 / 1024 / 1024)}MB
                     </span>
                   </div>

@@ -30,15 +30,15 @@ export const DynamicOutputSettings = ({
   return (
     <Card className="bg-slate-900/90 dark:bg-black/90 border-slate-700 dark:border-slate-800">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-white text-base">
-          <Settings className="h-4 w-4" />
+        <CardTitle className="flex items-center gap-2 bg-gradient-to-r from-blue-200 via-purple-200 to-cyan-200 bg-clip-text text-transparent text-base font-bold">
+          <Settings className="h-4 w-4 text-purple-400" />
           Output Settings
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-0 space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="text-xs text-white mb-2 flex items-center font-medium">
+            <label className="text-xs bg-gradient-to-r from-cyan-200 to-blue-200 bg-clip-text text-transparent mb-2 flex items-center font-bold">
               Format
               <AudioSettingsTooltip setting="outputFormat" />
             </label>
@@ -56,7 +56,7 @@ export const DynamicOutputSettings = ({
           {/* Sample Rate - Hidden for MP3, visible for lossless */}
           {outputFormat !== 'mp3' && (
             <div>
-              <label className="text-xs text-white mb-2 flex items-center font-medium">
+              <label className="text-xs bg-gradient-to-r from-purple-200 to-pink-200 bg-clip-text text-transparent mb-2 flex items-center font-bold">
                 Sample Rate
                 <AudioSettingsTooltip setting="sampleRate" />
               </label>
@@ -77,7 +77,7 @@ export const DynamicOutputSettings = ({
         <div>
           {outputFormat === 'mp3' ? (
             <div>
-              <label className="text-xs text-white mb-2 flex items-center font-medium">
+              <label className="text-xs bg-gradient-to-r from-green-200 to-emerald-200 bg-clip-text text-transparent mb-2 flex items-center font-bold">
                 Bitrate
                 <AudioSettingsTooltip setting="targetBitrate" />
               </label>
@@ -91,13 +91,13 @@ export const DynamicOutputSettings = ({
                 <option value="256">256 kbps</option>
                 <option value="320">320 kbps</option>
               </select>
-              <p className="text-xs text-white mt-1">
+              <p className="text-xs bg-gradient-to-r from-slate-200 to-gray-200 bg-clip-text text-transparent mt-1 font-semibold">
                 Sample Rate: 44.1 kHz (locked for MP3)
               </p>
             </div>
           ) : (
             <div>
-              <label className="text-xs text-white mb-2 flex items-center font-medium">
+              <label className="text-xs bg-gradient-to-r from-pink-200 to-purple-200 bg-clip-text text-transparent mb-2 flex items-center font-bold">
                 Bit Depth
                 <AudioSettingsTooltip setting="sampleRate" />
               </label>
@@ -115,14 +115,14 @@ export const DynamicOutputSettings = ({
 
         {/* Format Info */}
         <div className="bg-slate-800/60 dark:bg-black/80 p-3 rounded border border-slate-700 dark:border-slate-800">
-          <div className="text-xs text-white space-y-1">
+          <div className="text-xs space-y-1">
             <div className="flex justify-between">
-              <span className="text-white">Format:</span>
-              <span className="text-white font-medium">{outputFormat.toUpperCase()}</span>
+              <span className="bg-gradient-to-r from-blue-200 to-cyan-200 bg-clip-text text-transparent font-bold">Format:</span>
+              <span className="text-white font-bold">{outputFormat.toUpperCase()}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-white">Quality:</span>
-              <span className="text-white font-medium">
+              <span className="bg-gradient-to-r from-purple-200 to-pink-200 bg-clip-text text-transparent font-bold">Quality:</span>
+              <span className="text-white font-bold">
                 {outputFormat === 'mp3' 
                   ? `${bitrate} kbps, 44.1 kHz` 
                   : `${bitDepth}-bit, ${(sampleRate / 1000).toFixed(1)} kHz`
@@ -130,8 +130,8 @@ export const DynamicOutputSettings = ({
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-white">Type:</span>
-              <span className="text-white font-medium">
+              <span className="bg-gradient-to-r from-green-200 to-emerald-200 bg-clip-text text-transparent font-bold">Type:</span>
+              <span className="text-white font-bold">
                 {isLossless ? 'Lossless' : 'Compressed'}
               </span>
             </div>

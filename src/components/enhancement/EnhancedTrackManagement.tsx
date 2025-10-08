@@ -140,12 +140,12 @@ export const EnhancedTrackManagement = ({
 
   if (allFiles.length === 0) {
     return (
-      <Card className="bg-slate-800/50 border-slate-600">
+      <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600">
         <CardContent className="py-8">
-          <div className="text-center text-slate-400">
-            <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg mb-2">No tracks uploaded yet</p>
-            <p className="text-sm">Upload audio files to see them listed here</p>
+          <div className="text-center">
+            <BarChart3 className="h-12 w-12 mx-auto mb-4 text-blue-400 opacity-50" />
+            <p className="text-lg mb-2 text-white font-semibold">No tracks uploaded yet</p>
+            <p className="text-sm text-slate-300">Upload audio files to see them listed here</p>
           </div>
         </CardContent>
       </Card>
