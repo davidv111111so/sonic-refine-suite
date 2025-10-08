@@ -73,7 +73,25 @@ export const useAdvancedAudioProcessing = () => {
 
         // Apply enhancements only if Perfect Audio is enabled
         if (settings.enableEQ && settings.eqBands) {
-          currentNode = await applyEqualizer(offlineContext, currentNode, settings.eqBands);
+          // 5-band EQ mapped to specific indices
+          const bandIndices = [0, 2, 4, 7, 9];
+          const eqFrequencies = [60, 250, 1000, 4000, 12000];
+          
+          let eqNode = currentNode;
+          bandIndices.forEach((bandIndex, visualIndex) => {
+            const gain = settings.eqBands[bandIndex] || 0;
+            if (Math.abs(gain) > 0.1) { // Only create filter if gain is significant
+              const filter = offlineContext.createBiquadFilter();
+              filter.type = 'peaking';
+              filter.frequency.value = eqFrequencies[visualIndex];
+              filter.Q.value = 1.0;
+              filter.gain.value = gain;
+              
+              eqNode.connect(filter);
+              eqNode = filter;
+            }
+          });
+          currentNode = eqNode;
         }
 
         if (settings.noiseReductionEnabled && settings.noiseReduction && settings.noiseReduction > 0) {

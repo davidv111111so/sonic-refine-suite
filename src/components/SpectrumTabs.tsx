@@ -23,6 +23,7 @@ interface SpectrumTabsProps {
   onConvert: (file: AudioFile, targetFormat: 'mp3' | 'wav' | 'flac') => void;
   onDownloadAll: () => void;
   onClearDownloaded: () => void;
+  onClearAll: () => void;
   onEnhanceFiles: (settings: ProcessingSettings) => void;
   eqBands: number[];
   onEQBandChange: (bandIndex: number, value: number) => void;
@@ -39,6 +40,7 @@ export const SpectrumTabs = ({
   onConvert,
   onDownloadAll,
   onClearDownloaded,
+  onClearAll,
   onEnhanceFiles,
   eqBands,
   onEQBandChange,
@@ -175,10 +177,7 @@ export const SpectrumTabs = ({
           onConvert={onConvert}
           onDownloadAll={onDownloadAll}
           onClearDownloaded={onClearDownloaded}
-          onClearAll={() => {
-            // Clear only unprocessed files (uploaded status)
-            // This will be implemented in the parent component
-          }}
+          onClearAll={onClearAll}
           processingSettings={processingSettings}
           onFileInfo={(file) => {
             setFileInfoModal({ isOpen: true, file });

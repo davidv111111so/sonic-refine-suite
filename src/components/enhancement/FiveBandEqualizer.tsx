@@ -73,7 +73,7 @@ export const FiveBandEqualizer = memo(({
   const bandIndices = [0, 2, 4, 7, 9];
 
   return (
-    <Card className="bg-slate-900/90 dark:bg-black/90 border-slate-700 dark:border-slate-800">
+    <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-white text-base">
@@ -122,12 +122,12 @@ export const FiveBandEqualizer = memo(({
                       variant="outline"
                       size="sm"
                       onClick={() => applyPreset(preset.values)}
-                      className="bg-gradient-to-br from-slate-800 via-slate-900 to-black border-2 border-purple-400/60 hover:border-cyan-300 hover:scale-125 hover:shadow-2xl hover:shadow-cyan-400/70 hover:from-purple-700 hover:via-pink-600 hover:to-blue-700 text-white h-auto py-3 px-3 flex flex-col items-center gap-2 transition-all duration-300 font-bold relative group overflow-hidden"
+                      className="bg-gradient-to-br from-slate-800 via-slate-900 to-black border-2 border-purple-400/60 hover:border-cyan-300 hover:scale-110 hover:shadow-2xl hover:shadow-cyan-400/70 hover:from-purple-700 hover:via-pink-600 hover:to-blue-700 h-auto py-3 px-3 flex flex-col items-center gap-2 transition-all duration-300 font-bold relative group overflow-hidden"
                       title={displayName}
                     >
                       <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-pink-500/20 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                      <Icon className="h-5 w-5 text-cyan-300 group-hover:text-white relative z-10 drop-shadow-lg" />
-                      <span className="text-[10px] leading-tight text-center whitespace-nowrap text-white relative z-10 font-bold">
+                      <Icon className="h-5 w-5 text-cyan-300 group-hover:text-white relative z-10 drop-shadow-lg animate-pulse" />
+                      <span className="text-[10px] leading-tight text-center whitespace-nowrap bg-gradient-to-r from-cyan-200 via-blue-200 to-purple-200 bg-clip-text text-transparent group-hover:from-white group-hover:via-white group-hover:to-white relative z-10 font-bold animate-pulse">
                         {displayName}
                       </span>
                     </Button>
@@ -154,7 +154,7 @@ export const FiveBandEqualizer = memo(({
                       boxShadow: '0 0 10px rgba(34, 211, 238, 0.1)'
                     }}
                   >
-                    <span className="absolute -left-10 -top-2.5 text-xs text-white font-mono font-bold drop-shadow-lg">
+                    <span className="absolute -left-10 -top-2.5 text-xs bg-gradient-to-r from-cyan-200 to-blue-200 bg-clip-text text-transparent font-mono font-bold drop-shadow-lg animate-pulse">
                       {mark > 0 ? '+' : ''}{mark}dB
                     </span>
                   </div>
@@ -234,9 +234,9 @@ export const FiveBandEqualizer = memo(({
             </div>
           </div>
         ) : (
-          <div className="text-center py-8">
+          <div className="text-center py-8 bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg border border-slate-600">
             <div className="text-4xl mb-3">🎚️</div>
-            <p className="bg-gradient-to-r from-blue-200 via-purple-200 to-pink-200 bg-clip-text text-transparent text-base font-bold">
+            <p className="bg-gradient-to-r from-blue-200 via-purple-200 to-pink-200 bg-clip-text text-transparent text-base font-bold animate-pulse">
               Enable Audio EQ to access the equalizer
             </p>
           </div>

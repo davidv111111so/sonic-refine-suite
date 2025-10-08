@@ -313,6 +313,26 @@ const Index = () => {
 
   const processingFiles = audioFiles.filter(f => f.status === 'processing');
 
+  // Clear all files functionality
+  const handleClearAll = useCallback(() => {
+    if (audioFiles.length === 0) {
+      toast({
+        title: "No files to clear",
+        description: "No files found.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (window.confirm(`Are you sure you want to remove ALL ${audioFiles.length} files from the list?`)) {
+      setAudioFiles([]);
+      toast({
+        title: "All files cleared",
+        description: `${audioFiles.length} files have been removed from the list.`,
+      });
+    }
+  }, [audioFiles, toast, setAudioFiles]);
+
   // Clear downloaded files functionality
   const handleClearDownloaded = useCallback(() => {
     const downloadedFiles = enhancedHistory.filter(f => f.status === 'enhanced');
@@ -413,6 +433,7 @@ const Index = () => {
           onConvert={handleConvertFile}
           onDownloadAll={handleDownloadAll}
           onClearDownloaded={handleClearDownloaded}
+          onClearAll={handleClearAll}
           onEnhanceFiles={handleEnhanceFiles}
           eqBands={eqBands}
           onEQBandChange={handleEQBandChange}

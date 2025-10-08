@@ -181,16 +181,18 @@ export const EnhancedTrackManagement = ({
       <CardContent>
         <div className="space-y-3">
           {/* Enhanced Header Row */}
-          <div className="grid grid-cols-6 gap-4 p-4 bg-gradient-to-r from-slate-700/50 to-slate-800/50 dark:from-black/80 dark:to-slate-900/80 rounded-lg text-sm font-medium text-white dark:text-white border border-slate-600 dark:border-slate-700">
+          <div className="grid grid-cols-6 gap-4 p-4 bg-gradient-to-r from-slate-700/50 to-slate-800/50 dark:from-black/80 dark:to-slate-900/80 rounded-lg text-sm font-medium border border-slate-600 dark:border-slate-700">
             <div className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Song Name
+              <BarChart3 className="h-4 w-4 text-cyan-300 animate-pulse" />
+              <span className="bg-gradient-to-r from-cyan-200 via-blue-200 to-purple-200 bg-clip-text text-transparent font-bold animate-pulse">
+                Song Name
+              </span>
             </div>
-            <div>File Size</div>
-            <div>Status</div>
-            <div>Conversion</div>
-            <div>File Info</div>
-            <div>Download</div>
+            <div className="bg-gradient-to-r from-cyan-200 via-blue-200 to-purple-200 bg-clip-text text-transparent font-bold animate-pulse">File Size</div>
+            <div className="bg-gradient-to-r from-cyan-200 via-blue-200 to-purple-200 bg-clip-text text-transparent font-bold animate-pulse">Status</div>
+            <div className="bg-gradient-to-r from-cyan-200 via-blue-200 to-purple-200 bg-clip-text text-transparent font-bold animate-pulse">Conversion</div>
+            <div className="bg-gradient-to-r from-cyan-200 via-blue-200 to-purple-200 bg-clip-text text-transparent font-bold animate-pulse">File Info</div>
+            <div className="bg-gradient-to-r from-cyan-200 via-blue-200 to-purple-200 bg-clip-text text-transparent font-bold animate-pulse">Download</div>
           </div>
           
           {/* Enhanced Track Rows */}
@@ -204,12 +206,12 @@ export const EnhancedTrackManagement = ({
                 className="grid grid-cols-6 gap-4 p-4 bg-gradient-to-br from-slate-800/30 to-slate-900/50 dark:from-black/50 dark:to-slate-900/70 border border-slate-600 dark:border-slate-700 rounded-lg hover:from-slate-700/40 hover:to-slate-800/60 dark:hover:from-slate-900/60 dark:hover:to-black/80 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10"
               >
                 {/* Song Name with File Type - Fixed Scrollable Title */}
-                <div className="flex flex-col min-w-0 max-w-full">
+                  <div className="flex flex-col min-w-0 max-w-full">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-lg flex-shrink-0">{getFileTypeIcon(fileType)}</span>
                     <div className="flex-1 min-w-0 overflow-hidden">
                       <div 
-                        className="text-white font-medium break-words"
+                        className="bg-gradient-to-r from-cyan-200 via-blue-200 to-purple-200 bg-clip-text text-transparent font-bold animate-pulse break-words"
                         style={{
                           display: '-webkit-box',
                           WebkitLineClamp: 2,
@@ -224,7 +226,7 @@ export const EnhancedTrackManagement = ({
                       </div>
                     </div>
                   </div>
-                  <span className="text-slate-400 dark:text-white text-xs truncate">{file.artist || 'Unknown Artist'}</span>
+                  <span className="bg-gradient-to-r from-purple-200 via-pink-200 to-blue-200 bg-clip-text text-transparent text-xs truncate animate-pulse">{file.artist || 'Unknown Artist'}</span>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="outline" className="text-xs px-2 py-0 bg-slate-700/50 dark:bg-black/70 text-white dark:text-white border-slate-500 dark:border-slate-600">
                       {fileType.toUpperCase()}
@@ -237,21 +239,21 @@ export const EnhancedTrackManagement = ({
                   {file.status === 'enhanced' && file.enhancedSize ? (
                     <div className="space-y-1">
                       <div className="flex items-center gap-1">
-                        <span className="text-xs text-white dark:text-white">Antes:</span>
-                        <span className="text-white dark:text-white text-xs font-mono line-through">{formatFileSize(file.size)}</span>
+                        <span className="text-xs bg-gradient-to-r from-cyan-200 to-blue-200 bg-clip-text text-transparent font-semibold animate-pulse">Antes:</span>
+                        <span className="bg-gradient-to-r from-slate-300 to-slate-400 bg-clip-text text-transparent text-xs font-mono line-through animate-pulse">{formatFileSize(file.size)}</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <span className="text-xs text-green-400 dark:text-green-300">Después:</span>
-                        <span className="text-green-400 dark:text-green-300 text-sm font-mono font-bold">{formatFileSize(file.enhancedSize)}</span>
+                        <span className="text-xs bg-gradient-to-r from-green-300 to-emerald-300 bg-clip-text text-transparent font-semibold animate-pulse">Después:</span>
+                        <span className="bg-gradient-to-r from-green-300 to-emerald-300 bg-clip-text text-transparent text-sm font-mono font-bold animate-pulse">{formatFileSize(file.enhancedSize)}</span>
                       </div>
-                      <div className="text-xs text-blue-400 dark:text-blue-300">
+                      <div className="text-xs bg-gradient-to-r from-blue-300 to-cyan-300 bg-clip-text text-transparent font-semibold animate-pulse">
                         (+{Math.round(((file.enhancedSize - file.size) / file.size) * 100)}%)
                       </div>
                     </div>
                   ) : (
                     <div>
-                      <span className="text-white text-sm font-mono">{formatFileSize(file.size)}</span>
-                      <span className="text-xs text-white dark:text-white block">/ 100MB max</span>
+                      <span className="bg-gradient-to-r from-cyan-200 to-blue-200 bg-clip-text text-transparent text-sm font-mono font-bold animate-pulse">{formatFileSize(file.size)}</span>
+                      <span className="text-xs bg-gradient-to-r from-purple-200 to-pink-200 bg-clip-text text-transparent block animate-pulse">/ 100MB max</span>
                     </div>
                   )}
                 </div>
@@ -379,24 +381,24 @@ export const EnhancedTrackManagement = ({
             {/* Summary Stats */}
             <div className="grid grid-cols-4 gap-4 text-center">
               <div className="bg-slate-700/30 dark:bg-black/50 rounded-lg p-3 border border-slate-600/50 dark:border-slate-700/50">
-                <div className="text-sm text-white dark:text-white">Total Files</div>
+                <div className="text-sm bg-gradient-to-r from-cyan-200 via-blue-200 to-purple-200 bg-clip-text text-transparent font-bold animate-pulse">Total Files</div>
                 <div className="text-xl font-bold text-white">{allFiles.length}</div>
               </div>
-              <div className="bg-blue-700/30 dark:bg-blue-900/40 rounded-lg p-3 border border-blue-600/50 dark:border-blue-700/50">
-                <div className="text-sm text-white dark:text-white">In Queue</div>
-                <div className="text-xl font-bold text-blue-400 dark:text-blue-300">
+              <div className={`bg-blue-700/30 dark:bg-blue-900/40 rounded-lg p-3 border border-blue-600/50 dark:border-blue-700/50 ${allFiles.filter(f => f.status === 'uploaded').length > 0 ? 'animate-pulse shadow-lg shadow-blue-500/50' : ''}`}>
+                <div className="text-sm bg-gradient-to-r from-cyan-200 via-blue-200 to-purple-200 bg-clip-text text-transparent font-bold animate-pulse">In Queue</div>
+                <div className={`text-xl font-bold ${allFiles.filter(f => f.status === 'uploaded').length > 0 ? 'text-blue-300 animate-pulse' : 'text-blue-400 dark:text-blue-300'}`}>
                   {allFiles.filter(f => f.status === 'uploaded').length}
                 </div>
               </div>
-              <div className="bg-orange-700/30 dark:bg-orange-900/40 rounded-lg p-3 border border-orange-600/50 dark:border-orange-700/50">
-                <div className="text-sm text-white dark:text-white">Processing</div>
-                <div className="text-xl font-bold text-orange-400 dark:text-orange-300">
+              <div className={`bg-orange-700/30 dark:bg-orange-900/40 rounded-lg p-3 border border-orange-600/50 dark:border-orange-700/50 ${allFiles.filter(f => f.status === 'processing').length > 0 ? 'animate-pulse shadow-lg shadow-orange-500/50' : ''}`}>
+                <div className="text-sm bg-gradient-to-r from-cyan-200 via-blue-200 to-purple-200 bg-clip-text text-transparent font-bold animate-pulse">Processing</div>
+                <div className={`text-xl font-bold ${allFiles.filter(f => f.status === 'processing').length > 0 ? 'text-orange-300 animate-pulse' : 'text-orange-400 dark:text-orange-300'}`}>
                   {allFiles.filter(f => f.status === 'processing').length}
                 </div>
               </div>
-              <div className="bg-green-700/30 dark:bg-green-900/40 rounded-lg p-3 border border-green-600/50 dark:border-green-700/50">
-                <div className="text-sm text-white dark:text-white">Enhanced</div>
-                <div className="text-xl font-bold text-green-400 dark:text-green-300">
+              <div className={`bg-green-700/30 dark:bg-green-900/40 rounded-lg p-3 border border-green-600/50 dark:border-green-700/50 ${allFiles.filter(f => f.status === 'enhanced').length > 0 ? 'animate-pulse shadow-lg shadow-green-500/50' : ''}`}>
+                <div className="text-sm bg-gradient-to-r from-cyan-200 via-blue-200 to-purple-200 bg-clip-text text-transparent font-bold animate-pulse">Enhanced</div>
+                <div className={`text-xl font-bold ${allFiles.filter(f => f.status === 'enhanced').length > 0 ? 'text-green-300 animate-pulse' : 'text-green-400 dark:text-green-300'}`}>
                   {allFiles.filter(f => f.status === 'enhanced').length}
                 </div>
               </div>
