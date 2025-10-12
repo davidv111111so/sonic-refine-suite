@@ -161,7 +161,7 @@ export const Guide = () => {
 
           {/* Backend-Free Technologies */}
           <Card className="bg-slate-800 border-slate-700 dark:bg-slate-800 dark:border-slate-700 light:bg-gray-50 light:border-gray-200">
-            <CardHeader>
+            <CardHeader className="bg-blue-200">
               <CardTitle className="flex items-center gap-2 text-purple-400 dark:text-purple-400 light:text-purple-600">
                 <Sparkles className="h-5 w-5" />
                 Backend-Free Technologies & How to Use Them
