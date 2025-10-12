@@ -101,7 +101,7 @@ export const Guide = () => {
                 Quick Start Guide
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 bg-blue-300">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="text-center p-6 bg-slate-700/50 dark:bg-slate-700/50 light:bg-white rounded-lg border border-slate-600 dark:border-slate-600 light:border-gray-200">
                   <Upload className="h-12 w-12 mx-auto mb-4 text-blue-400" />
