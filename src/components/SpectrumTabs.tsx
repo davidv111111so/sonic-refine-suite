@@ -133,7 +133,7 @@ export const SpectrumTabs = ({
           <BarChart3 className="h-5 w-5" />
           <span className="text-base">{t('button.spectrum')}</span>
         </TabsTrigger>
-        <TabsTrigger value="enhance" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:via-pink-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/50 data-[state=active]:scale-105 transition-all duration-300 rounded-lg font-bold">
+        <TabsTrigger value="enhance" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:via-pink-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl">
           <Settings className="h-5 w-5" />
           <span className="text-base">{t('button.enhance')}</span>
         </TabsTrigger>
