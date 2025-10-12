@@ -129,7 +129,7 @@ export const EnhancedTrackManagement = ({
         <CardContent className="py-8">
           <div className="text-center">
             <BarChart3 className="h-12 w-12 mx-auto mb-4 text-blue-400 opacity-50" />
-            <p className="text-lg mb-2 text-white font-semibold">No tracks uploaded yet</p>
+            <p className="text-lg mb-2 font-semibold text-cyan-400">No tracks uploaded yet</p>
             <p className="text-sm text-slate-300">Upload audio files to see them listed here</p>
           </div>
         </CardContent>
