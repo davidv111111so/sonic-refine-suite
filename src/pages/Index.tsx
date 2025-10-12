@@ -309,7 +309,7 @@ const Index = () => {
       description: `${downloadedFiles.length} downloaded files have been cleared.`
     });
   }, [enhancedHistory, toast]);
-  return <div className="min-h-screen transition-colors duration-300">
+  return <div className="min-h-screen transition-colors duration-300 bg-blue-900">
       <div className="container mx-auto px-4 py-6 max-w-6xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
