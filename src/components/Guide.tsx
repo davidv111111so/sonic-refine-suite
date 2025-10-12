@@ -167,7 +167,7 @@ export const Guide = () => {
                 Backend-Free Technologies & How to Use Them
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="bg-blue-300">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {features.map((feature, index) => <Card key={index} className="bg-slate-700/50 border-slate-600 dark:bg-slate-700/50 dark:border-slate-600 light:bg-white light:border-gray-200">
                     <CardContent className="p-6">
