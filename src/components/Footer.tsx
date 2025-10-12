@@ -35,7 +35,7 @@ export const Footer = () => {
 
         {/* Additional Legal Notice */}
         <div className="mt-4 pt-4 border-t border-slate-800 mx-0 px-[8px] py-[11px]">
-          <p className="text-center text-slate-500 text-xs leading-relaxed">
+          <p className="text-center text-xs leading-relaxed text-zinc-50">
             Users retain all rights to their audio content. Perfect Audio does not claim ownership of uploaded or processed files.
           </p>
         </div>
