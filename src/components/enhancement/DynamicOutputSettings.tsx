@@ -101,7 +101,7 @@ export const DynamicOutputSettings = ({
             </div>
             <div className="flex justify-between">
               <span className="bg-gradient-to-r from-green-200 to-emerald-200 bg-clip-text text-transparent font-bold">Type:</span>
-              <span className="text-white font-bold">
+              <span className="font-bold text-teal-200">
                 {isLossless ? 'Lossless' : 'Compressed'}
               </span>
             </div>
