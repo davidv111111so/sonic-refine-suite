@@ -296,7 +296,7 @@ export const EnhancedTrackManagement = ({
             
             {/* Summary Stats */}
             <div className="grid grid-cols-4 gap-4 text-center">
-              <div className="bg-slate-700/30 dark:bg-black/50 rounded-lg p-3 border border-slate-600/50 dark:border-slate-700/50">
+              <div className="rounded-lg p-3 border border-slate-600/50 dark:border-slate-700/50 bg-slate-600">
                 <div className="text-sm bg-gradient-to-r from-cyan-200 via-blue-200 to-purple-200 bg-clip-text text-transparent font-bold animate-pulse">Total Files</div>
                 <div className="text-xl font-bold text-white">{allFiles.length}</div>
               </div>
