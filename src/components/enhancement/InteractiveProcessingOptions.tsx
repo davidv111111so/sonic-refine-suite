@@ -46,7 +46,7 @@ export const InteractiveProcessingOptions = ({
   return <Card className="bg-slate-900/90 dark:bg-black/90 border-slate-700 dark:border-slate-800">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 bg-gradient-to-r from-purple-200 via-pink-200 to-blue-200 bg-clip-text font-bold text-lg bg-gray-900 hover:bg-gray-800 text-red-600">
+          <CardTitle className="flex items-center gap-2 bg-gradient-to-r from-purple-200 via-pink-200 to-blue-200 bg-clip-text font-bold text-lg bg-gray-900 hover:bg-gray-800 text-indigo-800">
             <Settings className="h-4 w-4 text-pink-400" />
             Processing Options
           </CardTitle>
