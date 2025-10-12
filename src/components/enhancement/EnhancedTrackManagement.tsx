@@ -219,7 +219,7 @@ export const EnhancedTrackManagement = ({
                 </div>
 
                 {/* Status with Progress */}
-                <div className="flex flex-col justify-center">
+                <div className="flex flex-col justify-center bg-indigo-900 hover:bg-indigo-800">
                   {getStatusBadge(file.status)}
                   {file.progress !== undefined && file.status === 'processing' && <div className="mt-1 w-full bg-slate-700 rounded-full h-2">
                       <div className="bg-orange-500 h-2 rounded-full transition-all duration-300" style={{
