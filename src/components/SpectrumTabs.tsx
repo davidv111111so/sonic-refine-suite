@@ -180,7 +180,7 @@ export const SpectrumTabs = ({
           <CardHeader className="pb-4 bg-gray-800">
             <div className="flex items-center justify-between gap-4">
               {/* Spectrum Button */}
-              <Button onClick={handleEnhanceFiles} disabled={audioFiles.length === 0} variant="spectrum" size="lg" className="shadow-xl shrink-0">
+              <Button onClick={handleEnhanceFiles} disabled={audioFiles.length === 0} variant="spectrum" size="lg" className="shadow-xl shrink-0 rounded-xl text-4xl">
                 <Zap className="h-6 w-6 mr-2 animate-pulse" />
                 <span className="text-xl tracking-widest font-black">SPECTRUM</span>
                 {audioFiles.length > 0 && <Badge className="ml-3 bg-white/30 text-white border-white/40 px-3 py-0.5 text-sm font-bold">

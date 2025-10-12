@@ -1,15 +1,11 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sun, Moon } from 'lucide-react';
-
 export const ThemeToggle = () => {
   const [isDarkMode, setIsDarkMode] = useState(true);
-
   useEffect(() => {
     // Initialize theme from localStorage or default to dark
     const savedTheme = localStorage.getItem('perfect-audio-theme');
-    
     if (savedTheme === 'light') {
       setIsDarkMode(false);
       document.documentElement.classList.remove('dark');
@@ -61,7 +57,6 @@ export const ThemeToggle = () => {
       document.body.style.setProperty('--ring', '221 83% 53%');
     }
   }, []);
-
   const toggleTheme = () => {
     if (isDarkMode) {
       // Switch to light mode with high contrast
@@ -116,20 +111,7 @@ export const ThemeToggle = () => {
       setIsDarkMode(true);
     }
   };
-
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={toggleTheme}
-      className="rounded-full hover:bg-slate-700/50 transition-all duration-300 border border-slate-600"
-      title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-    >
-      {isDarkMode ? (
-        <Sun className="h-5 w-5 text-yellow-400 drop-shadow-lg" />
-      ) : (
-        <Moon className="h-5 w-5 text-slate-700 drop-shadow-lg" />
-      )}
-    </Button>
-  );
+  return <Button variant="ghost" size="icon" onClick={toggleTheme} title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"} className="rounded-full transition-all duration-300 border border-slate-600 bg-slate-200 hover:bg-slate-100">
+      {isDarkMode ? <Sun className="h-5 w-5 text-yellow-400 drop-shadow-lg" /> : <Moon className="h-5 w-5 text-slate-700 drop-shadow-lg" />}
+    </Button>;
 };

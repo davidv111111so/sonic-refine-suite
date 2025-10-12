@@ -25,7 +25,7 @@ export const DynamicOutputSettings = ({
   const isLossless = outputFormat === 'wav' || outputFormat === 'flac';
   return <Card className="bg-slate-900/90 dark:bg-black/90 border-slate-700 dark:border-slate-800">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 bg-gradient-to-r from-blue-200 via-purple-200 to-cyan-200 bg-clip-text text-transparent text-base font-bold">
+        <CardTitle className="flex items-center gap-2 bg-gradient-to-r from-blue-200 via-purple-200 to-cyan-200 bg-clip-text text-transparent font-bold text-lg">
           <Settings className="h-4 w-4 text-purple-400" />
           Output Settings
         </CardTitle>
@@ -87,11 +87,11 @@ export const DynamicOutputSettings = ({
         </div>
 
         {/* Format Info */}
-        <div className="bg-slate-800/60 dark:bg-black/80 p-3 rounded border border-slate-700 dark:border-slate-800">
+        <div className="p-3 rounded border border-slate-700 dark:border-slate-800 bg-sky-950">
           <div className="text-xs space-y-1">
             <div className="flex justify-between">
               <span className="bg-gradient-to-r from-blue-200 to-cyan-200 bg-clip-text text-transparent font-bold">Format:</span>
-              <span className="text-white text-base font-bold">{outputFormat.toUpperCase()}</span>
+              <span className="text-slate-50 font-bold text-sm">{outputFormat.toUpperCase()}</span>
             </div>
             <div className="flex justify-between">
               <span className="bg-gradient-to-r from-purple-200 to-pink-200 bg-clip-text text-transparent font-bold">Quality:</span>
