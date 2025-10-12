@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ExternalLink, Scale } from 'lucide-react';
 export const Footer = () => {
   return <footer className="mt-12 pt-8 border-t border-slate-700 bg-gradient-to-r from-slate-900/50 to-slate-800/50 bg-blue-950">
-      <div className="container mx-auto px-4 py-6">
+      <div className="container px-4 mx-0 my-[7px] py-0">
         <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
           {/* App Info */}
           <div className="text-center md:text-left">
