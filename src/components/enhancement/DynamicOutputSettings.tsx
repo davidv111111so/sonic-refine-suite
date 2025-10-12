@@ -95,7 +95,7 @@ export const DynamicOutputSettings = ({
             </div>
             <div className="flex justify-between">
               <span className="bg-gradient-to-r from-purple-200 to-pink-200 bg-clip-text text-transparent font-bold">Quality:</span>
-              <span className="text-white font-bold">
+              <span className="font-bold text-violet-400">
                 {outputFormat === 'mp3' ? `${bitrate} kbps, 44.1 kHz` : `${bitDepth}-bit, ${(sampleRate / 1000).toFixed(1)} kHz`}
               </span>
             </div>
