@@ -97,7 +97,7 @@ export const UploadWithConsent = ({
       <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600 shadow-lg">
         <CardContent className="p-6">
           <div {...getRootProps()} className="flex flex-col items-center justify-center h-32 border-2 border-dashed rounded-md cursor-pointer bg-slate-700/20 border-slate-500/50 hover:bg-slate-700/40 hover:border-blue-400/50 transition-all duration-200" onClick={handleUploadClick}>
-            <input {...getInputProps()} />
+            <input className="bg-slate-50" />
             {isDragActive ? <p className="text-blue-300 text-sm font-medium">Drop your audio files here...</p> : <div className="flex flex-col items-center">
                 <Upload className="h-8 w-8 text-blue-400 mb-2" />
                 <p className="text-base text-center font-medium mb-1 text-zinc-50">
