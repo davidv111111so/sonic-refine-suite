@@ -14,7 +14,6 @@ import { AudioFile } from '@/types/audio';
 import { ProcessingSettings } from '@/utils/audioProcessor';
 import { BarChart3, Settings, Upload, Zap, Package } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
-
 interface SpectrumTabsProps {
   audioFiles: AudioFile[];
   enhancedHistory: AudioFile[];
@@ -31,7 +30,6 @@ interface SpectrumTabsProps {
   eqEnabled: boolean;
   setEqEnabled: (enabled: boolean) => void;
 }
-
 export const SpectrumTabs = ({
   audioFiles,
   enhancedHistory,
@@ -48,13 +46,19 @@ export const SpectrumTabs = ({
   eqEnabled,
   setEqEnabled
 }: SpectrumTabsProps) => {
-  const { t, language } = useLanguage();
+  const {
+    t,
+    language
+  } = useLanguage();
   const [activeTab, setActiveTab] = useState('spectrum');
-  const [fileInfoModal, setFileInfoModal] = useState<{isOpen: boolean, file: AudioFile | null}>({
+  const [fileInfoModal, setFileInfoModal] = useState<{
+    isOpen: boolean;
+    file: AudioFile | null;
+  }>({
     isOpen: false,
     file: null
   });
-  
+
   // Processing settings state with default 44.1kHz 16-bit quality
   const [processingSettings, setProcessingSettings] = useState<ProcessingSettings>({
     outputFormat: 'wav',
@@ -75,11 +79,12 @@ export const SpectrumTabs = ({
     eqBands: eqBands,
     enableEQ: eqEnabled
   });
-
   const handleProcessingSettingChange = (key: keyof ProcessingSettings, value: any) => {
-    setProcessingSettings(prev => ({ ...prev, [key]: value }));
+    setProcessingSettings(prev => ({
+      ...prev,
+      [key]: value
+    }));
   };
-
   const handleResetProcessingOptions = () => {
     setProcessingSettings(prev => ({
       ...prev,
@@ -93,7 +98,6 @@ export const SpectrumTabs = ({
       stereoWideningEnabled: false
     }));
   };
-
   const handleLoadProcessingSettings = (settings: ProcessingSettings) => {
     setProcessingSettings(settings);
     if (settings.eqBands) {
@@ -103,25 +107,18 @@ export const SpectrumTabs = ({
     }
     setEqEnabled(settings.enableEQ);
   };
-
   const handleFilesUploaded = (files: AudioFile[]) => {
     onFilesUploaded(files);
     setActiveTab('enhance');
   };
-
   const handleEnhanceFiles = async () => {
     if (audioFiles.length >= 2) {
-      const message = language === 'ES' 
-        ? `¿Desea procesar y descargar ${audioFiles.length} archivos?`
-        : `Do you want to process and download ${audioFiles.length} files?`;
-      
+      const message = language === 'ES' ? `¿Desea procesar y descargar ${audioFiles.length} archivos?` : `Do you want to process and download ${audioFiles.length} files?`;
       const userConfirmed = window.confirm(message);
-      
       if (!userConfirmed) {
         return;
       }
     }
-    
     const finalSettings = {
       ...processingSettings,
       eqBands: eqBands,
@@ -130,21 +127,13 @@ export const SpectrumTabs = ({
     onEnhanceFiles(finalSettings);
     setActiveTab('spectrum');
   };
-
-  return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+  return <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       <TabsList className="grid w-full grid-cols-2 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-black dark:via-slate-900 dark:to-black border-2 border-slate-600 dark:border-slate-700 p-1 rounded-xl shadow-xl">
-        <TabsTrigger 
-          value="spectrum" 
-          className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:via-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-cyan-500/50 data-[state=active]:scale-105 transition-all duration-300 rounded-lg font-bold"
-        >
+        <TabsTrigger value="spectrum" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:via-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-cyan-500/50 data-[state=active]:scale-105 transition-all duration-300 rounded-lg font-bold">
           <BarChart3 className="h-5 w-5" />
           <span className="text-base">{t('button.spectrum')}</span>
         </TabsTrigger>
-        <TabsTrigger 
-          value="enhance" 
-          className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:via-pink-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/50 data-[state=active]:scale-105 transition-all duration-300 rounded-lg font-bold"
-        >
+        <TabsTrigger value="enhance" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:via-pink-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/50 data-[state=active]:scale-105 transition-all duration-300 rounded-lg font-bold">
           <Settings className="h-5 w-5" />
           <span className="text-base">{t('button.enhance')}</span>
         </TabsTrigger>
@@ -160,78 +149,43 @@ export const SpectrumTabs = ({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <UploadWithConsent 
-              onFilesUploaded={handleFilesUploaded}
-              supportedFormats={['.mp3', '.wav', '.flac']}
-              maxFileSize={100 * 1024 * 1024}
-              maxFiles={20}
-            />
+            <UploadWithConsent onFilesUploaded={handleFilesUploaded} supportedFormats={['.mp3', '.wav', '.flac']} maxFileSize={100 * 1024 * 1024} maxFiles={20} />
           </CardContent>
         </Card>
 
         {/* Enhanced Track Management */}
-        <EnhancedTrackManagement
-          audioFiles={audioFiles}
-          enhancedHistory={enhancedHistory}
-          onDownload={onDownload}
-          onConvert={onConvert}
-          onDownloadAll={onDownloadAll}
-          onClearDownloaded={onClearDownloaded}
-          onClearAll={onClearAll}
-          processingSettings={processingSettings}
-          onFileInfo={(file) => {
-            setFileInfoModal({ isOpen: true, file });
-          }}
-        />
+        <EnhancedTrackManagement audioFiles={audioFiles} enhancedHistory={enhancedHistory} onDownload={onDownload} onConvert={onConvert} onDownloadAll={onDownloadAll} onClearDownloaded={onClearDownloaded} onClearAll={onClearAll} processingSettings={processingSettings} onFileInfo={file => {
+        setFileInfoModal({
+          isOpen: true,
+          file
+        });
+      }} />
 
         {/* Bottom Action Buttons - Always visible when there are files */}
-        {(audioFiles.length > 0 || enhancedHistory.length > 0) && (
-          <div className="flex justify-center gap-4 pt-6">
-            {enhancedHistory.filter(f => f.status === 'enhanced').length >= 2 && (
-              <Button
-                onClick={onDownloadAll}
-                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3 px-8 rounded-xl shadow-xl hover:shadow-green-500/30 transition-all duration-300"
-                size="lg"
-              >
+        {(audioFiles.length > 0 || enhancedHistory.length > 0) && <div className="flex justify-center gap-4 pt-6">
+            {enhancedHistory.filter(f => f.status === 'enhanced').length >= 2 && <Button onClick={onDownloadAll} className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3 px-8 rounded-xl shadow-xl hover:shadow-green-500/30 transition-all duration-300" size="lg">
                 <Package className="h-5 w-5 mr-2" />
                 Download All ({enhancedHistory.filter(f => f.status === 'enhanced').length})
-              </Button>
-            )}
+              </Button>}
             
-            {enhancedHistory.length > 0 && (
-              <Button
-                onClick={onClearDownloaded}
-                variant="outline"
-                className="border-2 border-red-500 text-red-300 hover:bg-red-600/20 dark:border-red-600 dark:hover:bg-red-700/20 font-bold py-3 px-8 rounded-xl transition-all duration-300"
-                size="lg"
-              >
+            {enhancedHistory.length > 0 && <Button onClick={onClearDownloaded} variant="outline" className="border-2 border-red-500 text-red-300 hover:bg-red-600/20 dark:border-red-600 dark:hover:bg-red-700/20 font-bold py-3 px-8 rounded-xl transition-all duration-300" size="lg">
                 Clear Downloaded ({enhancedHistory.length})
-              </Button>
-            )}
-          </div>
-        )}
+              </Button>}
+          </div>}
       </TabsContent>
 
       <TabsContent value="enhance" className="space-y-6">
         {/* Enhanced Header */}
         <Card className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 dark:from-purple-950/40 dark:to-blue-950/40 border-purple-400/40 shadow-xl shadow-purple-500/20">
-          <CardHeader className="pb-4">
+          <CardHeader className="pb-4 bg-gray-800">
             <div className="flex items-center justify-between gap-4">
               {/* Spectrum Button */}
-              <Button
-                onClick={handleEnhanceFiles}
-                disabled={audioFiles.length === 0}
-                variant="spectrum"
-                size="lg"
-                className="shadow-xl shrink-0"
-              >
+              <Button onClick={handleEnhanceFiles} disabled={audioFiles.length === 0} variant="spectrum" size="lg" className="shadow-xl shrink-0">
                 <Zap className="h-6 w-6 mr-2 animate-pulse" />
                 <span className="text-xl tracking-widest font-black">SPECTRUM</span>
-                {audioFiles.length > 0 && (
-                  <Badge className="ml-3 bg-white/30 text-white border-white/40 px-3 py-0.5 text-sm font-bold">
+                {audioFiles.length > 0 && <Badge className="ml-3 bg-white/30 text-white border-white/40 px-3 py-0.5 text-sm font-bold">
                     {audioFiles.length}
-                  </Badge>
-                )}
+                  </Badge>}
               </Button>
 
               {/* Center Info */}
@@ -244,7 +198,7 @@ export const SpectrumTabs = ({
                   <div className="flex items-center gap-2">
                     <span className="text-xs bg-gradient-to-r from-cyan-200 to-blue-200 bg-clip-text text-transparent font-bold">{language === 'ES' ? 'Entrada' : 'Input'}:</span>
                     <span className="px-2 py-1 bg-purple-600/60 rounded-md text-sm font-bold text-white border border-purple-400/60 shadow-lg">
-                      {audioFiles.length > 0 ? (audioFiles[0].fileType?.toUpperCase() || audioFiles[0].name.split('.').pop()?.toUpperCase() || 'N/A') : '-'}
+                      {audioFiles.length > 0 ? audioFiles[0].fileType?.toUpperCase() || audioFiles[0].name.split('.').pop()?.toUpperCase() || 'N/A' : '-'}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -256,7 +210,7 @@ export const SpectrumTabs = ({
                   <div className="flex items-center gap-2">
                     <span className="text-xs bg-gradient-to-r from-blue-200 to-cyan-200 bg-clip-text text-transparent font-bold">{t('enhance.quality')}:</span>
                     <span className="px-2 py-1 bg-blue-600/60 rounded-md text-sm font-bold text-white border border-blue-400/60 shadow-lg">
-                      {processingSettings.sampleRate/1000}kHz {processingSettings.bitDepth}bit
+                      {processingSettings.sampleRate / 1000}kHz {processingSettings.bitDepth}bit
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -276,16 +230,11 @@ export const SpectrumTabs = ({
 
               {/* Presets */}
               <div className="flex items-center gap-2 shrink-0">
-                <EnhancedEQPresets 
-                  eqBands={eqBands} 
-                  onLoadPreset={(preset) => {
-                    preset.forEach((value, index) => {
-                      onEQBandChange(index, value);
-                    });
-                  }}
-                  processingSettings={processingSettings}
-                  onLoadProcessingSettings={handleLoadProcessingSettings}
-                />
+                <EnhancedEQPresets eqBands={eqBands} onLoadPreset={preset => {
+                preset.forEach((value, index) => {
+                  onEQBandChange(index, value);
+                });
+              }} processingSettings={processingSettings} onLoadProcessingSettings={handleLoadProcessingSettings} />
               </div>
             </div>
           </CardHeader>
@@ -293,54 +242,19 @@ export const SpectrumTabs = ({
 
         {/* Settings Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <DynamicOutputSettings
-            outputFormat={processingSettings.outputFormat}
-            sampleRate={processingSettings.sampleRate}
-            bitDepth={processingSettings.bitDepth}
-            bitrate={processingSettings.bitrate}
-            onOutputFormatChange={(format) => handleProcessingSettingChange('outputFormat', format)}
-            onSampleRateChange={(rate) => handleProcessingSettingChange('sampleRate', rate)}
-            onBitDepthChange={(depth) => handleProcessingSettingChange('bitDepth', depth)}
-            onBitrateChange={(rate) => handleProcessingSettingChange('bitrate', rate)}
-          />
+          <DynamicOutputSettings outputFormat={processingSettings.outputFormat} sampleRate={processingSettings.sampleRate} bitDepth={processingSettings.bitDepth} bitrate={processingSettings.bitrate} onOutputFormatChange={format => handleProcessingSettingChange('outputFormat', format)} onSampleRateChange={rate => handleProcessingSettingChange('sampleRate', rate)} onBitDepthChange={depth => handleProcessingSettingChange('bitDepth', depth)} onBitrateChange={rate => handleProcessingSettingChange('bitrate', rate)} />
 
-          <InteractiveProcessingOptions
-            noiseReduction={processingSettings.noiseReduction}
-            noiseReductionEnabled={processingSettings.noiseReductionEnabled}
-            normalize={processingSettings.normalize}
-            normalizeLevel={processingSettings.normalizeLevel}
-            compression={processingSettings.compression}
-            compressionEnabled={processingSettings.compressionEnabled}
-            stereoWidening={processingSettings.stereoWidening}
-            stereoWideningEnabled={processingSettings.stereoWideningEnabled}
-            onNoiseReductionChange={(value) => handleProcessingSettingChange('noiseReduction', value)}
-            onNoiseReductionEnabledChange={(enabled) => handleProcessingSettingChange('noiseReductionEnabled', enabled)}
-            onNormalizeChange={(enabled) => handleProcessingSettingChange('normalize', enabled)}
-            onNormalizeLevelChange={(level) => handleProcessingSettingChange('normalizeLevel', level)}
-            onCompressionChange={(value) => handleProcessingSettingChange('compression', value)}
-            onCompressionEnabledChange={(enabled) => handleProcessingSettingChange('compressionEnabled', enabled)}
-            onStereoWideningChange={(value) => handleProcessingSettingChange('stereoWidening', value)}
-            onStereoWideningEnabledChange={(enabled) => handleProcessingSettingChange('stereoWideningEnabled', enabled)}
-            onReset={handleResetProcessingOptions}
-          />
+          <InteractiveProcessingOptions noiseReduction={processingSettings.noiseReduction} noiseReductionEnabled={processingSettings.noiseReductionEnabled} normalize={processingSettings.normalize} normalizeLevel={processingSettings.normalizeLevel} compression={processingSettings.compression} compressionEnabled={processingSettings.compressionEnabled} stereoWidening={processingSettings.stereoWidening} stereoWideningEnabled={processingSettings.stereoWideningEnabled} onNoiseReductionChange={value => handleProcessingSettingChange('noiseReduction', value)} onNoiseReductionEnabledChange={enabled => handleProcessingSettingChange('noiseReductionEnabled', enabled)} onNormalizeChange={enabled => handleProcessingSettingChange('normalize', enabled)} onNormalizeLevelChange={level => handleProcessingSettingChange('normalizeLevel', level)} onCompressionChange={value => handleProcessingSettingChange('compression', value)} onCompressionEnabledChange={enabled => handleProcessingSettingChange('compressionEnabled', enabled)} onStereoWideningChange={value => handleProcessingSettingChange('stereoWidening', value)} onStereoWideningEnabledChange={enabled => handleProcessingSettingChange('stereoWideningEnabled', enabled)} onReset={handleResetProcessingOptions} />
         </div>
 
         {/* 5-Band Equalizer */}
-        <FiveBandEqualizer
-          eqBands={eqBands}
-          onEQBandChange={onEQBandChange}
-          onResetEQ={onResetEQ}
-          enabled={eqEnabled}
-          onEnabledChange={setEqEnabled}
-        />
+        <FiveBandEqualizer eqBands={eqBands} onEQBandChange={onEQBandChange} onResetEQ={onResetEQ} enabled={eqEnabled} onEnabledChange={setEqEnabled} />
       </TabsContent>
       
       {/* File Info Modal */}
-      <FileInfoModal
-        file={fileInfoModal.file}
-        isOpen={fileInfoModal.isOpen}
-        onClose={() => setFileInfoModal({ isOpen: false, file: null })}
-      />
-    </Tabs>
-  );
+      <FileInfoModal file={fileInfoModal.file} isOpen={fileInfoModal.isOpen} onClose={() => setFileInfoModal({
+      isOpen: false,
+      file: null
+    })} />
+    </Tabs>;
 };

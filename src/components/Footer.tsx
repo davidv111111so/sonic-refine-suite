@@ -1,10 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ExternalLink, Scale } from 'lucide-react';
-
 export const Footer = () => {
-  return (
-    <footer className="mt-12 pt-8 border-t border-slate-700 bg-gradient-to-r from-slate-900/50 to-slate-800/50">
+  return <footer className="mt-12 pt-8 border-t border-slate-700 bg-gradient-to-r from-slate-900/50 to-slate-800/50 bg-slate-900">
       <div className="container mx-auto px-4 py-6">
         <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
           {/* App Info */}
@@ -17,10 +15,7 @@ export const Footer = () => {
 
           {/* Legal Links */}
           <div className="flex items-center space-x-6">
-            <Link 
-              to="/terms" 
-              className="flex items-center gap-2 text-slate-300 hover:text-blue-400 transition-colors duration-200 text-sm"
-            >
+            <Link to="/terms" className="flex items-center gap-2 text-slate-300 hover:text-blue-400 transition-colors duration-200 text-sm">
               <Scale className="h-4 w-4" />
               Terms & Conditions
               <ExternalLink className="h-3 w-3" />
@@ -45,6 +40,5 @@ export const Footer = () => {
           </p>
         </div>
       </div>
-    </footer>
-  );
+    </footer>;
 };
