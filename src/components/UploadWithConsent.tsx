@@ -110,7 +110,7 @@ export const UploadWithConsent = ({
           {/* Consent Checkbox */}
           <div className="mt-6 pt-4 border-t border-slate-600">
             <div className="flex items-start gap-3">
-              <Checkbox id="consent" checked={hasConsented} onCheckedChange={handleConsentChange} className="mt-1 text-gray-50 bg-gray-50" />
+              <Checkbox id="consent" checked={hasConsented} onCheckedChange={handleConsentChange} className="mt-1 bg-gray-50 text-blue-950" />
               <div className="flex-1">
                 <label htmlFor="consent" className="text-sm cursor-pointer leading-relaxed bg-gradient-to-r from-blue-200 via-cyan-200 to-purple-200 bg-clip-text text-transparent font-semibold animate-pulse" style={{
                 textShadow: '0 0 20px rgba(96, 165, 250, 0.4), 0 0 30px rgba(165, 180, 252, 0.3)'
