@@ -122,7 +122,7 @@ export const FiveBandEqualizer = memo(({
   return <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-white text-base">
+          <CardTitle className="flex items-center gap-2 text-base text-teal-100">
             <div className="w-4 h-4 bg-gradient-to-r from-blue-400 to-purple-400 rounded"></div>
             Equalizer
           </CardTitle>
