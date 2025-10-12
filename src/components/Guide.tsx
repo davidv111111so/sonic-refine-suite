@@ -207,7 +207,7 @@ export const Guide = () => {
                 Keyboard Shortcuts for Power Users
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="bg-blue-300">
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                 <div className="bg-slate-700/50 dark:bg-slate-700/50 light:bg-white p-4 rounded text-center border border-slate-600 dark:border-slate-600 light:border-gray-200">
                   <kbd className="px-3 py-2 bg-slate-900 dark:bg-slate-900 light:bg-gray-800 light:text-white rounded font-mono text-sm block mb-2">Ctrl+U</kbd>
