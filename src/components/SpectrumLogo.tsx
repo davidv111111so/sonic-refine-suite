@@ -10,7 +10,7 @@ export const SpectrumLogo = () => {
       fontFamily: "'Orbitron', 'Exo 2', 'Rajdhani', 'Audiowide', monospace",
       textShadow: '0 0 30px rgba(6, 182, 212, 0.5), 0 0 60px rgba(59, 130, 246, 0.3)',
       letterSpacing: '0.1em'
-    }} className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent tracking-wider relative text-5xl font-extrabold">
+    }} className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent tracking-wider relative text-5xl font-extrabold text-center">
         SPECTRUM
         <div className="absolute inset-0 bg-gradient-to-r from-cyan-400/20 via-blue-500/20 to-purple-600/20 blur-xl -z-10 animate-pulse" />
       </h1>
