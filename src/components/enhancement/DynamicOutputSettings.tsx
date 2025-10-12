@@ -91,7 +91,7 @@ export const DynamicOutputSettings = ({
           <div className="text-xs space-y-1">
             <div className="flex justify-between">
               <span className="bg-gradient-to-r from-blue-200 to-cyan-200 bg-clip-text text-transparent font-bold">Format:</span>
-              <span className="text-slate-50 font-bold text-sm">{outputFormat.toUpperCase()}</span>
+              <span className="font-bold text-xs text-teal-100">{outputFormat.toUpperCase()}</span>
             </div>
             <div className="flex justify-between">
               <span className="bg-gradient-to-r from-purple-200 to-pink-200 bg-clip-text text-transparent font-bold">Quality:</span>
