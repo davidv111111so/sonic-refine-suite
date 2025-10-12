@@ -168,7 +168,7 @@ export const FiveBandEqualizer = memo(({
             <div className="relative bg-gradient-to-br from-slate-900 via-purple-950 to-blue-950 rounded-2xl p-6 border-3 border-purple-400/40 shadow-2xl shadow-purple-500/30 backdrop-blur-sm overflow-hidden">
               
               {/* Animated Background */}
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/10 to-pink-500/5 animate-pulse"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/10 to-pink-500/5 animate-pulse mx-0 py-0 my-0 px-0"></div>
               
               {/* EQ Background Grid */}
               <div className="absolute left-6 right-6 top-6 bottom-6 bg-black/40 rounded-xl border-2 border-cyan-500/20 shadow-inner">
