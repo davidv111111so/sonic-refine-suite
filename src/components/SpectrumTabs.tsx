@@ -143,7 +143,7 @@ export const SpectrumTabs = ({
         {/* Upload Section */}
         <Card className="bg-slate-900/90 dark:bg-black/90 border-slate-600">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
+            <CardTitle className="flex items-center gap-2 text-cyan-500">
               <Upload className="h-5 w-5" />
               {t('upload.title')}
             </CardTitle>
