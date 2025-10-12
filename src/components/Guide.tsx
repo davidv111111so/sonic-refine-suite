@@ -201,7 +201,7 @@ export const Guide = () => {
 
           {/* Keyboard Shortcuts */}
           <Card className="bg-slate-800 border-slate-700 dark:bg-slate-800 dark:border-slate-700 light:bg-gray-50 light:border-gray-200">
-            <CardHeader>
+            <CardHeader className="bg-blue-200">
               <CardTitle className="flex items-center gap-2 text-cyan-400 dark:text-cyan-400 light:text-cyan-600">
                 <Keyboard className="h-5 w-5" />
                 Keyboard Shortcuts for Power Users
