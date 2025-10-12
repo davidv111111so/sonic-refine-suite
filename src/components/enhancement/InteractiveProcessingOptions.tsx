@@ -50,7 +50,7 @@ export const InteractiveProcessingOptions = ({
             <Settings className="h-4 w-4 text-pink-400" />
             Processing Options
           </CardTitle>
-          <Button variant="outline" size="sm" onClick={onReset} className="h-8 text-xs border-slate-700 dark:border-slate-800 bg-red-700 hover:bg-red-600 text-red-700">
+          <Button variant="outline" size="sm" onClick={onReset} className="h-8 text-xs border-slate-700 dark:border-slate-800 text-red-700 bg-zinc-50">
             <RotateCcw className="h-3 w-3 mr-1" />
             Reset
           </Button>
