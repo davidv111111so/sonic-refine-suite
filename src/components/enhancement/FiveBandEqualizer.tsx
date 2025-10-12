@@ -144,7 +144,7 @@ export const FiveBandEqualizer = memo(({
             <div className="bg-gradient-to-br from-purple-600/80 via-pink-600/80 to-blue-600/80 dark:from-purple-700/90 dark:via-pink-700/90 dark:to-blue-700/90 rounded-2xl p-5 border-3 border-white/20 shadow-2xl shadow-purple-500/50 backdrop-blur-md relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 animate-pulse bg-gray-950 my-0 mx-0 px-0 py-[28px]"></div>
               <h4 className="text-base font-black mb-4 tracking-wide flex items-center gap-2 relative z-10">
-                <span className="bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent text-xl drop-shadow-lg">
+                <span className="bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent text-xl drop-shadow-lg font-bold">
                   ✨ EQ Presets
                 </span>
                 <span className="text-[11px] text-white/95 font-semibold bg-black/30 px-2 py-1 rounded-full">(Quick Adjustments)</span>
