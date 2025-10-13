@@ -120,7 +120,7 @@ export const FiveBandEqualizer = memo(({
   // Map 5 bands to the first 5 of the 10-band array
   const bandIndices = [0, 2, 4, 7, 9];
   return <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600">
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-3 bg-zinc-950">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base text-teal-100">
             <div className="w-4 h-4 bg-gradient-to-r from-blue-400 to-purple-400 rounded"></div>
