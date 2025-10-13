@@ -202,7 +202,7 @@ export const SpectrumTabs = ({
                 <div className="flex items-center justify-center gap-4 px-6 py-3 bg-gradient-to-r from-purple-800/60 via-blue-800/60 to-green-800/60 dark:from-purple-900/70 dark:via-blue-900/70 dark:to-green-900/70 rounded-xl border-2 border-purple-400/50 shadow-lg">
                   <div className="flex items-center gap-2">
                     <span className="text-xs bg-gradient-to-r from-cyan-200 to-blue-200 bg-clip-text text-transparent font-bold">{language === 'ES' ? 'Entrada' : 'Input'}:</span>
-                    <span className="px-2 py-1 bg-purple-600/60 rounded-md text-sm font-bold text-white border border-purple-400/60 shadow-lg">
+                    <span className="px-2 py-1 bg-purple-600/60 rounded-md text-sm font-bold border border-purple-400/60 shadow-lg text-neutral-50">
                       {audioFiles.length > 0 ? audioFiles[0].fileType?.toUpperCase() || audioFiles[0].name.split('.').pop()?.toUpperCase() || 'N/A' : '-'}
                     </span>
                   </div>
