@@ -184,13 +184,36 @@ export const SpectrumTabs = ({
         <Card className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 dark:from-purple-950/40 dark:to-blue-950/40 border-purple-400/40 shadow-xl shadow-purple-500/20">
           <CardHeader className="pb-4 bg-gray-800">
             <div className="flex items-center justify-between gap-4">
-              {/* Spectrum Button */}
-              <Button onClick={handleEnhanceFiles} disabled={audioFiles.length === 0} variant="spectrum" size="lg" className="shadow-xl shrink-0 rounded-xl text-4xl">
-                <Zap className="h-6 w-6 mr-2 animate-pulse" />
-                <span className="text-xl tracking-widest font-black">SPECTRUM</span>
-                {audioFiles.length > 0 && <Badge className="ml-3 bg-white/30 text-white border-white/40 px-3 py-0.5 text-sm font-bold">
-                    {audioFiles.length}
-                  </Badge>}
+              {/* Spectrum Button with Thunder Effects */}
+              <Button 
+                onClick={handleEnhanceFiles} 
+                disabled={audioFiles.length === 0} 
+                variant="spectrum" 
+                size="lg" 
+                className="shadow-xl shrink-0 rounded-xl text-4xl relative overflow-hidden group disabled:opacity-50"
+              >
+                {/* Animated lightning background */}
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-pulse" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(96,165,250,0.4),transparent_70%)] opacity-0 group-hover:opacity-100 animate-pulse" />
+                
+                {/* Lightning bolts animation */}
+                <div className="absolute -top-2 -left-2 w-1 h-8 bg-gradient-to-b from-cyan-300 to-transparent rotate-12 opacity-0 group-hover:opacity-100 group-hover:animate-[flash_1s_ease-in-out_infinite]" />
+                <div className="absolute top-1/2 -right-3 w-1 h-10 bg-gradient-to-b from-purple-300 to-transparent -rotate-12 opacity-0 group-hover:opacity-100 group-hover:animate-[flash_1.2s_ease-in-out_infinite]" />
+                <div className="absolute bottom-0 left-1/3 w-1 h-6 bg-gradient-to-b from-blue-300 to-transparent rotate-45 opacity-0 group-hover:opacity-100 group-hover:animate-[flash_0.8s_ease-in-out_infinite]" />
+                
+                {/* Electric glow effect */}
+                <div className="absolute inset-0 rounded-xl shadow-[0_0_30px_rgba(34,211,238,0.5)] opacity-0 group-hover:opacity-100 group-hover:animate-pulse" />
+                
+                {/* Content */}
+                <div className="relative z-10 flex items-center">
+                  <Zap className="h-6 w-6 mr-2 animate-pulse group-hover:animate-[spin_0.5s_ease-in-out] transition-all" />
+                  <span className="text-xl tracking-widest font-black group-hover:text-white transition-colors">SPECTRUM</span>
+                  {audioFiles.length > 0 && (
+                    <Badge className="ml-3 bg-white/30 text-white border-white/40 px-3 py-0.5 text-sm font-bold group-hover:bg-white/50 transition-colors">
+                      {audioFiles.length}
+                    </Badge>
+                  )}
+                </div>
               </Button>
 
               {/* Center Info */}

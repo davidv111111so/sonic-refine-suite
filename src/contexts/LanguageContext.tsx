@@ -178,15 +178,92 @@ const translations = {
     'aiMastering.dragOrClick': 'Drag & drop or click to select',
     'aiMastering.dropFile': 'Drop your file here'
   },
-  ES: {
+    ES: {
+      // Navigation
+      'nav.upload': 'Subir',
+      'nav.enhance': 'Mejorar',
+      'nav.tracks': 'Pistas',
+      'nav.export': 'Exportar',
+      'nav.guide': 'Guía',
+      'nav.aiMastering': 'Masterización IA',
+
+      // Upload & Terms
+      'upload.title': 'Subir Audio',
+      'upload.description': 'Arrastra y suelta archivos de audio o haz clic para seleccionar',
+      'upload.acceptTerms': 'Aceptar Términos y Condiciones para subir',
+      'upload.uploadFormats': '.MP3, .WAV, .FLAC (Máximo 100MB cada uno, 20 archivos)',
+      'upload.agreeToTerms': 'Acepto los Términos y Condiciones y reconozco el Aviso de Copyright. Confirmo que soy propietario o tengo la autorización adecuada para todos los archivos de audio que subo y proceso a través de este servicio.',
+      'upload.pleaseAcceptTerms': 'Por favor, acepta los Términos y Condiciones para habilitar la carga de archivos.',
+      'upload.noTracksUploaded': 'Aún no se han subido pistas',
+      'upload.uploadAudioFiles': 'Sube archivos de audio para verlos listados aquí',
+      'upload.selectFiles': 'Seleccionar Archivos',
+      'upload.dropHere': 'Suelta archivos aquí',
+      'upload.uploading': 'Subiendo...',
+      
+      // Output Settings
+      'output.settings': 'Configuración de Salida',
+      'output.format': 'Formato',
+      'output.wav': 'WAV',
+      'output.mp3': 'MP3',
+      'output.flac': 'FLAC',
+      'output.ogg': 'OGG',
+      'output.sampleRate': 'Frecuencia de Muestreo',
+      'output.khz441': '44.1 kHz',
+      'output.khz48': '48 kHz',
+      'output.khz96': '96 kHz',
+      'output.khz192': '192 kHz',
+      'output.bitDepth': 'Profundidad de Bits',
+      'output.bit16': '16-bit',
+      'output.bit24': '24-bit',
+      'output.bit32': '32-bit',
+      'output.formatLabel': 'Formato:',
+      'output.quality': 'Calidad:',
+      'output.bit16_441': '16-bit, 44.1 kHz',
+      'output.type': 'Tipo:',
+      'output.lossless': 'Sin pérdida',
+      'output.compressed': 'Comprimido',
+      
+      // Processing Options
+      'processing.options': 'Opciones de Procesamiento',
+      'processing.reset': 'Restablecer',
+      'processing.noiseReduction': 'Reducción de Ruido',
+      'processing.audioNormalization': 'Normalización de Audio',
+      'processing.targetLevel': 'Nivel Objetivo',
+      'processing.db3': '-3 dB',
+      'processing.db6': '-6 dB',
+      'processing.db12': '-12 dB',
+      'processing.dynamicCompression': 'Compresión Dinámica',
+      'processing.stereoWidening': 'Ampliación Estéreo',
+      'processing.bassBoost': 'Realce de Graves',
+      'processing.trebleEnhancement': 'Realce de Agudos',
+      
+      // Equalizer
+      'eq.equalizer': 'Ecualizador',
+      'eq.audioEQ': 'EQ de Audio',
+      'eq.reset': 'Restablecer',
+      'eq.presets': '✨ Preajustes de EQ',
+      'eq.quickAdjustments': '(Ajustes Rápidos)',
+      'eq.flat': 'Plano',
+      'eq.bassBoost': 'Realce de Graves',
+      'eq.trebleBoost': 'Realce de Agudos',
+      'eq.vShape': 'Forma V',
+      'eq.vocal': 'Vocal',
+      'eq.rock': 'Rock',
+      'eq.jazz': 'Jazz',
+      'eq.classical': 'Clásica',
+      'eq.electronic': 'Electrónica',
+      'eq.hipHop': 'Hip-Hop',
+      'eq.podcast': 'Podcast',
+      'eq.live': 'En Vivo',
+      
     // Header & Navigation
     'header.title': 'Procesador de Audio Spectrum',
     'header.upload': 'Subir',
     'header.enhance': 'Mejorar',
     'header.settings': 'Configuración',
     
-    // Upload Section
-    'upload.title': 'Subir Archivos de Audio',
+    // Upload Section  
+    'upload.titleAlt': 'Subir Archivos de Audio',
     'upload.dragDrop': 'Arrastra tus archivos de audio aquí',
     'upload.clickSelect': 'o haz clic para seleccionar archivos',
     'upload.supportedFormats': 'MP3, WAV, FLAC, OGG, M4A, AAC',
@@ -252,14 +329,14 @@ const translations = {
     'settings.trebleEnhancement': 'Realce de Agudos',
     'settings.gainAdjustment': 'Ajuste de Ganancia',
     
-    // Equalizer
+    // Equalizer Alt
     'eq.title': 'Ecualizador de 10 Bandas',
     'eq.enable': 'Activar Ecualizador',
-    'eq.presets': 'Preajustes EQ',
+    'eq.presetsAlt': 'Preajustes EQ',
     'eq.enableEqualizer': 'Activar Ecualizador',
     'eq.tenBandEqualizer': 'Ecualizador de 10 Bandas',
-    'eq.eqPresets': 'Preajustes EQ',
-    'eq.reset': 'Restablecer',
+    'eq.eqPresetsAlt': 'Preajustes EQ',
+    'eq.resetAlt': 'Restablecer',
     
     // Conversion
     'conversion.source': 'Origen',

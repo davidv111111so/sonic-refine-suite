@@ -10,6 +10,15 @@
   100% { transform: translateX(-50%); }
 }
 
+/* Lightning flash animation for Spectrum button */
+@keyframes flash {
+  0%, 100% { opacity: 0; transform: scaleY(0.5); }
+  10% { opacity: 1; transform: scaleY(1.2); }
+  20% { opacity: 0; transform: scaleY(0.8); }
+  30% { opacity: 1; transform: scaleY(1.5); }
+  50% { opacity: 0; transform: scaleY(0.5); }
+}
+
 @layer base {
   :root {
     /* Light mode - Pure white background with blue accents */
