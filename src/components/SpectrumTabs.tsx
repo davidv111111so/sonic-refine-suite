@@ -15,7 +15,6 @@ import { ProcessingSettings } from '@/utils/audioProcessor';
 import { BarChart3, Settings, Upload, Zap, Package } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { AIMasteringTab } from '@/components/ai-mastering/AIMasteringTab';
-
 interface SpectrumTabsProps {
   audioFiles: AudioFile[];
   enhancedHistory: AudioFile[];
@@ -137,7 +136,7 @@ export const SpectrumTabs = ({
         </TabsTrigger>
         <TabsTrigger value="enhance" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:via-pink-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl">
           <Settings className="h-5 w-5" />
-          <span className="text-base">{t('button.enhance')}</span>
+          <span className="text-yellow-200 text-lg">{t('button.enhance')}</span>
         </TabsTrigger>
         <TabsTrigger value="ai-mastering" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:via-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl">
           <Zap className="h-5 w-5" />
