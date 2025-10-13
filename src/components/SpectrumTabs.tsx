@@ -140,7 +140,7 @@ export const SpectrumTabs = ({
         </TabsTrigger>
         <TabsTrigger value="ai-mastering" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:via-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl">
           <Zap className="h-5 w-5" />
-          <span className="text-lg text-yellow-200">AI Mastering</span>
+          <span className="text-lg text-cyan-50">AI Mastering</span>
         </TabsTrigger>
       </TabsList>
 
