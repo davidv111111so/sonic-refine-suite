@@ -18,6 +18,7 @@ export interface AudioFile {
   title?: string;
   artworkUrl?: string;
   fileType?: 'mp3' | 'wav' | 'flac' | 'unsupported'; // v2.0: Exposed file type
+  harmonicKey?: string; // Harmonic key analysis for mixing
 }
 
 export interface AudioStats {

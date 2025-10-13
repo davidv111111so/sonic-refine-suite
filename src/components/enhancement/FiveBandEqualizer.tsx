@@ -3,8 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { RotateCcw, Music2, Mic, Headphones, Guitar, Disc3 } from 'lucide-react';
+import { RotateCcw, Music2, Mic, Headphones, Guitar, Disc3, Info } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 interface FiveBandEqualizerProps {
   eqBands: number[];
   onEQBandChange: (bandIndex: number, value: number) => void;
@@ -87,9 +93,11 @@ export const FiveBandEqualizer = memo(({
     language
   } = useLanguage();
 
-  // 5 band EQ frequencies (Bass, Low Mid, Mid, High Mid, Treble)
-  const eqFrequencies = [60, 250, 1000, 4000, 12000];
-  const bandLabels = ['Bass', 'Low Mid', 'Mid', 'High Mid', 'Treble'];
+  // 5 band EQ frequencies optimized for psychoacoustic response
+  const eqFrequencies = [50, 145, 874, 5560, 17200];
+  const bandLabels = language === 'ES' 
+    ? ['Graves / Sub', 'Medio-Grave / Punch', 'Medio', 'Medio-Agudo / Presencia', 'Agudos / Air']
+    : ['Low / Sub', 'Mid Low / Punch', 'Mid', 'Mid High / Presence', 'High / Air'];
   const applyPreset = useCallback((values: number[]) => {
     // Apply the 5 preset values directly to the 5 visual band indices
     bandIndices.forEach((bandIndex, visualIndex) => {
@@ -122,13 +130,29 @@ export const FiveBandEqualizer = memo(({
   return <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600">
       <CardHeader className="pb-3 bg-zinc-950">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-base text-teal-100">
+          <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-gradient-to-r from-blue-400 to-purple-400 rounded"></div>
-            Equalizer
-          </CardTitle>
+            <CardTitle className="text-base text-teal-100">
+              {language === 'ES' ? 'Ecualizador' : 'Equalizer'}
+            </CardTitle>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-slate-400 hover:text-cyan-400 cursor-help transition-colors" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-sm bg-slate-800 border-slate-600 text-slate-200 p-4">
+                  <p className="text-sm">
+                    {language === 'ES' 
+                      ? 'El rango predeterminado ha seleccionado frecuencias que son psicoacústicamente agradables para el oído humano, resaltando naturalmente los tonos más embellecedores en el audio.'
+                      : 'The default range has selected frequencies that are psychoacoustically pleasing to the human ear, naturally highlighting the most embellishing tones in the audio.'}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-white">Audio EQ</span>
+              <span className="text-xs text-white">{language === 'ES' ? 'EQ de Audio' : 'Audio EQ'}</span>
               <Switch checked={enabled} onCheckedChange={onEnabledChange} className="bg-indigo-800 hover:bg-indigo-700" />
             </div>
             <Button variant="outline" size="sm" onClick={onResetEQ} className="h-8 text-xs bg-slate-800 dark:bg-black border-slate-700 dark:border-slate-800 hover:bg-slate-700 dark:hover:bg-slate-900 text-white">
@@ -191,7 +215,9 @@ export const FiveBandEqualizer = memo(({
                       {bandLabels[visualIndex]}
                     </div>
                     <div className="text-xs text-center mb-3 font-mono text-cyan-300 font-semibold">
-                      {eqFrequencies[visualIndex] < 1000 ? `${eqFrequencies[visualIndex]}Hz` : `${eqFrequencies[visualIndex] / 1000}k`}
+                      {eqFrequencies[visualIndex] < 1000 
+                        ? `${eqFrequencies[visualIndex]} Hz`
+                        : `${(eqFrequencies[visualIndex] / 1000).toFixed(2)} kHz`}
                     </div>
 
                     {/* Fader Container with Glow */}

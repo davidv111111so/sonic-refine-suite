@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { UploadWithConsent } from '@/components/UploadWithConsent';
-import { EnhancedTrackManagement } from '@/components/enhancement/EnhancedTrackManagement';
+import { EnhancedTrackManagement } from '@/components/enhancement/EnhancedTrackManagementUpdated';
 import { DynamicOutputSettings } from '@/components/enhancement/DynamicOutputSettings';
 import { InteractiveProcessingOptions } from '@/components/enhancement/InteractiveProcessingOptions';
 import { FiveBandEqualizer } from '@/components/enhancement/FiveBandEqualizer';

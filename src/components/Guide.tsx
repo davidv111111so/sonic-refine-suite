@@ -264,7 +264,7 @@ export const Guide = () => {
               
               <div className="bg-blue-900/30 dark:bg-blue-900/30 light:bg-blue-50 p-4 rounded border border-blue-600/50 dark:border-blue-600/50 light:border-blue-200">
                 <h5 className="font-bold text-blue-400 dark:text-blue-400 light:text-blue-600 mb-2">Privacy & Security:</h5>
-                <p className="text-slate-300 dark:text-slate-300 light:text-gray-600 text-sm">All processing happens locally in your browser. Files never leave your device. No servers, no cloud processing, no data collection. Your audio files remain 100% private.</p>
+                <p className="text-slate-300 dark:text-slate-300 light:text-gray-600 text-sm">All processing happens locally in your browser. Files never leave your device. No servers, no cloud processing. Your audio files remain 100% private.</p>
               </div>
             </CardContent>
           </Card>

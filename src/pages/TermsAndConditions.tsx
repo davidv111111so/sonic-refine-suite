@@ -57,7 +57,7 @@ export const TermsAndConditions = () => {
                 without uploading files to external servers.
               </p>
               <p>
-                The application supports WAV and MP3 audio formats and provides various enhancement features 
+                The application supports WAV, MP3, and FLAC audio formats and provides various enhancement features 
                 including equalizer controls, noise reduction, and audio optimization.
               </p>
             </CardContent>
