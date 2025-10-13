@@ -80,7 +80,7 @@ export const Guide = () => {
   };
   return <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="border-slate-600 dark:border-slate-600 light:border-gray-300 text-slate-950 bg-green-400 hover:bg-green-300">
+        <Button variant="outline" size="sm" className="border-slate-600 dark:border-slate-600 light:border-gray-300 text-slate-950 bg-green-300 hover:bg-green-200">
           <HelpCircle className="h-4 w-4 mr-2" />
           Guide
         </Button>
