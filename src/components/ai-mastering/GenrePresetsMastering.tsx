@@ -1,129 +1,113 @@
-import React, { useState, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useRef } from 'react';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { useDropzone } from 'react-dropzone';
-import { Upload, FileAudio, Download, Loader2, CheckCircle2, AlertCircle, Music } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Upload, Music, Headphones, Mic, Radio, Download, Loader2, Settings } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { MasteringSettings, MasteringSettingsData } from './MasteringSettings';
 
-const GENRES = ['Rock', 'Latin', 'Electronic', 'Hip Hop', 'Pop', 'Jazz', 'Classical', 'Country'];
-
-const GENRE_PRESETS: Record<string, Array<{ id: string; name: string; artist: string }>> = {
-  Rock: [
-    { id: 'rock-1', name: 'Heavy Rock Master', artist: 'Studio Reference' },
-    { id: 'rock-2', name: 'Alternative Rock', artist: 'Indie Sound' },
-    { id: 'rock-3', name: 'Classic Rock', artist: 'Vintage Tone' },
-  ],
-  Latin: [
-    { id: 'latin-1', name: 'Reggaeton Modern', artist: 'Urban Latin' },
-    { id: 'latin-2', name: 'Salsa Classic', artist: 'Traditional' },
-    { id: 'latin-3', name: 'Latin Pop', artist: 'Crossover' },
-  ],
-  Electronic: [
-    { id: 'electronic-1', name: 'EDM Festival', artist: 'Big Room' },
-    { id: 'electronic-2', name: 'House Deep', artist: 'Underground' },
-    { id: 'electronic-3', name: 'Techno Industrial', artist: 'Dark Sound' },
-  ],
-  'Hip Hop': [
-    { id: 'hiphop-1', name: 'Trap Modern', artist: '808 Heavy' },
-    { id: 'hiphop-2', name: 'Boom Bap Classic', artist: 'Golden Era' },
-    { id: 'hiphop-3', name: 'Lo-Fi Hip Hop', artist: 'Chill Beats' },
-  ],
-  Pop: [
-    { id: 'pop-1', name: 'Modern Pop Hit', artist: 'Chart Topper' },
-    { id: 'pop-2', name: 'Indie Pop', artist: 'Alternative' },
-    { id: 'pop-3', name: 'Synth Pop', artist: 'Retro Wave' },
-  ],
-  Jazz: [
-    { id: 'jazz-1', name: 'Smooth Jazz', artist: 'Contemporary' },
-    { id: 'jazz-2', name: 'Bebop', artist: 'Classic Era' },
-    { id: 'jazz-3', name: 'Fusion', artist: 'Modern Mix' },
-  ],
-  Classical: [
-    { id: 'classical-1', name: 'Orchestral', artist: 'Symphony' },
-    { id: 'classical-2', name: 'Chamber Music', artist: 'Intimate' },
-    { id: 'classical-3', name: 'Contemporary Classical', artist: 'Modern' },
-  ],
-  Country: [
-    { id: 'country-1', name: 'Modern Country', artist: 'Nashville' },
-    { id: 'country-2', name: 'Traditional Country', artist: 'Classic' },
-    { id: 'country-3', name: 'Country Rock', artist: 'Crossover' },
-  ],
+const defaultSettings: MasteringSettingsData = {
+  threshold: 0.998138,
+  epsilon: 0.000001,
+  maxPieceLength: 30.0,
+  bpm: 0.0,
+  timeSignatureNumerator: 4,
+  timeSignatureDenominator: 4,
+  pieceLengthBars: 8.0,
+  resamplingMethod: 'FastSinc',
+  spectrumCompensation: 'Frequency-Domain (Gain Envelope)',
+  loudnessCompensation: 'LUFS (Whole Signal)',
+  analyzeFullSpectrum: false,
+  spectrumSmoothingWidth: 3,
+  smoothingSteps: 1,
+  spectrumCorrectionHops: 2,
+  loudnessSteps: 10,
+  spectrumBands: 32,
+  fftSize: 4096,
+  normalizeReference: false,
+  normalize: false,
+  limiterMethod: 'True Peak',
+  limiterThreshold: -1.0,
+  loudnessCorrectionLimiting: false,
+  amplify: false,
+  clipping: false,
+  outputBits: '32 (IEEE float)',
+  outputChannels: 2,
+  ditheringMethod: 'TPDF',
 };
+
+const genrePresets = [
+  { id: 'flat', name: 'Flat', icon: Music },
+  { id: 'bass-boost', name: 'Bass Boost', icon: Headphones },
+  { id: 'treble-boost', name: 'Treble Boost', icon: Headphones },
+  { id: 'jazz', name: 'Jazz', icon: Music },
+  { id: 'classical', name: 'Classical', icon: Music },
+  { id: 'electronic', name: 'Electronic', icon: Headphones },
+  { id: 'v-shape', name: 'V-Shape', icon: Music },
+  { id: 'vocal', name: 'Vocal', icon: Mic },
+  { id: 'rock', name: 'Rock', icon: Music },
+  { id: 'hip-hop', name: 'Hip-Hop', icon: Headphones },
+  { id: 'podcast', name: 'Podcast', icon: Mic },
+  { id: 'live', name: 'Live', icon: Radio },
+];
 
 export const GenrePresetsMastering = () => {
   const { t } = useLanguage();
   const { toast } = useToast();
   const [targetFile, setTargetFile] = useState<File | null>(null);
-  const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [masteredFile, setMasteredFile] = useState<{ name: string; url: string } | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [masteredUrl, setMasteredUrl] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settings, setSettings] = useState<MasteringSettingsData>(defaultSettings);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    if (acceptedFiles.length > 0) {
-      setTargetFile(acceptedFiles[0]);
-      setError(null);
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file && (file.type.includes('audio') || file.name.match(/\.(wav|mp3|flac)$/i))) {
+      setTargetFile(file);
     }
-  }, []);
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: { 'audio/*': ['.wav', '.mp3', '.flac'] },
-    maxFiles: 1,
-    multiple: false,
-  });
-
-  const handleGenreSelect = (genre: string) => {
-    setSelectedGenre(genre);
-    setSelectedPreset(null);
   };
 
-  const handlePresetSelect = (presetId: string) => {
-    setSelectedPreset(presetId);
-  };
-
-  const handleMastering = async () => {
-    if (!targetFile || !selectedPreset) return;
+  const handleMaster = async () => {
+    if (!targetFile || !selectedPreset) {
+      toast({
+        title: t('error'),
+        description: 'Please select a target file and a genre preset',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setIsProcessing(true);
-    setError(null);
-    setMasteredFile(null);
-
     try {
       const formData = new FormData();
       formData.append('target', targetFile);
       formData.append('preset_id', selectedPreset);
+      formData.append('settings', JSON.stringify(settings));
 
-      // Call the AI mastering edge function
-      const { data, error: functionError } = await supabase.functions.invoke('ai-mastering', {
+      const response = await fetch('/api/ai-mastering', {
+        method: 'POST',
         body: formData,
       });
 
-      if (functionError) throw functionError;
-
-      if (data.error) {
-        throw new Error(data.error);
+      if (!response.ok) {
+        throw new Error('Mastering failed');
       }
 
-      setMasteredFile({
-        name: data.fileName,
-        url: data.downloadUrl,
-      });
-
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      setMasteredUrl(url);
+      
       toast({
-        title: t('aiMastering.success'),
-        description: t('aiMastering.successMessage'),
+        title: t('success'),
+        description: 'Mastering complete!',
       });
-    } catch (err: any) {
-      console.error('Mastering error:', err);
-      setError(err.message || t('aiMastering.error'));
+    } catch (error) {
       toast({
-        title: t('aiMastering.error'),
-        description: err.message || t('aiMastering.errorMessage'),
+        title: t('error'),
+        description: 'Mastering failed. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -131,194 +115,116 @@ export const GenrePresetsMastering = () => {
     }
   };
 
-  const handleDownload = () => {
-    if (masteredFile) {
-      const a = document.createElement('a');
-      a.href = masteredFile.url;
-      a.download = masteredFile.name;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
-  };
-
   return (
-    <Card className="bg-slate-900/90 border-slate-600">
-      <CardHeader>
-        <CardTitle className="text-purple-400">
-          {t('aiMastering.masterWithPresets')}
-        </CardTitle>
-        <p className="text-sm text-slate-400 mt-2">
-          {t('aiMastering.genrePresetsDescription')}
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Target File Upload */}
-        <div>
-          <label className="text-sm font-semibold text-white mb-2 block">
-            {t('aiMastering.targetTrack')} *
-          </label>
+    <>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left: Target File Upload */}
+        <Card className="bg-card border-border p-6">
+          <h3 className="text-lg font-semibold text-foreground mb-4">{t('aiMastering.targetTrack')}</h3>
           <div
-            {...getRootProps()}
-            className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all ${
-              isDragActive
-                ? 'border-purple-400 bg-purple-400/10'
-                : 'border-slate-600 hover:border-purple-400/50 hover:bg-slate-800/50'
-            }`}
+            onDrop={handleDrop}
+            onDragOver={(e) => e.preventDefault()}
+            className="border-2 border-dashed border-cyan-500/50 rounded-lg p-8 text-center hover:border-cyan-500 transition-colors cursor-pointer bg-cyan-500/5"
+            onClick={() => fileInputRef.current?.click()}
           >
-            <input {...getInputProps()} />
-            {targetFile ? (
-              <div className="flex items-center justify-center gap-3">
-                <FileAudio className="h-8 w-8 text-purple-400" />
-                <div className="text-left">
-                  <p className="text-white font-medium">{targetFile.name}</p>
-                  <p className="text-sm text-slate-400">
-                    {(targetFile.size / 1024 / 1024).toFixed(2)} MB
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Upload className="h-12 w-12 text-slate-400 mx-auto" />
-                <p className="text-slate-300">
-                  {isDragActive
-                    ? t('aiMastering.dropFile')
-                    : t('aiMastering.dragOrClick')}
-                </p>
-                <p className="text-xs text-slate-500">WAV, MP3, FLAC</p>
-              </div>
-            )}
+            <Upload className="h-12 w-12 text-cyan-400 mx-auto mb-4" />
+            <p className="text-foreground font-medium mb-2">
+              {targetFile ? targetFile.name : 'Drag and drop your WAV reference file here, or use the file chooser below.'}
+            </p>
+            <p className="text-sm text-muted-foreground">Reference File: {targetFile ? 'File chosen' : 'No file chosen'}</p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".wav,.mp3,.flac"
+              className="hidden"
+              onChange={(e) => setTargetFile(e.target.files?.[0] || null)}
+            />
           </div>
-        </div>
+          {targetFile && (
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full mt-4 bg-cyan-500 hover:bg-cyan-600 text-white"
+            >
+              Choose Reference File
+            </Button>
+          )}
+        </Card>
 
-        {/* Genre Selection */}
-        <div>
-          <label className="text-sm font-semibold text-white mb-3 block">
-            {t('aiMastering.selectGenre')} *
-          </label>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {GENRES.map((genre) => (
-              <Button
-                key={genre}
-                onClick={() => handleGenreSelect(genre)}
-                variant={selectedGenre === genre ? 'default' : 'outline'}
-                className={`${
-                  selectedGenre === genre
-                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white border-purple-400'
-                    : 'border-slate-600 text-slate-300 hover:border-purple-400 hover:text-white'
-                }`}
-              >
-                <Music className="h-4 w-4 mr-2" />
-                {genre}
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        {/* Preset Selection */}
-        {selectedGenre && (
-          <div>
-            <label className="text-sm font-semibold text-white mb-3 block">
-              {t('aiMastering.selectPreset')} *
-            </label>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {GENRE_PRESETS[selectedGenre].map((preset) => (
-                <Card
+        {/* Right: Genre Presets */}
+        <Card className="bg-card border-border p-6">
+          <h3 className="text-lg font-semibold text-foreground mb-4">Select Genre Preset</h3>
+          <div className="grid grid-cols-3 gap-3">
+            {genrePresets.map((preset) => {
+              const Icon = preset.icon;
+              const isSelected = selectedPreset === preset.id;
+              return (
+                <button
                   key={preset.id}
-                  onClick={() => handlePresetSelect(preset.id)}
-                  className={`cursor-pointer transition-all ${
-                    selectedPreset === preset.id
-                      ? 'bg-gradient-to-br from-purple-900/60 to-pink-900/60 border-purple-400 shadow-lg shadow-purple-500/30'
-                      : 'bg-slate-800 border-slate-600 hover:border-purple-400/50 hover:shadow-md'
+                  onClick={() => setSelectedPreset(preset.id)}
+                  className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all ${
+                    isSelected
+                      ? 'border-cyan-500 bg-cyan-500/20 text-cyan-400'
+                      : 'border-border hover:border-cyan-500/50 hover:bg-cyan-500/5'
                   }`}
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <FileAudio className={`h-6 w-6 ${selectedPreset === preset.id ? 'text-purple-300' : 'text-slate-400'}`} />
-                      {selectedPreset === preset.id && (
-                        <CheckCircle2 className="h-5 w-5 text-green-400" />
-                      )}
-                    </div>
-                    <p className="font-semibold text-white text-sm mb-1">
-                      {preset.name}
-                    </p>
-                    <p className="text-xs text-slate-400">{preset.artist}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                  <Icon className={`h-6 w-6 mb-2 ${isSelected ? 'text-cyan-400' : 'text-muted-foreground'}`} />
+                  <span className={`text-sm font-medium ${isSelected ? 'text-cyan-400' : 'text-foreground'}`}>
+                    {preset.name}
+                  </span>
+                </button>
+              );
+            })}
           </div>
-        )}
+        </Card>
+      </div>
 
-        {/* Master Button */}
+      {/* Action Buttons */}
+      <div className="flex flex-wrap gap-4 mt-6 justify-center">
         <Button
-          onClick={handleMastering}
+          onClick={handleMaster}
           disabled={!targetFile || !selectedPreset || isProcessing}
-          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-6 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          size="lg"
+          className="bg-cyan-500 hover:bg-cyan-600 text-white px-8 py-6 text-lg font-semibold"
         >
           {isProcessing ? (
             <>
               <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-              {t('aiMastering.processing')}
+              Processing...
             </>
           ) : (
-            t('aiMastering.masterTrack')
+            'Process Audio'
           )}
         </Button>
 
-        {/* Processing/Results Area */}
-        {isProcessing && (
-          <Card className="bg-purple-900/20 border-purple-400/30">
-            <CardContent className="p-6 text-center">
-              <Loader2 className="h-12 w-12 text-purple-400 animate-spin mx-auto mb-3" />
-              <p className="text-purple-200 font-medium">{t('aiMastering.processing')}...</p>
-              <p className="text-sm text-slate-400 mt-1">
-                {t('aiMastering.processingMessage')}
-              </p>
-            </CardContent>
-          </Card>
-        )}
+        <Button
+          onClick={() => setSettingsOpen(true)}
+          className="bg-cyan-500 hover:bg-cyan-600 text-white px-8 py-6 text-lg font-semibold"
+        >
+          <Settings className="h-5 w-5 mr-2" />
+          Settings
+        </Button>
 
-        {error && (
-          <Card className="bg-red-900/20 border-red-400/30">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="h-6 w-6 text-red-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-red-200 font-medium">{t('aiMastering.error')}</p>
-                  <p className="text-sm text-red-300 mt-1">{error}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {masteredUrl && (
+          <Button
+            onClick={() => {
+              const a = document.createElement('a');
+              a.href = masteredUrl;
+              a.download = `mastered_${targetFile?.name || 'audio'}.wav`;
+              a.click();
+            }}
+            className="bg-green-500 hover:bg-green-600 text-white px-8 py-6 text-lg font-semibold"
+          >
+            <Download className="h-5 w-5 mr-2" />
+            Download
+          </Button>
         )}
+      </div>
 
-        {masteredFile && (
-          <Card className="bg-green-900/20 border-green-400/30">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="h-8 w-8 text-green-400" />
-                  <div>
-                    <p className="text-green-200 font-bold text-lg">
-                      {t('aiMastering.complete')}
-                    </p>
-                    <p className="text-sm text-slate-300">{masteredFile.name}</p>
-                  </div>
-                </div>
-                <Button
-                  onClick={handleDownload}
-                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                >
-                  <Download className="h-5 w-5 mr-2" />
-                  {t('button.download')}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </CardContent>
-    </Card>
+      <MasteringSettings
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        settings={settings}
+        onSettingsChange={setSettings}
+      />
+    </>
   );
 };

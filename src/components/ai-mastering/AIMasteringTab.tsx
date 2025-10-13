@@ -78,40 +78,26 @@ export const AIMasteringTab = () => {
 
   // Premium content
   return (
-    <div className="space-y-6">
-      {/* Header with Premium Badge */}
-      <Card className="bg-gradient-to-br from-purple-900/40 to-blue-900/40 border-purple-400/50 shadow-xl">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-3 text-2xl">
-              <Sparkles className="h-8 w-8 text-cyan-400" />
-              <span className="bg-gradient-to-r from-cyan-200 via-purple-200 to-pink-200 bg-clip-text text-transparent font-black">
-                {t('aiMastering.title')}
-              </span>
-            </CardTitle>
-            <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-yellow-400 px-4 py-2 text-sm font-bold">
-              <Crown className="h-4 w-4 mr-1" />
-              {isAdmin ? t('aiMastering.admin') : t('aiMastering.premium')}
-            </Badge>
-          </div>
-          <p className="text-slate-300 mt-2">
-            {t('aiMastering.description')}
-          </p>
-        </CardHeader>
-      </Card>
+    <div className="space-y-4">
+      {/* Info Banner */}
+      <div className="bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 rounded-lg p-4">
+        <p className="text-cyan-400 text-sm text-center">
+          {t('aiMastering.infoBanner')}
+        </p>
+      </div>
 
       {/* Sub-tabs for AI Mastering */}
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 bg-slate-900 border-2 border-slate-600 p-1 rounded-xl">
+        <TabsList className="grid w-full grid-cols-2 bg-card border-2 border-border p-1 rounded-xl">
           <TabsTrigger 
             value="custom"
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-blue-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-cyan-500/50 transition-all duration-300 font-bold rounded-lg"
+            className="data-[state=active]:bg-cyan-500 data-[state=active]:text-white transition-all duration-300 font-semibold rounded-lg"
           >
             {t('aiMastering.customReference')}
           </TabsTrigger>
           <TabsTrigger 
             value="preset"
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/50 transition-all duration-300 font-bold rounded-lg"
+            className="data-[state=active]:bg-cyan-500 data-[state=active]:text-white transition-all duration-300 font-semibold rounded-lg"
           >
             {t('aiMastering.genrePresets')}
           </TabsTrigger>

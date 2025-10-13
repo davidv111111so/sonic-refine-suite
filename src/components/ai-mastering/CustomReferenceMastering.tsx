@@ -1,11 +1,40 @@
-import React, { useState, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useRef } from 'react';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useDropzone } from 'react-dropzone';
-import { Upload, FileAudio, Download, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Upload, Download, Loader2, Settings } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { MasteringSettings, MasteringSettingsData } from './MasteringSettings';
+
+const defaultSettings: MasteringSettingsData = {
+  threshold: 0.998138,
+  epsilon: 0.000001,
+  maxPieceLength: 30.0,
+  bpm: 0.0,
+  timeSignatureNumerator: 4,
+  timeSignatureDenominator: 4,
+  pieceLengthBars: 8.0,
+  resamplingMethod: 'FastSinc',
+  spectrumCompensation: 'Frequency-Domain (Gain Envelope)',
+  loudnessCompensation: 'LUFS (Whole Signal)',
+  analyzeFullSpectrum: false,
+  spectrumSmoothingWidth: 3,
+  smoothingSteps: 1,
+  spectrumCorrectionHops: 2,
+  loudnessSteps: 10,
+  spectrumBands: 32,
+  fftSize: 4096,
+  normalizeReference: false,
+  normalize: false,
+  limiterMethod: 'True Peak',
+  limiterThreshold: -1.0,
+  loudnessCorrectionLimiting: false,
+  amplify: false,
+  clipping: false,
+  outputBits: '32 (IEEE float)',
+  outputChannels: 2,
+  ditheringMethod: 'TPDF',
+};
 
 export const CustomReferenceMastering = () => {
   const { t } = useLanguage();
@@ -13,75 +42,67 @@ export const CustomReferenceMastering = () => {
   const [targetFile, setTargetFile] = useState<File | null>(null);
   const [referenceFile, setReferenceFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [masteredFile, setMasteredFile] = useState<{ name: string; url: string } | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [masteredUrl, setMasteredUrl] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settings, setSettings] = useState<MasteringSettingsData>(defaultSettings);
 
-  const onDropTarget = useCallback((acceptedFiles: File[]) => {
-    if (acceptedFiles.length > 0) {
-      setTargetFile(acceptedFiles[0]);
-      setError(null);
+  const targetInputRef = useRef<HTMLInputElement>(null);
+  const referenceInputRef = useRef<HTMLInputElement>(null);
+
+  const handleTargetDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file && (file.type.includes('audio') || file.name.match(/\.(wav|mp3|flac)$/i))) {
+      setTargetFile(file);
     }
-  }, []);
+  };
 
-  const onDropReference = useCallback((acceptedFiles: File[]) => {
-    if (acceptedFiles.length > 0) {
-      setReferenceFile(acceptedFiles[0]);
-      setError(null);
+  const handleReferenceDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file && (file.type.includes('audio') || file.name.match(/\.(wav|mp3|flac)$/i))) {
+      setReferenceFile(file);
     }
-  }, []);
+  };
 
-  const targetDropzone = useDropzone({
-    onDrop: onDropTarget,
-    accept: { 'audio/*': ['.wav', '.mp3', '.flac'] },
-    maxFiles: 1,
-    multiple: false,
-  });
-
-  const referenceDropzone = useDropzone({
-    onDrop: onDropReference,
-    accept: { 'audio/*': ['.wav', '.mp3', '.flac'] },
-    maxFiles: 1,
-    multiple: false,
-  });
-
-  const handleMastering = async () => {
-    if (!targetFile || !referenceFile) return;
+  const handleMaster = async () => {
+    if (!targetFile || !referenceFile) {
+      toast({
+        title: t('error'),
+        description: 'Please select both target and reference files',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setIsProcessing(true);
-    setError(null);
-    setMasteredFile(null);
-
     try {
       const formData = new FormData();
       formData.append('target', targetFile);
       formData.append('reference', referenceFile);
+      formData.append('settings', JSON.stringify(settings));
 
-      // Call the AI mastering edge function
-      const { data, error: functionError } = await supabase.functions.invoke('ai-mastering', {
+      const response = await fetch('/api/ai-mastering', {
+        method: 'POST',
         body: formData,
       });
 
-      if (functionError) throw functionError;
-
-      if (data.error) {
-        throw new Error(data.error);
+      if (!response.ok) {
+        throw new Error('Mastering failed');
       }
 
-      setMasteredFile({
-        name: data.fileName,
-        url: data.downloadUrl,
-      });
-
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      setMasteredUrl(url);
+      
       toast({
-        title: t('aiMastering.success'),
-        description: t('aiMastering.successMessage'),
+        title: t('success'),
+        description: 'Mastering complete!',
       });
-    } catch (err: any) {
-      console.error('Mastering error:', err);
-      setError(err.message || t('aiMastering.error'));
+    } catch (error) {
       toast({
-        title: t('aiMastering.error'),
-        description: err.message || t('aiMastering.errorMessage'),
+        title: t('error'),
+        description: 'Mastering failed. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -89,173 +110,123 @@ export const CustomReferenceMastering = () => {
     }
   };
 
-  const handleDownload = () => {
-    if (masteredFile) {
-      const a = document.createElement('a');
-      a.href = masteredFile.url;
-      a.download = masteredFile.name;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
-  };
-
   return (
-    <Card className="bg-slate-900/90 border-slate-600">
-      <CardHeader>
-        <CardTitle className="text-cyan-400">
-          {t('aiMastering.masterWithReference')}
-        </CardTitle>
-        <p className="text-sm text-slate-400 mt-2">
-          {t('aiMastering.customReferenceDescription')}
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Target File Upload */}
-        <div>
-          <label className="text-sm font-semibold text-white mb-2 block">
-            {t('aiMastering.targetTrack')} *
-          </label>
-          <div
-            {...targetDropzone.getRootProps()}
-            className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all ${
-              targetDropzone.isDragActive
-                ? 'border-cyan-400 bg-cyan-400/10'
-                : 'border-slate-600 hover:border-cyan-400/50 hover:bg-slate-800/50'
-            }`}
-          >
-            <input {...targetDropzone.getInputProps()} />
-            {targetFile ? (
-              <div className="flex items-center justify-center gap-3">
-                <FileAudio className="h-8 w-8 text-cyan-400" />
-                <div className="text-left">
-                  <p className="text-white font-medium">{targetFile.name}</p>
-                  <p className="text-sm text-slate-400">
-                    {(targetFile.size / 1024 / 1024).toFixed(2)} MB
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Upload className="h-12 w-12 text-slate-400 mx-auto" />
-                <p className="text-slate-300">
-                  {targetDropzone.isDragActive
-                    ? t('aiMastering.dropFile')
-                    : t('aiMastering.dragOrClick')}
-                </p>
-                <p className="text-xs text-slate-500">WAV, MP3, FLAC</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Reference File Upload */}
-        <div>
-          <label className="text-sm font-semibold text-white mb-2 block">
-            {t('aiMastering.referenceTrack')} *
-          </label>
-          <div
-            {...referenceDropzone.getRootProps()}
-            className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all ${
-              referenceDropzone.isDragActive
-                ? 'border-purple-400 bg-purple-400/10'
-                : 'border-slate-600 hover:border-purple-400/50 hover:bg-slate-800/50'
-            }`}
-          >
-            <input {...referenceDropzone.getInputProps()} />
-            {referenceFile ? (
-              <div className="flex items-center justify-center gap-3">
-                <FileAudio className="h-8 w-8 text-purple-400" />
-                <div className="text-left">
-                  <p className="text-white font-medium">{referenceFile.name}</p>
-                  <p className="text-sm text-slate-400">
-                    {(referenceFile.size / 1024 / 1024).toFixed(2)} MB
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Upload className="h-12 w-12 text-slate-400 mx-auto" />
-                <p className="text-slate-300">
-                  {referenceDropzone.isDragActive
-                    ? t('aiMastering.dropFile')
-                    : t('aiMastering.dragOrClick')}
-                </p>
-                <p className="text-xs text-slate-500">WAV, MP3, FLAC</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Master Button */}
-        <Button
-          onClick={handleMastering}
-          disabled={!targetFile || !referenceFile || isProcessing}
-          className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold py-6 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          size="lg"
-        >
-          {isProcessing ? (
-            <>
-              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-              {t('aiMastering.processing')}
-            </>
-          ) : (
-            t('aiMastering.masterTrack')
-          )}
-        </Button>
-
-        {/* Processing/Results Area */}
-        {isProcessing && (
-          <Card className="bg-blue-900/20 border-blue-400/30">
-            <CardContent className="p-6 text-center">
-              <Loader2 className="h-12 w-12 text-blue-400 animate-spin mx-auto mb-3" />
-              <p className="text-blue-200 font-medium">{t('aiMastering.processing')}...</p>
-              <p className="text-sm text-slate-400 mt-1">
-                {t('aiMastering.processingMessage')}
+    <>
+      <Card className="bg-card border-border p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Target File Upload */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-foreground">{t('aiMastering.targetTrack')}</h3>
+            <div
+              onDrop={handleTargetDrop}
+              onDragOver={(e) => e.preventDefault()}
+              className="border-2 border-dashed border-cyan-500/50 rounded-lg p-8 text-center hover:border-cyan-500 transition-colors cursor-pointer bg-cyan-500/5"
+              onClick={() => targetInputRef.current?.click()}
+            >
+              <Upload className="h-12 w-12 text-cyan-400 mx-auto mb-4" />
+              <p className="text-foreground font-medium mb-2">
+                {targetFile ? targetFile.name : 'Drag and drop your WAV target file here, or use the file chooser below.'}
               </p>
-            </CardContent>
-          </Card>
-        )}
+              <p className="text-sm text-muted-foreground">Target File: {targetFile ? 'File chosen' : 'No file chosen'}</p>
+              <input
+                ref={targetInputRef}
+                type="file"
+                accept=".wav,.mp3,.flac"
+                className="hidden"
+                onChange={(e) => setTargetFile(e.target.files?.[0] || null)}
+              />
+            </div>
+            {targetFile && (
+              <Button
+                onClick={() => targetInputRef.current?.click()}
+                className="w-full bg-cyan-500 hover:bg-cyan-600 text-white"
+              >
+                Choose Target File
+              </Button>
+            )}
+          </div>
 
-        {error && (
-          <Card className="bg-red-900/20 border-red-400/30">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="h-6 w-6 text-red-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-red-200 font-medium">{t('aiMastering.error')}</p>
-                  <p className="text-sm text-red-300 mt-1">{error}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+          {/* Reference File Upload */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-foreground">{t('aiMastering.referenceTrack')}</h3>
+            <div
+              onDrop={handleReferenceDrop}
+              onDragOver={(e) => e.preventDefault()}
+              className="border-2 border-dashed border-cyan-500/50 rounded-lg p-8 text-center hover:border-cyan-500 transition-colors cursor-pointer bg-cyan-500/5"
+              onClick={() => referenceInputRef.current?.click()}
+            >
+              <Upload className="h-12 w-12 text-cyan-400 mx-auto mb-4" />
+              <p className="text-foreground font-medium mb-2">
+                {referenceFile ? referenceFile.name : 'Drag and drop your WAV reference file here, or use the file chooser below.'}
+              </p>
+              <p className="text-sm text-muted-foreground">Reference File: {referenceFile ? 'File chosen' : 'No file chosen'}</p>
+              <input
+                ref={referenceInputRef}
+                type="file"
+                accept=".wav,.mp3,.flac"
+                className="hidden"
+                onChange={(e) => setReferenceFile(e.target.files?.[0] || null)}
+              />
+            </div>
+            {referenceFile && (
+              <Button
+                onClick={() => referenceInputRef.current?.click()}
+                className="w-full bg-cyan-500 hover:bg-cyan-600 text-white"
+              >
+                Choose Reference File
+              </Button>
+            )}
+          </div>
+        </div>
 
-        {masteredFile && (
-          <Card className="bg-green-900/20 border-green-400/30">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="h-8 w-8 text-green-400" />
-                  <div>
-                    <p className="text-green-200 font-bold text-lg">
-                      {t('aiMastering.complete')}
-                    </p>
-                    <p className="text-sm text-slate-300">{masteredFile.name}</p>
-                  </div>
-                </div>
-                <Button
-                  onClick={handleDownload}
-                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                >
-                  <Download className="h-5 w-5 mr-2" />
-                  {t('button.download')}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </CardContent>
-    </Card>
+        {/* Action Buttons */}
+        <div className="flex flex-wrap gap-4 mt-8 justify-center">
+          <Button
+            onClick={handleMaster}
+            disabled={!targetFile || !referenceFile || isProcessing}
+            className="bg-cyan-500 hover:bg-cyan-600 text-white px-8 py-6 text-lg font-semibold"
+          >
+            {isProcessing ? (
+              <>
+                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              'Process Audio'
+            )}
+          </Button>
+
+          <Button
+            onClick={() => setSettingsOpen(true)}
+            className="bg-cyan-500 hover:bg-cyan-600 text-white px-8 py-6 text-lg font-semibold"
+          >
+            <Settings className="h-5 w-5 mr-2" />
+            Settings
+          </Button>
+
+          {masteredUrl && (
+            <Button
+              onClick={() => {
+                const a = document.createElement('a');
+                a.href = masteredUrl;
+                a.download = `mastered_${targetFile?.name || 'audio'}.wav`;
+                a.click();
+              }}
+              className="bg-green-500 hover:bg-green-600 text-white px-8 py-6 text-lg font-semibold"
+            >
+              <Download className="h-5 w-5 mr-2" />
+              Download
+            </Button>
+          )}
+        </div>
+      </Card>
+
+      <MasteringSettings
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        settings={settings}
+        onSettingsChange={setSettings}
+      />
+    </>
   );
 };
