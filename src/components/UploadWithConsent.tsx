@@ -81,27 +81,23 @@ export const UploadWithConsent = ({
       processFiles(pendingFiles);
     }
   };
-  const handleUploadClick = () => {
+  const handleUploadClick = (e: React.MouseEvent) => {
     if (!hasConsented) {
+      e.stopPropagation();
       setErrorMessage('Please accept the Terms and Conditions before uploading files.');
       return;
-    }
-    // Trigger the hidden file input
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    if (fileInput) {
-      fileInput.click();
     }
   };
   return <div className="space-y-4">
       {/* Upload Zone */}
       <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600 shadow-lg">
         <CardContent className="p-6">
-          <div {...getRootProps()} className="flex flex-col items-center justify-center h-32 border-2 border-dashed rounded-md cursor-pointer bg-slate-700/20 border-slate-500/50 hover:bg-slate-700/40 hover:border-blue-400/50 transition-all duration-200" onClick={handleUploadClick}>
-            
-            {isDragActive ? <p className="text-blue-300 text-sm font-medium">Drop your audio files here...</p> : <div className="flex flex-col items-center">
+          <div {...getRootProps()} className="flex flex-col items-center justify-center h-32 border-2 border-dashed rounded-md cursor-pointer bg-slate-700/20 border-slate-500/50 hover:bg-slate-700/40 hover:border-blue-400/50 transition-all duration-200">
+            <input {...getInputProps()} disabled={!hasConsented} />
+            {isDragActive && hasConsented ? <p className="text-blue-300 text-sm font-medium">Drop your audio files here...</p> : <div className="flex flex-col items-center">
                 <Upload className="h-8 w-8 text-blue-400 mb-2" />
                 <p className="text-base text-center font-medium mb-1 text-zinc-50">
-                  Drag audio files here or click to select
+                  {hasConsented ? 'Drag audio files here or click to select' : 'Accept Terms and Conditions to upload'}
                 </p>
                 <p className="text-sm text-slate-300">{supportedFormats.join(', ').toUpperCase()} (Max {Math.round(maxFileSize / 1024 / 1024)}MB each, {maxFiles} files)</p>
               </div>}

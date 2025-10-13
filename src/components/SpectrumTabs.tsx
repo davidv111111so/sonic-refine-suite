@@ -14,6 +14,8 @@ import { AudioFile } from '@/types/audio';
 import { ProcessingSettings } from '@/utils/audioProcessor';
 import { BarChart3, Settings, Upload, Zap, Package } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { AIMasteringTab } from '@/components/ai-mastering/AIMasteringTab';
+
 interface SpectrumTabsProps {
   audioFiles: AudioFile[];
   enhancedHistory: AudioFile[];
@@ -128,7 +130,7 @@ export const SpectrumTabs = ({
     setActiveTab('spectrum');
   };
   return <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid w-full grid-cols-2 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-black dark:via-slate-900 dark:to-black border-2 border-slate-600 dark:border-slate-700 p-1 rounded-xl shadow-xl">
+      <TabsList className="grid w-full grid-cols-3 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-black dark:via-slate-900 dark:to-black border-2 border-slate-600 dark:border-slate-700 p-1 rounded-xl shadow-xl">
         <TabsTrigger value="spectrum" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:via-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-cyan-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl">
           <BarChart3 className="h-5 w-5" />
           <span className="text-base">{t('button.spectrum')}</span>
@@ -136,6 +138,10 @@ export const SpectrumTabs = ({
         <TabsTrigger value="enhance" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:via-pink-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl">
           <Settings className="h-5 w-5" />
           <span className="text-base">{t('button.enhance')}</span>
+        </TabsTrigger>
+        <TabsTrigger value="ai-mastering" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:via-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl">
+          <Zap className="h-5 w-5" />
+          <span className="text-base">AI Mastering</span>
         </TabsTrigger>
       </TabsList>
 
@@ -249,6 +255,10 @@ export const SpectrumTabs = ({
 
         {/* 5-Band Equalizer */}
         <FiveBandEqualizer eqBands={eqBands} onEQBandChange={onEQBandChange} onResetEQ={onResetEQ} enabled={eqEnabled} onEnabledChange={setEqEnabled} />
+      </TabsContent>
+
+      <TabsContent value="ai-mastering" className="space-y-6">
+        <AIMasteringTab />
       </TabsContent>
       
       {/* File Info Modal */}
