@@ -214,7 +214,7 @@ export const SpectrumTabs = ({
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs bg-gradient-to-r from-blue-200 to-cyan-200 bg-clip-text text-transparent font-bold">{t('enhance.quality')}:</span>
-                    <span className="px-2 py-1 bg-blue-600/60 rounded-md text-sm font-bold text-white border border-blue-400/60 shadow-lg">
+                    <span className="px-2 py-1 bg-blue-600/60 rounded-md text-sm font-bold border border-blue-400/60 shadow-lg text-neutral-50">
                       {processingSettings.sampleRate / 1000}kHz {processingSettings.bitDepth}bit
                     </span>
                   </div>
