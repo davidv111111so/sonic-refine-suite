@@ -177,7 +177,7 @@ export const FiveBandEqualizer = memo(({
               top: `${(12 - mark) / 24 * 100}%`,
               boxShadow: '0 0 10px rgba(34, 211, 238, 0.1)'
             }}>
-                    <span className="absolute -left-10 -top-2.5 bg-gradient-to-r from-cyan-200 to-blue-200 bg-clip-text text-transparent font-mono drop-shadow-lg animate-pulse text-right text-xs font-thin">
+                    <span className="absolute -left-10 -top-2.5 bg-gradient-to-r from-cyan-200 to-blue-200 bg-clip-text text-transparent font-mono drop-shadow-lg animate-pulse text-right text-xs font-thin px-[18px]">
                       {mark > 0 ? '+' : ''}{mark}dB
                     </span>
                   </div>)}
