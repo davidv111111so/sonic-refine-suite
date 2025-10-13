@@ -208,7 +208,7 @@ export const SpectrumTabs = ({
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs bg-gradient-to-r from-pink-200 to-purple-200 bg-clip-text text-transparent font-bold">→ {language === 'ES' ? 'Salida' : 'Output'}:</span>
-                    <span className="px-2 py-1 bg-pink-600/60 rounded-md text-sm font-bold text-white border border-pink-400/60 shadow-lg">
+                    <span className="px-2 py-1 bg-pink-600/60 rounded-md text-sm font-bold border border-pink-400/60 shadow-lg text-neutral-50">
                       {processingSettings.outputFormat.toUpperCase()}
                     </span>
                   </div>
