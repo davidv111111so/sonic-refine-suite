@@ -231,7 +231,7 @@ export const FiveBandEqualizer = memo(({
               </div>
 
               {/* EQ Branding with Glow */}
-              <div className="absolute bottom-3 right-4 text-xs text-cyan-300 font-mono font-bold drop-shadow-lg">
+              <div className="absolute bottom-3 right-4 text-xs text-cyan-300 font-mono font-bold drop-shadow-lg py-[19px] my-[5px] mx-[18px]">
                 SPECTRUM 5-BAND EQ ✨
               </div>
             </div>
