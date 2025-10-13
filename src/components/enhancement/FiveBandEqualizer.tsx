@@ -138,7 +138,7 @@ export const FiveBandEqualizer = memo(({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="pt-0">
+      <CardContent className="pt-0 bg-zinc-950">
         {enabled ? <div className="relative space-y-4">
             {/* EQ Presets Strip - Vibrant & Stylish */}
             <div className="bg-gradient-to-br from-purple-600/80 via-pink-600/80 to-blue-600/80 dark:from-purple-700/90 dark:via-pink-700/90 dark:to-blue-700/90 rounded-2xl p-5 border-3 border-white/20 shadow-2xl shadow-purple-500/50 backdrop-blur-md relative overflow-hidden">
@@ -177,7 +177,7 @@ export const FiveBandEqualizer = memo(({
               top: `${(12 - mark) / 24 * 100}%`,
               boxShadow: '0 0 10px rgba(34, 211, 238, 0.1)'
             }}>
-                    <span className="absolute -left-10 -top-2.5 bg-gradient-to-r from-cyan-200 to-blue-200 bg-clip-text text-transparent font-mono drop-shadow-lg animate-pulse text-right text-xs font-thin px-[17px]">
+                    <span className="absolute -left-10 -top-2.5 bg-gradient-to-r from-cyan-200 to-blue-200 bg-clip-text text-transparent font-mono drop-shadow-lg animate-pulse text-right text-xs font-thin px-[18px]">
                       {mark > 0 ? '+' : ''}{mark}dB
                     </span>
                   </div>)}
