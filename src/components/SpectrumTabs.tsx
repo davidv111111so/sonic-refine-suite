@@ -220,7 +220,7 @@ export const SpectrumTabs = ({
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs bg-gradient-to-r from-slate-200 to-gray-200 bg-clip-text text-transparent font-bold">{language === 'ES' ? 'Antes' : 'Before'}:</span>
-                    <span className="px-2 py-1 bg-gray-600/60 rounded-md text-sm font-bold text-white border border-gray-400/60 shadow-lg">
+                    <span className="px-2 py-1 bg-gray-600/60 rounded-md text-sm font-bold border border-gray-400/60 shadow-lg text-neutral-50">
                       {Math.round(audioFiles.reduce((acc, file) => acc + file.size, 0) / 1024 / 1024)}MB
                     </span>
                   </div>
