@@ -99,7 +99,7 @@ export const UploadWithConsent = ({
                 <p className="text-base text-center font-medium mb-1 text-zinc-50">
                   {hasConsented ? 'Drag audio files here or click to select' : 'Accept Terms and Conditions to upload'}
                 </p>
-                <p className="text-sm text-slate-300">{supportedFormats.join(', ').toUpperCase()} (Max {Math.round(maxFileSize / 1024 / 1024)}MB each, {maxFiles} files)</p>
+                <p className="text-sm text-sky-300">{supportedFormats.join(', ').toUpperCase()} (Max {Math.round(maxFileSize / 1024 / 1024)}MB each, {maxFiles} files)</p>
               </div>}
           </div>
 
