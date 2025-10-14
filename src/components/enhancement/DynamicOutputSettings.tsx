@@ -33,7 +33,7 @@ export const DynamicOutputSettings = ({
       <CardContent className="pt-0 space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="text-xs bg-gradient-to-r from-cyan-200 to-blue-200 bg-clip-text text-transparent mb-2 flex items-center font-bold">
+            <label className="text-xs bg-gradient-to-r from-cyan-200 to-blue-200 bg-clip-text mb-2 flex items-center font-bold text-teal-300">
               Format
               <AudioSettingsTooltip setting="outputFormat" />
             </label>
