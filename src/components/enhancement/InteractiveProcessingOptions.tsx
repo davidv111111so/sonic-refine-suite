@@ -156,7 +156,7 @@ export const InteractiveProcessingOptions = ({
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-xs bg-gradient-to-r from-slate-200 to-gray-200 bg-clip-text text-transparent font-semibold">{t('processing.threshold')}</span>
-                  <span className="text-xs text-white font-mono font-bold">{compressionThreshold} dB</span>
+                  <span className="text-xs font-mono font-bold text-slate-50">{compressionThreshold} dB</span>
                 </div>
                 <Slider value={[compressionThreshold]} onValueChange={([value]) => onCompressionThresholdChange(value)} min={-40} max={0} step={1} className="w-full" />
                 <p className="text-[10px] text-slate-400">{t('processing.thresholdInfo')}</p>
