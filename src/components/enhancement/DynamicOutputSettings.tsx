@@ -75,7 +75,7 @@ export const DynamicOutputSettings = ({
                 Sample Rate: 44.1 kHz (locked for MP3)
               </p>
             </div> : <div>
-              <label className="text-xs bg-gradient-to-r from-pink-200 to-purple-200 bg-clip-text text-transparent mb-2 flex items-center font-bold">
+              <label className="text-xs bg-gradient-to-r from-pink-200 to-purple-200 bg-clip-text mb-2 flex items-center font-bold text-teal-300">
                 Bit Depth
                 <AudioSettingsTooltip setting="sampleRate" />
               </label>
