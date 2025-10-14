@@ -5,7 +5,7 @@ export interface ProcessingSettings {
   outputFormat: 'wav' | 'mp3' | 'flac';
   sampleRate: number;
   bitDepth: 16 | 24;
-  bitrate?: number; // For MP3 only
+  bitrate?: number;
   noiseReduction: number;
   noiseReductionEnabled: boolean;
   normalize: boolean;
@@ -14,9 +14,12 @@ export interface ProcessingSettings {
   trebleEnhancement: number;
   compression: number;
   compressionEnabled: boolean;
+  compressionThreshold: number;
+  compressionRatio: string;
   gainAdjustment: number;
   stereoWidening: number;
   stereoWideningEnabled: boolean;
+  batchMode: boolean;
   eqBands: number[];
   enableEQ: boolean;
 }
@@ -25,22 +28,25 @@ export const getDefaultSettings = (inputFile: File): ProcessingSettings => {
   const fileExtension = inputFile.name.toLowerCase().split('.').pop();
   
   return {
-    outputFormat: fileExtension === 'mp3' ? 'mp3' : 'wav', // Preserve MP3, default to WAV
-    sampleRate: 44100, // Always default to 44.1kHz
-    bitDepth: 16, // Always default to 16-bit
-    bitrate: 320, // Default MP3 bitrate
+    outputFormat: fileExtension === 'mp3' ? 'mp3' : 'wav',
+    sampleRate: 44100,
+    bitDepth: 16,
+    bitrate: 320,
     noiseReduction: 50,
     noiseReductionEnabled: false,
     normalize: true,
-    normalizeLevel: -3,
+    normalizeLevel: -0.3,
     bassBoost: 0,
     trebleEnhancement: 0,
     compression: 4,
     compressionEnabled: false,
+    compressionThreshold: -20,
+    compressionRatio: '2:1',
     gainAdjustment: 0,
     stereoWidening: 25,
     stereoWideningEnabled: false,
-    eqBands: [0, 0, 0, 0, 0], // 5-band EQ
+    batchMode: false,
+    eqBands: [0, 0, 0, 0, 0],
     enableEQ: true
   };
 };

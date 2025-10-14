@@ -176,7 +176,49 @@ const translations = {
     'aiMastering.errorMessage': 'Failed to process your track. Please try again.',
     'aiMastering.complete': 'Mastering Complete!',
     'aiMastering.dragOrClick': 'Drag & drop or click to select',
-    'aiMastering.dropFile': 'Drop your file here'
+    'aiMastering.dropFile': 'Drop your file here',
+    
+    // Processing Options - Phase 1 & 2
+    'processing.options': 'Processing Options',
+    'processing.batchMode': 'Batch Mode',
+    'processing.individualMode': 'Individual Mode',
+    'processing.compressionRatio': 'Compression Ratio',
+    'processing.threshold': 'Threshold',
+    'processing.thresholdInfo': 'Controls when compression is applied to the signal',
+    'processing.normalizationInfo': 'Limited to 0dB to -3dB for optimal stability in live/broadcast scenarios',
+    'processing.width': 'Width',
+    'processing.stereoWideningInfo': 'Subtle stereo enhancement. Values >70% may cause phase issues.',
+    'processing.antiPhaseWarning': '⚠️ Anti-phase territory! Risk of phase cancellation.',
+    'processing.premiumRequired': 'Premium subscription required for this feature',
+    
+    // EQ Presets - Phase 3
+    'eq.professionalPresets': 'Professional EQ Presets',
+    'eq.autoGainCompensation': 'Auto Gain Compensation',
+    'eq.gainComp': 'Gain Comp',
+    'eq.compensationExplanation': 'All presets include automatic gain compensation for objective A/B comparison at equal perceived loudness',
+    
+    // Real-time Audio Player
+    'player.realtimePreview': 'Real-time Audio Preview',
+    'player.noAudioLoaded': 'No audio file loaded',
+    'player.realtimeProcessing': '⚡ Real-time processing active - hear changes instantly',
+    
+    // EQ Band Names (5-Band with specific frequencies)
+    'eq.band1': 'Low / Sub',
+    'eq.band1Freq': '50 Hz',
+    'eq.band1Range': '20-85 Hz',
+    'eq.band2': 'Mid Low / Punch',
+    'eq.band2Freq': '145 Hz',
+    'eq.band2Range': '85-356 Hz',
+    'eq.band3': 'Mid',
+    'eq.band3Freq': '874 Hz',
+    'eq.band3Range': '356-2.2k Hz',
+    'eq.band4': 'Mid High / Presence',
+    'eq.band4Freq': '5.56 kHz',
+    'eq.band4Range': '2.2k-9.8k Hz',
+    'eq.band5': 'High / Air',
+    'eq.band5Freq': '17.2 kHz',
+    'eq.band5Range': '9.8k-20k Hz',
+    'eq.psychoacousticInfo': 'The default range has selected frequencies that are psychoacoustically pleasing to the human ear, naturally highlighting the most embellishing tones in the audio.',
   },
     ES: {
       // Navigation
@@ -223,8 +265,7 @@ const translations = {
       'output.lossless': 'Sin pérdida',
       'output.compressed': 'Comprimido',
       
-      // Processing Options
-      'processing.options': 'Opciones de Procesamiento',
+      // Processing Options (Spanish - old keys to remove duplicates)
       'processing.reset': 'Restablecer',
       'processing.noiseReduction': 'Reducción de Ruido',
       'processing.audioNormalization': 'Normalización de Audio',
@@ -233,7 +274,7 @@ const translations = {
       'processing.db6': '-6 dB',
       'processing.db12': '-12 dB',
       'processing.dynamicCompression': 'Compresión Dinámica',
-      'processing.stereoWidening': 'Ampliación Estéreo',
+      'processing.stereoWideningAlt': 'Ampliación Estéreo',
       'processing.bassBoost': 'Realce de Graves',
       'processing.trebleEnhancement': 'Realce de Agudos',
       
@@ -419,7 +460,49 @@ const translations = {
     'aiMastering.errorMessage': 'Fallo al procesar tu pista. Por favor intenta de nuevo.',
     'aiMastering.complete': '¡Masterización Completa!',
     'aiMastering.dragOrClick': 'Arrastra y suelta o haz clic para seleccionar',
-    'aiMastering.dropFile': 'Suelta tu archivo aquí'
+    'aiMastering.dropFile': 'Suelta tu archivo aquí',
+    
+    // Processing Options - Phase 1 & 2
+    'processing.options': 'Opciones de Procesamiento',
+    'processing.batchMode': 'Modo Lote',
+    'processing.individualMode': 'Modo Individual',
+    'processing.compressionRatio': 'Relación de Compresión',
+    'processing.threshold': 'Umbral',
+    'processing.thresholdInfo': 'Controla cuándo se aplica la compresión a la señal',
+    'processing.normalizationInfo': 'Limitado a 0dB a -3dB para estabilidad óptima en escenarios en vivo/transmisión',
+    'processing.width': 'Ancho',
+    'processing.stereoWideningInfo': 'Mejora estéreo sutil. Valores >70% pueden causar problemas de fase.',
+    'processing.antiPhaseWarning': '⚠️ ¡Territorio de antifase! Riesgo de cancelación de fase.',
+    'processing.premiumRequired': 'Se requiere suscripción premium para esta función',
+    
+    // EQ Presets - Phase 3
+    'eq.professionalPresets': 'Presets Profesionales de EQ',
+    'eq.autoGainCompensation': 'Compensación Automática de Ganancia',
+    'eq.gainComp': 'Comp. Ganancia',
+    'eq.compensationExplanation': 'Todos los presets incluyen compensación automática de ganancia para comparación A/B objetiva a volumen percibido igual',
+    
+    // Real-time Audio Player
+    'player.realtimePreview': 'Vista Previa de Audio en Tiempo Real',
+    'player.noAudioLoaded': 'No hay archivo de audio cargado',
+    'player.realtimeProcessing': '⚡ Procesamiento en tiempo real activo - escucha los cambios instantáneamente',
+    
+    // EQ Band Names (5-Band with specific frequencies)
+    'eq.band1': 'Graves / Sub',
+    'eq.band1Freq': '50 Hz',
+    'eq.band1Range': '20-85 Hz',
+    'eq.band2': 'Medios Bajos / Pegada',
+    'eq.band2Freq': '145 Hz',
+    'eq.band2Range': '85-356 Hz',
+    'eq.band3': 'Medios',
+    'eq.band3Freq': '874 Hz',
+    'eq.band3Range': '356-2.2k Hz',
+    'eq.band4': 'Medios Altos / Presencia',
+    'eq.band4Freq': '5.56 kHz',
+    'eq.band4Range': '2.2k-9.8k Hz',
+    'eq.band5': 'Agudos / Aire',
+    'eq.band5Freq': '17.2 kHz',
+    'eq.band5Range': '9.8k-20k Hz',
+    'eq.psychoacousticInfo': 'El rango predeterminado ha seleccionado frecuencias que son psicoacústicamente agradables al oído humano, resaltando naturalmente los tonos más embellecedores en el audio.',
   }
 };
 

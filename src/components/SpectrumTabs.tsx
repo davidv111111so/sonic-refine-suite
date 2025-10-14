@@ -69,14 +69,17 @@ export const SpectrumTabs = ({
     noiseReduction: 50,
     noiseReductionEnabled: false,
     normalize: true,
-    normalizeLevel: -3,
+    normalizeLevel: -0.3, // Default to -0.3dB as per specs
     bassBoost: 0,
     trebleEnhancement: 0,
     compression: 4,
     compressionEnabled: false,
+    compressionThreshold: -20, // Default threshold
+    compressionRatio: '2:1', // Default ratio
     gainAdjustment: 0,
     stereoWidening: 25,
     stereoWideningEnabled: false,
+    batchMode: false, // Default to individual mode
     eqBands: eqBands,
     enableEQ: eqEnabled
   });
@@ -92,11 +95,14 @@ export const SpectrumTabs = ({
       noiseReduction: 50,
       noiseReductionEnabled: false,
       normalize: true,
-      normalizeLevel: -3,
+      normalizeLevel: -0.3,
       compression: 4,
       compressionEnabled: false,
+      compressionThreshold: -20,
+      compressionRatio: '2:1',
       stereoWidening: 25,
-      stereoWideningEnabled: false
+      stereoWideningEnabled: false,
+      batchMode: false
     }));
   };
   const handleLoadProcessingSettings = (settings: ProcessingSettings) => {
@@ -249,7 +255,31 @@ export const SpectrumTabs = ({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <DynamicOutputSettings outputFormat={processingSettings.outputFormat} sampleRate={processingSettings.sampleRate} bitDepth={processingSettings.bitDepth} bitrate={processingSettings.bitrate} onOutputFormatChange={format => handleProcessingSettingChange('outputFormat', format)} onSampleRateChange={rate => handleProcessingSettingChange('sampleRate', rate)} onBitDepthChange={depth => handleProcessingSettingChange('bitDepth', depth)} onBitrateChange={rate => handleProcessingSettingChange('bitrate', rate)} />
 
-          <InteractiveProcessingOptions noiseReduction={processingSettings.noiseReduction} noiseReductionEnabled={processingSettings.noiseReductionEnabled} normalize={processingSettings.normalize} normalizeLevel={processingSettings.normalizeLevel} compression={processingSettings.compression} compressionEnabled={processingSettings.compressionEnabled} stereoWidening={processingSettings.stereoWidening} stereoWideningEnabled={processingSettings.stereoWideningEnabled} onNoiseReductionChange={value => handleProcessingSettingChange('noiseReduction', value)} onNoiseReductionEnabledChange={enabled => handleProcessingSettingChange('noiseReductionEnabled', enabled)} onNormalizeChange={enabled => handleProcessingSettingChange('normalize', enabled)} onNormalizeLevelChange={level => handleProcessingSettingChange('normalizeLevel', level)} onCompressionChange={value => handleProcessingSettingChange('compression', value)} onCompressionEnabledChange={enabled => handleProcessingSettingChange('compressionEnabled', enabled)} onStereoWideningChange={value => handleProcessingSettingChange('stereoWidening', value)} onStereoWideningEnabledChange={enabled => handleProcessingSettingChange('stereoWideningEnabled', enabled)} onReset={handleResetProcessingOptions} />
+          <InteractiveProcessingOptions 
+            noiseReduction={processingSettings.noiseReduction} 
+            noiseReductionEnabled={processingSettings.noiseReductionEnabled} 
+            normalize={processingSettings.normalize} 
+            normalizeLevel={processingSettings.normalizeLevel} 
+            compression={processingSettings.compression} 
+            compressionEnabled={processingSettings.compressionEnabled} 
+            compressionThreshold={processingSettings.compressionThreshold} 
+            compressionRatio={processingSettings.compressionRatio} 
+            stereoWidening={processingSettings.stereoWidening} 
+            stereoWideningEnabled={processingSettings.stereoWideningEnabled} 
+            batchMode={processingSettings.batchMode}
+            onNoiseReductionChange={value => handleProcessingSettingChange('noiseReduction', value)} 
+            onNoiseReductionEnabledChange={enabled => handleProcessingSettingChange('noiseReductionEnabled', enabled)} 
+            onNormalizeChange={enabled => handleProcessingSettingChange('normalize', enabled)} 
+            onNormalizeLevelChange={level => handleProcessingSettingChange('normalizeLevel', level)} 
+            onCompressionChange={value => handleProcessingSettingChange('compression', value)} 
+            onCompressionEnabledChange={enabled => handleProcessingSettingChange('compressionEnabled', enabled)} 
+            onCompressionThresholdChange={value => handleProcessingSettingChange('compressionThreshold', value)} 
+            onCompressionRatioChange={ratio => handleProcessingSettingChange('compressionRatio', ratio)} 
+            onStereoWideningChange={value => handleProcessingSettingChange('stereoWidening', value)} 
+            onStereoWideningEnabledChange={enabled => handleProcessingSettingChange('stereoWideningEnabled', enabled)} 
+            onBatchModeChange={enabled => handleProcessingSettingChange('batchMode', enabled)}
+            onReset={handleResetProcessingOptions} 
+          />
         </div>
 
         {/* 5-Band Equalizer */}
