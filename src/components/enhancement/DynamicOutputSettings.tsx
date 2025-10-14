@@ -46,7 +46,7 @@ export const DynamicOutputSettings = ({
           
           {/* Sample Rate - Hidden for MP3, visible for lossless */}
           {outputFormat !== 'mp3' && <div>
-              <label className="text-xs bg-gradient-to-r from-purple-200 to-pink-200 bg-clip-text text-transparent mb-2 flex items-center font-bold">
+              <label className="text-xs bg-gradient-to-r from-purple-200 to-pink-200 bg-clip-text mb-2 flex items-center font-bold text-teal-200">
                 Sample Rate
                 <AudioSettingsTooltip setting="sampleRate" />
               </label>
