@@ -5,12 +5,7 @@ import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { RotateCcw, Music2, Mic, Headphones, Guitar, Disc3, Info } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 interface FiveBandEqualizerProps {
   eqBands: number[];
   onEQBandChange: (bandIndex: number, value: number) => void;
@@ -95,9 +90,7 @@ export const FiveBandEqualizer = memo(({
 
   // 5 band EQ frequencies optimized for psychoacoustic response
   const eqFrequencies = [50, 145, 874, 5560, 17200];
-  const bandLabels = language === 'ES' 
-    ? ['Graves / Sub', 'Medio-Grave / Punch', 'Medio', 'Medio-Agudo / Presencia', 'Agudos / Air']
-    : ['Low / Sub', 'Mid Low / Punch', 'Mid', 'Mid High / Presence', 'High / Air'];
+  const bandLabels = language === 'ES' ? ['Graves / Sub', 'Medio-Grave / Punch', 'Medio', 'Medio-Agudo / Presencia', 'Agudos / Air'] : ['Low / Sub', 'Mid Low / Punch', 'Mid', 'Mid High / Presence', 'High / Air'];
   const applyPreset = useCallback((values: number[]) => {
     // Apply the 5 preset values directly to the 5 visual band indices
     bandIndices.forEach((bandIndex, visualIndex) => {
@@ -142,9 +135,7 @@ export const FiveBandEqualizer = memo(({
                 </TooltipTrigger>
                 <TooltipContent className="max-w-sm bg-slate-800 border-slate-600 text-slate-200 p-4">
                   <p className="text-sm">
-                    {language === 'ES' 
-                      ? 'El rango predeterminado ha seleccionado frecuencias que son psicoacústicamente agradables para el oído humano, resaltando naturalmente los tonos más embellecedores en el audio.'
-                      : 'The default range has selected frequencies that are psychoacoustically pleasing to the human ear, naturally highlighting the most embellishing tones in the audio.'}
+                    {language === 'ES' ? 'El rango predeterminado ha seleccionado frecuencias que son psicoacústicamente agradables para el oído humano, resaltando naturalmente los tonos más embellecedores en el audio.' : 'The default range has selected frequencies that are psychoacoustically pleasing to the human ear, naturally highlighting the most embellishing tones in the audio.'}
                   </p>
                 </TooltipContent>
               </Tooltip>
@@ -211,13 +202,11 @@ export const FiveBandEqualizer = memo(({
                 {bandIndices.map((bandIndex, visualIndex) => <div key={bandIndex} className="flex flex-col items-center group">
                     
                     {/* Band Label */}
-                    <div className="text-sm text-center mb-1 font-black text-white drop-shadow-lg">
+                    <div className="text-sm text-center mb-1 font-black text-white drop-shadow-lg bg-slate-50">
                       {bandLabels[visualIndex]}
                     </div>
                     <div className="text-xs text-center mb-3 font-mono text-cyan-300 font-semibold">
-                      {eqFrequencies[visualIndex] < 1000 
-                        ? `${eqFrequencies[visualIndex]} Hz`
-                        : `${(eqFrequencies[visualIndex] / 1000).toFixed(2)} kHz`}
+                      {eqFrequencies[visualIndex] < 1000 ? `${eqFrequencies[visualIndex]} Hz` : `${(eqFrequencies[visualIndex] / 1000).toFixed(2)} kHz`}
                     </div>
 
                     {/* Fader Container with Glow */}
