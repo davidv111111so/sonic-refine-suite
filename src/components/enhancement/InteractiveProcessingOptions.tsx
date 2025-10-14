@@ -127,7 +127,7 @@ export const InteractiveProcessingOptions = ({
         {/* Dynamic Compression - Limited ratios and threshold */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-bold bg-gradient-to-r from-green-200 to-emerald-200 bg-clip-text flex items-center text-sky-400">
+            <label className="text-sm font-bold bg-gradient-to-r from-green-200 to-emerald-200 bg-clip-text flex items-center text-cyan-300">
               {t('settings.compression')}
               <AudioSettingsTooltip setting="compression" />
             </label>
