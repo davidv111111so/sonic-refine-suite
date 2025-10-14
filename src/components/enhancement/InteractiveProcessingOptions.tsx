@@ -167,7 +167,7 @@ export const InteractiveProcessingOptions = ({
         {/* Stereo Widening - Premium Feature with Anti-Phase Warning */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-bold bg-gradient-to-r from-blue-200 to-cyan-200 bg-clip-text flex items-center text-sky-400">
+            <label className="text-sm font-bold bg-gradient-to-r from-blue-200 to-cyan-200 bg-clip-text flex items-center text-cyan-300">
               {t('settings.stereoWidening')}
               <AudioSettingsTooltip setting="stereoWidening" />
               {isPremium && <span className="ml-2 text-[10px] bg-gradient-to-r from-yellow-400 to-orange-400 text-black px-2 py-0.5 rounded-full font-bold">PREMIUM</span>}
