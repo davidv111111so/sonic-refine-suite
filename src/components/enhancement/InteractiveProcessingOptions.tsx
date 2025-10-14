@@ -138,7 +138,7 @@ export const InteractiveProcessingOptions = ({
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-xs bg-gradient-to-r from-slate-200 to-gray-200 bg-clip-text text-transparent font-semibold">{t('processing.compressionRatio')}</span>
-                  <span className="text-xs text-white font-mono font-bold">{compressionRatio}</span>
+                  <span className="text-xs font-mono font-bold text-slate-50">{compressionRatio}</span>
                 </div>
                 <Select value={compressionRatio} onValueChange={onCompressionRatioChange}>
                   <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
