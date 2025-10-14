@@ -117,7 +117,7 @@ export const InteractiveProcessingOptions = ({
           {normalize && <div className="space-y-2">
               <div className="flex justify-between">
                 
-                <span className="text-xs text-white font-mono font-bold">{normalizeLevel.toFixed(1)} dB</span>
+                <span className="text-xs font-mono font-bold text-slate-50">{normalizeLevel.toFixed(1)} dB</span>
               </div>
               <Slider value={[normalizeLevel]} onValueChange={([value]) => onNormalizeLevelChange(Math.max(-3, Math.min(0, value)))} min={-3} max={0} step={0.1} className="w-full" />
               <p className="text-[10px] text-slate-400">{t('processing.normalizationInfo')}</p>
