@@ -124,7 +124,18 @@ export const FiveBandEqualizer = memo(({
       <CardHeader className="pb-3 bg-zinc-950">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-gradient-to-r from-blue-400 to-purple-400 rounded"></div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onEnabledChange(!enabled)}
+              className={`w-8 h-8 p-0 transition-all duration-300 ${
+                enabled 
+                  ? 'bg-gradient-to-r from-blue-500 to-purple-500 border-blue-400 shadow-lg shadow-blue-500/50' 
+                  : 'bg-slate-700 border-slate-600 hover:bg-slate-600'
+              }`}
+            >
+              <div className={`w-3 h-3 rounded ${enabled ? 'bg-white' : 'bg-slate-400'}`}></div>
+            </Button>
             <CardTitle className="text-base text-teal-100">
               {language === 'ES' ? 'Ecualizador' : 'Equalizer'}
             </CardTitle>
@@ -142,10 +153,6 @@ export const FiveBandEqualizer = memo(({
             </TooltipProvider>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-white">{language === 'ES' ? 'EQ de Audio' : 'Audio EQ'}</span>
-              <Switch checked={enabled} onCheckedChange={onEnabledChange} className="bg-indigo-800 hover:bg-indigo-700" />
-            </div>
             <Button variant="outline" size="sm" onClick={onResetEQ} className="h-8 text-xs bg-slate-800 dark:bg-black border-slate-700 dark:border-slate-800 hover:bg-slate-700 dark:hover:bg-slate-900 text-white">
               <RotateCcw className="h-3 w-3 mr-1" />
               Reset

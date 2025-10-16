@@ -14,6 +14,7 @@ import { AudioFile } from '@/types/audio';
 import { ProcessingSettings } from '@/utils/audioProcessor';
 import { BarChart3, Settings, Upload, Zap, Package } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { IndividualModeQueue } from '@/components/enhancement/IndividualModeQueue';
 import { AIMasteringTab } from '@/components/ai-mastering/AIMasteringTab';
 interface SpectrumTabsProps {
   audioFiles: AudioFile[];
@@ -52,6 +53,7 @@ export const SpectrumTabs = ({
     language
   } = useLanguage();
   const [activeTab, setActiveTab] = useState('spectrum');
+  const [selectedFilesForIndividual, setSelectedFilesForIndividual] = useState<string[]>([]);
   const [fileInfoModal, setFileInfoModal] = useState<{
     isOpen: boolean;
     file: AudioFile | null;
@@ -114,9 +116,38 @@ export const SpectrumTabs = ({
     }
     setEqEnabled(settings.enableEQ);
   };
-  const handleFilesUploaded = (files: AudioFile[]) => {
-    onFilesUploaded(files);
+  const handleFilesUploaded = async (files: AudioFile[]) => {
+    // Detect key for each file
+    const { detectKeyFromFile } = await import('@/utils/keyDetector');
+    const filesWithKeys = await Promise.all(
+      files.map(async (file) => {
+        try {
+          const keyAnalysis = await detectKeyFromFile(file.originalFile);
+          return {
+            ...file,
+            harmonicKey: keyAnalysis.camelot
+          };
+        } catch (error) {
+          console.error('Error detecting key:', error);
+          return {
+            ...file,
+            harmonicKey: 'N/A'
+          };
+        }
+      })
+    );
+    onFilesUploaded(filesWithKeys);
     setActiveTab('enhance');
+  };
+
+  const handleToggleFileForIndividual = (fileId: string) => {
+    setSelectedFilesForIndividual(prev => {
+      if (prev.includes(fileId)) {
+        return prev.filter(id => id !== fileId);
+      } else {
+        return [...prev, fileId];
+      }
+    });
   };
   const handleEnhanceFiles = async () => {
     if (audioFiles.length >= 2) {
@@ -281,6 +312,15 @@ export const SpectrumTabs = ({
             onReset={handleResetProcessingOptions} 
           />
         </div>
+
+        {/* Individual Mode Queue Selection */}
+        {!processingSettings.batchMode && audioFiles.length > 0 && (
+          <IndividualModeQueue
+            files={audioFiles}
+            selectedFiles={selectedFilesForIndividual}
+            onToggleFile={handleToggleFileForIndividual}
+          />
+        )}
 
         {/* 5-Band Equalizer */}
         <FiveBandEqualizer eqBands={eqBands} onEQBandChange={onEQBandChange} onResetEQ={onResetEQ} enabled={eqEnabled} onEnabledChange={setEqEnabled} />

@@ -6,8 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Sparkles, Crown, Lock } from 'lucide-react';
 import { useUserSubscription } from '@/hooks/useUserSubscription';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { CustomReferenceMastering } from './CustomReferenceMastering';
-import { GenrePresetsMastering } from './GenrePresetsMastering';
+import { PremiumMasteringUI } from './PremiumMasteringUI';
 import { useNavigate } from 'react-router-dom';
 
 export const AIMasteringTab = () => {
@@ -76,41 +75,6 @@ export const AIMasteringTab = () => {
     );
   }
 
-  // Premium content
-  return (
-    <div className="space-y-4">
-      {/* Info Banner */}
-      <div className="bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 rounded-lg p-4">
-        <p className="text-cyan-400 text-sm text-center">
-          {t('aiMastering.infoBanner')}
-        </p>
-      </div>
-
-      {/* Sub-tabs for AI Mastering */}
-      <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 bg-card border-2 border-border p-1 rounded-xl">
-          <TabsTrigger 
-            value="custom"
-            className="data-[state=active]:bg-cyan-500 data-[state=active]:text-white transition-all duration-300 font-semibold rounded-lg"
-          >
-            {t('aiMastering.customReference')}
-          </TabsTrigger>
-          <TabsTrigger 
-            value="preset"
-            className="data-[state=active]:bg-cyan-500 data-[state=active]:text-white transition-all duration-300 font-semibold rounded-lg"
-          >
-            {t('aiMastering.genrePresets')}
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="custom" className="mt-6">
-          <CustomReferenceMastering />
-        </TabsContent>
-
-        <TabsContent value="preset" className="mt-6">
-          <GenrePresetsMastering />
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
+  // Premium content - Unlocked for all users
+  return <PremiumMasteringUI />;
 };

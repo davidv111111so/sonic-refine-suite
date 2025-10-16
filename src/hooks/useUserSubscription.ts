@@ -68,11 +68,13 @@ export const useUserSubscription = (): UserSubscriptionData => {
     };
   }, []);
 
+  // TEMPORARY: Unlock all premium features for development
+  // TODO: Re-enable role checks for production
   return {
     subscription,
     role,
-    isAdmin: role === 'admin',
-    isPremium: subscription === 'premium' || role === 'admin',
+    isAdmin: true, // Temporarily unlock for all users
+    isPremium: true, // Temporarily unlock for all users
     loading,
   };
 };

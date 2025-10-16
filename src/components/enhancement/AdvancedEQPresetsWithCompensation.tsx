@@ -14,72 +14,71 @@ const PROFESSIONAL_EQ_PRESETS = [
     name: 'Modern Punch', 
     nameES: 'Pegada Moderna',
     icon: Volume2, 
-    // Low/Sub, MidLow/Punch, Mid, MidHigh/Presence, High/Air
     values: [1.5, 1.0, -2.0, 0.5, 2.0],
-    gainCompensation: -5.0 // Compensate for +5dB total gain
+    gainCompensation: -3.0
   },
   { 
     name: 'Vocal Presence', 
     nameES: 'Presencia Vocal',
     icon: Mic, 
     values: [-1.5, -2.0, 1.5, 2.0, 0.5],
-    gainCompensation: -4.0 // Compensate for +4dB total gain
+    gainCompensation: -2.5
   },
   { 
     name: 'Bass Foundation', 
     nameES: 'Base de Graves',
     icon: Waves, 
     values: [2.0, 1.0, -1.0, 0, -0.5],
-    gainCompensation: -3.0 // Compensate for +3dB total gain
+    gainCompensation: -2.5
   },
   { 
     name: 'Clarity & Air', 
     nameES: 'Claridad y Aire',
     icon: Lightbulb, 
     values: [-0.5, 0, -1.0, 1.5, 2.5],
-    gainCompensation: -4.0 // Compensate for +4dB total gain
+    gainCompensation: -2.5
   },
   { 
     name: 'De-Box / Clean Mid', 
     nameES: 'Des-caja / Medios Limpios',
     icon: Music, 
     values: [-1.0, -1.5, -2.5, 1.0, 0.5],
-    gainCompensation: -1.5 // Compensate for +1.5dB total gain
+    gainCompensation: -1.0
   },
   { 
     name: 'Warmth & Body', 
     nameES: 'Calidez y Cuerpo',
     icon: Guitar, 
     values: [0.5, 1.5, 1.0, -1.0, -1.5],
-    gainCompensation: -3.0 // Compensate for +3dB total gain
+    gainCompensation: -2.0
   },
   { 
     name: 'Live Energy (Subtle V)', 
     nameES: 'Energía en Vivo (V Sutil)',
     icon: Headphones, 
     values: [1.0, 0.5, -1.5, 0.5, 1.5],
-    gainCompensation: -3.5 // Compensate for +3.5dB total gain
+    gainCompensation: -2.0
   },
   { 
     name: 'Acoustic / Orchestral', 
     nameES: 'Acústica / Orquestal',
     icon: Music2, 
     values: [0.5, -1.0, 0, 0.5, 1.0],
-    gainCompensation: -2.0 // Compensate for +2dB total gain
+    gainCompensation: -1.0
   },
   { 
     name: 'Digital De-Harsh', 
     nameES: 'Suavizar Digital',
     icon: Disc3, 
     values: [0, 0, 0.5, -1.5, -1.0],
-    gainCompensation: -0.5 // Compensate for +0.5dB total gain
+    gainCompensation: 0
   },
   { 
     name: 'Voiceover / Podcast', 
     nameES: 'Locución / Podcast',
     icon: MessageSquare, 
     values: [-6.0, -2.5, 2.0, 2.5, -1.5],
-    gainCompensation: -5.0 // Compensate for +5dB total gain
+    gainCompensation: -3.0
   },
 ];
 
@@ -103,7 +102,7 @@ export const AdvancedEQPresetsWithCompensation = memo(({
           {t('eq.autoGainCompensation')}
         </span>
       </div>
-      <div className="grid grid-cols-5 gap-1.5">
+      <div className="grid grid-cols-5 gap-2">
         {PROFESSIONAL_EQ_PRESETS.map((preset) => {
           const Icon = preset.icon;
           const displayName = language === 'ES' ? preset.nameES : preset.name;

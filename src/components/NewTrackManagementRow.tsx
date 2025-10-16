@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Slider } from '@/components/ui/slider';
 import { Play, Pause, X, RefreshCw, Info, Download, Loader2, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 import { AudioFile } from '@/types/audio';
 interface NewTrackManagementRowProps {
@@ -45,6 +46,8 @@ export const NewTrackManagementRow = ({
   processingSettings
 }: NewTrackManagementRowProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
   const fileType = getFileType(file.name);
   useEffect(() => {
@@ -56,6 +59,31 @@ export const NewTrackManagementRow = ({
       }
     }
   }, [isPlaying]);
+
+  const handleTimeUpdate = () => {
+    if (audioRef.current) {
+      setCurrentTime(audioRef.current.currentTime);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (audioRef.current) {
+      setDuration(audioRef.current.duration);
+    }
+  };
+
+  const handleSeek = (value: number[]) => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = value[0];
+      setCurrentTime(value[0]);
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
   const togglePlayPause = () => {
     setIsPlaying(!isPlaying);
   };
@@ -139,15 +167,35 @@ export const NewTrackManagementRow = ({
           </div>
         </div>
         
-        {/* Mini Player */}
-        {audioUrl && <div className="flex items-center gap-2 mt-1">
-            <Button size="sm" variant="outline" onClick={togglePlayPause} className="h-7 w-7 p-0 bg-slate-700 border-slate-500 hover:bg-slate-600">
-              {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
-            </Button>
-            <audio ref={audioRef} src={audioUrl} onEnded={() => setIsPlaying(false)} />
-            <span className="text-xs text-slate-400">
-              {file.artist || 'Unknown Artist'}
-            </span>
+        {/* Mini Player with Seek */}
+        {audioUrl && <div className="flex flex-col gap-1 mt-1 w-full">
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={togglePlayPause} className="h-7 w-7 p-0 bg-slate-700 border-slate-500 hover:bg-slate-600">
+                {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+              </Button>
+              <audio 
+                ref={audioRef} 
+                src={audioUrl} 
+                onEnded={() => setIsPlaying(false)}
+                onTimeUpdate={handleTimeUpdate}
+                onLoadedMetadata={handleLoadedMetadata}
+              />
+              <span className="text-xs text-slate-400 truncate flex-1">
+                {file.artist || 'Unknown Artist'}
+              </span>
+              <span className="text-[10px] text-slate-500 font-mono">
+                {formatTime(currentTime)} / {formatTime(duration)}
+              </span>
+            </div>
+            {duration > 0 && (
+              <Slider
+                value={[currentTime]}
+                onValueChange={handleSeek}
+                max={duration}
+                step={0.1}
+                className="w-full h-1"
+              />
+            )}
           </div>}
       </div>
 
