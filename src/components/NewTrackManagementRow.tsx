@@ -168,7 +168,7 @@ export const NewTrackManagementRow = ({
         </div>
         
         {/* Mini Player with Seek */}
-        {audioUrl && <div className="flex flex-col gap-1 mt-1 w-full">
+        {audioUrl && <div className="flex flex-col gap-2 mt-2 w-full">
             <div className="flex items-center gap-2">
               <Button size="sm" variant="outline" onClick={togglePlayPause} className="h-7 w-7 p-0 bg-slate-700 border-slate-500 hover:bg-slate-600">
                 {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
@@ -180,21 +180,23 @@ export const NewTrackManagementRow = ({
                 onTimeUpdate={handleTimeUpdate}
                 onLoadedMetadata={handleLoadedMetadata}
               />
-              <span className="text-xs text-slate-400 truncate flex-1">
+              <span className="text-xs text-slate-300 truncate flex-1 font-medium">
                 {file.artist || 'Unknown Artist'}
               </span>
-              <span className="text-[10px] text-slate-500 font-mono">
+              <span className="text-[10px] text-slate-400 font-mono">
                 {formatTime(currentTime)} / {formatTime(duration)}
               </span>
             </div>
             {duration > 0 && (
-              <Slider
-                value={[currentTime]}
-                onValueChange={handleSeek}
-                max={duration}
-                step={0.1}
-                className="w-full h-1"
-              />
+              <div className="pl-9">
+                <Slider
+                  value={[currentTime]}
+                  onValueChange={handleSeek}
+                  max={duration}
+                  step={0.1}
+                  className="w-full h-1"
+                />
+              </div>
             )}
           </div>}
       </div>
@@ -209,7 +211,7 @@ export const NewTrackManagementRow = ({
 
       {/* File Size */}
       <div className="flex flex-col justify-center">
-        <span className="bg-gradient-to-r from-cyan-200 to-blue-200 bg-clip-text text-transparent text-sm font-mono font-bold">
+        <span className="text-slate-200 text-sm font-mono font-bold">
           {formatFileSize(file.size)}
         </span>
       </div>

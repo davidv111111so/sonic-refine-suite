@@ -76,5 +76,15 @@ export const AIMasteringTab = () => {
   }
 
   // Premium content - Unlocked for all users
-  return <PremiumMasteringUI />;
+  return (
+    <div className="space-y-6">
+      {/* Premium Badge in Top Right */}
+      <div className="flex justify-end">
+        <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs px-3 py-1">
+          ✨ PREMIUM
+        </Badge>
+      </div>
+      <PremiumMasteringUI />
+    </div>
+  );
 };

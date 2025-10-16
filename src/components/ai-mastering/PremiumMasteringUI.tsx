@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Music2, Upload, Play, Pause, Settings2, HelpCircle, ShieldCheck } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { MasteringSettingsModal } from './MasteringSettingsModal';
 
 const GENRE_PRESETS = [
   { name: 'Flat', icon: Music2 },
@@ -26,6 +27,7 @@ export const PremiumMasteringUI = () => {
   const [isPlayingTarget, setIsPlayingTarget] = useState(false);
   const [isPlayingReference, setIsPlayingReference] = useState(false);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   const targetInputRef = useRef<HTMLInputElement>(null);
   const referenceInputRef = useRef<HTMLInputElement>(null);
@@ -186,7 +188,11 @@ export const PremiumMasteringUI = () => {
         >
           {language === 'ES' ? 'Procesar Audio' : 'Process Audio'}
         </Button>
-        <Button variant="outline" className="bg-slate-800 border-slate-600 hover:bg-slate-700 text-white px-6">
+        <Button 
+          variant="outline" 
+          className="bg-slate-800 border-slate-600 hover:bg-slate-700 text-white px-6"
+          onClick={() => setIsSettingsOpen(true)}
+        >
           <Settings2 className="h-5 w-5 mr-2" />
           {language === 'ES' ? 'Configuración' : 'Settings'}
         </Button>
@@ -204,6 +210,12 @@ export const PremiumMasteringUI = () => {
             : 'Users retain all rights to their audio content. Perfect Audio does not claim ownership of uploaded or processed files.'}
         </p>
       </div>
+
+      {/* Settings Modal */}
+      <MasteringSettingsModal 
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
     </div>
   );
 };

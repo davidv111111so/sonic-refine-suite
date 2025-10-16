@@ -8,7 +8,7 @@ import { EnhancedTrackManagement } from '@/components/enhancement/EnhancedTrackM
 import { DynamicOutputSettings } from '@/components/enhancement/DynamicOutputSettings';
 import { InteractiveProcessingOptions } from '@/components/enhancement/InteractiveProcessingOptions';
 import { FiveBandEqualizer } from '@/components/enhancement/FiveBandEqualizer';
-import { EnhancedEQPresets } from '@/components/enhancement/EnhancedEQPresets';
+import { AdvancedEQPresetsWithCompensation } from '@/components/enhancement/AdvancedEQPresetsWithCompensation';
 import { FileInfoModal } from '@/components/FileInfoModal';
 import { AudioFile } from '@/types/audio';
 import { ProcessingSettings } from '@/utils/audioProcessor';
@@ -150,13 +150,29 @@ export const SpectrumTabs = ({
     });
   };
   const handleEnhanceFiles = async () => {
-    if (audioFiles.length >= 2) {
-      const message = language === 'ES' ? `¿Desea procesar y descargar ${audioFiles.length} archivos?` : `Do you want to process and download ${audioFiles.length} files?`;
+    // Check if we should process selected files or all files
+    const filesToProcess = processingSettings.batchMode 
+      ? audioFiles 
+      : audioFiles.filter(file => selectedFilesForIndividual.includes(file.id));
+    
+    if (filesToProcess.length === 0) {
+      const message = language === 'ES' 
+        ? 'Por favor seleccione al menos un archivo para procesar en modo individual' 
+        : 'Please select at least one file to process in individual mode';
+      alert(message);
+      return;
+    }
+
+    if (filesToProcess.length >= 2) {
+      const message = language === 'ES' 
+        ? `¿Desea procesar y descargar ${filesToProcess.length} archivos?` 
+        : `Do you want to process and download ${filesToProcess.length} files?`;
       const userConfirmed = window.confirm(message);
       if (!userConfirmed) {
         return;
       }
     }
+    
     const finalSettings = {
       ...processingSettings,
       eqBands: eqBands,
@@ -272,11 +288,9 @@ export const SpectrumTabs = ({
 
               {/* Presets */}
               <div className="flex items-center gap-2 shrink-0">
-                <EnhancedEQPresets eqBands={eqBands} onLoadPreset={preset => {
-                preset.forEach((value, index) => {
-                  onEQBandChange(index, value);
-                });
-              }} processingSettings={processingSettings} onLoadProcessingSettings={handleLoadProcessingSettings} />
+                <AdvancedEQPresetsWithCompensation 
+                  onEQBandChange={onEQBandChange}
+                />
               </div>
             </div>
           </CardHeader>
