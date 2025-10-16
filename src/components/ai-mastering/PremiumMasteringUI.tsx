@@ -236,7 +236,7 @@ export const PremiumMasteringUI = () => {
       <Card className="bg-gradient-to-br from-slate-900/95 to-blue-900/50 border-2 border-blue-500/40 shadow-xl">
         <CardContent className="pt-6 pb-4">
           <div className="flex gap-4 justify-center">
-            <Button onClick={handleProcess} disabled={!targetFile} size="lg" className="bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 hover:from-purple-700 hover:via-pink-700 hover:to-orange-700 px-12 py-6 text-lg font-black shadow-2xl hover:shadow-purple-500/50 hover:scale-105 active:scale-95 transition-all duration-300 animate-pulse hover:animate-none border-2 border-white/30 text-slate-100">
+            <Button onClick={handleProcess} disabled={!targetFile} size="lg" className="bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 hover:from-purple-700 hover:via-pink-700 hover:to-orange-700 px-12 py-6 text-lg font-black shadow-2xl hover:shadow-purple-500/50 hover:scale-105 active:scale-95 transition-all duration-300 animate-pulse hover:animate-none border-2 border-white/30 text-yellow-200">
               <Music2 className="h-6 w-6 mr-2" />
               {language === 'ES' ? 'Procesar Audio' : 'Process Audio'}
             </Button>
