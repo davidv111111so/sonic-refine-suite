@@ -14,7 +14,6 @@ interface FiveBandEqualizerProps {
   enabled: boolean;
   onEnabledChange: (enabled: boolean) => void;
 }
-
 export const FiveBandEqualizer = memo(({
   eqBands,
   onEQBandChange,
@@ -30,7 +29,6 @@ export const FiveBandEqualizer = memo(({
   // 5 band EQ frequencies optimized for psychoacoustic response
   const eqFrequencies = [50, 145, 874, 5560, 17200];
   const bandLabels = language === 'ES' ? ['Graves / Sub', 'Medio-Grave / Punch', 'Medio', 'Medio-Agudo / Presencia', 'Agudos / Air'] : ['Low / Sub', 'Mid Low / Punch', 'Mid', 'Mid High / Presence', 'High / Air'];
-
   const getEQColor = (index: number) => {
     const colors = ['#ff1744',
     // Red for Bass
@@ -58,19 +56,10 @@ export const FiveBandEqualizer = memo(({
       <CardHeader className="pb-3 bg-zinc-950">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onEnabledChange(!enabled)}
-              className={`w-8 h-8 p-0 transition-all duration-300 ${
-                enabled 
-                  ? 'bg-gradient-to-r from-blue-500 to-purple-500 border-blue-400 shadow-lg shadow-blue-500/50' 
-                  : 'bg-slate-700 border-slate-600 hover:bg-slate-600'
-              }`}
-            >
+            <Button variant="outline" size="sm" onClick={() => onEnabledChange(!enabled)} className={`w-8 h-8 p-0 transition-all duration-300 ${enabled ? 'bg-gradient-to-r from-blue-500 to-purple-500 border-blue-400 shadow-lg shadow-blue-500/50' : 'bg-slate-700 border-slate-600 hover:bg-slate-600'}`}>
               <div className={`w-3 h-3 rounded ${enabled ? 'bg-white' : 'bg-slate-400'}`}></div>
             </Button>
-            <CardTitle className="text-base text-teal-100">
+            <CardTitle className="text-base text-teal-100 mx-[4px] my-[6px] py-0 px-px">
               {language === 'ES' ? 'Ecualizador' : 'Equalizer'}
             </CardTitle>
             <TooltipProvider>
