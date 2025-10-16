@@ -122,7 +122,7 @@ export const PremiumMasteringUI = () => {
       <div className="grid grid-cols-2 gap-6">
         {/* Target File Upload */}
         <Card className="bg-gradient-to-br from-slate-900/95 to-cyan-900/40 border-2 border-dashed border-cyan-500/60 hover:border-cyan-400 transition-all shadow-xl shadow-cyan-500/20">
-          <CardContent className="p-6">
+          <CardContent className="p-6 bg-green-900">
             <h3 className="text-xl font-bold mb-4 text-center bg-gradient-to-r from-cyan-200 to-blue-200 bg-clip-text text-slate-50">
               {language === 'ES' ? '🎯 Archivo Objetivo' : '🎯 Target File'}
             </h3>
