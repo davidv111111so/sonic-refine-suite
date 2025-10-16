@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { RotateCcw, Music2, Mic, Headphones, Guitar, Disc3, Info } from 'lucide-react';
+import { RotateCcw, Info } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { AdvancedEQPresetsWithCompensation } from './AdvancedEQPresetsWithCompensation';
 interface FiveBandEqualizerProps {
   eqBands: number[];
   onEQBandChange: (bandIndex: number, value: number) => void;
@@ -14,68 +15,6 @@ interface FiveBandEqualizerProps {
   onEnabledChange: (enabled: boolean) => void;
 }
 
-// 12 Professional EQ Presets with Real dB Values (5-band)
-const EQ_PRESETS = [{
-  name: 'Flat',
-  nameES: 'Plano',
-  icon: Music2,
-  values: [0, 0, 0, 0, 0]
-}, {
-  name: 'Bass Boost',
-  nameES: 'Realce de Graves',
-  icon: Disc3,
-  values: [6, 3, 0, 0, 0]
-}, {
-  name: 'Treble Boost',
-  nameES: 'Realce de Agudos',
-  icon: Headphones,
-  values: [0, 0, 0, 3, 6]
-}, {
-  name: 'V-Shape',
-  nameES: 'Forma V',
-  icon: Guitar,
-  values: [5, 2, -2, 2, 5]
-}, {
-  name: 'Vocal',
-  nameES: 'Vocal',
-  icon: Mic,
-  values: [0, 2, 4, 2, 0]
-}, {
-  name: 'Rock',
-  nameES: 'Rock',
-  icon: Guitar,
-  values: [4, 2, 0, 2, 4]
-}, {
-  name: 'Jazz',
-  nameES: 'Jazz',
-  icon: Music2,
-  values: [3, 1, -1, 1, 3]
-}, {
-  name: 'Classical',
-  nameES: 'Clásica',
-  icon: Music2,
-  values: [0, 1, 2, 1, 0]
-}, {
-  name: 'Electronic',
-  nameES: 'Electrónica',
-  icon: Disc3,
-  values: [5, 0, -2, 0, 4]
-}, {
-  name: 'Hip-Hop',
-  nameES: 'Hip-Hop',
-  icon: Disc3,
-  values: [6, 4, 1, -1, 2]
-}, {
-  name: 'Podcast',
-  nameES: 'Podcast',
-  icon: Mic,
-  values: [-2, 1, 3, 1, -2]
-}, {
-  name: 'Live',
-  nameES: 'En Vivo',
-  icon: Headphones,
-  values: [2, 3, 2, 3, 2]
-}];
 export const FiveBandEqualizer = memo(({
   eqBands,
   onEQBandChange,
@@ -91,12 +30,7 @@ export const FiveBandEqualizer = memo(({
   // 5 band EQ frequencies optimized for psychoacoustic response
   const eqFrequencies = [50, 145, 874, 5560, 17200];
   const bandLabels = language === 'ES' ? ['Graves / Sub', 'Medio-Grave / Punch', 'Medio', 'Medio-Agudo / Presencia', 'Agudos / Air'] : ['Low / Sub', 'Mid Low / Punch', 'Mid', 'Mid High / Presence', 'High / Air'];
-  const applyPreset = useCallback((values: number[]) => {
-    // Apply the 5 preset values directly to the 5 visual band indices
-    bandIndices.forEach((bandIndex, visualIndex) => {
-      onEQBandChange(bandIndex, values[visualIndex] || 0);
-    });
-  }, [onEQBandChange]);
+
   const getEQColor = (index: number) => {
     const colors = ['#ff1744',
     // Red for Bass
@@ -162,28 +96,9 @@ export const FiveBandEqualizer = memo(({
       </CardHeader>
       <CardContent className="pt-0 bg-zinc-950">
         {enabled ? <div className="relative space-y-4">
-            {/* EQ Presets Strip - Vibrant & Stylish */}
-            <div className="bg-gradient-to-br from-purple-600/80 via-pink-600/80 to-blue-600/80 dark:from-purple-700/90 dark:via-pink-700/90 dark:to-blue-700/90 rounded-2xl p-5 border-3 border-white/20 shadow-2xl shadow-purple-500/50 backdrop-blur-md relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 animate-pulse bg-gray-950 my-0 mx-0 px-0 py-[28px]"></div>
-              <h4 className="text-base font-black mb-4 tracking-wide flex items-center gap-2 relative z-10">
-                <span className="bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent text-xl drop-shadow-lg font-bold">
-                  ✨ EQ Presets
-                </span>
-                <span className="text-[11px] text-white/95 font-semibold bg-black/30 px-2 py-1 rounded-full">(Quick Adjustments)</span>
-              </h4>
-              <div className="grid grid-cols-6 gap-2.5 relative z-10">
-                {EQ_PRESETS.map(preset => {
-              const Icon = preset.icon;
-              const displayName = language === 'ES' ? preset.nameES : preset.name;
-              return <Button key={preset.name} variant="outline" size="sm" onClick={() => applyPreset(preset.values)} className="bg-gradient-to-br from-slate-800 via-slate-900 to-black border-2 border-purple-400/60 hover:border-cyan-300 hover:scale-110 hover:shadow-2xl hover:shadow-cyan-400/70 hover:from-purple-700 hover:via-pink-600 hover:to-blue-700 h-auto py-3 px-3 flex flex-col items-center gap-2 transition-all duration-300 font-bold relative group overflow-hidden" title={displayName}>
-                      <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-pink-500/20 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                      <Icon className="h-5 w-5 text-cyan-300 group-hover:text-white relative z-10 drop-shadow-lg animate-pulse" />
-                      <span className="text-[10px] leading-tight text-center whitespace-nowrap bg-gradient-to-r from-cyan-200 via-blue-200 to-purple-200 bg-clip-text text-transparent group-hover:from-white group-hover:via-white group-hover:to-white relative z-10 animate-pulse font-extrabold">
-                        {displayName}
-                      </span>
-                    </Button>;
-            })}
-              </div>
+            {/* Professional Presets Section */}
+            <div className="mb-4">
+              <AdvancedEQPresetsWithCompensation onEQBandChange={onEQBandChange} />
             </div>
 
             {/* 5-Band EQ - Professional & Colorful */}
