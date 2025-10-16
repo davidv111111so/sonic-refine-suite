@@ -128,7 +128,7 @@ export const PremiumMasteringUI = () => {
             </h3>
             
             <div className="text-center mb-4">
-              <p className="text-slate-400 text-sm mb-2">
+              <p className="text-sm mb-2 text-zinc-300">
                 {language === 'ES' ? 'Archivo Objetivo:' : 'Target File:'} {targetFile?.name || language === 'ES' ? 'Ningún archivo elegido' : 'No file chosen'}
               </p>
               <Button onClick={() => targetInputRef.current?.click()} className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold shadow-lg shadow-cyan-500/50 hover:scale-105 transition-all">
