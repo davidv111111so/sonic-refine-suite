@@ -190,7 +190,7 @@ export const PremiumMasteringUI = () => {
       {/* Genre Presets */}
       <Card className="bg-gradient-to-br from-purple-900/60 to-pink-900/50 border-2 border-purple-400/60 shadow-2xl shadow-purple-500/30">
         <CardContent className="p-6">
-          <h3 className="text-2xl font-black text-center mb-4 bg-gradient-to-r from-purple-200 via-pink-200 to-orange-200 bg-clip-text text-transparent">
+          <h3 className="text-2xl font-black text-center mb-4 bg-gradient-to-r from-purple-200 via-pink-200 to-orange-200 bg-clip-text text-inherit">
             ✨ Genre Presets ✨
           </h3>
           <div className="grid grid-cols-6 gap-4">
