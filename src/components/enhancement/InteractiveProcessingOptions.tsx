@@ -184,7 +184,7 @@ export const InteractiveProcessingOptions = ({
                 <span className={`text-xs font-mono font-bold ${isAntiPhase ? 'text-red-400' : 'text-white'}`}>{stereoWidening}%</span>
               </div>
               <Slider value={[stereoWidening]} onValueChange={([value]) => onStereoWideningChange(value)} min={0} max={100} step={1} className={`w-full ${isAntiPhase ? '[&_[role=slider]]:bg-red-500 [&_[role=slider]]:border-red-600' : ''}`} />
-              <p className="text-[10px] text-slate-400">{t('processing.stereoWideningInfo')}</p>
+              <p className="text-[10px] text-red-400">{t('processing.stereoWideningInfo')}</p>
             </div>}
           {!isPremium && stereoWideningEnabled && <p className="text-[10px] text-amber-400">{t('processing.premiumRequired')}</p>}
         </div>
