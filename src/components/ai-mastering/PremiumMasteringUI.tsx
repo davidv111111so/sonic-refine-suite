@@ -155,7 +155,7 @@ export const PremiumMasteringUI = () => {
 
         {/* Reference File Upload */}
         <Card className="bg-gradient-to-br from-slate-900/95 to-purple-900/40 border-2 border-dashed border-purple-500/60 hover:border-purple-400 transition-all shadow-xl shadow-purple-500/20">
-          <CardContent className="p-6">
+          <CardContent className="p-6 bg-blue-950">
             <h3 className="text-xl font-bold mb-4 text-center bg-gradient-to-r from-purple-200 to-pink-200 bg-clip-text text-slate-50">
               {language === 'ES' ? '🎧 Archivo de Referencia' : '🎧 Reference File'}
             </h3>
