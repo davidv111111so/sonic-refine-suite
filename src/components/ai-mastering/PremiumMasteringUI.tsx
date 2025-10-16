@@ -99,7 +99,7 @@ export const PremiumMasteringUI = () => {
 
       {/* Info Banner */}
       <Card className="bg-gradient-to-r from-blue-900/60 via-cyan-900/50 to-purple-900/60 border-2 border-cyan-400/60 shadow-xl">
-        <CardContent className="pt-6 pb-4">
+        <CardContent className="pt-6 pb-4 bg-blue-900">
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0">
               <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/50 animate-pulse">
