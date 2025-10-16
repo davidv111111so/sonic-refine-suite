@@ -77,47 +77,69 @@ export const AdvancedEQPresetsWithCompensation = memo(({
   const { t, language } = useLanguage();
   
   const applyPreset = useCallback((preset: typeof EQ_PRESETS[0]) => {
-    // Apply the EQ values to the bands immediately for real-time visual feedback
+    // Apply preset values with staggered animation for smooth visual effect
     preset.values.forEach((value, index) => {
-      onEQBandChange(index, value);
+      setTimeout(() => {
+        onEQBandChange(index, value);
+      }, index * 40); // Stagger each slider update by 40ms
     });
   }, [onEQBandChange]);
 
   return (
-    <div className="bg-gradient-to-br from-purple-900/40 to-blue-900/40 dark:from-purple-950/60 dark:to-blue-950/60 rounded-lg p-3 border border-purple-700/50 dark:border-purple-800/70">
-      <div className="flex items-center justify-between mb-2">
-        <h4 className="text-xs font-semibold text-purple-300 dark:text-purple-200 tracking-wide">
-          {language === 'ES' ? 'Preajustes Profesionales' : 'Professional Presets'}
-        </h4>
-        <span className="text-[10px] text-purple-400/70 dark:text-purple-300/60">
-          {language === 'ES' ? '10 Preajustes' : '10 Presets'}
-        </span>
+    <div className="w-full">
+      <div className="text-sm font-bold text-center mb-3 bg-gradient-to-r from-cyan-200 via-purple-200 to-pink-200 bg-clip-text text-transparent animate-pulse">
+        {language === 'ES' ? '✨ Preajustes Profesionales ✨' : '✨ Professional Presets ✨'}
       </div>
-      <div className="grid grid-cols-5 gap-2">
-        {EQ_PRESETS.map((preset) => {
+      <div className="grid grid-cols-5 gap-3">
+        {EQ_PRESETS.map((preset, index) => {
           const Icon = preset.icon;
           const displayName = language === 'ES' ? preset.nameES : preset.name;
+          
+          // Vibrant gradient colors for each preset
+          const gradients = [
+            'from-cyan-500 to-blue-600',
+            'from-purple-500 to-pink-600',
+            'from-orange-500 to-red-600',
+            'from-green-500 to-emerald-600',
+            'from-yellow-500 to-orange-600',
+            'from-pink-500 to-rose-600',
+            'from-indigo-500 to-purple-600',
+            'from-teal-500 to-cyan-600',
+            'from-fuchsia-500 to-pink-600',
+            'from-lime-500 to-green-600'
+          ];
+          const gradient = gradients[index % gradients.length];
+          
           return (
             <Button
               key={preset.name}
-              variant="outline"
-              size="sm"
               onClick={() => applyPreset(preset)}
-              className="bg-slate-800/90 dark:bg-black/80 border-slate-600 dark:border-slate-700 hover:bg-gradient-to-br hover:from-purple-600 hover:to-blue-600 hover:border-purple-500 text-white h-auto py-1.5 px-1.5 flex flex-col items-center gap-0.5 transition-all duration-300"
-              title={displayName}
+              className={`
+                relative flex flex-col items-center gap-2 h-auto py-4 
+                bg-gradient-to-br ${gradient}
+                hover:scale-110 active:scale-95
+                border-2 border-white/30 hover:border-white/60
+                shadow-lg hover:shadow-2xl
+                transition-all duration-300
+                animate-pulse hover:animate-none
+                group
+              `}
             >
-              <Icon className="h-3.5 w-3.5" />
-              <span className="text-[8px] leading-tight text-center">
+              {/* Glow effect */}
+              <div className="absolute inset-0 bg-white/20 rounded-md opacity-0 group-hover:opacity-100 transition-opacity blur-xl -z-10" />
+              
+              <Icon className="h-6 w-6 text-white drop-shadow-lg group-hover:scale-125 transition-transform" />
+              <span className="text-xs font-bold text-white drop-shadow-md text-center leading-tight">
                 {displayName}
               </span>
             </Button>
           );
         })}
       </div>
-      <p className="text-[9px] text-purple-300/60 mt-2 italic">
+      <p className="text-[10px] text-purple-300 mt-2 italic text-center">
         {language === 'ES' 
-          ? 'Los valores se aplican instantáneamente a los controles deslizantes del ecualizador' 
-          : 'Values apply instantly to the equalizer sliders'}
+          ? '⚡ Mueve los sliders en tiempo real' 
+          : '⚡ Moves sliders in real-time'}
       </p>
     </div>
   );

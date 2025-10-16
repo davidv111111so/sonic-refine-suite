@@ -287,12 +287,7 @@ export const SpectrumTabs = ({
                 </div>
               </div>
 
-              {/* Presets */}
-              <div className="flex items-center gap-2 shrink-0">
-                <AdvancedEQPresetsWithCompensation 
-                  onEQBandChange={onEQBandChange}
-                />
-              </div>
+              {/* Removed redundant presets - now only in Equalizer component */}
             </div>
           </CardHeader>
         </Card>

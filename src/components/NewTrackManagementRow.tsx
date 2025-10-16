@@ -73,9 +73,14 @@ export const NewTrackManagementRow = ({
   };
 
   const handleSeek = (value: number[]) => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = value[0];
-      setCurrentTime(value[0]);
+    if (audioRef.current && duration > 0) {
+      const newTime = value[0];
+      audioRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+      // If was playing, continue playing after seek
+      if (isPlaying) {
+        audioRef.current.play().catch(err => console.error('Play after seek failed:', err));
+      }
     }
   };
 
@@ -155,7 +160,7 @@ export const NewTrackManagementRow = ({
         <div className="flex items-center gap-2 mb-1">
           <span className="text-lg flex-shrink-0">{getFileTypeIcon(fileType)}</span>
           <div className="flex-1 min-w-0 overflow-hidden">
-            <div className="bg-gradient-to-r from-cyan-200 via-blue-200 to-purple-200 bg-clip-text text-transparent font-bold break-words" style={{
+            <div className="text-white font-bold break-words" style={{
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
@@ -176,8 +181,11 @@ export const NewTrackManagementRow = ({
               <audio 
                 ref={audioRef} 
                 src={audioUrl}
-                preload="metadata"
-                onEnded={() => setIsPlaying(false)}
+                preload="auto"
+                onEnded={() => {
+                  setIsPlaying(false);
+                  setCurrentTime(0);
+                }}
                 onTimeUpdate={handleTimeUpdate}
                 onLoadedMetadata={handleLoadedMetadata}
                 onError={(e) => {
@@ -185,7 +193,7 @@ export const NewTrackManagementRow = ({
                   setIsPlaying(false);
                 }}
               />
-              <span className="text-xs text-slate-300 truncate flex-1 font-medium">
+              <span className="text-xs text-white truncate flex-1 font-bold">
                 {file.artist || 'Unknown Artist'}
               </span>
               <span className="text-[10px] text-slate-400 font-mono">
@@ -208,15 +216,15 @@ export const NewTrackManagementRow = ({
 
       {/* Key Analysis */}
       <div className="flex flex-col justify-center">
-        <span className="text-xs text-slate-400 mb-1">Key</span>
-        <Badge variant="outline" className="text-xs w-fit bg-purple-700/30 text-purple-200 border-purple-500/50">
+        <span className="text-xs text-white mb-1 font-semibold">Key</span>
+        <Badge variant="outline" className="text-xs w-fit bg-purple-600/40 text-white border-purple-400/60 font-bold">
           {file.harmonicKey || 'N/A'}
         </Badge>
       </div>
 
       {/* File Size */}
       <div className="flex flex-col justify-center">
-        <span className="text-slate-200 text-sm font-mono font-bold">
+        <span className="text-white text-sm font-mono font-bold">
           {formatFileSize(file.size)}
         </span>
       </div>
