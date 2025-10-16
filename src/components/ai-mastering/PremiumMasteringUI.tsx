@@ -82,7 +82,7 @@ export const PremiumMasteringUI = () => {
   return <div className="space-y-6">
       {/* Header Card */}
       <Card className="bg-gradient-to-br from-purple-900/60 via-fuchsia-900/50 to-blue-900/60 border-2 border-purple-400/60 shadow-2xl shadow-purple-500/30">
-        <CardContent className="pt-6 pb-4">
+        <CardContent className="pt-6 pb-4 bg-blue-900">
           <div className="flex items-center justify-center gap-3">
             <div className="h-12 w-12 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center animate-pulse shadow-lg shadow-yellow-500/50">
               <Music2 className="h-6 w-6 text-white" />
