@@ -174,7 +174,7 @@ export const PremiumMasteringUI = () => {
             {/* Reference Player */}
             {referenceFile && <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
                 <div className="flex items-center gap-3">
-                  <Button size="sm" onClick={() => setIsPlayingReference(!isPlayingReference)} className="bg-slate-700 hover:bg-slate-600">
+                  <Button size="sm" onClick={() => setIsPlayingReference(!isPlayingReference)} className="bg-slate-700 hover:bg-slate-600 text-indigo-950">
                     {isPlayingReference ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                   </Button>
                   <div className="flex-1 h-2 bg-slate-700 rounded-full overflow-hidden">
