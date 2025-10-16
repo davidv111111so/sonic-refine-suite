@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Slider } from '@/components/ui/slider';
 import { Play, Pause, X, RefreshCw, Info, Download, Loader2, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 import { AudioFile } from '@/types/audio';
 interface NewTrackManagementRowProps {
@@ -46,8 +45,6 @@ export const NewTrackManagementRow = ({
   processingSettings
 }: NewTrackManagementRowProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
   const fileType = getFileType(file.name);
   useEffect(() => {
@@ -59,36 +56,6 @@ export const NewTrackManagementRow = ({
       }
     }
   }, [isPlaying]);
-
-  const handleTimeUpdate = () => {
-    if (audioRef.current) {
-      setCurrentTime(audioRef.current.currentTime);
-    }
-  };
-
-  const handleLoadedMetadata = () => {
-    if (audioRef.current) {
-      setDuration(audioRef.current.duration);
-    }
-  };
-
-  const handleSeek = (value: number[]) => {
-    if (audioRef.current && duration > 0) {
-      const newTime = value[0];
-      audioRef.current.currentTime = newTime;
-      setCurrentTime(newTime);
-      // If was playing, continue playing after seek
-      if (isPlaying) {
-        audioRef.current.play().catch(err => console.error('Play after seek failed:', err));
-      }
-    }
-  };
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
   const togglePlayPause = () => {
     setIsPlaying(!isPlaying);
   };
@@ -160,7 +127,7 @@ export const NewTrackManagementRow = ({
         <div className="flex items-center gap-2 mb-1">
           <span className="text-lg flex-shrink-0">{getFileTypeIcon(fileType)}</span>
           <div className="flex-1 min-w-0 overflow-hidden">
-            <div className="text-white font-bold break-words" style={{
+            <div className="bg-gradient-to-r from-cyan-200 via-blue-200 to-purple-200 bg-clip-text text-transparent font-bold break-words" style={{
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
@@ -172,59 +139,29 @@ export const NewTrackManagementRow = ({
           </div>
         </div>
         
-        {/* Mini Player with Seek */}
-        {audioUrl && <div className="flex flex-col gap-2 mt-2 w-full">
-            <div className="flex items-center gap-2">
-              <Button size="sm" variant="outline" onClick={togglePlayPause} className="h-7 w-7 p-0 bg-slate-700 border-slate-500 hover:bg-slate-600">
-                {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
-              </Button>
-              <audio 
-                ref={audioRef} 
-                src={audioUrl}
-                preload="auto"
-                onEnded={() => {
-                  setIsPlaying(false);
-                  setCurrentTime(0);
-                }}
-                onTimeUpdate={handleTimeUpdate}
-                onLoadedMetadata={handleLoadedMetadata}
-                onError={(e) => {
-                  console.error('Audio playback error:', e);
-                  setIsPlaying(false);
-                }}
-              />
-              <span className="text-xs text-white truncate flex-1 font-bold">
-                {file.artist || 'Unknown Artist'}
-              </span>
-              <span className="text-[10px] text-slate-400 font-mono">
-                {formatTime(currentTime)} / {formatTime(duration)}
-              </span>
-            </div>
-            {duration > 0 && (
-              <div className="pl-9">
-                <Slider
-                  value={[currentTime]}
-                  onValueChange={handleSeek}
-                  max={duration}
-                  step={0.1}
-                  className="w-full h-1"
-                />
-              </div>
-            )}
+        {/* Mini Player */}
+        {audioUrl && <div className="flex items-center gap-2 mt-1">
+            <Button size="sm" variant="outline" onClick={togglePlayPause} className="h-7 w-7 p-0 bg-slate-700 border-slate-500 hover:bg-slate-600">
+              {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+            </Button>
+            <audio ref={audioRef} src={audioUrl} onEnded={() => setIsPlaying(false)} />
+            <span className="text-xs text-slate-400">
+              {file.artist || 'Unknown Artist'}
+            </span>
           </div>}
       </div>
 
       {/* Key Analysis */}
       <div className="flex flex-col justify-center">
-        <span className="text-xs text-white mb-1 font-semibold">Key</span>
-        <Badge variant="outline" className="text-xs w-fit bg-purple-600/40 text-white border-purple-400/60 font-bold">
+        <span className="text-xs text-slate-400 mb-1">Key</span>
+        <Badge variant="outline" className="text-xs w-fit bg-purple-700/30 text-purple-200 border-purple-500/50">
           {file.harmonicKey || 'N/A'}
         </Badge>
       </div>
 
       {/* File Size */}
-      <div className="flex flex-col justify-center">
-        <span className="text-white text-sm font-mono font-bold">
+      <div className="flex flex-col justify-center bg-slate-50">
+        <span className="bg-gradient-to-r from-cyan-200 to-blue-200 bg-clip-text text-transparent text-sm font-mono font-bold">
           {formatFileSize(file.size)}
         </span>
       </div>
