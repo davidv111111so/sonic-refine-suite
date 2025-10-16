@@ -113,7 +113,7 @@ export const FiveBandEqualizer = memo(({
                 {bandIndices.map((bandIndex, visualIndex) => <div key={bandIndex} className="flex flex-col items-center group">
                     
                     {/* Band Label */}
-                    <div className="text-sm text-center mb-1 font-black text-white drop-shadow-lg bg-slate-50">
+                    <div className="text-sm text-center mb-1 font-black text-white drop-shadow-lg bg-violet-600 rounded-lg">
                       {bandLabels[visualIndex]}
                     </div>
                     <div className="text-xs text-center mb-3 font-mono text-cyan-300 font-semibold">
