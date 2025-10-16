@@ -160,7 +160,7 @@ export const NewTrackManagementRow = ({
       </div>
 
       {/* File Size */}
-      <div className="flex flex-col justify-center bg-gray-950">
+      <div className="flex flex-col justify-center bg-stone-950">
         <span className="bg-gradient-to-r from-cyan-200 to-blue-200 bg-clip-text text-transparent text-sm font-mono font-bold">
           {formatFileSize(file.size)}
         </span>
