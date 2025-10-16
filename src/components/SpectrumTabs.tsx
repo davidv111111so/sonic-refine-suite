@@ -176,7 +176,8 @@ export const SpectrumTabs = ({
     const finalSettings = {
       ...processingSettings,
       eqBands: eqBands,
-      enableEQ: eqEnabled
+      enableEQ: eqEnabled,
+      fileIdsToProcess: filesToProcess.map(f => f.id) // Add specific file IDs to process
     };
     onEnhanceFiles(finalSettings);
     setActiveTab('spectrum');

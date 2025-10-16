@@ -157,8 +157,8 @@ export const PremiumMasteringUI = () => {
         </Card>
       </div>
 
-      {/* Genre Presets */}
-      <Card className="bg-slate-900/90 border-slate-700">
+      {/* Genre Presets - Colorful & Interactive */}
+      <Card className="bg-gradient-to-br from-slate-900 via-purple-900/50 to-blue-900/50 border-2 border-purple-500/30">
         <CardContent className="p-6">
           <div className="grid grid-cols-6 gap-3">
             {GENRE_PRESETS.map((preset) => (
@@ -166,14 +166,23 @@ export const PremiumMasteringUI = () => {
                 key={preset.name}
                 variant="outline"
                 onClick={() => setSelectedPreset(preset.name)}
-                className={`h-20 flex flex-col items-center justify-center gap-2 transition-all ${
+                className={`h-20 flex flex-col items-center justify-center gap-2 transition-all duration-300 group relative overflow-hidden ${
                   selectedPreset === preset.name
-                    ? 'bg-cyan-600 border-cyan-500 text-white'
-                    : 'bg-slate-800 border-slate-600 hover:bg-slate-700 text-slate-300'
+                    ? 'bg-gradient-to-br from-cyan-600 via-blue-600 to-purple-600 border-2 border-cyan-400 text-white scale-110 shadow-2xl shadow-cyan-500/50 animate-pulse'
+                    : 'bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-slate-600 hover:border-purple-400 hover:from-purple-700/50 hover:to-blue-700/50 hover:scale-105 hover:shadow-xl hover:shadow-purple-500/50 text-slate-300 hover:text-white'
                 }`}
               >
-                <preset.icon className="h-6 w-6" />
-                <span className="text-xs">{preset.name}</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 via-purple-500/20 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-pulse"></div>
+                <preset.icon className={`h-6 w-6 relative z-10 transition-all duration-300 ${
+                  selectedPreset === preset.name 
+                    ? 'text-white animate-bounce' 
+                    : 'text-cyan-400 group-hover:text-white group-hover:scale-110'
+                }`} />
+                <span className={`text-xs relative z-10 font-semibold transition-all duration-300 ${
+                  selectedPreset === preset.name 
+                    ? 'text-white font-bold' 
+                    : 'text-slate-300 group-hover:text-white'
+                }`}>{preset.name}</span>
               </Button>
             ))}
           </div>

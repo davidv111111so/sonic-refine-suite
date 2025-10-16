@@ -73,7 +73,13 @@ const Index = () => {
   }, []);
   const handleEnhanceFiles = useCallback(async (settings: any) => {
     setIsProcessing(true);
-    const filesToProcess = audioFiles.filter(file => file.status === 'uploaded');
+    // Filter based on fileIdsToProcess if provided, otherwise process all uploaded files
+    let filesToProcess = audioFiles.filter(file => file.status === 'uploaded');
+    
+    if (settings.fileIdsToProcess && settings.fileIdsToProcess.length > 0) {
+      filesToProcess = filesToProcess.filter(file => settings.fileIdsToProcess.includes(file.id));
+    }
+    
     if (filesToProcess.length === 0) {
       setIsProcessing(false);
       toast({

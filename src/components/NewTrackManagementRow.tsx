@@ -175,10 +175,15 @@ export const NewTrackManagementRow = ({
               </Button>
               <audio 
                 ref={audioRef} 
-                src={audioUrl} 
+                src={audioUrl}
+                preload="metadata"
                 onEnded={() => setIsPlaying(false)}
                 onTimeUpdate={handleTimeUpdate}
                 onLoadedMetadata={handleLoadedMetadata}
+                onError={(e) => {
+                  console.error('Audio playback error:', e);
+                  setIsPlaying(false);
+                }}
               />
               <span className="text-xs text-slate-300 truncate flex-1 font-medium">
                 {file.artist || 'Unknown Artist'}

@@ -24,12 +24,14 @@ export const IndividualModeQueue = ({
       <CardHeader className="pb-3">
         <CardTitle className="text-sm flex items-center gap-2">
           <Music2 className="h-4 w-4 text-cyan-400" />
-          {language === 'ES' ? 'Seleccionar Canciones para Procesamiento Individual' : 'Select Songs for Individual Processing'}
+          <span className="text-white font-semibold">
+            {language === 'ES' ? 'Seleccionar Canciones para Procesamiento Individual' : 'Select Songs for Individual Processing'}
+          </span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2 max-h-60 overflow-y-auto">
         {files.length === 0 ? (
-          <p className="text-slate-400 text-sm text-center py-4">
+          <p className="text-slate-200 text-sm text-center py-4 font-medium">
             {language === 'ES' ? 'No hay canciones en la cola' : 'No songs in queue'}
           </p>
         ) : (
@@ -48,14 +50,14 @@ export const IndividualModeQueue = ({
                 className="border-cyan-500"
               />
               <div className="flex-1 min-w-0">
-                <p className="text-white text-sm truncate">{file.name}</p>
-                <p className="text-slate-400 text-xs">
+                <p className="text-white font-semibold text-sm truncate">{file.name}</p>
+                <p className="text-slate-200 text-xs font-medium">
                   {file.artist || 'Unknown Artist'}
                 </p>
               </div>
               <Badge 
                 variant="outline" 
-                className="text-xs bg-slate-700 border-slate-600 text-slate-300"
+                className="text-xs bg-slate-700 border-slate-600 text-white font-medium"
               >
                 {(file.size / 1024 / 1024).toFixed(2)} MB
               </Badge>
