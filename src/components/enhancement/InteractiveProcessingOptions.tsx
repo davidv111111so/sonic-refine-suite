@@ -120,7 +120,7 @@ export const InteractiveProcessingOptions = ({
                 <span className="text-xs font-mono font-bold text-slate-50">{normalizeLevel.toFixed(1)} dB</span>
               </div>
               <Slider value={[normalizeLevel]} onValueChange={([value]) => onNormalizeLevelChange(Math.max(-3, Math.min(0, value)))} min={-3} max={0} step={0.1} className="w-full" />
-              <p className="text-[10px] text-slate-400">{t('processing.normalizationInfo')}</p>
+              <p className="text-[10px] text-slate-200">{t('processing.normalizationInfo')}</p>
             </div>}
         </div>
 
