@@ -113,14 +113,11 @@ export const FiveBandEqualizer = memo(({
                 {bandIndices.map((bandIndex, visualIndex) => <div key={bandIndex} className="flex flex-col items-center group">
                     
                     {/* Band Label */}
-                    <div className="text-sm text-center mb-1 font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] bg-violet-600 rounded-lg">
+                    <div className="text-sm text-center mb-1 font-black text-white drop-shadow-lg bg-violet-600 rounded-lg">
                       {bandLabels[visualIndex]}
                     </div>
-                    <div className="text-xs text-center mb-3 font-mono text-white font-bold drop-shadow-[0_0_15px_rgba(255,255,255,0.9)] animate-pulse">
+                    <div className="text-xs text-center mb-3 font-mono text-cyan-300 font-semibold bg-indigo-500">
                       {eqFrequencies[visualIndex] < 1000 ? `${eqFrequencies[visualIndex]} Hz` : `${(eqFrequencies[visualIndex] / 1000).toFixed(2)} kHz`}
-                    </div>
-                    <div className="text-[10px] text-center mb-1 font-bold text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]">
-                      {eqBands[bandIndex] || 0}dB
                     </div>
 
                     {/* Fader Container with Glow */}
