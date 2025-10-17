@@ -23,7 +23,7 @@ export const DynamicOutputSettings = ({
   onBitrateChange
 }: DynamicOutputSettingsProps) => {
   const isLossless = outputFormat === 'wav' || outputFormat === 'flac';
-  return <Card className="bg-slate-900/90 dark:bg-black/90 border-slate-700 dark:border-slate-800 my-[94px] mx-px px-0 py-[6px]">
+  return <Card className="bg-slate-900/90 dark:bg-black/90 border-slate-700 dark:border-slate-800">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 bg-gradient-to-r from-blue-200 via-purple-200 to-cyan-200 bg-clip-text text-transparent font-bold text-lg">
           <Settings className="h-4 w-4 text-purple-400" />

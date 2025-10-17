@@ -76,12 +76,17 @@ export const AdvancedEQPresetsWithCompensation = memo(({
 }: AdvancedEQPresetsWithCompensationProps) => {
   const { t, language } = useLanguage();
   
+  // Map visual bands to actual band indices in 10-band array
+  const bandIndices = [0, 2, 4, 7, 9];
+  
   const applyPreset = useCallback((preset: typeof EQ_PRESETS[0]) => {
     // Apply preset values with staggered animation for smooth visual effect
-    preset.values.forEach((value, index) => {
+    // Use correct band indices to match FiveBandEqualizer mapping
+    preset.values.forEach((value, visualIndex) => {
       setTimeout(() => {
-        onEQBandChange(index, value);
-      }, index * 40); // Stagger each slider update by 40ms
+        const actualBandIndex = bandIndices[visualIndex];
+        onEQBandChange(actualBandIndex, value);
+      }, visualIndex * 40); // Stagger each slider update by 40ms
     });
   }, [onEQBandChange]);
 

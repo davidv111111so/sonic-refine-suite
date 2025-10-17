@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Slider } from '@/components/ui/slider';
 import { Play, Pause, X, RefreshCw, Info, Download, Loader2, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 import { AudioFile } from '@/types/audio';
 interface NewTrackManagementRowProps {
@@ -45,12 +46,42 @@ export const NewTrackManagementRow = ({
   processingSettings
 }: NewTrackManagementRowProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
   const fileType = getFileType(file.name);
   useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleLoadedMetadata = () => {
+      setDuration(audio.duration);
+    };
+
+    const handleTimeUpdate = () => {
+      setCurrentTime(audio.currentTime);
+    };
+
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+    };
+
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('ended', handleEnded);
+
+    return () => {
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('ended', handleEnded);
+    };
+  }, []);
+
+  useEffect(() => {
     if (audioRef.current) {
       if (isPlaying) {
-        audioRef.current.play();
+        audioRef.current.play().catch(console.error);
       } else {
         audioRef.current.pause();
       }
@@ -58,6 +89,21 @@ export const NewTrackManagementRow = ({
   }, [isPlaying]);
   const togglePlayPause = () => {
     setIsPlaying(!isPlaying);
+  };
+
+  const handleSeek = (value: number[]) => {
+    const newTime = value[0];
+    setCurrentTime(newTime);
+    if (audioRef.current) {
+      audioRef.current.currentTime = newTime;
+    }
+  };
+
+  const formatTime = (time: number) => {
+    if (!isFinite(time)) return '0:00';
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
   const getStatusBadge = (status: AudioFile['status']) => {
     switch (status) {
@@ -139,15 +185,29 @@ export const NewTrackManagementRow = ({
           </div>
         </div>
         
-        {/* Mini Player */}
-        {audioUrl && <div className="flex items-center gap-2 mt-1">
-            <Button size="sm" variant="outline" onClick={togglePlayPause} className="h-7 w-7 p-0 bg-slate-700 border-slate-500 hover:bg-slate-600">
-              {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
-            </Button>
-            <audio ref={audioRef} src={audioUrl} onEnded={() => setIsPlaying(false)} />
-            <span className="text-xs text-slate-400">
-              {file.artist || 'Unknown Artist'}
-            </span>
+        {/* Mini Player with Seek Control */}
+        {audioUrl && <div className="flex flex-col gap-1 mt-1">
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={togglePlayPause} className="h-7 w-7 p-0 bg-slate-700 border-slate-500 hover:bg-slate-600">
+                {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+              </Button>
+              <audio ref={audioRef} src={audioUrl} preload="auto" />
+              <span className="text-xs text-white font-medium">
+                {file.artist || 'Unknown Artist'}
+              </span>
+            </div>
+            {/* Seek Slider */}
+            <div className="flex items-center gap-2 w-full">
+              <span className="text-[10px] text-slate-300 font-mono">{formatTime(currentTime)}</span>
+              <Slider 
+                value={[currentTime]} 
+                onValueChange={handleSeek}
+                max={duration || 100}
+                step={0.1}
+                className="flex-1"
+              />
+              <span className="text-[10px] text-slate-300 font-mono">{formatTime(duration)}</span>
+            </div>
           </div>}
       </div>
 
@@ -160,8 +220,8 @@ export const NewTrackManagementRow = ({
       </div>
 
       {/* File Size */}
-      <div className="flex flex-col justify-center bg-stone-950">
-        <span className="bg-gradient-to-r from-cyan-200 to-blue-200 bg-clip-text text-transparent text-sm font-mono font-bold">
+      <div className="flex flex-col justify-center">
+        <span className="text-white text-sm font-mono font-bold drop-shadow-lg">
           {formatFileSize(file.size)}
         </span>
       </div>
