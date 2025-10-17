@@ -8,28 +8,30 @@ import { useUserSubscription } from '@/hooks/useUserSubscription';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { PremiumMasteringUI } from './PremiumMasteringUI';
 import { useNavigate } from 'react-router-dom';
-
 export const AIMasteringTab = () => {
-  const { t } = useLanguage();
-  const { isPremium, loading, subscription, isAdmin } = useUserSubscription();
+  const {
+    t
+  } = useLanguage();
+  const {
+    isPremium,
+    loading,
+    subscription,
+    isAdmin
+  } = useUserSubscription();
   const [activeSubTab, setActiveSubTab] = useState('custom');
   const navigate = useNavigate();
-
   if (loading) {
-    return (
-      <Card className="bg-slate-900/90 border-slate-600">
+    return <Card className="bg-slate-900/90 border-slate-600">
         <CardContent className="p-12 text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4"></div>
           <p className="text-slate-300">{t('status.loading')}...</p>
         </CardContent>
-      </Card>
-    );
+      </Card>;
   }
 
   // Premium access required
   if (!isPremium) {
-    return (
-      <Card className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 border-purple-400/40 shadow-xl">
+    return <Card className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 border-purple-400/40 shadow-xl">
         <CardContent className="p-12 text-center space-y-6">
           <div className="flex justify-center">
             <div className="relative">
@@ -62,29 +64,22 @@ export const AIMasteringTab = () => {
             </div>
           </div>
 
-          <Button
-            onClick={() => navigate('/auth')}
-            className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 text-white font-bold py-6 px-12 rounded-xl shadow-2xl shadow-purple-500/50 text-lg"
-            size="lg"
-          >
+          <Button onClick={() => navigate('/auth')} className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 text-white font-bold py-6 px-12 rounded-xl shadow-2xl shadow-purple-500/50 text-lg" size="lg">
             <Crown className="h-6 w-6 mr-2" />
             {t('aiMastering.upgradeToPremium')}
           </Button>
         </CardContent>
-      </Card>
-    );
+      </Card>;
   }
 
   // Premium content - Unlocked for all users
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       {/* Premium Badge in Top Right */}
       <div className="flex justify-end">
-        <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs px-3 py-1">
+        <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs px-3 py-1 bg-orange-400">
           ✨ PREMIUM
         </Badge>
       </div>
       <PremiumMasteringUI />
-    </div>
-  );
+    </div>;
 };
