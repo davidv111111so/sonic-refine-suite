@@ -76,7 +76,7 @@ export const AIMasteringTab = () => {
   return <div className="space-y-6">
       {/* Premium Badge in Top Right */}
       <div className="flex justify-end">
-        <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs px-3 py-1 bg-orange-400">
+        <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs px-3 py-1 bg-orange-400 rounded-2xl">
           ✨ PREMIUM
         </Badge>
       </div>
