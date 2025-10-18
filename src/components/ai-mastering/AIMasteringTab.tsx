@@ -1,37 +1,116 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Sparkles, Crown, Lock } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Music, Upload, Crown, Lock, Loader2 } from 'lucide-react';
 import { useUserSubscription } from '@/hooks/useUserSubscription';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { PremiumMasteringUI } from './PremiumMasteringUI';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+
 export const AIMasteringTab = () => {
-  const {
-    t
-  } = useLanguage();
-  const {
-    isPremium,
-    loading,
-    subscription,
-    isAdmin
-  } = useUserSubscription();
-  const [activeSubTab, setActiveSubTab] = useState('custom');
+  const { t } = useLanguage();
+  const { isPremium, loading, isAdmin } = useUserSubscription();
   const navigate = useNavigate();
+
+  // Component states
+  const [targetFile, setTargetFile] = useState<File | null>(null);
+  const [referenceFile, setReferenceFile] = useState<File | null>(null);
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+  const [activeMode, setActiveMode] = useState<'preset' | 'custom'>('preset');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [masteredFile, setMasteredFile] = useState<{ name: string; url: string } | null>(null);
+
+  const targetInputRef = useRef<HTMLInputElement>(null);
+  const referenceInputRef = useRef<HTMLInputElement>(null);
+
+  const presets = [
+    'Rock', 'Latin', 'Electronic', 'Jazz',
+    'Classical', 'Hip-Hop', 'Vocal', 'Bass Boost'
+  ];
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, setFile: (file: File | null) => void) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFile(file);
+    }
+  };
+
+  const handlePresetClick = (preset: string) => {
+    setSelectedPreset(preset);
+    setActiveMode('preset');
+    setReferenceFile(null);
+  };
+
+  const handleCustomReferenceClick = () => {
+    setActiveMode('custom');
+    setSelectedPreset(null);
+    referenceInputRef.current?.click();
+  };
+
+  const handleMastering = async () => {
+    if (!targetFile) {
+      toast.error('Please select a target file to master');
+      return;
+    }
+    if (activeMode === 'custom' && !referenceFile) {
+      toast.error('Please select a custom reference file');
+      return;
+    }
+    if (activeMode === 'preset' && !selectedPreset) {
+      toast.error('Please select a genre preset as reference');
+      return;
+    }
+
+    setIsProcessing(true);
+    setMasteredFile(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('target', targetFile);
+
+      if (activeMode === 'custom') {
+        formData.append('reference', referenceFile!);
+      } else {
+        const presetId = selectedPreset!.toLowerCase().replace(' ', '');
+        formData.append('preset_id', presetId);
+      }
+
+      const { data, error } = await supabase.functions.invoke('ai-mastering', {
+        body: formData
+      });
+
+      if (error) throw error;
+
+      setMasteredFile({
+        name: data.fileName,
+        url: data.downloadUrl
+      });
+      toast.success('Mastering completed successfully!');
+
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Mastering failed. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   if (loading) {
-    return <Card className="bg-slate-900/90 border-slate-600">
+    return (
+      <Card className="bg-background/90 border-border">
         <CardContent className="p-12 text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4"></div>
-          <p className="text-slate-300">{t('status.loading')}...</p>
+          <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">{t('status.loading')}...</p>
         </CardContent>
-      </Card>;
+      </Card>
+    );
   }
 
   // Premium access required
   if (!isPremium) {
-    return <Card className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 border-purple-400/40 shadow-xl">
+    return (
+      <Card className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 border-purple-400/40 shadow-xl">
         <CardContent className="p-12 text-center space-y-6">
           <div className="flex justify-center">
             <div className="relative">
@@ -49,37 +128,147 @@ export const AIMasteringTab = () => {
             </p>
           </div>
 
-          <div className="bg-slate-800/50 rounded-lg p-6 space-y-3 max-w-md mx-auto">
-            <div className="flex items-center gap-2 text-left">
-              <Sparkles className="h-5 w-5 text-cyan-400 flex-shrink-0" />
-              <span className="text-slate-200">{t('aiMastering.feature1')}</span>
-            </div>
-            <div className="flex items-center gap-2 text-left">
-              <Sparkles className="h-5 w-5 text-purple-400 flex-shrink-0" />
-              <span className="text-slate-200">{t('aiMastering.feature2')}</span>
-            </div>
-            <div className="flex items-center gap-2 text-left">
-              <Sparkles className="h-5 w-5 text-pink-400 flex-shrink-0" />
-              <span className="text-slate-200">{t('aiMastering.feature3')}</span>
-            </div>
-          </div>
-
-          <Button onClick={() => navigate('/auth')} className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 text-white font-bold py-6 px-12 rounded-xl shadow-2xl shadow-purple-500/50 text-lg" size="lg">
+          <Button 
+            onClick={() => navigate('/auth')} 
+            className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 text-white font-bold py-6 px-12 rounded-xl shadow-2xl shadow-purple-500/50 text-lg" 
+            size="lg"
+          >
             <Crown className="h-6 w-6 mr-2" />
             {t('aiMastering.upgradeToPremium')}
           </Button>
         </CardContent>
-      </Card>;
+      </Card>
+    );
   }
 
-  // Premium content - Unlocked for all users
-  return <div className="space-y-6">
-      {/* Premium Badge in Top Right */}
-      <div className="flex justify-end">
-        <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs px-3 py-1 bg-orange-400 rounded-2xl">
-          ✨ PREMIUM
-        </Badge>
+  // Premium content - Full mastering interface
+  return (
+    <div className="min-h-screen p-4 sm:p-6 md:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header with Premium Badge */}
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold mb-2 text-primary">AI Audio Mastering</h1>
+            <p className="text-muted-foreground">Upload your track and choose a reference to master your audio with AI.</p>
+          </div>
+          <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
+            ✨ PREMIUM
+          </Badge>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left Column: Target and Presets */}
+          <div className="space-y-8">
+            {/* Target Section */}
+            <Card className="bg-card border-border">
+              <CardContent className="p-6">
+                <h2 className="text-xl font-semibold mb-4">1. Upload Your Track (Target)</h2>
+                <div 
+                  className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
+                  onClick={() => targetInputRef.current?.click()}
+                >
+                  <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-muted-foreground">Drag and drop or click to select</p>
+                  <input
+                    type="file"
+                    ref={targetInputRef}
+                    onChange={(e) => handleFileChange(e, setTargetFile)}
+                    className="hidden"
+                    accept=".wav,.mp3,.flac"
+                  />
+                </div>
+                {targetFile && (
+                  <div className="mt-4 flex items-center bg-muted p-3 rounded-md">
+                    <Music className="h-6 w-6 mr-2 text-muted-foreground" />
+                    <span className="truncate">{targetFile.name}</span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Presets Section */}
+            <Card className="bg-card border-border">
+              <CardContent className="p-6">
+                <h2 className="text-xl font-semibold mb-4">2. Choose a Genre Reference (Preset)</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {presets.map((preset) => (
+                    <button
+                      key={preset}
+                      onClick={() => handlePresetClick(preset)}
+                      className={`p-3 rounded-md text-center font-medium transition-all text-sm ${
+                        selectedPreset === preset && activeMode === 'preset'
+                          ? 'bg-primary text-primary-foreground shadow-lg ring-2 ring-primary'
+                          : 'bg-muted hover:bg-muted/80'
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column: Custom Reference and Action */}
+          <div className="space-y-8">
+            <Card className="bg-card border-border h-full flex flex-col">
+              <CardContent className="p-6 flex flex-col flex-1 justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold mb-4">... Or Use Your Own Reference</h2>
+                  <div 
+                    className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                      activeMode === 'custom' ? 'border-primary' : 'border-border hover:border-primary'
+                    }`}
+                    onClick={handleCustomReferenceClick}
+                  >
+                    <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-muted-foreground">Select a custom reference file</p>
+                    <input
+                      type="file"
+                      ref={referenceInputRef}
+                      onChange={(e) => handleFileChange(e, setReferenceFile)}
+                      className="hidden"
+                      accept=".wav,.mp3,.flac"
+                    />
+                  </div>
+                  {referenceFile && activeMode === 'custom' && (
+                    <div className="mt-4 flex items-center bg-muted p-3 rounded-md">
+                      <Music className="h-6 w-6 mr-2 text-muted-foreground" />
+                      <span className="truncate">{referenceFile.name}</span>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Action and Results Section */}
+                <div className="mt-8 space-y-4">
+                  <Button
+                    onClick={handleMastering}
+                    disabled={isProcessing}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-6 text-lg"
+                    size="lg"
+                  >
+                    {isProcessing && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+                    {isProcessing ? 'Processing... Please wait' : '✨ Master My Track'}
+                  </Button>
+
+                  {masteredFile && (
+                    <div className="text-center bg-muted p-6 rounded-lg">
+                      <h3 className="text-xl font-semibold text-green-500 mb-4">Mastering Complete!</h3>
+                      <a
+                        href={masteredFile.url}
+                        download={masteredFile.name}
+                        className="inline-block bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 px-6 rounded-lg transition-all"
+                      >
+                        Download: {masteredFile.name}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
-      <PremiumMasteringUI />
-    </div>;
+    </div>
+  );
 };
