@@ -1,12 +1,12 @@
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Slider } from '@/components/ui/slider';
 import { RotateCcw, Info } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AdvancedEQPresetsWithCompensation } from './AdvancedEQPresetsWithCompensation';
+import { AdjustableFrequencyBand } from './AdjustableFrequencyBand';
 interface FiveBandEqualizerProps {
   eqBands: number[];
   onEQBandChange: (bandIndex: number, value: number) => void;
@@ -26,9 +26,20 @@ export const FiveBandEqualizer = memo(({
     language
   } = useLanguage();
 
-  // 5 band EQ frequencies optimized for psychoacoustic response
-  const eqFrequencies = [50, 145, 874, 5560, 17200];
+  // State for adjustable frequencies
+  const [frequencies, setFrequencies] = useState([50, 145, 874, 5560, 17200]);
+
+  // Frequency ranges for each band
+  const frequencyRanges = [
+    { min: 20, max: 85 },      // Low / Sub
+    { min: 85, max: 356 },     // Mid Low / Punch
+    { min: 356, max: 2200 },   // Mid
+    { min: 2200, max: 9800 },  // Mid High / Presence
+    { min: 9800, max: 20000 }  // High / Air
+  ];
+
   const bandLabels = language === 'ES' ? ['Graves / Sub', 'Medio-Grave / Punch', 'Medio', 'Medio-Agudo / Presencia', 'Agudos / Air'] : ['Low / Sub', 'Mid Low / Punch', 'Mid', 'Mid High / Presence', 'High / Air'];
+  
   const getEQColor = (index: number) => {
     const colors = ['#ff1744',
     // Red for Bass
@@ -42,12 +53,19 @@ export const FiveBandEqualizer = memo(({
     ];
     return colors[index];
   };
+  
   const getTickMarks = () => {
     const marks = [];
     for (let i = -12; i <= 12; i += 3) {
       marks.push(i);
     }
     return marks;
+  };
+
+  const handleFrequencyChange = (bandIndex: number, newFrequency: number) => {
+    const newFrequencies = [...frequencies];
+    newFrequencies[bandIndex] = newFrequency;
+    setFrequencies(newFrequencies);
   };
 
   // Map 5 bands to the first 5 of the 10-band array
@@ -110,50 +128,19 @@ export const FiveBandEqualizer = memo(({
               </div>
 
               <div className="flex justify-center items-end gap-7 py-4 relative z-10">
-                {bandIndices.map((bandIndex, visualIndex) => <div key={bandIndex} className="flex flex-col items-center group">
-                    
-                    {/* Band Label */}
-                    <div className="text-sm text-center mb-1 font-black text-white drop-shadow-lg bg-violet-600 rounded-lg">
-                      {bandLabels[visualIndex]}
-                    </div>
-                    <div className="text-xs text-center mb-3 font-mono text-cyan-300 font-semibold bg-indigo-500">
-                      {eqFrequencies[visualIndex] < 1000 ? `${eqFrequencies[visualIndex]} Hz` : `${(eqFrequencies[visualIndex] / 1000).toFixed(2)} kHz`}
-                    </div>
-
-                    {/* Fader Container with Glow */}
-                    <div className="relative h-44 w-10 mb-3">
-                      
-                      {/* Fader Track with Vibrant Colors */}
-                      <div className="absolute inset-x-1 inset-y-2 rounded-full border-2 shadow-inner" style={{
-                  background: `linear-gradient(180deg, ${getEQColor(visualIndex)}60 0%, #0f172a 50%, ${getEQColor(visualIndex)}60 100%)`,
-                  borderColor: getEQColor(visualIndex),
-                  boxShadow: `inset 0 3px 6px rgba(0,0,0,0.6), 0 0 20px ${getEQColor(visualIndex)}40`
-                }} />
-
-                      {/* Slider */}
-                      <div className="h-full flex items-center justify-center">
-                        <Slider orientation="vertical" value={[eqBands[bandIndex] || 0]} onValueChange={([value]) => onEQBandChange(bandIndex, value)} min={-12} max={12} step={0.5} className="h-40 w-7 group-hover:scale-110 transition-transform duration-300 text-zinc-50" />
-                      </div>
-                      
-                      {/* Visual Level Indicator */}
-                      <div className="absolute inset-x-0 bottom-2 rounded-t-lg transition-all duration-300 pointer-events-none" style={{
-                  height: `${((eqBands[bandIndex] || 0) + 12) / 24 * 100}%`,
-                  background: `linear-gradient(180deg, ${getEQColor(visualIndex)}80, ${getEQColor(visualIndex)}20)`,
-                  boxShadow: `0 0 30px ${getEQColor(visualIndex)}60`,
-                  opacity: 0.4
-                }} />
-                    </div>
-
-                    {/* Value Display with Color */}
-                    <div className="text-sm text-center font-mono font-black rounded-lg px-3 py-1.5 min-w-[4rem] border-2 shadow-lg" style={{
-                color: 'white',
-                backgroundColor: `${getEQColor(visualIndex)}30`,
-                borderColor: getEQColor(visualIndex),
-                boxShadow: `0 0 20px ${getEQColor(visualIndex)}50, inset 0 0 10px ${getEQColor(visualIndex)}20`
-              }}>
-                      {eqBands[bandIndex] > 0 ? '+' : ''}{eqBands[bandIndex]}dB
-                    </div>
-                  </div>)}
+                {bandIndices.map((bandIndex, visualIndex) => (
+                  <AdjustableFrequencyBand
+                    key={bandIndex}
+                    bandLabel={bandLabels[visualIndex]}
+                    frequency={frequencies[visualIndex]}
+                    value={eqBands[bandIndex] || 0}
+                    minFreq={frequencyRanges[visualIndex].min}
+                    maxFreq={frequencyRanges[visualIndex].max}
+                    color={getEQColor(visualIndex)}
+                    onFrequencyChange={(freq) => handleFrequencyChange(visualIndex, freq)}
+                    onValueChange={(value) => onEQBandChange(bandIndex, value)}
+                  />
+                ))}
               </div>
 
               {/* EQ Branding with Glow */}

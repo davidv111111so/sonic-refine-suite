@@ -126,7 +126,6 @@ export const AdvancedEQPresetsWithCompensation = memo(({
                 border-2 border-white/30 hover:border-white/60
                 shadow-lg hover:shadow-2xl
                 transition-all duration-300
-                animate-pulse hover:animate-none
                 group
               `}
             >

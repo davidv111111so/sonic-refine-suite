@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Music, Upload, Crown, Lock, Loader2 } from 'lucide-react';
+import { Music, Upload, Crown, Lock, Loader2, Settings } from 'lucide-react';
 import { useUserSubscription } from '@/hooks/useUserSubscription';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { MasteringSettingsModal, MasteringSettings } from './MasteringSettingsModal';
 
 export const AIMasteringTab = () => {
   const { t } = useLanguage();
@@ -21,6 +22,36 @@ export const AIMasteringTab = () => {
   const [activeMode, setActiveMode] = useState<'preset' | 'custom'>('preset');
   const [isProcessing, setIsProcessing] = useState(false);
   const [masteredFile, setMasteredFile] = useState<{ name: string; url: string } | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [masteringSettings, setMasteringSettings] = useState<MasteringSettings>({
+    threshold: 0.998138,
+    epsilon: 0.000001,
+    maxPieceLength: 30.0,
+    bpm: 0.0,
+    timeSignatureNumerator: 4,
+    timeSignatureDenominator: 4,
+    pieceLengthBars: 8.0,
+    resamplingMethod: 'FastSinc',
+    spectrumCompensation: 'Frequency-Domain (Gain Envelope)',
+    loudnessCompensation: 'LUFS (Whole Signal)',
+    analyzeFullSpectrum: false,
+    spectrumSmoothingWidth: 3,
+    smoothingSteps: 1,
+    spectrumCorrectionHops: 2,
+    loudnessSteps: 10,
+    spectrumBands: 32,
+    fftSize: 4096,
+    normalizeReference: false,
+    normalize: false,
+    limiterMethod: 'True Peak',
+    limiterThreshold: -1.0,
+    loudnessCorrectionLimiting: false,
+    amplify: false,
+    clipping: false,
+    outputBits: '32 (IEEE float)',
+    outputChannels: 2,
+    ditheringMethod: 'TPDF'
+  });
 
   const targetInputRef = useRef<HTMLInputElement>(null);
   const referenceInputRef = useRef<HTMLInputElement>(null);
@@ -174,15 +205,33 @@ export const AIMasteringTab = () => {
   return (
     <div className="min-h-screen p-4 sm:p-6 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header with Premium Badge */}
+        {/* Settings Modal */}
+        <MasteringSettingsModal
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          settings={masteringSettings}
+          onSettingsChange={setMasteringSettings}
+        />
+
+        {/* Header with Premium Badge and Settings Button */}
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-bold mb-2 text-primary">AI Audio Mastering</h1>
             <p className="text-muted-foreground">Upload your track and choose a reference to master your audio with AI.</p>
           </div>
-          <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
-            ✨ PREMIUM
-          </Badge>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setSettingsOpen(true)}
+              variant="outline"
+              className="bg-slate-800 border-slate-700 text-white hover:bg-slate-700"
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Advanced Settings
+            </Button>
+            <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white h-10 flex items-center px-4">
+              ✨ PREMIUM
+            </Badge>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

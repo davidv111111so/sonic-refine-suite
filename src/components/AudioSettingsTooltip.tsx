@@ -54,7 +54,7 @@ export const AudioSettingsTooltip = ({ setting }: AudioSettingsTooltipProps) => 
         </TooltipTrigger>
         <TooltipContent 
           side="right" 
-          className="max-w-xs bg-slate-900 dark:bg-black border-slate-700 text-white shadow-xl"
+          className="max-w-xs bg-blue-900/95 border-blue-600 text-white shadow-xl backdrop-blur-sm"
         >
           <p className="text-sm leading-relaxed">{getTooltipContent(setting)}</p>
         </TooltipContent>

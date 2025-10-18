@@ -64,6 +64,35 @@ export const PremiumMasteringUI = () => {
   const [isPlayingReference, setIsPlayingReference] = useState(false);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [masteringSettings, setMasteringSettings] = useState({
+    threshold: 0.998138,
+    epsilon: 0.000001,
+    maxPieceLength: 30.0,
+    bpm: 0.0,
+    timeSignatureNumerator: 4,
+    timeSignatureDenominator: 4,
+    pieceLengthBars: 8.0,
+    resamplingMethod: 'FastSinc',
+    spectrumCompensation: 'Frequency-Domain (Gain Envelope)',
+    loudnessCompensation: 'LUFS (Whole Signal)',
+    analyzeFullSpectrum: false,
+    spectrumSmoothingWidth: 3,
+    smoothingSteps: 1,
+    spectrumCorrectionHops: 2,
+    loudnessSteps: 10,
+    spectrumBands: 32,
+    fftSize: 4096,
+    normalizeReference: false,
+    normalize: false,
+    limiterMethod: 'True Peak',
+    limiterThreshold: -1.0,
+    loudnessCorrectionLimiting: false,
+    amplify: false,
+    clipping: false,
+    outputBits: '32 (IEEE float)',
+    outputChannels: 2,
+    ditheringMethod: 'TPDF'
+  });
   const targetInputRef = useRef<HTMLInputElement>(null);
   const referenceInputRef = useRef<HTMLInputElement>(null);
   const handleTargetFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -274,6 +303,11 @@ export const PremiumMasteringUI = () => {
       </div>
 
       {/* Settings Modal */}
-      <MasteringSettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      <MasteringSettingsModal 
+        open={isSettingsOpen} 
+        onOpenChange={setIsSettingsOpen}
+        settings={masteringSettings}
+        onSettingsChange={setMasteringSettings}
+      />
     </div>;
 };
