@@ -25,10 +25,32 @@ export const AIMasteringTab = () => {
   const targetInputRef = useRef<HTMLInputElement>(null);
   const referenceInputRef = useRef<HTMLInputElement>(null);
 
-  const presets = [
-    'Rock', 'Latin', 'Electronic', 'Jazz',
-    'Classical', 'Hip-Hop', 'Vocal', 'Bass Boost'
-  ];
+  // Preset definitions with strict naming convention (lowercase, no spaces)
+  // These IDs must match exactly with the backend audio reference files
+  const MASTERING_PRESETS = [
+    { id: 'rock.wav', displayName: 'Rock' },
+    { id: 'latin.wav', displayName: 'Latin' },
+    { id: 'electronic.wav', displayName: 'Electronic' },
+    { id: 'jazz.wav', displayName: 'Jazz' },
+    { id: 'classical.wav', displayName: 'Classical' },
+    { id: 'hiphop.wav', displayName: 'Hip-Hop' },
+    { id: 'vocal.wav', displayName: 'Vocal' },
+    { id: 'bassboost.wav', displayName: 'Bass Boost' }
+  ] as const;
+
+  /**
+   * Fetches the reference audio file URL for a given preset
+   * @param presetId - The preset ID (e.g., 'rock.wav')
+   * @returns The URL to the reference audio file
+   */
+  const getReferenceAudioUrl = (presetId: string): string => {
+    // Enforce naming convention: must be lowercase and contain no spaces
+    if (presetId !== presetId.toLowerCase() || presetId.includes(' ')) {
+      throw new Error(`Invalid preset ID: ${presetId}. Must be lowercase with no spaces.`);
+    }
+    // Construct URL endpoint for the audio asset
+    return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/mastering-presets/${presetId}`;
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, setFile: (file: File | null) => void) => {
     const file = e.target.files?.[0];
@@ -37,10 +59,17 @@ export const AIMasteringTab = () => {
     }
   };
 
-  const handlePresetClick = (preset: string) => {
-    setSelectedPreset(preset);
+  const handlePresetClick = (presetId: string) => {
+    setSelectedPreset(presetId);
     setActiveMode('preset');
     setReferenceFile(null);
+    // Optional: Validate the preset ID format
+    try {
+      getReferenceAudioUrl(presetId);
+    } catch (error) {
+      console.error('Invalid preset ID selected:', error);
+      toast.error('Invalid preset selected');
+    }
   };
 
   const handleCustomReferenceClick = () => {
@@ -73,8 +102,8 @@ export const AIMasteringTab = () => {
       if (activeMode === 'custom') {
         formData.append('reference', referenceFile!);
       } else {
-        const presetId = selectedPreset!.toLowerCase().replace(' ', '');
-        formData.append('preset_id', presetId);
+        // Use the preset ID directly (already in correct format)
+        formData.append('preset_id', selectedPreset!);
       }
 
       const { data, error } = await supabase.functions.invoke('ai-mastering', {
@@ -191,17 +220,17 @@ export const AIMasteringTab = () => {
               <CardContent className="p-6">
                 <h2 className="text-xl font-semibold mb-4">2. Choose a Genre Reference (Preset)</h2>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                  {presets.map((preset) => (
+                  {MASTERING_PRESETS.map((preset) => (
                     <button
-                      key={preset}
-                      onClick={() => handlePresetClick(preset)}
+                      key={preset.id}
+                      onClick={() => handlePresetClick(preset.id)}
                       className={`p-3 rounded-md text-center font-medium transition-all text-sm ${
-                        selectedPreset === preset && activeMode === 'preset'
+                        selectedPreset === preset.id && activeMode === 'preset'
                           ? 'bg-primary text-primary-foreground shadow-lg ring-2 ring-primary'
                           : 'bg-muted hover:bg-muted/80'
                       }`}
                     >
-                      {preset}
+                      {preset.displayName}
                     </button>
                   ))}
                 </div>
