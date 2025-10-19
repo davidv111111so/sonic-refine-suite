@@ -13,18 +13,30 @@ serve(async (req) => {
   }
 
   try {
+    const authHeader = req.headers.get('authorization')
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Authorization header missing' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
     const { fileName, fileType } = await req.json()
 
     const response = await fetch(`${BACKEND_URL}/api/generate-upload-url`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': authHeader
+      },
       body: JSON.stringify({ fileName, fileType }),
     })
 
     const data = await response.json()
     
     return new Response(JSON.stringify(data), { 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: response.status
     })
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
