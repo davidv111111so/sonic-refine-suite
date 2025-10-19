@@ -4,6 +4,7 @@ import { useUserSubscription } from '@/hooks/useUserSubscription';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ export const AIMasteringTab = () => {
   const { t } = useLanguage();
   const { isPremium, loading, isAdmin } = useUserSubscription();
   const navigate = useNavigate();
+  const { getToken } = useAuth();
 
   // Component states with localStorage persistence
   const [targetFile, setTargetFile] = useState<File | null>(() => {
