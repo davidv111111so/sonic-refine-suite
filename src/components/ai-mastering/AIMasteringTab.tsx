@@ -59,14 +59,14 @@ export const AIMasteringTab = () => {
   // Preset definitions with strict naming convention (lowercase, no spaces)
   // These IDs must match exactly with the backend audio reference files
   const MASTERING_PRESETS = [
-    { id: 'rock.wav', displayName: 'Rock' },
-    { id: 'latin.wav', displayName: 'Latin' },
-    { id: 'electronic.wav', displayName: 'Electronic' },
-    { id: 'jazz.wav', displayName: 'Jazz' },
-    { id: 'classical.wav', displayName: 'Classical' },
-    { id: 'hiphop.wav', displayName: 'Hip-Hop' },
-    { id: 'vocal.wav', displayName: 'Vocal' },
-    { id: 'bassboost.wav', displayName: 'Bass Boost' }
+    { id: 'rock.wav', displayName: 'Rock', icon: '🎸', gradient: 'from-red-500 to-orange-600' },
+    { id: 'latin.wav', displayName: 'Latin', icon: '💃', gradient: 'from-yellow-500 to-red-600' },
+    { id: 'electronic.wav', displayName: 'Electronic', icon: '⚡', gradient: 'from-cyan-500 to-blue-600' },
+    { id: 'jazz.wav', displayName: 'Jazz', icon: '🎷', gradient: 'from-purple-500 to-indigo-600' },
+    { id: 'classical.wav', displayName: 'Classical', icon: '🎻', gradient: 'from-amber-500 to-yellow-600' },
+    { id: 'hiphop.wav', displayName: 'Hip-Hop', icon: '🎤', gradient: 'from-green-500 to-emerald-600' },
+    { id: 'vocal.wav', displayName: 'Vocal', icon: '🎙️', gradient: 'from-pink-500 to-rose-600' },
+    { id: 'bassboost.wav', displayName: 'Bass Boost', icon: '🔊', gradient: 'from-indigo-500 to-purple-600' }
   ] as const;
 
   /**
@@ -143,11 +143,23 @@ export const AIMasteringTab = () => {
 
       if (error) throw error;
 
+      const fileName = data.fileName;
+      const downloadUrl = data.downloadUrl;
+      
       setMasteredFile({
-        name: data.fileName,
-        url: data.downloadUrl
+        name: fileName,
+        url: downloadUrl
       });
-      toast.success('Mastering completed successfully!');
+      
+      // Automatically trigger download
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success(`✅ Mastering complete! ${fileName} has been downloaded.`);
 
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Mastering failed. Please try again.');
@@ -228,8 +240,8 @@ export const AIMasteringTab = () => {
               <Settings className="h-4 w-4 mr-2" />
               Advanced Settings
             </Button>
-            <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white h-10 flex items-center px-4">
-              ✨ PREMIUM
+            <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs h-7 flex items-center px-3">
+              ✨ Premium
             </Badge>
           </div>
         </div>
@@ -256,9 +268,19 @@ export const AIMasteringTab = () => {
                   />
                 </div>
                 {targetFile && (
-                  <div className="mt-4 flex items-center bg-muted p-3 rounded-md">
-                    <Music className="h-6 w-6 mr-2 text-muted-foreground" />
-                    <span className="truncate">{targetFile.name}</span>
+                  <div className="mt-4 flex items-center justify-between bg-muted p-3 rounded-md">
+                    <div className="flex items-center flex-1 min-w-0">
+                      <Music className="h-6 w-6 mr-2 text-muted-foreground flex-shrink-0" />
+                      <span className="truncate">{targetFile.name}</span>
+                    </div>
+                    <Button
+                      onClick={() => setTargetFile(null)}
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-400 hover:text-red-300 ml-2"
+                    >
+                      ✕
+                    </Button>
                   </div>
                 )}
               </CardContent>
@@ -273,13 +295,17 @@ export const AIMasteringTab = () => {
                     <button
                       key={preset.id}
                       onClick={() => handlePresetClick(preset.id)}
-                      className={`p-3 rounded-md text-center font-medium transition-all text-sm ${
+                      className={`relative p-4 rounded-xl text-center font-bold transition-all duration-300 overflow-hidden group ${
                         selectedPreset === preset.id && activeMode === 'preset'
-                          ? 'bg-primary text-primary-foreground shadow-lg ring-2 ring-primary'
-                          : 'bg-muted hover:bg-muted/80'
+                          ? `bg-gradient-to-br ${preset.gradient} text-white shadow-2xl scale-105 ring-4 ring-white/30`
+                          : `bg-gradient-to-br ${preset.gradient} opacity-70 hover:opacity-100 hover:scale-105 text-white shadow-lg`
                       }`}
                     >
-                      {preset.displayName}
+                      <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-all duration-300" />
+                      <div className="relative z-10 flex flex-col items-center gap-2">
+                        <span className="text-3xl">{preset.icon}</span>
+                        <span className="text-sm drop-shadow-lg">{preset.displayName}</span>
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -310,9 +336,22 @@ export const AIMasteringTab = () => {
                     />
                   </div>
                   {referenceFile && activeMode === 'custom' && (
-                    <div className="mt-4 flex items-center bg-muted p-3 rounded-md">
-                      <Music className="h-6 w-6 mr-2 text-muted-foreground" />
-                      <span className="truncate">{referenceFile.name}</span>
+                    <div className="mt-4 flex items-center justify-between bg-muted p-3 rounded-md">
+                      <div className="flex items-center flex-1 min-w-0">
+                        <Music className="h-6 w-6 mr-2 text-muted-foreground flex-shrink-0" />
+                        <span className="truncate">{referenceFile.name}</span>
+                      </div>
+                      <Button
+                        onClick={() => {
+                          setReferenceFile(null);
+                          setActiveMode('preset');
+                        }}
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-400 hover:text-red-300 ml-2"
+                      >
+                        ✕
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -330,16 +369,42 @@ export const AIMasteringTab = () => {
                   </Button>
 
                   {masteredFile && (
-                    <div className="text-center bg-muted p-6 rounded-lg">
-                      <h3 className="text-xl font-semibold text-green-500 mb-4">Mastering Complete!</h3>
-                      <a
-                        href={masteredFile.url}
-                        download={masteredFile.name}
-                        className="inline-block bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 px-6 rounded-lg transition-all"
-                      >
-                        Download: {masteredFile.name}
-                      </a>
-                    </div>
+                    <Card className="bg-gradient-to-br from-green-900/40 to-emerald-900/40 border-green-500/40">
+                      <CardContent className="p-6 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-xl font-semibold text-green-400 mb-2">✅ Mastering Complete!</h3>
+                            <p className="text-sm text-muted-foreground">File downloaded: {masteredFile.name}</p>
+                          </div>
+                          <Button
+                            onClick={() => {
+                              setMasteredFile(null);
+                              setTargetFile(null);
+                              setReferenceFile(null);
+                              setSelectedPreset(null);
+                            }}
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-400 hover:text-red-300"
+                          >
+                            ✕ Clear
+                          </Button>
+                        </div>
+                        <Button
+                          onClick={() => {
+                            const link = document.createElement('a');
+                            link.href = masteredFile.url;
+                            link.download = masteredFile.name;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                          }}
+                          className="w-full bg-green-600 hover:bg-green-700"
+                        >
+                          Download Again
+                        </Button>
+                      </CardContent>
+                    </Card>
                   )}
                 </div>
               </CardContent>

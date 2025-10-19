@@ -145,7 +145,7 @@ export const TrackList: React.FC<TrackListProps> = ({
 
                 {/* Size */}
                 <div className="flex items-center">
-                  <span className="text-white text-sm">
+                  <span className="text-cyan-300 text-sm font-semibold">
                     {formatFileSize(track.originalFile.size)}
                   </span>
                 </div>

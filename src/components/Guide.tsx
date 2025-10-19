@@ -233,6 +233,44 @@ export const Guide = () => {
             </CardContent>
           </Card>
 
+          {/* Minimum Technical Requirements */}
+          <Card className="bg-slate-800 border-slate-700 dark:bg-slate-800 dark:border-slate-700 light:bg-gray-50 light:border-gray-200">
+            <CardHeader className="bg-blue-200">
+              <CardTitle className="flex items-center gap-2 text-orange-400 dark:text-orange-400 light:text-orange-600">
+                <Cpu className="h-5 w-5" />
+                Minimum Technical Requirements
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="bg-blue-300 space-y-4 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <h5 className="font-bold text-cyan-400 dark:text-cyan-400 light:text-cyan-600">Hardware Requirements:</h5>
+                  <ul className="space-y-2 text-slate-300 dark:text-slate-300 light:text-gray-600">
+                    <li>• <strong>Processor:</strong> Intel Core i3 / AMD Ryzen 3 or better</li>
+                    <li>• <strong>RAM:</strong> Minimum 4GB (8GB recommended for large files)</li>
+                    <li>• <strong>Storage:</strong> 500MB free space for temporary files</li>
+                    <li>• <strong>Display:</strong> 1280x720 minimum resolution</li>
+                  </ul>
+                </div>
+                <div className="space-y-3">
+                  <h5 className="font-bold text-purple-400 dark:text-purple-400 light:text-purple-600">Software Requirements:</h5>
+                  <ul className="space-y-2 text-slate-300 dark:text-slate-300 light:text-gray-600">
+                    <li>• <strong>Browser:</strong> Chrome 90+, Edge 90+, Firefox 88+, Safari 14+</li>
+                    <li>• <strong>Internet:</strong> 5 Mbps minimum for file uploads</li>
+                    <li>• <strong>JavaScript:</strong> Must be enabled</li>
+                    <li>• <strong>Cookies:</strong> Required for session management</li>
+                  </ul>
+                </div>
+              </div>
+              <div className="bg-blue-500/20 p-4 rounded-lg border border-blue-500/30">
+                <h5 className="font-bold text-green-400 dark:text-green-400 light:text-green-600 mb-2">Recommended Configuration:</h5>
+                <p className="text-slate-300 dark:text-slate-300 light:text-gray-600">
+                  For optimal performance: Intel Core i5/AMD Ryzen 5, 8GB+ RAM, Chrome/Edge browser, 25+ Mbps internet connection
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Performance & Troubleshooting */}
           <Card className="bg-slate-800 border-slate-700 dark:bg-slate-800 dark:border-slate-700 light:bg-gray-50 light:border-gray-200">
             <CardHeader>

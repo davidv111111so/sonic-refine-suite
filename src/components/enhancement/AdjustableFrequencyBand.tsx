@@ -39,7 +39,7 @@ export const AdjustableFrequencyBand = ({
   return (
     <div className="flex flex-col items-center group">
       {/* Band Label */}
-      <div className="text-sm text-center mb-1 font-black text-white drop-shadow-lg">
+      <div className="text-sm text-center mb-1 font-black text-cyan-300 drop-shadow-lg">
         {bandLabel}
       </div>
       
@@ -67,7 +67,7 @@ export const AdjustableFrequencyBand = ({
       </div>
 
       {/* Frequency Range Info */}
-      <div className="text-[10px] text-slate-400 mb-2 text-center">
+      <div className="text-[10px] text-cyan-400 mb-2 text-center font-semibold">
         {formatFrequency(minFreq)} - {formatFrequency(maxFreq)}
       </div>
 

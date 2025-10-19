@@ -68,6 +68,11 @@ export const FiveBandEqualizer = memo(({
     setFrequencies(newFrequencies);
   };
 
+  const handleReset = () => {
+    setFrequencies([50, 145, 874, 5560, 17200]);
+    onResetEQ();
+  };
+
   // Map 5 bands to the first 5 of the 10-band array
   const bandIndices = [0, 2, 4, 7, 9];
   return <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600">
@@ -94,7 +99,7 @@ export const FiveBandEqualizer = memo(({
             </TooltipProvider>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" onClick={onResetEQ} className="h-8 text-xs bg-slate-800 dark:bg-black border-slate-700 dark:border-slate-800 hover:bg-slate-700 dark:hover:bg-slate-900 text-white">
+            <Button variant="outline" size="sm" onClick={handleReset} className="h-8 text-xs bg-slate-800 dark:bg-black border-slate-700 dark:border-slate-800 hover:bg-slate-700 dark:hover:bg-slate-900 text-white">
               <RotateCcw className="h-3 w-3 mr-1" />
               Reset
             </Button>

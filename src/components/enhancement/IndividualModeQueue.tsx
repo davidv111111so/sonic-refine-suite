@@ -31,11 +31,11 @@ export const IndividualModeQueue = ({
       <CardContent className="space-y-2 max-h-60 overflow-y-auto">
         {files.length === 0 ? <p className="bg-gradient-to-r from-cyan-200 to-yellow-200 bg-clip-text text-transparent text-sm text-center py-4 font-bold">
             {language === 'ES' ? 'No hay canciones en la cola' : 'No songs in queue'}
-          </p> : files.map(file => <div key={file.id} className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${selectedFiles.includes(file.id) ? 'bg-cyan-600/20 border-cyan-500' : 'bg-slate-800/50 border-slate-700 hover:bg-slate-800'}`}>
+          </p> : files.map(file => <div key={file.id} className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${selectedFiles.includes(file.id) ? 'bg-blue-900/95 border-cyan-500' : 'bg-slate-800/50 border-slate-700 hover:bg-blue-900/95'}`}>
               <Checkbox checked={selectedFiles.includes(file.id)} onCheckedChange={() => onToggleFile(file.id)} className="border-cyan-500" />
               <div className="flex-1 min-w-0">
-                <p className="bg-gradient-to-r from-yellow-200 to-cyan-200 bg-clip-text text-transparent font-bold text-sm truncate">{file.name}</p>
-                <p className="text-xs font-medium bg-gradient-to-r from-cyan-300 to-yellow-300 bg-clip-text text-transparent">
+                <p className="text-black dark:text-white font-bold text-sm truncate">{file.name}</p>
+                <p className="text-xs font-medium text-black dark:text-cyan-300">
                   {file.artist || 'Unknown Artist'}
                 </p>
               </div>

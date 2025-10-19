@@ -92,7 +92,7 @@ export const AdvancedEQPresetsWithCompensation = memo(({
 
   return (
     <div className="w-full">
-      <div className="text-sm font-bold text-center mb-3 bg-gradient-to-r from-cyan-200 via-purple-200 to-pink-200 bg-clip-text text-transparent animate-pulse">
+      <div className="text-sm font-bold text-center mb-3 bg-gradient-to-r from-cyan-200 via-purple-200 to-pink-200 bg-clip-text text-transparent">
         {language === 'ES' ? '✨ Preajustes Profesionales ✨' : '✨ Professional Presets ✨'}
       </div>
       <div className="grid grid-cols-5 gap-3">
