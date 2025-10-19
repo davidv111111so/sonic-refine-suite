@@ -108,14 +108,26 @@ export const AIMasteringTab = () => {
   // Preset definitions with strict naming convention (lowercase, no spaces)
   // These IDs must match exactly with the backend audio reference files
   const MASTERING_PRESETS = [
-    { id: 'rock.wav', displayName: 'Rock', icon: '🎸', gradient: 'from-red-500 to-orange-600' },
-    { id: 'latin.wav', displayName: 'Latin', icon: '💃', gradient: 'from-yellow-500 to-red-600' },
-    { id: 'electronic.wav', displayName: 'Electronic', icon: '⚡', gradient: 'from-cyan-500 to-blue-600' },
-    { id: 'jazz.wav', displayName: 'Jazz', icon: '🎷', gradient: 'from-purple-500 to-indigo-600' },
-    { id: 'classical.wav', displayName: 'Classical', icon: '🎻', gradient: 'from-amber-500 to-yellow-600' },
-    { id: 'hiphop.wav', displayName: 'Hip-Hop', icon: '🎤', gradient: 'from-green-500 to-emerald-600' },
-    { id: 'vocal.wav', displayName: 'Vocal', icon: '🎙️', gradient: 'from-pink-500 to-rose-600' },
-    { id: 'bassboost.wav', displayName: 'Bass Boost', icon: '🔊', gradient: 'from-indigo-500 to-purple-600' }
+    { id: 'rock', displayName: 'Rock', icon: '🎸', gradient: 'from-red-500 to-orange-600' },
+    { id: 'indie-rock', displayName: 'Indie Rock', icon: '🎸', gradient: 'from-orange-500 to-red-500' },
+    { id: 'punk-rock', displayName: 'Punk Rock', icon: '🤘', gradient: 'from-red-600 to-black' },
+    { id: 'metal', displayName: 'Metal', icon: '⚡', gradient: 'from-gray-600 to-black' },
+    { id: 'dance-pop', displayName: 'Dance Pop', icon: '💃', gradient: 'from-pink-500 to-purple-500' },
+    { id: 'drum-bass', displayName: 'Drum & Bass', icon: '🥁', gradient: 'from-blue-600 to-purple-600' },
+    { id: 'dubstep', displayName: 'Dubstep', icon: '🔊', gradient: 'from-green-600 to-blue-600' },
+    { id: 'edm', displayName: 'EDM', icon: '🎛️', gradient: 'from-cyan-500 to-blue-600' },
+    { id: 'house', displayName: 'House', icon: '🏠', gradient: 'from-purple-500 to-pink-500' },
+    { id: 'techno', displayName: 'Techno', icon: '🤖', gradient: 'from-gray-500 to-blue-600' },
+    { id: 'hip-hop', displayName: 'Hip-Hop', icon: '🎤', gradient: 'from-yellow-600 to-red-600' },
+    { id: 'reggae', displayName: 'Reggae', icon: '🌴', gradient: 'from-green-500 to-yellow-500' },
+    { id: 'reggaeton', displayName: 'Reggaeton', icon: '🔥', gradient: 'from-red-500 to-yellow-500' },
+    { id: 'rnb-soul', displayName: 'Rnb/Soul', icon: '💜', gradient: 'from-purple-600 to-pink-600' },
+    { id: 'trap', displayName: 'Trap', icon: '💎', gradient: 'from-black to-red-600' },
+    { id: 'pop', displayName: 'Pop', icon: '🎵', gradient: 'from-pink-400 to-purple-400' },
+    { id: 'kpop-jpop', displayName: 'K-pop/J-pop', icon: '🌸', gradient: 'from-pink-300 to-blue-300' },
+    { id: 'latin-pop', displayName: 'Latin Pop', icon: '💃', gradient: 'from-yellow-500 to-red-600' },
+    { id: 'country', displayName: 'Country', icon: '🤠', gradient: 'from-amber-600 to-yellow-500' },
+    { id: 'jazz', displayName: 'Jazz', icon: '🎷', gradient: 'from-purple-500 to-indigo-600' }
   ] as const;
 
   /**
@@ -180,6 +192,12 @@ export const AIMasteringTab = () => {
     setMasteredFile(null);
 
     try {
+      // Get JWT token
+      const token = await getToken();
+      if (!token) {
+        throw new Error('Authentication required. Please log in again.');
+      }
+
       const formData = new FormData();
       formData.append('target', targetFile);
 
@@ -191,7 +209,10 @@ export const AIMasteringTab = () => {
       }
 
       const { data, error } = await supabase.functions.invoke('ai-mastering', {
-        body: formData
+        body: formData,
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
       });
 
       if (error) throw error;
@@ -356,21 +377,21 @@ export const AIMasteringTab = () => {
             <Card className="bg-card border-border">
               <CardContent className="p-6">
                 <h2 className="text-xl font-semibold mb-4">2. Choose a Genre Reference (Preset)</h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                   {MASTERING_PRESETS.map((preset) => (
                     <button
                       key={preset.id}
                       onClick={() => handlePresetClick(preset.id)}
-                      className={`relative p-4 rounded-xl text-center font-bold transition-all duration-300 overflow-hidden group ${
+                      className={`relative p-3 rounded-xl text-center font-bold transition-all duration-300 overflow-hidden group ${
                         selectedPreset === preset.id && activeMode === 'preset'
                           ? `bg-gradient-to-br ${preset.gradient} text-white shadow-2xl scale-105 ring-4 ring-white/30`
                           : `bg-gradient-to-br ${preset.gradient} opacity-70 hover:opacity-100 hover:scale-105 text-white shadow-lg`
                       }`}
                     >
                       <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-all duration-300" />
-                      <div className="relative z-10 flex flex-col items-center gap-2">
-                        <span className="text-3xl">{preset.icon}</span>
-                        <span className="text-sm drop-shadow-lg">{preset.displayName}</span>
+                      <div className="relative z-10 flex flex-col items-center gap-1.5">
+                        <span className="text-2xl">{preset.icon}</span>
+                        <span className="text-xs drop-shadow-lg leading-tight">{preset.displayName}</span>
                       </div>
                     </button>
                   ))}

@@ -73,6 +73,7 @@ export const MasteringSettingsModal = ({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="none">None</SelectItem>
                 <SelectItem value="RPDF">RPDF (Rectangular)</SelectItem>
                 <SelectItem value="TPDF">TPDF (Triangular)</SelectItem>
               </SelectContent>

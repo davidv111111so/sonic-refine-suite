@@ -78,25 +78,68 @@ serve(async (req) => {
       targetFileName: targetFile instanceof File ? targetFile.name : 'unknown'
     });
 
-    // Simulate processing for now
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Prepare FormData for Matchering API
+    const matcheringFormData = new FormData();
+    matcheringFormData.append('target', targetFile);
+    
+    if (referenceFile) {
+      matcheringFormData.append('reference', referenceFile);
+    } else if (presetId) {
+      matcheringFormData.append('preset_id', presetId);
+    }
 
-    // Create a mock processed file (in production, this would be actual Matchering output)
-    const mockProcessedAudio = new Uint8Array(1024); // Mock audio data
-    const blob = new Blob([mockProcessedAudio], { type: 'audio/wav' });
-    
-    // In production, upload to Supabase Storage and return the public URL
-    const fileName = `mastered_${Date.now()}.wav`;
-    
-    // For now, return the original file data as blob URL (mock)
-    // TODO: Integrate with actual Matchering backend
-    const mockUrl = `data:audio/wav;base64,${btoa(String.fromCharCode(...mockProcessedAudio))}`;
+    // Get JWT token from authorization header
+    const jwtToken = authHeader.replace('Bearer ', '');
+
+    // Call external Matchering API
+    console.log('Calling Matchering API with JWT authentication...');
+    const matcheringResponse = await fetch(
+      'https://mastering-backend-857351913435.us-central1.run.app',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${jwtToken}`
+        },
+        body: matcheringFormData
+      }
+    );
+
+    if (!matcheringResponse.ok) {
+      const errorText = await matcheringResponse.text();
+      console.error('Matchering API error:', errorText);
+      throw new Error(`Matchering API failed: ${matcheringResponse.status} - ${errorText}`);
+    }
+
+    // Get the processed audio file
+    const processedAudioBlob = await matcheringResponse.blob();
+    console.log('Matchering processing complete, file size:', processedAudioBlob.size);
+
+    // Upload to Supabase Storage
+    const fileName = `mastered_${user.id}_${Date.now()}.wav`;
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('mastered-audio')
+      .upload(`${user.id}/${fileName}`, processedAudioBlob, {
+        contentType: 'audio/wav',
+        upsert: true
+      });
+
+    if (uploadError) {
+      console.error('Storage upload error:', uploadError);
+      throw new Error(`Failed to upload mastered audio: ${uploadError.message}`);
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('mastered-audio')
+      .getPublicUrl(`${user.id}/${fileName}`);
+
+    const downloadUrl = urlData.publicUrl;
     
     return new Response(
       JSON.stringify({
         fileName,
-        downloadUrl: mockUrl,
-        message: 'AI Mastering complete (mock response - backend integration pending)'
+        downloadUrl,
+        message: 'AI Mastering complete!'
       }),
       { 
         status: 200, 

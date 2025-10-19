@@ -139,14 +139,24 @@ export const EnhancedMiniPlayer = ({
       setCurrentTime(0);
     };
 
+    // Prevent browser from auto-pausing
+    const pauseHandler = (e: Event) => {
+      if (isPlaying && audioElement.readyState >= 2) {
+        console.log('Preventing unwanted pause, resuming playback...');
+        audioElement.play().catch(err => console.error('Resume failed:', err));
+      }
+    };
+
     audioElement.addEventListener("timeupdate", timeUpdateHandler);
     audioElement.addEventListener("ended", endedHandler);
+    audioElement.addEventListener("pause", pauseHandler);
 
     return () => {
       audioElement.removeEventListener("timeupdate", timeUpdateHandler);
       audioElement.removeEventListener("ended", endedHandler);
+      audioElement.removeEventListener("pause", pauseHandler);
     };
-  }, []);
+  }, [isPlaying]);
 
   const togglePlay = async () => {
     const audio = audioRef.current;

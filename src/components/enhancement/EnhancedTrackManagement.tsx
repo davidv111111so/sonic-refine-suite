@@ -178,7 +178,7 @@ export const EnhancedTrackManagement = ({
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-lg flex-shrink-0">{getFileTypeIcon(fileType)}</span>
                     <div className="flex-1 min-w-0 overflow-hidden">
-                      <div className="bg-gradient-to-r from-cyan-200 via-blue-200 to-purple-200 bg-clip-text text-transparent font-bold animate-pulse break-words" style={{
+                      <div className="text-white font-bold break-words" style={{
                     display: '-webkit-box',
                     WebkitLineClamp: 2,
                     WebkitBoxOrient: 'vertical',
@@ -190,7 +190,7 @@ export const EnhancedTrackManagement = ({
                       </div>
                     </div>
                   </div>
-                  <span className="bg-gradient-to-r from-purple-200 via-pink-200 to-blue-200 bg-clip-text text-transparent text-xs truncate animate-pulse">{file.artist || 'Unknown Artist'}</span>
+                  <span className="text-slate-300 text-xs truncate">{file.artist || 'Unknown Artist'}</span>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="outline" className="text-xs px-2 py-0 bg-slate-700/50 dark:bg-black/70 text-white dark:text-white border-slate-500 dark:border-slate-600">
                       {fileType.toUpperCase()}
