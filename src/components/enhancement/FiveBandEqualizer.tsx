@@ -104,7 +104,7 @@ export const FiveBandEqualizer = memo(({
                   <Info className="h-4 w-4 text-slate-400 hover:text-cyan-400 cursor-help transition-colors" />
                 </TooltipTrigger>
                 <TooltipContent className="max-w-sm bg-slate-800 border-slate-600 text-slate-200 p-4">
-                  <p className="text-sm">
+                  <p className="text-sm text-slate-950">
                     {language === 'ES' ? 'El rango predeterminado ha seleccionado frecuencias que son psicoacústicamente agradables para el oído humano, resaltando naturalmente los tonos más embellecedores en el audio.' : 'The default range has selected frequencies that are psychoacoustically pleasing to the human ear, naturally highlighting the most embellishing tones in the audio.'}
                   </p>
                 </TooltipContent>
