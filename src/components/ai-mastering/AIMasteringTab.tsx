@@ -60,7 +60,7 @@ export const AIMasteringTab = () => {
     loudnessCorrectionLimiting: false,
     amplify: false,
     clipping: false,
-    outputBits: '32 (IEEE float)',
+    outputBits: '24',
     outputChannels: 2,
     ditheringMethod: 'TPDF'
   });
