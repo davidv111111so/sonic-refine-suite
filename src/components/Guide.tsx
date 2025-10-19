@@ -159,6 +159,48 @@ export const Guide = () => {
             </CardContent>
           </Card>
 
+          {/* Minimum Technical Requirements - Moved here from bottom */}
+          <Card className="bg-slate-800 border-slate-700 dark:bg-slate-800 dark:border-slate-700 light:bg-gray-50 light:border-gray-200">
+            <CardHeader className="bg-blue-200">
+              <CardTitle className="flex items-center gap-2 text-orange-400 dark:text-orange-400 light:text-orange-600">
+                <Cpu className="h-5 w-5" />
+                Minimum Technical Requirements
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="bg-blue-300 space-y-4 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <h5 className="font-bold text-cyan-400 dark:text-cyan-400 light:text-cyan-600">Hardware Requirements:</h5>
+                  <ul className="space-y-2 text-slate-300 dark:text-slate-300 light:text-gray-600">
+                    <li>• <strong>Processor:</strong> Intel Core i3 / AMD Ryzen 3 or better</li>
+                    <li>• <strong>RAM:</strong> Minimum 4GB (8GB recommended for large files)</li>
+                    <li>• <strong>Storage:</strong> 500MB free space for temporary files</li>
+                    <li>• <strong>Display:</strong> 1280x720 minimum resolution</li>
+                  </ul>
+                </div>
+                <div className="space-y-3">
+                  <h5 className="font-bold text-purple-400 dark:text-purple-400 light:text-purple-600">Software Requirements:</h5>
+                  <ul className="space-y-2 text-slate-300 dark:text-slate-300 light:text-gray-600">
+                    <li>• <strong>Browser:</strong> Chrome 90+, Edge 90+, Firefox 88+, Safari 14+</li>
+                    <li>• <strong>Internet:</strong> 5 Mbps minimum for file uploads</li>
+                    <li>• <strong>OS:</strong> Windows 10/11, macOS 10.14+, or modern Linux</li>
+                    <li>• <strong>JavaScript:</strong> Enabled (required for app functionality)</li>
+                  </ul>
+                </div>
+              </div>
+              <Separator className="bg-slate-700 dark:bg-slate-700 light:bg-gray-200" />
+              <div className="space-y-2">
+                <h5 className="font-bold text-green-400 dark:text-green-400 light:text-green-600">Performance Notes:</h5>
+                <ul className="space-y-1 text-slate-400 dark:text-slate-400 light:text-gray-500">
+                  <li>• Processing time increases with file size and number of files</li>
+                  <li>• Close unused tabs and applications for optimal performance</li>
+                  <li>• Files over 50MB may require additional processing time</li>
+                  <li>• Do not refresh or close browser during enhancement</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Backend-Free Technologies */}
           <Card className="bg-slate-800 border-slate-700 dark:bg-slate-800 dark:border-slate-700 light:bg-gray-50 light:border-gray-200">
             <CardHeader className="bg-blue-200">
@@ -229,44 +271,6 @@ export const Guide = () => {
                   <kbd className="px-3 py-2 bg-slate-900 dark:bg-slate-900 light:bg-gray-800 light:text-white rounded font-mono text-sm block mb-2">Ctrl+R</kbd>
                   <p className="text-xs text-slate-400 dark:text-slate-400 light:text-gray-500">Reset EQ</p>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Minimum Technical Requirements */}
-          <Card className="bg-slate-800 border-slate-700 dark:bg-slate-800 dark:border-slate-700 light:bg-gray-50 light:border-gray-200">
-            <CardHeader className="bg-blue-200">
-              <CardTitle className="flex items-center gap-2 text-orange-400 dark:text-orange-400 light:text-orange-600">
-                <Cpu className="h-5 w-5" />
-                Minimum Technical Requirements
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="bg-blue-300 space-y-4 text-sm">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-3">
-                  <h5 className="font-bold text-cyan-400 dark:text-cyan-400 light:text-cyan-600">Hardware Requirements:</h5>
-                  <ul className="space-y-2 text-slate-300 dark:text-slate-300 light:text-gray-600">
-                    <li>• <strong>Processor:</strong> Intel Core i3 / AMD Ryzen 3 or better</li>
-                    <li>• <strong>RAM:</strong> Minimum 4GB (8GB recommended for large files)</li>
-                    <li>• <strong>Storage:</strong> 500MB free space for temporary files</li>
-                    <li>• <strong>Display:</strong> 1280x720 minimum resolution</li>
-                  </ul>
-                </div>
-                <div className="space-y-3">
-                  <h5 className="font-bold text-purple-400 dark:text-purple-400 light:text-purple-600">Software Requirements:</h5>
-                  <ul className="space-y-2 text-slate-300 dark:text-slate-300 light:text-gray-600">
-                    <li>• <strong>Browser:</strong> Chrome 90+, Edge 90+, Firefox 88+, Safari 14+</li>
-                    <li>• <strong>Internet:</strong> 5 Mbps minimum for file uploads</li>
-                    <li>• <strong>JavaScript:</strong> Must be enabled</li>
-                    <li>• <strong>Cookies:</strong> Required for session management</li>
-                  </ul>
-                </div>
-              </div>
-              <div className="bg-blue-500/20 p-4 rounded-lg border border-blue-500/30">
-                <h5 className="font-bold text-green-400 dark:text-green-400 light:text-green-600 mb-2">Recommended Configuration:</h5>
-                <p className="text-slate-300 dark:text-slate-300 light:text-gray-600">
-                  For optimal performance: Intel Core i5/AMD Ryzen 5, 8GB+ RAM, Chrome/Edge browser, 25+ Mbps internet connection
-                </p>
               </div>
             </CardContent>
           </Card>

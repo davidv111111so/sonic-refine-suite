@@ -21,10 +21,30 @@ export const EnhancedMiniPlayer = ({
   const [duration, setDuration] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
 
+  // Initialize Web Audio API context (persists across plays)
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
+
+    // Create AudioContext only once
+    if (!audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      console.log('AudioContext created for', file.name);
+    }
+
+    // Create MediaElementSource only once per audio element
+    if (!sourceNodeRef.current && audioContextRef.current) {
+      try {
+        sourceNodeRef.current = audioContextRef.current.createMediaElementSource(audio);
+        sourceNodeRef.current.connect(audioContextRef.current.destination);
+        console.log('MediaElementSource connected for', file.name);
+      } catch (error) {
+        console.error('Error creating MediaElementSource:', error);
+      }
+    }
 
     // Pass audio element reference to parent
     if (onAudioElementRef) {
@@ -34,11 +54,12 @@ export const EnhancedMiniPlayer = ({
     const handleLoadedMetadata = () => {
       setDuration(audio.duration || 0);
       setIsLoaded(true);
-      console.log('Audio loaded successfully:', file.name);
+      console.log('Audio metadata loaded:', file.name, 'Duration:', audio.duration);
     };
 
     const handleLoadedData = () => {
       setIsLoaded(true);
+      console.log('Audio data loaded successfully:', file.name);
     };
 
     const handleError = (e: any) => {
@@ -48,19 +69,30 @@ export const EnhancedMiniPlayer = ({
 
     const handleCanPlay = () => {
       setIsLoaded(true);
+      console.log('Audio can play:', file.name);
+    };
+
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+      console.log('Audio playback ended:', file.name);
     };
 
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
     audio.addEventListener('loadeddata', handleLoadedData);
     audio.addEventListener('error', handleError);
     audio.addEventListener('canplay', handleCanPlay);
+    audio.addEventListener('ended', handleEnded);
 
     // Set audio source with error handling
     try {
       if (file.enhancedUrl) {
         audio.src = file.enhancedUrl;
+        console.log('Setting enhanced audio source:', file.enhancedUrl.substring(0, 50));
       } else if (file.originalFile) {
-        audio.src = URL.createObjectURL(file.originalFile);
+        const objectUrl = URL.createObjectURL(file.originalFile);
+        audio.src = objectUrl;
+        console.log('Setting original file audio source from Blob');
       }
       audio.load();
     } catch (error) {
@@ -73,10 +105,17 @@ export const EnhancedMiniPlayer = ({
       audio.removeEventListener('loadeddata', handleLoadedData);
       audio.removeEventListener('error', handleError);
       audio.removeEventListener('canplay', handleCanPlay);
+      audio.removeEventListener('ended', handleEnded);
       
       // Clean up audio element reference
       if (onAudioElementRef) {
         onAudioElementRef(null);
+      }
+
+      // Cleanup AudioContext on unmount
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
       }
     };
   }, [file, onAudioElementRef]);
@@ -110,7 +149,10 @@ export const EnhancedMiniPlayer = ({
   }, []);
 
   const togglePlay = async () => {
-    if (!audioRef.current) {
+    const audio = audioRef.current;
+    const ctx = audioContextRef.current;
+    
+    if (!audio) {
       console.warn('Audio element not available');
       return;
     }
@@ -118,7 +160,15 @@ export const EnhancedMiniPlayer = ({
     if (!isLoaded) {
       console.warn('Audio not loaded yet, attempting to load...');
       try {
-        await audioRef.current.load();
+        await audio.load();
+        // Wait for loadeddata event
+        await new Promise((resolve) => {
+          const handler = () => {
+            audio.removeEventListener('loadeddata', handler);
+            resolve(true);
+          };
+          audio.addEventListener('loadeddata', handler);
+        });
       } catch (error) {
         console.error('Failed to load audio:', error);
         return;
@@ -127,28 +177,44 @@ export const EnhancedMiniPlayer = ({
 
     try {
       if (isPlaying) {
-        audioRef.current.pause();
+        audio.pause();
         setIsPlaying(false);
         console.log('Audio paused');
       } else {
+        // Resume AudioContext if suspended
+        if (ctx && ctx.state === 'suspended') {
+          await ctx.resume();
+          console.log('AudioContext resumed');
+        }
+
         // Stop other audio players
         const allAudioElements = document.querySelectorAll('audio');
-        allAudioElements.forEach(audio => {
-          if (audio !== audioRef.current) {
-            audio.pause();
+        allAudioElements.forEach(audioEl => {
+          if (audioEl !== audio && !audioEl.paused) {
+            audioEl.pause();
           }
         });
         
-        console.log('Attempting to play audio from source:', audioRef.current.src);
-        await audioRef.current.play();
+        console.log('Attempting to play audio:', file.name);
+        console.log('Audio src:', audio.src.substring(0, 100));
+        console.log('Audio readyState:', audio.readyState);
+        console.log('Audio networkState:', audio.networkState);
+        console.log('Audio duration:', audio.duration);
+        
+        await audio.play();
         setIsPlaying(true);
-        console.log('Audio playing successfully');
+        console.log('Audio playing successfully:', file.name);
       }
     } catch (error) {
       console.error("Playback failed:", error);
-      console.error("Audio src:", audioRef.current?.src);
-      console.error("Audio readyState:", audioRef.current?.readyState);
-      console.error("Audio networkState:", audioRef.current?.networkState);
+      console.error("Error details:", {
+        name: (error as Error).name,
+        message: (error as Error).message,
+        src: audio.src,
+        readyState: audio.readyState,
+        networkState: audio.networkState,
+        error: audio.error
+      });
       setIsPlaying(false);
     }
   };

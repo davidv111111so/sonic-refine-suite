@@ -84,19 +84,34 @@ export const AudioProcessingSettings = ({ settings, onSettingChange }: AudioProc
           />
         </div>
         {settings.compressionEnabled && (
-          <div className="space-y-1">
-            <div className="flex justify-between">
-              <span className="text-xs text-slate-400">Ratio</span>
-              <span className="text-xs text-slate-400">{settings.compression}:1</span>
+          <>
+            <div className="space-y-1">
+              <div className="flex justify-between">
+                <span className="text-xs text-slate-400">Ratio</span>
+                <span className="text-xs text-slate-400">{settings.compression}:1</span>
+              </div>
+              <Slider
+                value={[settings.compression]}
+                onValueChange={([value]) => onSettingChange('compression', value)}
+                min={1}
+                max={10}
+                step={0.5}
+              />
             </div>
-            <Slider
-              value={[settings.compression]}
-              onValueChange={([value]) => onSettingChange('compression', value)}
-              min={1}
-              max={10}
-              step={0.5}
-            />
-          </div>
+            <div className="space-y-1">
+              <div className="flex justify-between">
+                <span className="text-xs text-slate-400">Threshold</span>
+                <span className="text-xs text-slate-400">{settings.threshold || -3} dB</span>
+              </div>
+              <Slider
+                value={[settings.threshold || -3]}
+                onValueChange={([value]) => onSettingChange('threshold', value)}
+                min={-24}
+                max={0}
+                step={0.5}
+              />
+            </div>
+          </>
         )}
       </div>
 

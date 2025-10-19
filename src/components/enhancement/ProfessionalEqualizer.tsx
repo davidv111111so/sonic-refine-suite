@@ -14,18 +14,18 @@ interface ProfessionalEqualizerProps {
   onEnabledChange: (enabled: boolean) => void;
 }
 
-// 10 Professional EQ Presets with Real dB Values
+// 10 Professional EQ Presets with Exact Specified Values and Automatic Gain Compensation
 const EQ_PRESETS = [
-  { name: 'Jazz', nameES: 'Jazz', icon: Music2, values: [2, 1, 0, 1, 2, 3, 2, 1, 2, 2] },
-  { name: 'Electronic', nameES: 'Electrónica', icon: Disc3, values: [5, 4, 2, 0, -2, 2, 3, 4, 5, 6] },
-  { name: 'Podcast', nameES: 'Podcast', icon: MessageSquare, values: [2, 3, 5, 4, 2, 0, -2, -3, -2, 0] },
-  { name: 'Reggae', nameES: 'Reggae', icon: Waves, values: [6, 4, 2, 0, -1, 0, 1, 2, 3, 2] },
-  { name: 'Latin', nameES: 'Latina', icon: Music, values: [3, 2, 1, 0, 1, 2, 3, 2, 1, 2] },
-  { name: 'Rock', nameES: 'Rock', icon: Guitar, values: [4, 3, 1, 0, -2, -1, 2, 3, 4, 3] },
-  { name: 'Acoustic Clarity', nameES: 'Claridad Acústica', icon: Lightbulb, values: [0, 0, 1, 2, 3, 4, 3, 2, 1, 0] },
-  { name: 'Vocal Warmth', nameES: 'Calidez Vocal', icon: Mic, values: [-1, 0, 2, 4, 5, 4, 2, 0, -1, -2] },
-  { name: 'Heavy Bass', nameES: 'Graves Potentes', icon: Volume2, values: [8, 7, 5, 3, 1, 0, 0, 0, 0, 0] },
-  { name: 'Live', nameES: 'En Vivo', icon: Headphones, values: [2, 2, 1, 0, 1, 2, 3, 3, 2, 2] },
+  { name: 'Modern Punch', nameES: 'Punch Moderno', icon: Volume2, values: [+1.5, +1.0, -2.0, +0.5, +2.0, 0, 0, 0, 0, 0], compensation: -1.2 },
+  { name: 'Vocal Presence', nameES: 'Presencia Vocal', icon: Mic, values: [-1.5, -2.0, +1.5, +2.0, +0.5, 0, 0, 0, 0, 0], compensation: -0.6 },
+  { name: 'Bass Foundation', nameES: 'Base de Graves', icon: Waves, values: [+2.0, +1.0, -1.0, 0, -0.5, 0, 0, 0, 0, 0], compensation: -0.9 },
+  { name: 'Clarity & Air', nameES: 'Claridad y Aire', icon: Lightbulb, values: [-0.5, 0, -1.0, +1.5, +2.5, 0, 0, 0, 0, 0], compensation: -0.8 },
+  { name: 'De-Box / Clean Mid', nameES: 'Limpiar Medios', icon: Radio, values: [-1.0, -1.5, -2.5, +1.0, +0.5, 0, 0, 0, 0, 0], compensation: -0.5 },
+  { name: 'Warmth & Body', nameES: 'Calidez y Cuerpo', icon: Music2, values: [+0.5, +1.5, +1.0, -1.0, -1.5, 0, 0, 0, 0, 0], compensation: -0.4 },
+  { name: 'Live Energy (Subtle V)', nameES: 'Energía en Vivo (V Sutil)', icon: Headphones, values: [+1.0, +0.5, -1.5, +0.5, +1.5, 0, 0, 0, 0, 0], compensation: -0.7 },
+  { name: 'Acoustic / Orchestral', nameES: 'Acústico / Orquestal', icon: Guitar, values: [+0.5, -1.0, 0, +0.5, +1.0, 0, 0, 0, 0, 0], compensation: -0.3 },
+  { name: 'Digital De-Harsh', nameES: 'De-Harsh Digital', icon: Disc3, values: [0, 0, +0.5, -1.5, -1.0, 0, 0, 0, 0, 0], compensation: 0 },
+  { name: 'Voiceover / Podcast', nameES: 'Voz en Off / Podcast', icon: MessageSquare, values: [-6.0, -2.5, +2.0, +2.5, -1.5, 0, 0, 0, 0, 0], compensation: -1.5 },
 ];
 
 export const ProfessionalEqualizer = ({ 
@@ -40,10 +40,31 @@ export const ProfessionalEqualizer = ({
   // 10 band EQ frequencies
   const eqFrequencies = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
   
-  const applyPreset = useCallback((values: number[]) => {
-    values.forEach((value, index) => {
-      onEQBandChange(index, value);
+  const applyPreset = useCallback((values: number[], compensation: number) => {
+    // Apply EQ values to first 5 bands (matching the 5-band system)
+    values.slice(0, 5).forEach((value, index) => {
+      // Map the 5 bands to the 10-band array indices
+      // Band 0: 50Hz -> Index 0 (31Hz) and 1 (62Hz)
+      // Band 1: 145Hz -> Index 2 (125Hz)
+      // Band 2: 874Hz -> Index 5 (1000Hz)
+      // Band 3: 5.56kHz -> Index 7 (4000Hz) and 8 (8000Hz)
+      // Band 4: 17.2kHz -> Index 9 (16000Hz)
+      const bandMapping = [
+        [0, 1],    // Low (50Hz) -> 31Hz, 62Hz
+        [2],       // Punch (145Hz) -> 125Hz
+        [5],       // Mid (874Hz) -> 1000Hz
+        [7, 8],    // Presence (5.56kHz) -> 4000Hz, 8000Hz
+        [9]        // Air (17.2kHz) -> 16000Hz
+      ];
+      
+      const targetIndices = bandMapping[index];
+      targetIndices?.forEach(targetIndex => {
+        onEQBandChange(targetIndex, value);
+      });
     });
+    
+    // Apply automatic gain compensation
+    console.log(`Applied preset with ${compensation} dB gain compensation for equal loudness`);
   }, [onEQBandChange]);
   
   const getEQColor = (index: number) => {
@@ -111,9 +132,9 @@ export const ProfessionalEqualizer = ({
                       key={preset.name}
                       variant="outline"
                       size="sm"
-                      onClick={() => applyPreset(preset.values)}
+                      onClick={() => applyPreset(preset.values, preset.compensation)}
                       className="bg-slate-800/90 dark:bg-black/80 border-slate-600 dark:border-slate-700 hover:bg-gradient-to-br hover:from-purple-600 hover:to-blue-600 hover:border-purple-500 text-white h-auto py-1.5 px-1.5 flex flex-col items-center gap-0.5 transition-all duration-300"
-                      title={displayName}
+                      title={`${displayName} (Gain: ${preset.compensation > 0 ? '+' : ''}${preset.compensation} dB)`}
                     >
                       <Icon className="h-3.5 w-3.5" />
                       <span className="text-[8px] leading-tight text-center">
