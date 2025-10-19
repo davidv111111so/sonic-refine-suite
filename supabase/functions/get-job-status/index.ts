@@ -13,25 +13,18 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('authorization')
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Authorization header missing' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
-    }
-
+    const userAuthHeader = req.headers.get('Authorization')
     const { jobId } = await req.json()
 
     const response = await fetch(`${BACKEND_URL}/api/get-job-status/${jobId}`, {
       headers: {
-        'Authorization': authHeader
+        'Authorization': userAuthHeader || '',
       }
     })
 
     const data = await response.json()
     
-    return new Response(JSON.stringify(data), { 
+    return new Response(JSON.stringify(data), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: response.status
     })
