@@ -30,16 +30,32 @@ export const FiveBandEqualizer = memo(({
   const [frequencies, setFrequencies] = useState([50, 145, 874, 5560, 17200]);
 
   // Frequency ranges for each band
-  const frequencyRanges = [
-    { min: 20, max: 85 },      // Low / Sub
-    { min: 85, max: 356 },     // Mid Low / Punch
-    { min: 356, max: 2200 },   // Mid
-    { min: 2200, max: 9800 },  // Mid High / Presence
-    { min: 9800, max: 20000 }  // High / Air
+  const frequencyRanges = [{
+    min: 20,
+    max: 85
+  },
+  // Low / Sub
+  {
+    min: 85,
+    max: 356
+  },
+  // Mid Low / Punch
+  {
+    min: 356,
+    max: 2200
+  },
+  // Mid
+  {
+    min: 2200,
+    max: 9800
+  },
+  // Mid High / Presence
+  {
+    min: 9800,
+    max: 20000
+  } // High / Air
   ];
-
   const bandLabels = language === 'ES' ? ['Graves / Sub', 'Medio-Grave / Punch', 'Medio', 'Medio-Agudo / Presencia', 'Agudos / Air'] : ['Low / Sub', 'Mid Low / Punch', 'Mid', 'Mid High / Presence', 'High / Air'];
-  
   const getEQColor = (index: number) => {
     const colors = ['#ff1744',
     // Red for Bass
@@ -53,7 +69,6 @@ export const FiveBandEqualizer = memo(({
     ];
     return colors[index];
   };
-  
   const getTickMarks = () => {
     const marks = [];
     for (let i = -12; i <= 12; i += 3) {
@@ -61,13 +76,11 @@ export const FiveBandEqualizer = memo(({
     }
     return marks;
   };
-
   const handleFrequencyChange = (bandIndex: number, newFrequency: number) => {
     const newFrequencies = [...frequencies];
     newFrequencies[bandIndex] = newFrequency;
     setFrequencies(newFrequencies);
   };
-
   const handleReset = () => {
     setFrequencies([50, 145, 874, 5560, 17200]);
     onResetEQ();
@@ -133,23 +146,11 @@ export const FiveBandEqualizer = memo(({
               </div>
 
               <div className="flex justify-center items-end gap-7 py-4 relative z-10">
-                {bandIndices.map((bandIndex, visualIndex) => (
-                  <AdjustableFrequencyBand
-                    key={bandIndex}
-                    bandLabel={bandLabels[visualIndex]}
-                    frequency={frequencies[visualIndex]}
-                    value={eqBands[bandIndex] || 0}
-                    minFreq={frequencyRanges[visualIndex].min}
-                    maxFreq={frequencyRanges[visualIndex].max}
-                    color={getEQColor(visualIndex)}
-                    onFrequencyChange={(freq) => handleFrequencyChange(visualIndex, freq)}
-                    onValueChange={(value) => onEQBandChange(bandIndex, value)}
-                  />
-                ))}
+                {bandIndices.map((bandIndex, visualIndex) => <AdjustableFrequencyBand key={bandIndex} bandLabel={bandLabels[visualIndex]} frequency={frequencies[visualIndex]} value={eqBands[bandIndex] || 0} minFreq={frequencyRanges[visualIndex].min} maxFreq={frequencyRanges[visualIndex].max} color={getEQColor(visualIndex)} onFrequencyChange={freq => handleFrequencyChange(visualIndex, freq)} onValueChange={value => onEQBandChange(bandIndex, value)} />)}
               </div>
 
               {/* EQ Branding with Glow */}
-              <div className="absolute bottom-3 right-4 text-xs text-cyan-300 font-mono font-bold drop-shadow-lg py-[19px] my-[5px] mx-[18px]">
+              <div className="absolute bottom-3 right-4 text-xs text-cyan-300 font-mono font-bold drop-shadow-lg mx-0 py-[6px] my-[6px]">
                 SPECTRUM 5-BAND EQ ✨
               </div>
             </div>
