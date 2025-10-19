@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Music, Upload, Crown, Lock, Loader2, Settings } from 'lucide-react';
+import { Music, Upload, Crown, Lock, Loader2, Settings, Download, CheckCircle } from 'lucide-react';
 import { useUserSubscription } from '@/hooks/useUserSubscription';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
@@ -9,104 +9,28 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { MasteringSettingsModal, MasteringSettings } from './MasteringSettingsModal';
 
 export const AIMasteringTab = () => {
   const { t } = useLanguage();
-  const { isPremium, loading, isAdmin } = useUserSubscription();
+  const { isPremium, loading } = useUserSubscription();
   const navigate = useNavigate();
-  const { getToken } = useAuth();
+  const { user } = useAuth();
 
-  // Component states with localStorage persistence
-  const [targetFile, setTargetFile] = useState<File | null>(() => {
-    const saved = localStorage.getItem('aiMastering_targetFile');
-    return saved ? JSON.parse(saved) : null;
-  });
-  const [referenceFile, setReferenceFile] = useState<File | null>(() => {
-    const saved = localStorage.getItem('aiMastering_referenceFile');
-    return saved ? JSON.parse(saved) : null;
-  });
-  const [selectedPreset, setSelectedPreset] = useState<string | null>(() => {
-    return localStorage.getItem('aiMastering_selectedPreset');
-  });
-  const [activeMode, setActiveMode] = useState<'preset' | 'custom'>(() => {
-    return (localStorage.getItem('aiMastering_activeMode') as 'preset' | 'custom') || 'preset';
-  });
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [masteredFile, setMasteredFile] = useState<{ name: string; url: string } | null>(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [masteringSettings, setMasteringSettings] = useState<MasteringSettings>({
-    threshold: 0.998138,
-    epsilon: 0.000001,
-    maxPieceLength: 30.0,
-    bpm: 0.0,
-    timeSignatureNumerator: 4,
-    timeSignatureDenominator: 4,
-    pieceLengthBars: 8.0,
-    resamplingMethod: 'FastSinc',
-    spectrumCompensation: 'Frequency-Domain (Gain Envelope)',
-    loudnessCompensation: 'LUFS (Whole Signal)',
-    analyzeFullSpectrum: false,
-    spectrumSmoothingWidth: 3,
-    smoothingSteps: 1,
-    spectrumCorrectionHops: 2,
-    loudnessSteps: 10,
-    spectrumBands: 32,
-    fftSize: 4096,
-    normalizeReference: false,
-    normalize: false,
-    limiterMethod: 'True Peak',
-    limiterThreshold: -1.0,
-    loudnessCorrectionLimiting: false,
-    amplify: false,
-    clipping: false,
-    outputBits: '24',
-    outputChannels: 2,
-    ditheringMethod: 'TPDF'
-  });
+  const [targetFile, setTargetFile] = useState<File | null>(null);
+  const [referenceFile, setReferenceFile] = useState<File | null>(null);
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+  const [activeMode, setActiveMode] = useState<'preset' | 'custom'>('preset');
 
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [jobStatus, setJobStatus] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string>('');
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string>('');
+
+  const poller = useRef<NodeJS.Timeout | null>(null);
   const targetInputRef = useRef<HTMLInputElement>(null);
   const referenceInputRef = useRef<HTMLInputElement>(null);
 
-  // Persist state to localStorage
-  useEffect(() => {
-    if (targetFile) {
-      localStorage.setItem('aiMastering_targetFile', JSON.stringify({
-        name: targetFile.name,
-        size: targetFile.size,
-        type: targetFile.type
-      }));
-    } else {
-      localStorage.removeItem('aiMastering_targetFile');
-    }
-  }, [targetFile]);
-
-  useEffect(() => {
-    if (referenceFile) {
-      localStorage.setItem('aiMastering_referenceFile', JSON.stringify({
-        name: referenceFile.name,
-        size: referenceFile.size,
-        type: referenceFile.type
-      }));
-    } else {
-      localStorage.removeItem('aiMastering_referenceFile');
-    }
-  }, [referenceFile]);
-
-  useEffect(() => {
-    if (selectedPreset) {
-      localStorage.setItem('aiMastering_selectedPreset', selectedPreset);
-    } else {
-      localStorage.removeItem('aiMastering_selectedPreset');
-    }
-  }, [selectedPreset]);
-
-  useEffect(() => {
-    localStorage.setItem('aiMastering_activeMode', activeMode);
-  }, [activeMode]);
-
-  // Preset definitions with strict naming convention (lowercase, no spaces)
-  // These IDs must match exactly with the backend audio reference files
   const MASTERING_PRESETS = [
     { id: 'rock', displayName: 'Rock', icon: '🎸', gradient: 'from-red-500 to-orange-600' },
     { id: 'indie-rock', displayName: 'Indie Rock', icon: '🎸', gradient: 'from-orange-500 to-red-500' },
@@ -130,26 +54,11 @@ export const AIMasteringTab = () => {
     { id: 'jazz', displayName: 'Jazz', icon: '🎷', gradient: 'from-purple-500 to-indigo-600' }
   ] as const;
 
-  /**
-   * Fetches the reference audio file URL for a given preset
-   * @param presetId - The preset ID (e.g., 'rock.wav')
-   * @returns The URL to the reference audio file
-   */
-  const getReferenceAudioUrl = (presetId: string): string => {
-    // Enforce naming convention: must be lowercase and contain no spaces
-    if (presetId !== presetId.toLowerCase() || presetId.includes(' ')) {
-      throw new Error(`Invalid preset ID: ${presetId}. Must be lowercase with no spaces.`);
-    }
-    // Construct URL endpoint for the audio asset
-    return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/mastering-presets/${presetId}`;
-  };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, setFile: (file: File | null) => void) => {
     const file = e.target.files?.[0];
     if (file) {
       setFile(file);
     }
-    // Reset the input value to allow re-uploading the same file
     if (e.target) {
       e.target.value = '';
     }
@@ -159,13 +68,6 @@ export const AIMasteringTab = () => {
     setSelectedPreset(presetId);
     setActiveMode('preset');
     setReferenceFile(null);
-    // Optional: Validate the preset ID format
-    try {
-      getReferenceAudioUrl(presetId);
-    } catch (error) {
-      console.error('Invalid preset ID selected:', error);
-      toast.error('Invalid preset selected');
-    }
   };
 
   const handleCustomReferenceClick = () => {
@@ -174,81 +76,119 @@ export const AIMasteringTab = () => {
     referenceInputRef.current?.click();
   };
 
+  const uploadFileDirectly = async (file: File): Promise<string> => {
+    setStatusMessage(`Requesting upload for ${file.name}...`);
+    
+    const { data, error } = await supabase.functions.invoke('generate-upload-url', {
+      body: { fileName: file.name, fileType: file.type },
+    });
+    
+    if (error) throw new Error("Could not get a secure upload URL.");
+
+    setStatusMessage(`Uploading ${file.name}...`);
+    
+    const uploadResponse = await fetch(data.signedUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type },
+      body: file,
+    });
+    
+    if (!uploadResponse.ok) throw new Error("File upload failed.");
+    
+    return data.gcsFileName;
+  };
+
   const handleMastering = async () => {
-    if (!targetFile) {
-      toast.error('Please select a target file to master');
-      return;
-    }
-    if (activeMode === 'custom' && !referenceFile) {
-      toast.error('Please select a custom reference file');
-      return;
-    }
-    if (activeMode === 'preset' && !selectedPreset) {
-      toast.error('Please select a genre preset as reference');
+    if (!targetFile || (!referenceFile && !selectedPreset)) {
+      setError("Please select target and reference files or a preset.");
+      toast.error("Please select target and reference files or a preset.");
       return;
     }
 
-    setIsProcessing(true);
+    setError('');
+    setJobStatus('uploading');
+    setDownloadUrl(null);
     setMasteredFile(null);
 
     try {
-      // Get JWT token
-      const token = await getToken();
-      if (!token) {
-        throw new Error('Authentication required. Please log in again.');
-      }
-
-      const formData = new FormData();
-      formData.append('target', targetFile);
-
-      if (activeMode === 'custom') {
-        formData.append('reference', referenceFile!);
+      const targetGcsPath = await uploadFileDirectly(targetFile);
+      
+      let referenceGcsPath: string;
+      
+      if (activeMode === 'preset' && selectedPreset) {
+        // For presets, use the preset ID - backend will handle the mapping
+        referenceGcsPath = `presets/${selectedPreset}.wav`;
+      } else if (referenceFile) {
+        referenceGcsPath = await uploadFileDirectly(referenceFile);
       } else {
-        // Use the preset ID directly (already in correct format)
-        formData.append('preset_id', selectedPreset!);
+        throw new Error("No reference file or preset selected.");
       }
 
-      const { data, error } = await supabase.functions.invoke('ai-mastering', {
-        body: formData,
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-
-      if (error) throw error;
-
-      const fileName = data.fileName;
-      const downloadUrl = data.downloadUrl;
+      setStatusMessage('Starting mastering process...');
       
-      setMasteredFile({
-        name: fileName,
-        url: downloadUrl
+      const { data, error } = await supabase.functions.invoke('start-mastering-job', {
+        body: { 
+          targetGcsPath, 
+          referenceGcsPath,
+          userId: user?.id 
+        },
       });
       
-      // Automatically trigger download
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      if (error) throw new Error("Could not start the mastering job.");
       
-      toast.success(`✅ Mastering complete! ${fileName} has been downloaded.`);
-
+      setJobId(data.jobId);
+      setJobStatus('processing');
+      setStatusMessage('Processing audio... This may take a few minutes.');
+      toast.info('🎵 Processing your audio... This may take a few minutes.');
+      
     } catch (err) {
-      console.error('AI Mastering Error:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Mastering failed. Please try again.';
-      toast.error(`❌ ${errorMessage}`);
-      
-      // Detailed error logging
-      if (err instanceof Error && err.message.includes('Failed to fetch')) {
-        console.error('Network error: Cannot reach edge function');
-        toast.error('Network error: Please check your internet connection');
-      }
-    } finally {
-      setIsProcessing(false);
+      const errorMsg = err instanceof Error ? err.message : 'An error occurred';
+      setError(errorMsg);
+      setJobStatus(null);
+      toast.error(`❌ ${errorMsg}`);
     }
   };
+
+  // Poll for job status
+  useEffect(() => {
+    if (jobStatus === 'processing' && jobId) {
+      poller.current = setInterval(async () => {
+        const { data, error } = await supabase.functions.invoke('get-job-status', {
+          body: { jobId },
+        });
+
+        if (error) {
+          setError("Could not get job status.");
+          clearInterval(poller.current!);
+          setJobStatus('failed');
+          toast.error("Could not get job status.");
+          return;
+        }
+
+        if (data.status === 'completed') {
+          setJobStatus('completed');
+          setStatusMessage('Mastering complete!');
+          setDownloadUrl(data.downloadUrl);
+          clearInterval(poller.current!);
+          toast.success('✅ Mastering complete! Your file is ready.');
+        } else if (data.status === 'failed') {
+          setJobStatus('failed');
+          setError(data.error || 'The job failed on the server.');
+          setStatusMessage('An error occurred during mastering.');
+          clearInterval(poller.current!);
+          toast.error('❌ Mastering failed. Please try again.');
+        }
+      }, 10000); // Poll every 10 seconds
+    }
+    
+    return () => {
+      if (poller.current) clearInterval(poller.current);
+    };
+  }, [jobStatus, jobId]);
+
+  const isProcessing = jobStatus === 'uploading' || jobStatus === 'processing';
+
+  const [masteredFile, setMasteredFile] = useState<{ name: string; url: string } | null>(null);
 
   if (loading) {
     return (
@@ -261,7 +201,6 @@ export const AIMasteringTab = () => {
     );
   }
 
-  // Premium access required
   if (!isPremium) {
     return (
       <Card className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 border-purple-400/40 shadow-xl">
@@ -295,43 +234,22 @@ export const AIMasteringTab = () => {
     );
   }
 
-  // Premium content - Full mastering interface
   return (
     <div className="min-h-screen p-4 sm:p-6 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Settings Modal */}
-        <MasteringSettingsModal
-          open={settingsOpen}
-          onOpenChange={setSettingsOpen}
-          settings={masteringSettings}
-          onSettingsChange={setMasteringSettings}
-        />
-
-        {/* Header with Premium Badge and Settings Button */}
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-bold mb-2 text-primary">AI Audio Mastering</h1>
             <p className="text-muted-foreground">Upload your track and choose a reference to master your audio with AI.</p>
           </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={() => setSettingsOpen(true)}
-              variant="outline"
-              className="bg-slate-800 border-slate-700 text-white hover:bg-slate-700"
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Advanced Settings
-            </Button>
-            <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs h-7 flex items-center px-3">
-              ✨ Premium
-            </Badge>
-          </div>
+          <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs h-7 flex items-center px-3">
+            ✨ Premium
+          </Badge>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column: Target and Presets */}
           <div className="space-y-8">
-            {/* Target Section */}
             <Card className="bg-card border-border">
               <CardContent className="p-6">
                 <h2 className="text-xl font-semibold mb-4">1. Upload Your Track (Target)</h2>
@@ -373,7 +291,6 @@ export const AIMasteringTab = () => {
               </CardContent>
             </Card>
 
-            {/* Presets Section */}
             <Card className="bg-card border-border">
               <CardContent className="p-6">
                 <h2 className="text-xl font-semibold mb-4">2. Choose a Genre Reference (Preset)</h2>
@@ -431,7 +348,6 @@ export const AIMasteringTab = () => {
                       <Button
                         onClick={() => {
                           setReferenceFile(null);
-                          setActiveMode('preset');
                           if (referenceInputRef.current) {
                             referenceInputRef.current.value = '';
                           }
@@ -445,56 +361,45 @@ export const AIMasteringTab = () => {
                     </div>
                   )}
                 </div>
-                
-                {/* Action and Results Section */}
-                <div className="mt-8 space-y-4">
+
+                <div className="mt-8">
                   <Button
                     onClick={handleMastering}
                     disabled={isProcessing}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-6 text-lg"
-                    size="lg"
+                    className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-6 rounded-lg text-lg transition-all disabled:bg-slate-500 disabled:cursor-not-allowed"
                   >
-                    {isProcessing && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
-                    {isProcessing ? 'Processing... Please wait' : '✨ Master My Track'}
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                        {statusMessage}
+                      </>
+                    ) : (
+                      <>
+                        ✨ Master My Track
+                      </>
+                    )}
                   </Button>
 
-                  {masteredFile && (
-                    <Card className="bg-gradient-to-br from-green-900/40 to-emerald-900/40 border-green-500/40">
-                      <CardContent className="p-6 space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="text-xl font-semibold text-green-400 mb-2">✅ Mastering Complete!</h3>
-                            <p className="text-sm text-muted-foreground">File downloaded: {masteredFile.name}</p>
-                          </div>
-                          <Button
-                            onClick={() => {
-                              setMasteredFile(null);
-                              setTargetFile(null);
-                              setReferenceFile(null);
-                              setSelectedPreset(null);
-                            }}
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-400 hover:text-red-300"
-                          >
-                            ✕ Clear
-                          </Button>
-                        </div>
-                        <Button
-                          onClick={() => {
-                            const link = document.createElement('a');
-                            link.href = masteredFile.url;
-                            link.download = masteredFile.name;
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                          }}
-                          className="w-full bg-green-600 hover:bg-green-700"
-                        >
-                          Download Again
-                        </Button>
-                      </CardContent>
-                    </Card>
+                  {error && (
+                    <div className="mt-4 text-center text-red-400 text-sm">
+                      {error}
+                    </div>
+                  )}
+
+                  {jobStatus === 'completed' && downloadUrl && (
+                    <div className="mt-6 text-center space-y-4">
+                      <div className="flex items-center justify-center gap-2">
+                        <CheckCircle className="h-6 w-6 text-green-400" />
+                        <h3 className="text-xl font-semibold text-green-400">Mastering Complete!</h3>
+                      </div>
+                      <a 
+                        href={downloadUrl}
+                        className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-all"
+                      >
+                        <Download className="h-5 w-5" />
+                        Download Mastered File
+                      </a>
+                    </div>
                   )}
                 </div>
               </CardContent>
