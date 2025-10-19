@@ -56,17 +56,61 @@ export const MediaPlayer = () => {
   }, [volume]);
 
   useEffect(() => {
-    if (audioContextRef.current && eqEnabled && isConnectedRef.current) {
+    if (audioContextRef.current && isConnectedRef.current) {
       eqNodesRef.current.forEach((node, index) => {
         if (node) {
           node.gain.value = eqBands[index];
         }
       });
     }
-  }, [eqBands, eqEnabled]);
+  }, [eqBands]);
+
+  useEffect(() => {
+    if (isConnectedRef.current) {
+      connectAudioGraph();
+    }
+  }, [eqEnabled]);
+
+  const disconnectAudioGraph = () => {
+    try {
+      if (sourceRef.current) {
+        sourceRef.current.disconnect();
+      }
+      eqNodesRef.current.forEach(node => {
+        if (node) node.disconnect();
+      });
+      if (gainNodeRef.current) {
+        gainNodeRef.current.disconnect();
+      }
+    } catch (error) {
+      console.error('Error disconnecting audio graph:', error);
+    }
+  };
+
+  const connectAudioGraph = () => {
+    if (!sourceRef.current || !gainNodeRef.current || !audioContextRef.current) return;
+
+    try {
+      disconnectAudioGraph();
+      
+      let currentNode: AudioNode = sourceRef.current;
+      
+      if (eqEnabled && eqNodesRef.current.length > 0) {
+        eqNodesRef.current.forEach(filter => {
+          currentNode.connect(filter);
+          currentNode = filter;
+        });
+      }
+      
+      currentNode.connect(gainNodeRef.current);
+      gainNodeRef.current.connect(audioContextRef.current.destination);
+    } catch (error) {
+      console.error('Error connecting audio graph:', error);
+    }
+  };
 
   const setupAudioContext = () => {
-    if (!audioRef.current || isConnectedRef.current) return;
+    if (!audioRef.current) return;
 
     try {
       const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
@@ -78,7 +122,8 @@ export const MediaPlayer = () => {
         audioContextRef.current.resume();
       }
       
-      if (!sourceRef.current) {
+      // Only create source once per audio element
+      if (!sourceRef.current && audioRef.current) {
         sourceRef.current = audioContextRef.current.createMediaElementSource(audioRef.current);
         isConnectedRef.current = true;
       }
@@ -87,7 +132,7 @@ export const MediaPlayer = () => {
         gainNodeRef.current = audioContextRef.current.createGain();
       }
       
-      // Create EQ nodes if they don't exist
+      // Create EQ nodes
       if (eqNodesRef.current.length === 0) {
         eqNodesRef.current = eqFrequencies.map((freq, index) => {
           const filter = audioContextRef.current!.createBiquadFilter();
@@ -99,20 +144,7 @@ export const MediaPlayer = () => {
         });
       }
 
-      // Connect audio graph only if not already connected
-      if (isConnectedRef.current && sourceRef.current && gainNodeRef.current) {
-        let currentNode: AudioNode = sourceRef.current;
-        
-        if (eqEnabled) {
-          eqNodesRef.current.forEach(filter => {
-            currentNode.connect(filter);
-            currentNode = filter;
-          });
-        }
-        
-        currentNode.connect(gainNodeRef.current);
-        gainNodeRef.current.connect(audioContextRef.current.destination);
-      }
+      connectAudioGraph();
     } catch (error) {
       console.error('Audio context setup error:', error);
     }
@@ -131,19 +163,22 @@ export const MediaPlayer = () => {
       return;
     }
 
-    // Reset audio context connection
-    isConnectedRef.current = false;
-    sourceRef.current = null;
-    eqNodesRef.current = [];
-    gainNodeRef.current = null;
+    // Clean up previous audio
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+    }
+    disconnectAudioGraph();
 
     setCurrentFile(file);
     const url = URL.createObjectURL(file);
     setAudioUrl(url);
+    setIsPlaying(false);
+    setCurrentTime(0);
     
     if (audioRef.current) {
       audioRef.current.src = url;
-      audioRef.current.addEventListener('loadedmetadata', setupAudioContext, { once: true });
+      audioRef.current.load();
+      setupAudioContext();
     }
 
     toast({
@@ -151,6 +186,19 @@ export const MediaPlayer = () => {
       description: `Now playing: ${file.name}`,
     });
   };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+      }
+      disconnectAudioGraph();
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+    };
+  }, [audioUrl]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
