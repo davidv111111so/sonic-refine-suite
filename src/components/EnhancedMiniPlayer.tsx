@@ -110,15 +110,26 @@ export const EnhancedMiniPlayer = ({
   }, []);
 
   const togglePlay = async () => {
-    if (!audioRef.current || !isLoaded) {
-      console.warn('Audio not ready for playback');
+    if (!audioRef.current) {
+      console.warn('Audio element not available');
       return;
+    }
+
+    if (!isLoaded) {
+      console.warn('Audio not loaded yet, attempting to load...');
+      try {
+        await audioRef.current.load();
+      } catch (error) {
+        console.error('Failed to load audio:', error);
+        return;
+      }
     }
 
     try {
       if (isPlaying) {
         audioRef.current.pause();
         setIsPlaying(false);
+        console.log('Audio paused');
       } else {
         // Stop other audio players
         const allAudioElements = document.querySelectorAll('audio');
@@ -128,11 +139,16 @@ export const EnhancedMiniPlayer = ({
           }
         });
         
+        console.log('Attempting to play audio from source:', audioRef.current.src);
         await audioRef.current.play();
         setIsPlaying(true);
+        console.log('Audio playing successfully');
       }
     } catch (error) {
       console.error("Playback failed:", error);
+      console.error("Audio src:", audioRef.current?.src);
+      console.error("Audio readyState:", audioRef.current?.readyState);
+      console.error("Audio networkState:", audioRef.current?.networkState);
       setIsPlaying(false);
     }
   };

@@ -70,22 +70,33 @@ serve(async (req) => {
       );
     }
 
-    // Placeholder response - In production, integrate with Matchering backend
+    // Log request details
     console.log('AI Mastering request:', { 
       userId: user.id, 
       hasReference: !!referenceFile, 
-      presetId 
+      presetId,
+      targetFileName: targetFile instanceof File ? targetFile.name : 'unknown'
     });
 
-    // Simulate processing
+    // Simulate processing for now
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Return mock response
+    // Create a mock processed file (in production, this would be actual Matchering output)
+    const mockProcessedAudio = new Uint8Array(1024); // Mock audio data
+    const blob = new Blob([mockProcessedAudio], { type: 'audio/wav' });
+    
+    // In production, upload to Supabase Storage and return the public URL
+    const fileName = `mastered_${Date.now()}.wav`;
+    
+    // For now, return the original file data as blob URL (mock)
+    // TODO: Integrate with actual Matchering backend
+    const mockUrl = `data:audio/wav;base64,${btoa(String.fromCharCode(...mockProcessedAudio))}`;
+    
     return new Response(
       JSON.stringify({
-        fileName: `mastered_${Date.now()}.wav`,
-        downloadUrl: '#', // Would be actual URL from Matchering backend
-        message: 'Backend integration pending - Matchering API endpoint required'
+        fileName,
+        downloadUrl: mockUrl,
+        message: 'AI Mastering complete (mock response - backend integration pending)'
       }),
       { 
         status: 200, 

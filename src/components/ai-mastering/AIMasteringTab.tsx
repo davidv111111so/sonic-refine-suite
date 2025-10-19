@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Music, Upload, Crown, Lock, Loader2, Settings } from 'lucide-react';
 import { useUserSubscription } from '@/hooks/useUserSubscription';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -15,11 +15,21 @@ export const AIMasteringTab = () => {
   const { isPremium, loading, isAdmin } = useUserSubscription();
   const navigate = useNavigate();
 
-  // Component states
-  const [targetFile, setTargetFile] = useState<File | null>(null);
-  const [referenceFile, setReferenceFile] = useState<File | null>(null);
-  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
-  const [activeMode, setActiveMode] = useState<'preset' | 'custom'>('preset');
+  // Component states with localStorage persistence
+  const [targetFile, setTargetFile] = useState<File | null>(() => {
+    const saved = localStorage.getItem('aiMastering_targetFile');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [referenceFile, setReferenceFile] = useState<File | null>(() => {
+    const saved = localStorage.getItem('aiMastering_referenceFile');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(() => {
+    return localStorage.getItem('aiMastering_selectedPreset');
+  });
+  const [activeMode, setActiveMode] = useState<'preset' | 'custom'>(() => {
+    return (localStorage.getItem('aiMastering_activeMode') as 'preset' | 'custom') || 'preset';
+  });
   const [isProcessing, setIsProcessing] = useState(false);
   const [masteredFile, setMasteredFile] = useState<{ name: string; url: string } | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -56,6 +66,43 @@ export const AIMasteringTab = () => {
   const targetInputRef = useRef<HTMLInputElement>(null);
   const referenceInputRef = useRef<HTMLInputElement>(null);
 
+  // Persist state to localStorage
+  useEffect(() => {
+    if (targetFile) {
+      localStorage.setItem('aiMastering_targetFile', JSON.stringify({
+        name: targetFile.name,
+        size: targetFile.size,
+        type: targetFile.type
+      }));
+    } else {
+      localStorage.removeItem('aiMastering_targetFile');
+    }
+  }, [targetFile]);
+
+  useEffect(() => {
+    if (referenceFile) {
+      localStorage.setItem('aiMastering_referenceFile', JSON.stringify({
+        name: referenceFile.name,
+        size: referenceFile.size,
+        type: referenceFile.type
+      }));
+    } else {
+      localStorage.removeItem('aiMastering_referenceFile');
+    }
+  }, [referenceFile]);
+
+  useEffect(() => {
+    if (selectedPreset) {
+      localStorage.setItem('aiMastering_selectedPreset', selectedPreset);
+    } else {
+      localStorage.removeItem('aiMastering_selectedPreset');
+    }
+  }, [selectedPreset]);
+
+  useEffect(() => {
+    localStorage.setItem('aiMastering_activeMode', activeMode);
+  }, [activeMode]);
+
   // Preset definitions with strict naming convention (lowercase, no spaces)
   // These IDs must match exactly with the backend audio reference files
   const MASTERING_PRESETS = [
@@ -87,6 +134,10 @@ export const AIMasteringTab = () => {
     const file = e.target.files?.[0];
     if (file) {
       setFile(file);
+    }
+    // Reset the input value to allow re-uploading the same file
+    if (e.target) {
+      e.target.value = '';
     }
   };
 
@@ -162,7 +213,15 @@ export const AIMasteringTab = () => {
       toast.success(`✅ Mastering complete! ${fileName} has been downloaded.`);
 
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Mastering failed. Please try again.');
+      console.error('AI Mastering Error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Mastering failed. Please try again.';
+      toast.error(`❌ ${errorMessage}`);
+      
+      // Detailed error logging
+      if (err instanceof Error && err.message.includes('Failed to fetch')) {
+        console.error('Network error: Cannot reach edge function');
+        toast.error('Network error: Please check your internet connection');
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -274,7 +333,12 @@ export const AIMasteringTab = () => {
                       <span className="truncate">{targetFile.name}</span>
                     </div>
                     <Button
-                      onClick={() => setTargetFile(null)}
+                      onClick={() => {
+                        setTargetFile(null);
+                        if (targetInputRef.current) {
+                          targetInputRef.current.value = '';
+                        }
+                      }}
                       variant="ghost"
                       size="sm"
                       className="text-red-400 hover:text-red-300 ml-2"
@@ -345,6 +409,9 @@ export const AIMasteringTab = () => {
                         onClick={() => {
                           setReferenceFile(null);
                           setActiveMode('preset');
+                          if (referenceInputRef.current) {
+                            referenceInputRef.current.value = '';
+                          }
                         }}
                         variant="ghost"
                         size="sm"
