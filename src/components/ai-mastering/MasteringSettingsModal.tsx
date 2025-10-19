@@ -73,9 +73,8 @@ export const MasteringSettingsModal = ({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="TPDF">TPDF</SelectItem>
-                <SelectItem value="RPDF">RPDF</SelectItem>
-                <SelectItem value="None">None</SelectItem>
+                <SelectItem value="RPDF">RPDF (Rectangular)</SelectItem>
+                <SelectItem value="TPDF">TPDF (Triangular)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -108,18 +107,6 @@ export const MasteringSettingsModal = ({
               />
               <Label className="text-slate-400 text-xs cursor-pointer">Enable hard clipping</Label>
             </div>
-          </div>
-
-          {/* Limiter Threshold dB */}
-          <div className="space-y-2">
-            <Label className="text-white text-sm">Limiter Threshold dB</Label>
-            <Input
-              type="number"
-              value={settings.limiterThreshold}
-              onChange={(e) => handleChange('limiterThreshold', parseFloat(e.target.value))}
-              step="0.1"
-              className="bg-slate-800 border-slate-700 text-white"
-            />
           </div>
 
           {/* Limiter Method */}

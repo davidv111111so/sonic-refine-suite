@@ -1,8 +1,9 @@
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
+import { Input } from '@/components/ui/input';
 import { RotateCcw, Music2, Mic, Headphones, Guitar, Disc3, Radio, MessageSquare, Volume2, Waves, Music, Lightbulb } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -37,8 +38,57 @@ export const ProfessionalEqualizer = ({
 }: ProfessionalEqualizerProps) => {
   const { t, language } = useLanguage();
   
-  // 10 band EQ frequencies
-  const eqFrequencies = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
+  // Default 10 band EQ frequencies
+  const defaultFrequencies = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
+  
+  // Frequency ranges for each band (min, max)
+  const frequencyRanges = [
+    [20, 50],      // Band 0: Sub Bass
+    [50, 100],     // Band 1: Bass
+    [100, 200],    // Band 2: Low Mid
+    [200, 400],    // Band 3: Mid
+    [400, 800],    // Band 4: Upper Mid
+    [800, 1500],   // Band 5: Presence
+    [1500, 3000],  // Band 6: Upper Presence
+    [3000, 6000],  // Band 7: Brilliance
+    [6000, 12000], // Band 8: Air
+    [12000, 20000] // Band 9: Ultra High
+  ];
+  
+  // State for custom frequencies
+  const [eqFrequencies, setEqFrequencies] = useState<number[]>(defaultFrequencies);
+  const [editingBand, setEditingBand] = useState<number | null>(null);
+  const [tempFreqValue, setTempFreqValue] = useState<string>('');
+  
+  const handleFrequencyClick = useCallback((index: number) => {
+    setEditingBand(index);
+    setTempFreqValue(eqFrequencies[index].toString());
+  }, [eqFrequencies]);
+  
+  const handleFrequencyChange = useCallback((value: string) => {
+    setTempFreqValue(value);
+  }, []);
+  
+  const handleFrequencySubmit = useCallback((index: number) => {
+    const newFreq = parseInt(tempFreqValue);
+    const [min, max] = frequencyRanges[index];
+    
+    if (!isNaN(newFreq) && newFreq >= min && newFreq <= max) {
+      const newFrequencies = [...eqFrequencies];
+      newFrequencies[index] = newFreq;
+      setEqFrequencies(newFrequencies);
+    }
+    setEditingBand(null);
+  }, [tempFreqValue, eqFrequencies, frequencyRanges]);
+  
+  const handleFrequencyBlur = useCallback((index: number) => {
+    handleFrequencySubmit(index);
+  }, [handleFrequencySubmit]);
+  
+  const handleResetWithFrequencies = useCallback(() => {
+    setEqFrequencies(defaultFrequencies);
+    onResetEQ();
+  }, [onResetEQ]);
   
   const applyPreset = useCallback((values: number[], compensation: number) => {
     // Apply EQ values to first 5 bands (matching the 5-band system)
@@ -105,7 +155,7 @@ export const ProfessionalEqualizer = ({
             <Button
               variant="outline"
               size="sm"
-              onClick={onResetEQ}
+              onClick={handleResetWithFrequencies}
               className="h-8 text-xs bg-slate-800 dark:bg-black border-slate-700 dark:border-slate-800 hover:bg-slate-700 dark:hover:bg-slate-900 text-white"
             >
               <RotateCcw className="h-3 w-3 mr-1" />
@@ -167,12 +217,31 @@ export const ProfessionalEqualizer = ({
 
               <div className="flex justify-center items-end gap-2 py-3 relative z-10">
                 {eqFrequencies.map((freq, index) => (
-                  <div key={freq} className="flex flex-col items-center group">
+                  <div key={index} className="flex flex-col items-center group">
                     
-                    {/* Frequency Label */}
-                    <div className="text-[9px] text-center mb-1.5 font-mono text-blue-400 dark:text-blue-300">
-                      {freq < 1000 ? `${freq}Hz` : `${freq/1000}k`}
-                    </div>
+                    {/* Frequency Label - Editable */}
+                    {editingBand === index ? (
+                      <Input
+                        type="number"
+                        value={tempFreqValue}
+                        onChange={(e) => handleFrequencyChange(e.target.value)}
+                        onBlur={() => handleFrequencyBlur(index)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleFrequencySubmit(index);
+                          if (e.key === 'Escape') setEditingBand(null);
+                        }}
+                        className="w-12 h-5 text-[8px] text-center p-0 bg-slate-800 border-blue-500 text-blue-300"
+                        autoFocus
+                      />
+                    ) : (
+                      <div 
+                        className="text-[9px] text-center mb-1.5 font-mono text-blue-400 dark:text-blue-300 cursor-pointer hover:text-blue-300 hover:underline"
+                        onClick={() => handleFrequencyClick(index)}
+                        title={`Click to edit (Range: ${frequencyRanges[index][0]}-${frequencyRanges[index][1]} Hz)`}
+                      >
+                        {eqFrequencies[index] < 1000 ? `${eqFrequencies[index]}Hz` : `${(eqFrequencies[index]/1000).toFixed(1)}k`}
+                      </div>
+                    )}
 
                     {/* Compact Fader Container - 35% smaller */}
                     <div className="relative h-28 w-5 mb-2">

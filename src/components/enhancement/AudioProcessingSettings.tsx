@@ -101,15 +101,18 @@ export const AudioProcessingSettings = ({ settings, onSettingChange }: AudioProc
             <div className="space-y-1">
               <div className="flex justify-between">
                 <span className="text-xs text-slate-400">Threshold</span>
-                <span className="text-xs text-slate-400">{settings.threshold || -3} dB</span>
+                <span className="text-xs text-slate-400">{settings.threshold ?? -3} dB</span>
               </div>
               <Slider
-                value={[settings.threshold || -3]}
+                value={[settings.threshold ?? -3]}
                 onValueChange={([value]) => onSettingChange('threshold', value)}
                 min={-24}
                 max={0}
                 step={0.5}
               />
+              <p className="text-[10px] text-amber-400/80 mt-1">
+                💡 Ideal range: 1-3 dB of compression to avoid over-compression
+              </p>
             </div>
           </>
         )}
