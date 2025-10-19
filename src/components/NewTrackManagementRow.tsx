@@ -221,7 +221,7 @@ export const NewTrackManagementRow = ({
 
       {/* File Size */}
       <div className="flex flex-col justify-center">
-        <span className="text-white text-sm font-mono font-bold drop-shadow-lg">
+        <span className="text-cyan-300 text-sm font-mono font-bold drop-shadow-lg">
           {formatFileSize(file.size)}
         </span>
       </div>
