@@ -1,35 +1,31 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Music, Upload, Crown, Lock, Loader2, Settings, Download, CheckCircle } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Music, Upload, Crown, Lock, Loader2 } from 'lucide-react';
 import { useUserSubscription } from '@/hooks/useUserSubscription';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import axios from 'axios';
+import { saveAs } from 'file-saver';
 
 export const AIMasteringTab = () => {
   const { t } = useLanguage();
   const { isPremium, loading } = useUserSubscription();
   const navigate = useNavigate();
-  const { user } = useAuth();
 
   const [targetFile, setTargetFile] = useState<File | null>(null);
   const [referenceFile, setReferenceFile] = useState<File | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [activeMode, setActiveMode] = useState<'preset' | 'custom'>('preset');
-
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [jobStatus, setJobStatus] = useState<string | null>(null);
-  const [statusMessage, setStatusMessage] = useState<string>('');
-  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
-  const poller = useRef<NodeJS.Timeout | null>(null);
   const targetInputRef = useRef<HTMLInputElement>(null);
   const referenceInputRef = useRef<HTMLInputElement>(null);
+
+  const BACKEND_URL = 'http://127.0.0.1:8000';
 
   const MASTERING_PRESETS = [
     { id: 'rock', displayName: 'Rock', icon: '🎸', gradient: 'from-red-500 to-orange-600' },
@@ -76,24 +72,6 @@ export const AIMasteringTab = () => {
     referenceInputRef.current?.click();
   };
 
-  const uploadFileDirectly = async (file: File): Promise<string> => {
-    setStatusMessage(`Uploading ${file.name}...`);
-    
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    const { data, error } = await supabase.functions.invoke('generate-upload-url', {
-      body: formData,
-    });
-    
-    if (error || !data?.path) {
-      throw new Error(error?.message || "File upload failed.");
-    }
-    
-    toast.success(`✅ ${file.name} uploaded successfully`);
-    return data.path;
-  };
-
   const handleMastering = async () => {
     if (!targetFile) {
       setError("Please select a target audio file.");
@@ -108,103 +86,52 @@ export const AIMasteringTab = () => {
     }
 
     setError('');
-    setJobStatus('uploading');
-    setDownloadUrl(null);
+    setIsProcessing(true);
 
     try {
-      // Upload target file to backend
-      const targetPath = await uploadFileDirectly(targetFile);
-      
-      let referencePath: string | undefined;
-      
-      // Upload reference file if custom reference mode
-      if (activeMode === 'custom' && referenceFile) {
-        referencePath = await uploadFileDirectly(referenceFile);
-      }
-
-      setStatusMessage('Starting AI mastering process...');
       toast.info('🎵 Starting AI mastering...');
       
-      const requestBody: any = { 
-        target_path: targetPath
-      };
+      const formData = new FormData();
+      formData.append('target', targetFile);
       
-      // Add preset_id or reference_path based on mode
-      if (activeMode === 'preset' && selectedPreset) {
-        requestBody.preset_id = selectedPreset;
-      } else if (activeMode === 'custom' && referencePath) {
-        requestBody.reference_path = referencePath;
+      // If using custom reference, add the reference file
+      if (activeMode === 'custom' && referenceFile) {
+        formData.append('reference', referenceFile);
       }
-      
-      // Call backend via edge function
-      const { data, error } = await supabase.functions.invoke('start-mastering-job', {
-        body: requestBody,
-      });
-      
-      if (error || !data?.jobId) {
-        throw new Error(error?.message || "Could not start the mastering job.");
+      // If using preset mode, add preset_id as a form field
+      else if (activeMode === 'preset' && selectedPreset) {
+        formData.append('preset_id', selectedPreset);
       }
+
+      const response = await axios.post(
+        `${BACKEND_URL}/process/ai-mastering`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          responseType: 'blob',
+          timeout: 120000, // 2 minute timeout for processing
+        }
+      );
+
+      // Success - download the file
+      const filename = `mastered_${targetFile.name.replace(/\.[^/.]+$/, '')}.wav`;
+      saveAs(response.data, filename);
       
-      setJobId(data.jobId);
-      setJobStatus('processing');
-      setStatusMessage('Processing audio... This may take a few minutes.');
-      toast.info('🎵 Processing your audio... This may take a few minutes.');
+      toast.success('✅ Mastering complete! File downloaded.');
+      setIsProcessing(false);
       
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'An error occurred';
+      const errorMsg = axios.isAxiosError(err) 
+        ? (err.response?.data?.detail || err.message || 'Network error')
+        : 'An error occurred during mastering';
+      
       setError(errorMsg);
-      setJobStatus(null);
+      setIsProcessing(false);
       toast.error(`❌ ${errorMsg}`);
     }
   };
-
-  // Poll for job status
-  useEffect(() => {
-    if (jobStatus === 'processing' && jobId) {
-      poller.current = setInterval(async () => {
-        const { data, error } = await supabase.functions.invoke('get-job-status', {
-          body: { jobId },
-        });
-
-        if (error) {
-          setError("Could not get job status.");
-          clearInterval(poller.current!);
-          setJobStatus('failed');
-          toast.error("Could not get job status.");
-          return;
-        }
-
-        if (data.status === 'completed') {
-          setJobStatus('completed');
-          setStatusMessage('Mastering complete!');
-          const fullDownloadUrl = `https://mastering-backend-857351913435.us-central1.run.app${data.downloadUrl}`;
-          setDownloadUrl(fullDownloadUrl);
-          clearInterval(poller.current!);
-          toast.success('✅ Mastering complete! Downloading your file...');
-          
-          // Auto-download the mastered file
-          const link = document.createElement('a');
-          link.href = fullDownloadUrl;
-          link.download = data.outputFile || `mastered_${targetFile?.name || 'audio.wav'}`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        } else if (data.status === 'failed') {
-          setJobStatus('failed');
-          setError(data.error || 'The mastering job failed on the server.');
-          setStatusMessage('An error occurred during mastering.');
-          clearInterval(poller.current!);
-          toast.error('❌ Mastering failed. Please try again.');
-        }
-      }, 5000); // Poll every 5 seconds
-    }
-    
-    return () => {
-      if (poller.current) clearInterval(poller.current);
-    };
-  }, [jobStatus, jobId]);
-
-  const isProcessing = jobStatus === 'uploading' || jobStatus === 'processing';
 
   if (loading) {
     return (
@@ -387,7 +314,7 @@ export const AIMasteringTab = () => {
                     {isProcessing ? (
                       <>
                         <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                        {statusMessage}
+                        Processing... This may take 30-60 seconds
                       </>
                     ) : (
                       <>
@@ -397,26 +324,8 @@ export const AIMasteringTab = () => {
                   </Button>
 
                   {error && (
-                    <div className="mt-4 text-center text-red-400 text-sm">
+                    <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-center text-red-400 text-sm">
                       {error}
-                    </div>
-                  )}
-
-                  {jobStatus === 'completed' && downloadUrl && (
-                    <div className="mt-6 text-center space-y-4">
-                      <div className="flex items-center justify-center gap-2">
-                        <CheckCircle className="h-6 w-6 text-green-400" />
-                        <h3 className="text-xl font-semibold text-green-400">Mastering Complete!</h3>
-                      </div>
-                      <p className="text-muted-foreground text-sm">Your mastered file has been downloaded automatically.</p>
-                      <a 
-                        href={downloadUrl}
-                        download
-                        className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-all"
-                      >
-                        <Download className="h-5 w-5" />
-                        Download Mastered File
-                      </a>
                     </div>
                   )}
                 </div>
