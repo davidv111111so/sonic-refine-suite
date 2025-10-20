@@ -1,19 +1,22 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Play, Pause, SkipBack, SkipForward, Volume2, Repeat } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, Repeat, Upload, Trash2 } from 'lucide-react';
 import WaveSurfer from 'wavesurfer.js';
-import { useAudioContext } from '@/hooks/useAudioContext';
+import { getAudioContext, resumeAudioContext } from '@/utils/audioContextManager';
 import { AudioFile } from '@/types/audio';
 import { TenBandEqualizer, EQBand } from './TenBandEqualizer';
 import { DynamicsCompressorControls, CompressorSettings } from './DynamicsCompressorControls';
 import { AudioVisualizer } from './AudioVisualizer';
 import { PlaylistPanel } from './PlaylistPanel';
 import { toast } from 'sonner';
+import { useDropzone } from 'react-dropzone';
 
 interface LevelMediaPlayerProps {
   files: AudioFile[];
+  onFilesAdded?: (files: AudioFile[]) => void;
+  onFileDelete?: (fileId: string) => void;
 }
 
 const INITIAL_EQ_BANDS: EQBand[] = [
@@ -37,7 +40,7 @@ const INITIAL_COMPRESSOR: CompressorSettings = {
   knee: 30,
 };
 
-export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({ files }) => {
+export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({ files, onFilesAdded, onFileDelete }) => {
   const [currentFile, setCurrentFile] = useState<AudioFile | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -54,8 +57,7 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({ files }) => 
   const compressorNodeRef = useRef<DynamicsCompressorNode | null>(null);
   const analyserNodeRef = useRef<AnalyserNode | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
-
-  const { audioContext, ensureContextRunning } = useAudioContext();
+  const audioSourceRef = useRef<MediaElementAudioSourceNode | null>(null);
 
   // Initialize WaveSurfer
   useEffect(() => {
@@ -96,8 +98,37 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({ files }) => 
     };
   }, [loop]);
 
+  // File upload handler
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    const newAudioFiles: AudioFile[] = acceptedFiles.map((file) => ({
+      id: `${Date.now()}-${file.name}`,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      originalFile: file,
+      originalUrl: URL.createObjectURL(file),
+      status: 'uploaded' as const,
+      fileType: file.name.split('.').pop()?.toLowerCase() as 'mp3' | 'wav' | 'flac' | 'unsupported',
+    }));
+
+    if (onFilesAdded) {
+      onFilesAdded(newAudioFiles);
+    }
+    
+    toast.success(`Added ${acceptedFiles.length} file(s) to player`);
+  }, [onFilesAdded]);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'audio/*': ['.mp3', '.wav', '.flac', '.m4a', '.ogg']
+    },
+    multiple: true,
+  });
+
   // Initialize Web Audio API nodes
   useEffect(() => {
+    const audioContext = getAudioContext();
     if (!audioContext) return;
 
     // Create analyser
@@ -109,8 +140,9 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({ files }) => 
 
     // Create gain node
     if (!gainNodeRef.current) {
-      gainNodeRef.current = audioContext.createGain();
-      gainNodeRef.current.gain.value = volume;
+      const gain = audioContext.createGain();
+      gain.gain.value = volume;
+      gainNodeRef.current = gain;
     }
 
     // Create compressor
@@ -144,7 +176,7 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({ files }) => 
         eqFiltersRef.current.push(filter);
       });
     }
-  }, [audioContext]);
+  }, []);
 
   // Load file into WaveSurfer
   useEffect(() => {
@@ -162,32 +194,41 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({ files }) => 
         }
 
         // Connect Web Audio API nodes
+        const audioContext = getAudioContext();
         if (audioContext && wavesurferRef.current) {
           const backend = wavesurferRef.current.getMediaElement();
-          if (backend) {
-            const source = audioContext.createMediaElementSource(backend);
-            
-            // Connect: source -> EQ filters -> compressor -> gain -> analyser -> destination
-            let currentNode: AudioNode = source;
-            
-            eqFiltersRef.current.forEach(filter => {
-              currentNode.connect(filter);
-              currentNode = filter;
-            });
-            
-            if (compressorNodeRef.current) {
-              currentNode.connect(compressorNodeRef.current);
-              currentNode = compressorNodeRef.current;
-            }
-            
-            if (gainNodeRef.current) {
-              currentNode.connect(gainNodeRef.current);
-              currentNode = gainNodeRef.current;
-            }
-            
-            if (analyserNodeRef.current) {
-              gainNodeRef.current!.connect(analyserNodeRef.current);
-              analyserNodeRef.current.connect(audioContext.destination);
+          if (backend && !audioSourceRef.current) {
+            // Create source only once per element
+            try {
+              const source = audioContext.createMediaElementSource(backend);
+              audioSourceRef.current = source;
+              
+              // Connect: source -> EQ filters -> compressor -> gain -> analyser -> destination
+              let currentNode: AudioNode = source;
+              
+              eqFiltersRef.current.forEach(filter => {
+                currentNode.connect(filter);
+                currentNode = filter;
+              });
+              
+              if (compressorNodeRef.current) {
+                currentNode.connect(compressorNodeRef.current);
+                currentNode = compressorNodeRef.current;
+              }
+              
+              if (gainNodeRef.current) {
+                currentNode.connect(gainNodeRef.current);
+                currentNode = gainNodeRef.current;
+              }
+              
+              if (analyserNodeRef.current) {
+                gainNodeRef.current!.connect(analyserNodeRef.current);
+                analyserNodeRef.current.connect(audioContext.destination);
+              }
+              
+              console.log('✅ Web Audio API graph connected');
+            } catch (error) {
+              console.error('Error connecting audio graph:', error);
             }
           }
         }
@@ -200,10 +241,11 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({ files }) => 
     };
 
     loadAudio();
-  }, [currentFile, audioContext]);
+  }, [currentFile]);
 
   // Update EQ in real-time
   useEffect(() => {
+    const audioContext = getAudioContext();
     if (!audioContext) return;
     
     eqFiltersRef.current.forEach((filter, index) => {
@@ -211,11 +253,13 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({ files }) => 
         filter.gain.setValueAtTime(eqBands[index].gain, audioContext.currentTime);
       }
     });
-  }, [eqBands, audioContext]);
+  }, [eqBands]);
 
   // Update compressor in real-time
   useEffect(() => {
-    if (!compressorNodeRef.current || !audioContext) return;
+    if (!compressorNodeRef.current) return;
+    const audioContext = getAudioContext();
+    if (!audioContext) return;
     
     const comp = compressorNodeRef.current;
     comp.threshold.setValueAtTime(compressorSettings.threshold, audioContext.currentTime);
@@ -223,14 +267,15 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({ files }) => 
     comp.attack.setValueAtTime(compressorSettings.attack, audioContext.currentTime);
     comp.release.setValueAtTime(compressorSettings.release, audioContext.currentTime);
     comp.knee.setValueAtTime(compressorSettings.knee, audioContext.currentTime);
-  }, [compressorSettings, audioContext]);
+  }, [compressorSettings]);
 
   // Update volume
   useEffect(() => {
-    if (gainNodeRef.current && audioContext) {
-      gainNodeRef.current.gain.setValueAtTime(volume, audioContext.currentTime);
-    }
-  }, [volume, audioContext]);
+    if (!gainNodeRef.current) return;
+    const audioContext = getAudioContext();
+    if (!audioContext) return;
+    gainNodeRef.current.gain.setValueAtTime(volume, audioContext.currentTime);
+  }, [volume]);
 
   // Monitor gain reduction
   useEffect(() => {
@@ -249,7 +294,7 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({ files }) => 
     if (!wavesurferRef.current) return;
 
     try {
-      await ensureContextRunning();
+      await resumeAudioContext();
       
       if (isPlaying) {
         wavesurferRef.current.pause();
@@ -262,6 +307,18 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({ files }) => 
       console.error('Playback error:', error);
       toast.error('Playback failed');
     }
+  };
+
+  const handleDeleteFile = () => {
+    if (!currentFile) return;
+    
+    if (onFileDelete) {
+      onFileDelete(currentFile.id);
+    }
+    
+    setCurrentFile(null);
+    setIsPlaying(false);
+    toast.success(`Deleted: ${currentFile.name}`);
   };
 
   const handleSkipBackward = () => {
@@ -297,15 +354,52 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({ files }) => 
 
   return (
     <div className="space-y-6 p-6">
+      {/* Upload Zone */}
+      <Card className="bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700">
+        <div
+          {...getRootProps()}
+          className={`p-8 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+            isDragActive
+              ? 'border-cyan-500 bg-cyan-500/10'
+              : 'border-slate-600 hover:border-cyan-500/50 hover:bg-slate-800/50'
+          }`}
+        >
+          <input {...getInputProps()} />
+          <div className="flex flex-col items-center justify-center gap-4 text-center">
+            <Upload className="h-12 w-12 text-cyan-400" />
+            <div>
+              <p className="text-lg font-semibold text-white mb-2">
+                {isDragActive ? 'Drop files here...' : 'Drop audio files here or click to browse'}
+              </p>
+              <p className="text-sm text-slate-400">
+                Supports MP3, WAV, FLAC, M4A, OGG
+              </p>
+            </div>
+          </div>
+        </div>
+      </Card>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Player Section */}
         <div className="lg:col-span-2 space-y-6">
           {/* Waveform Player */}
           <Card className="bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 p-6">
-            <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-              <span className="text-2xl">🎵</span>
-              {currentFile ? currentFile.name : 'No track loaded'}
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <span className="text-2xl">🎵</span>
+                {currentFile ? currentFile.name : 'No track loaded'}
+              </h3>
+              {currentFile && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleDeleteFile}
+                  className="bg-red-900/20 border-red-700 hover:bg-red-900/40 text-red-400"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
 
             {/* Waveform */}
             <div ref={waveformRef} className="mb-6 rounded-lg overflow-hidden border border-slate-700" />

@@ -401,7 +401,13 @@ export const LevelTabs = ({
       </TabsContent>
 
       <TabsContent value="media-player" className="space-y-6">
-        <LevelMediaPlayer files={[...audioFiles, ...enhancedHistory]} />
+        <LevelMediaPlayer 
+          files={[...audioFiles, ...enhancedHistory]}
+          onFilesAdded={onFilesUploaded}
+          onFileDelete={(fileId) => {
+            toast.success('File removed from player');
+          }}
+        />
       </TabsContent>
       
       {/* File Info Modal */}

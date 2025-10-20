@@ -10,8 +10,19 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import { TermsAndConditions } from "./pages/TermsAndConditions";
 import NotFound from "./pages/NotFound";
+import { initAudioContextOnInteraction } from "@/utils/audioContextManager";
+import { useEffect } from "react";
 
 const queryClient = new QueryClient();
+
+// Initialize AudioContext on first user interaction to fix 1-second playback bug
+const AudioContextInitializer = () => {
+  useEffect(() => {
+    initAudioContextOnInteraction();
+    console.log("🎵 AudioContext initializer mounted");
+  }, []);
+  return null;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -19,6 +30,7 @@ const App = () => (
       <AuthProvider>
         <LanguageProvider>
           <TooltipProvider>
+            <AudioContextInitializer />
             <Toaster />
             <Sonner />
             <BrowserRouter>

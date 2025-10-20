@@ -80,8 +80,10 @@ async function initEssentia() {
     console.log('🔄 Initializing Essentia.js...');
     
     // Dynamic import of Essentia.js modules
-    const { default: Essentia } = await import('essentia.js/dist/essentia.js-core.es.js');
-    const { EssentiaWASM } = await import('essentia.js/dist/essentia-wasm.web.js');
+    const EssentiaModule = await import('essentia.js/dist/essentia.js-core.es.js');
+    const Essentia = EssentiaModule.default || EssentiaModule.Essentia;
+    const WasmModule = await import('essentia.js/dist/essentia-wasm.es.js');
+    const EssentiaWASM = WasmModule.EssentiaWASM || WasmModule.default;
     
     console.log('📦 Essentia modules loaded, initializing WASM...');
     
