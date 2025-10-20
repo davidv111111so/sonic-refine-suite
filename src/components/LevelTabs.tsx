@@ -12,10 +12,11 @@ import { AdvancedEQPresetsWithCompensation } from '@/components/enhancement/Adva
 import { FileInfoModal } from '@/components/FileInfoModal';
 import { AudioFile } from '@/types/audio';
 import { ProcessingSettings } from '@/utils/audioProcessor';
-import { BarChart3, Settings, Upload, Zap, Package } from 'lucide-react';
+import { BarChart3, Settings, Upload, Zap, Package, Music } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { IndividualModeQueue } from '@/components/enhancement/IndividualModeQueue';
 import { AIMasteringTab } from '@/components/ai-mastering/AIMasteringTab';
+import { LevelMediaPlayer } from '@/components/media-player/LevelMediaPlayer';
 interface LevelTabsProps {
   audioFiles: AudioFile[];
   enhancedHistory: AudioFile[];
@@ -183,7 +184,7 @@ export const LevelTabs = ({
     setActiveTab('level');
   };
   return <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid w-full grid-cols-3 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-black dark:via-slate-900 dark:to-black border-2 border-slate-600 dark:border-slate-700 p-1 rounded-xl shadow-xl">
+      <TabsList className="grid w-full grid-cols-4 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-black dark:via-slate-900 dark:to-black border-2 border-slate-600 dark:border-slate-700 p-1 rounded-xl shadow-xl">
         <TabsTrigger value="level" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:via-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-cyan-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl">
           <BarChart3 className="h-5 w-5" />
           <span className="text-lg text-blue-50">Level</span>
@@ -195,6 +196,10 @@ export const LevelTabs = ({
         <TabsTrigger value="ai-mastering" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:via-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl">
           <Zap className="h-5 w-5" />
           <span className="text-lg text-cyan-50">AI Mastering</span>
+        </TabsTrigger>
+        <TabsTrigger value="media-player" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:via-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-green-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl">
+          <Music className="h-5 w-5" />
+          <span className="text-lg text-green-50">Media Player</span>
         </TabsTrigger>
       </TabsList>
 
@@ -344,6 +349,10 @@ export const LevelTabs = ({
 
       <TabsContent value="ai-mastering" className="space-y-6">
         <AIMasteringTab />
+      </TabsContent>
+
+      <TabsContent value="media-player" className="space-y-6">
+        <LevelMediaPlayer files={[...audioFiles, ...enhancedHistory]} />
       </TabsContent>
       
       {/* File Info Modal */}
