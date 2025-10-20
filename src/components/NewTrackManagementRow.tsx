@@ -10,6 +10,7 @@ interface NewTrackManagementRowProps {
   onConvert: (file: AudioFile, targetFormat: 'mp3' | 'wav' | 'flac') => void;
   onRemove: (fileId: string) => void;
   onFileInfo?: (file: AudioFile) => void;
+  onPlayInMediaPlayer?: (file: AudioFile) => void;
   processingSettings?: {
     outputFormat?: string;
   };
@@ -43,6 +44,7 @@ export const NewTrackManagementRow = ({
   onConvert,
   onRemove,
   onFileInfo,
+  onPlayInMediaPlayer,
   processingSettings
 }: NewTrackManagementRowProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -88,7 +90,11 @@ export const NewTrackManagementRow = ({
     }
   }, [isPlaying]);
   const togglePlayPause = () => {
-    setIsPlaying(!isPlaying);
+    if (onPlayInMediaPlayer) {
+      onPlayInMediaPlayer(file);
+    } else {
+      setIsPlaying(!isPlaying);
+    }
   };
 
   const handleSeek = (value: number[]) => {

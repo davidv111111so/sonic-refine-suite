@@ -6,57 +6,58 @@ interface AdvancedEQPresetsWithCompensationProps {
   onEQBandChange: (bandIndex: number, value: number) => void;
 }
 
-// Professional EQ Presets with Real dB Values (matching user specifications)
+// Professional EQ Presets with Real dB Values
+// Band frequencies: 60Hz, 250Hz, 1kHz, 4kHz, 12kHz
 const EQ_PRESETS = [{
-  name: 'Modern Punch',
-  nameES: 'Golpe Moderno',
+  name: 'Techno/Hard Dance',
+  nameES: 'Techno/Hard Dance',
   icon: Volume2,
-  values: [1.5, 1.0, -2.0, 0.5, 2.0]
+  values: [3.0, 1.5, -2.0, 0.5, 2.5] // Powerful sub-bass, scooped mids, bright top
 }, {
-  name: 'Vocal Presence',
-  nameES: 'Presencia Vocal',
-  icon: Mic,
-  values: [-1.5, -2.0, 1.5, 2.0, 0.5]
-}, {
-  name: 'Bass Foundation',
-  nameES: 'Base de Graves',
-  icon: Waves,
-  values: [2.0, 1.0, -1.0, 0, -0.5]
-}, {
-  name: 'Clarity & Air',
-  nameES: 'Claridad y Aire',
-  icon: Lightbulb,
-  values: [-0.5, 0, -1.0, 1.5, 2.5]
-}, {
-  name: 'De-Box / Clean Mid',
-  nameES: 'Des-caja / Medios Limpios',
+  name: 'House/Deep House',
+  nameES: 'House/Deep House',
   icon: Music,
-  values: [-1.0, -1.5, -2.5, 1.0, 0.5]
+  values: [2.5, 0.5, -1.5, 1.0, 2.0] // Warm bass, clean mids, smooth highs
 }, {
-  name: 'Warmth & Body',
-  nameES: 'Calidez y Cuerpo',
-  icon: Guitar,
-  values: [0.5, 1.5, 1.0, -1.0, -1.5]
+  name: 'Trance/Progressive',
+  nameES: 'Trance/Progressive',
+  icon: Waves,
+  values: [1.5, -0.5, 0.5, 2.0, 3.0] // Balanced low, open highs for pads
 }, {
-  name: 'Live Energy (Subtle V)',
-  nameES: 'Energía en Vivo (V Sutil)',
-  icon: Headphones,
-  values: [1.0, 0.5, -1.5, 0.5, 1.5]
-}, {
-  name: 'Acoustic / Orchestral',
-  nameES: 'Acústica / Orquestal',
-  icon: Music2,
-  values: [0.5, -1.0, 0, 0.5, 1.0]
-}, {
-  name: 'Digital De-Harsh',
-  nameES: 'Suavizar Digital',
+  name: 'Drum & Bass',
+  nameES: 'Drum & Bass',
   icon: Disc3,
-  values: [0, 0, 0.5, -1.5, -1.0]
+  values: [4.0, 2.0, -1.0, 1.5, 2.5] // Massive sub-bass, punch, crisp
 }, {
-  name: 'Voiceover / Podcast',
-  nameES: 'Locución / Podcast',
+  name: 'Hip-Hop/Trap',
+  nameES: 'Hip-Hop/Trap',
+  icon: Music2,
+  values: [3.5, 1.0, -2.0, 0.5, 1.5] // Heavy bass, scooped mids, smooth top
+}, {
+  name: 'Rock/Metal',
+  nameES: 'Rock/Metal',
+  icon: Guitar,
+  values: [2.0, 1.5, 2.0, 1.5, 0.5] // Tight bass, aggressive mids, controlled high
+}, {
+  name: 'Vocal/Speech',
+  nameES: 'Vocal/Locución',
+  icon: Mic,
+  values: [-4.0, -1.5, 2.5, 2.0, -1.0] // Cut low rumble, boost presence
+}, {
+  name: 'Acoustic/Classical',
+  nameES: 'Acústica/Clásica',
+  icon: Headphones,
+  values: [0.5, 0.0, 0.5, 1.0, 1.5] // Natural, slight air boost
+}, {
+  name: 'Pop/Radio Ready',
+  nameES: 'Pop/Radio',
+  icon: Lightbulb,
+  values: [1.5, 0.5, -0.5, 2.0, 2.5] // Balanced with bright top
+}, {
+  name: 'Bass Boost',
+  nameES: 'Refuerzo de Graves',
   icon: MessageSquare,
-  values: [-6.0, -2.5, 2.0, 2.5, -1.5]
+  values: [4.0, 2.0, -1.5, 0.0, 0.5] // Maximum low-end enhancement
 }];
 export const AdvancedEQPresetsWithCompensation = memo(({
   onEQBandChange

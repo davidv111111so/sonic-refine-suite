@@ -17,6 +17,8 @@ interface LevelMediaPlayerProps {
   files: AudioFile[];
   onFilesAdded?: (files: AudioFile[]) => void;
   onFileDelete?: (fileId: string) => void;
+  autoPlayFile?: AudioFile | null;
+  onAutoPlayComplete?: () => void;
 }
 
 const INITIAL_EQ_BANDS: EQBand[] = [
@@ -40,7 +42,13 @@ const INITIAL_COMPRESSOR: CompressorSettings = {
   knee: 30,
 };
 
-export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({ files, onFilesAdded, onFileDelete }) => {
+export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({ 
+  files, 
+  onFilesAdded, 
+  onFileDelete,
+  autoPlayFile,
+  onAutoPlayComplete 
+}) => {
   const [currentFile, setCurrentFile] = useState<AudioFile | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -177,6 +185,17 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({ files, onFil
       });
     }
   }, []);
+
+  // Auto-play file when passed from track list
+  useEffect(() => {
+    if (autoPlayFile && autoPlayFile.id !== currentFile?.id) {
+      console.log('Auto-playing file from track list:', autoPlayFile.name);
+      setCurrentFile(autoPlayFile);
+      if (onAutoPlayComplete) {
+        onAutoPlayComplete();
+      }
+    }
+  }, [autoPlayFile, currentFile, onAutoPlayComplete]);
 
   // Load file into WaveSurfer
   useEffect(() => {

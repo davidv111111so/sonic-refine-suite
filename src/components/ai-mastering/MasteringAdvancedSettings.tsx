@@ -87,7 +87,7 @@ export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps>
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-slate-900 border-slate-700 text-white">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Settings className="h-5 w-5" />

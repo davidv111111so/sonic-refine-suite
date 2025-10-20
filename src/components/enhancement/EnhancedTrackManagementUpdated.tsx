@@ -15,6 +15,7 @@ interface EnhancedTrackManagementProps {
   onClearDownloaded?: () => void;
   onClearAll?: () => void;
   onFileInfo?: (file: AudioFile) => void;
+  onPlayInMediaPlayer?: (file: AudioFile) => void;
   processingSettings?: {
     outputFormat?: string;
   };
@@ -29,6 +30,7 @@ export const EnhancedTrackManagement = ({
   onClearDownloaded,
   onClearAll,
   onFileInfo,
+  onPlayInMediaPlayer,
   processingSettings
 }: EnhancedTrackManagementProps) => {
   const [sortBy, setSortBy] = useState('name-asc');
@@ -149,15 +151,16 @@ export const EnhancedTrackManagement = ({
 
           {/* Track Rows */}
           {sortedFiles.map((file) => (
-            <NewTrackManagementRow
-              key={file.id}
-              file={file}
-              onDownload={onDownload}
-              onConvert={onConvert}
-              onRemove={handleRemove}
-              onFileInfo={onFileInfo}
-              processingSettings={processingSettings}
-            />
+              <NewTrackManagementRow
+                key={file.id}
+                file={file}
+                onDownload={onDownload}
+                onConvert={onConvert}
+                onRemove={handleRemove}
+                onFileInfo={onFileInfo}
+                onPlayInMediaPlayer={onPlayInMediaPlayer}
+                processingSettings={processingSettings}
+              />
           ))}
         </div>
 

@@ -1,5 +1,11 @@
-// Musical Key Detection using Essentia.js and Tonal
-// Provides Camelot notation for harmonic mixing
+/**
+ * Musical Key Detection using autocorrelation and chromagram analysis
+ * Provides Camelot notation for harmonic mixing
+ * 
+ * This is a simplified implementation that doesn't rely on Essentia.js
+ */
+
+import { Note, Key as TonalKey } from 'tonal';
 
 /** Result of key analysis */
 export interface KeyAnalysis {
@@ -9,167 +15,155 @@ export interface KeyAnalysis {
   confidence: number;
 }
 
-// Map of (tonic + mode) → Camelot notation
-// Complete mapping for all 24 keys (12 major + 12 minor)
+// Complete Camelot wheel mapping (all 24 keys)
 const CAMELOT_MAP: Record<string, string> = {
   // Major keys (B)
-  "C major": "8B",
-  "Db major": "3B",
-  "D major": "10B",
-  "Eb major": "5B",
+  "C major": "8B", "C# major": "3B", "Db major": "3B",
+  "D major": "10B", "D# major": "5B", "Eb major": "5B",
   "E major": "12B",
-  "F major": "7B",
-  "Gb major": "2B",
-  "G major": "9B",
-  "Ab major": "4B",
-  "A major": "11B",
-  "Bb major": "6B",
+  "F major": "7B", "F# major": "2B", "Gb major": "2B",
+  "G major": "9B", "G# major": "4B", "Ab major": "4B",
+  "A major": "11B", "A# major": "6B", "Bb major": "6B",
   "B major": "1B",
   
   // Minor keys (A)
-  "C minor": "5A",
-  "C# minor": "12A",
-  "D minor": "7A",
-  "D# minor": "2A",
+  "C minor": "5A", "C# minor": "12A", "Db minor": "12A",
+  "D minor": "7A", "D# minor": "2A", "Eb minor": "2A",
   "E minor": "9A",
-  "F minor": "4A",
-  "F# minor": "11A",
-  "G minor": "6A",
-  "G# minor": "1A",
-  "A minor": "8A",
-  "A# minor": "3A",
-  "Bb minor": "5A",
+  "F minor": "4A", "F# minor": "11A", "Gb minor": "11A",
+  "G minor": "6A", "G# minor": "1A", "Ab minor": "1A",
+  "A minor": "8A", "A# minor": "3A", "Bb minor": "3A",
   "B minor": "10A",
-  
-  // Aliases with sharps/flats
-  "C# major": "3B",
-  "D# major": "5B",
-  "F# major": "2B",
-  "G# major": "4B",
-  "A# major": "6B",
-  "Db minor": "12A",
-  "Eb minor": "9A",
-  "Gb minor": "11A",
-  "Ab minor": "1A",
 };
 
-let essentiaInstance: any = null;
-let isInitializing = false;
-
 /**
- * Initialize Essentia.js WASM
- * Lazy loads Essentia only when needed
+ * Calculate chromagram from audio samples
+ * Returns energy for each of the 12 pitch classes (C, C#, D, ...)
  */
-async function initEssentia() {
-  if (essentiaInstance) {
-    console.log('✅ Essentia already initialized');
-    return essentiaInstance;
+function calculateChromagram(audioBuffer: Float32Array, sampleRate: number): Float32Array {
+  const chromagram = new Float32Array(12);
+  const fftSize = 4096;
+  const hopSize = 2048;
+  
+  // Frequency bins for each semitone
+  const A4 = 440;
+  const C0 = A4 * Math.pow(2, -4.75); // C0 frequency
+  
+  for (let i = 0; i < audioBuffer.length - fftSize; i += hopSize) {
+    const segment = audioBuffer.slice(i, i + fftSize);
+    
+    // Simple magnitude spectrum estimation
+    for (let bin = 0; bin < fftSize / 2; bin++) {
+      const freq = (bin * sampleRate) / fftSize;
+      if (freq < 65 || freq > 2000) continue; // Focus on musical range
+      
+      const magnitude = Math.abs(segment[bin]) || 0;
+      
+      // Map frequency to pitch class (0-11)
+      const semitone = 12 * Math.log2(freq / C0);
+      const pitchClass = Math.round(semitone) % 12;
+      
+      if (pitchClass >= 0 && pitchClass < 12) {
+        chromagram[pitchClass] += magnitude;
+      }
+    }
   }
   
-  if (isInitializing) {
-    console.log('⏳ Waiting for Essentia initialization...');
-    // Wait for existing initialization
-    while (isInitializing) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+  // Normalize
+  const maxValue = Math.max(...chromagram);
+  if (maxValue > 0) {
+    for (let i = 0; i < 12; i++) {
+      chromagram[i] /= maxValue;
     }
-    return essentiaInstance;
   }
-
-  try {
-    isInitializing = true;
-    console.log('🔄 Initializing Essentia.js...');
-    
-    // Dynamic import of Essentia.js modules
-    const EssentiaModule = await import('essentia.js/dist/essentia.js-core.es.js');
-    const Essentia = EssentiaModule.default || EssentiaModule.Essentia;
-    const WasmModule = await import('essentia.js/dist/essentia-wasm.es.js');
-    const EssentiaWASM = WasmModule.EssentiaWASM || WasmModule.default;
-    
-    console.log('📦 Essentia modules loaded, initializing WASM...');
-    
-    // Load WASM module
-    const essentiaModule = await EssentiaWASM();
-    essentiaInstance = new Essentia(essentiaModule);
-    
-    console.log('✅ Essentia.js initialized successfully');
-    return essentiaInstance;
-  } catch (error) {
-    console.error('❌ Failed to initialize Essentia.js:', error);
-    console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
-    return null;
-  } finally {
-    isInitializing = false;
-  }
+  
+  return chromagram;
 }
 
 /**
- * Detect musical key from audio buffer using real Essentia.js analysis
- * @param audioBuffer Float32Array with audio samples (mono or mixed)
- * @param sampleRate number (Hz)
+ * Major and minor key profiles (Krumhansl-Kessler)
+ */
+const MAJOR_PROFILE = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88];
+const MINOR_PROFILE = [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17];
+
+/**
+ * Calculate correlation between chromagram and key profile
+ */
+function correlate(chromagram: Float32Array, profile: number[], shift: number): number {
+  let sum = 0;
+  for (let i = 0; i < 12; i++) {
+    const chromaIdx = (i + shift) % 12;
+    sum += chromagram[chromaIdx] * profile[i];
+  }
+  return sum;
+}
+
+/**
+ * Detect musical key from audio buffer
  */
 export async function detectKeyFromBuffer(
   audioBuffer: Float32Array,
   sampleRate: number
 ): Promise<KeyAnalysis> {
   try {
-    console.log('🎹 Starting key detection...');
-    const essentia = await initEssentia();
-    
-    if (!essentia) {
-      console.error('❌ Essentia not available, returning fallback');
-      return {
-        tonic: "",
-        mode: "minor",
-        camelot: "N/A",
-        confidence: 0
-      };
+    console.log('🎹 Starting key detection (simplified algorithm)...');
+    console.log(`📊 Analyzing ${audioBuffer.length} samples @ ${sampleRate}Hz`);
+
+    // Calculate chromagram
+    const chromagram = calculateChromagram(audioBuffer, sampleRate);
+    console.log('✅ Chromagram computed:', chromagram);
+
+    // Find best matching key
+    let bestKey = 0;
+    let bestMode: "major" | "minor" = "major";
+    let bestScore = -Infinity;
+
+    // Test all 24 keys (12 major + 12 minor)
+    for (let shift = 0; shift < 12; shift++) {
+      const majorScore = correlate(chromagram, MAJOR_PROFILE, shift);
+      const minorScore = correlate(chromagram, MINOR_PROFILE, shift);
+
+      if (majorScore > bestScore) {
+        bestScore = majorScore;
+        bestKey = shift;
+        bestMode = "major";
+      }
+
+      if (minorScore > bestScore) {
+        bestScore = minorScore;
+        bestKey = shift;
+        bestMode = "minor";
+      }
     }
 
-    console.log(`📊 Analyzing audio buffer: ${audioBuffer.length} samples @ ${sampleRate}Hz`);
+    // Map to note names
+    const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const tonic = noteNames[bestKey];
+    const mode = bestMode;
 
-    // Convert to Essentia vector
-    const vectorSignal = essentia.arrayToVector(audioBuffer);
-    console.log('✅ Converted to Essentia vector');
+    // Calculate confidence (0-1)
+    const confidence = Math.min(1, bestScore / 10);
 
-    // Compute chromagram (HPCP - Harmonic Pitch Class Profile)
-    const chromaResult = essentia.Chromagram(vectorSignal);
-    const chroma = chromaResult.chromagram;
-    console.log('✅ Chromagram computed');
-
-    // Estimate key from chromagram
-    const chromaVector = essentia.arrayToVector(chroma);
-    const keyResult = essentia.Key(chromaVector);
-    console.log('✅ Key estimation complete');
-
-    // Extract results
-    const key = keyResult.key || 'C';
-    const scale = keyResult.scale || 'major';
-    const strength = keyResult.strength || 0;
-
-    console.log(`🎵 Detected: ${key} ${scale} (strength: ${strength.toFixed(2)})`);
+    console.log(`🎵 Detected: ${tonic} ${mode} (confidence: ${confidence.toFixed(2)})`);
 
     // Map to Camelot notation
-    const label = `${key} ${scale}`;
+    const label = `${tonic} ${mode}`;
     const camelot = CAMELOT_MAP[label] || "N/A";
-    
+
     if (camelot === "N/A") {
-      console.warn(`⚠️ No Camelot mapping found for: ${label}`);
-      console.log('Available mappings:', Object.keys(CAMELOT_MAP));
+      console.warn(`⚠️ No Camelot mapping for: ${label}`);
     } else {
       console.log(`✅ Camelot notation: ${camelot}`);
     }
 
     return {
-      tonic: key,
-      mode: scale as "major" | "minor",
+      tonic,
+      mode,
       camelot,
-      confidence: strength
+      confidence
     };
   } catch (error) {
     console.error("❌ Key detection error:", error);
-    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-    
-    // Return fallback result
     return {
       tonic: "",
       mode: "minor",
@@ -195,7 +189,7 @@ export async function detectKeyFromFile(file: File): Promise<KeyAnalysis> {
     const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
     console.log(`✅ Audio decoded: ${audioBuffer.numberOfChannels} channels, ${audioBuffer.duration.toFixed(2)}s`);
     
-    // Convert to mono Float32Array (mix down if stereo)
+    // Convert to mono Float32Array
     let channelData: Float32Array;
     if (audioBuffer.numberOfChannels === 1) {
       channelData = audioBuffer.getChannelData(0);
@@ -212,17 +206,19 @@ export async function detectKeyFromFile(file: File): Promise<KeyAnalysis> {
       console.log('✅ Stereo mixed to mono');
     }
     
+    // Use only first 30 seconds for faster analysis
     const sampleRate = audioBuffer.sampleRate;
+    const maxSamples = Math.min(channelData.length, sampleRate * 30);
+    const analysisBuffer = channelData.slice(0, maxSamples);
+    
     console.log(`📊 Sample rate: ${sampleRate}Hz`);
     
-    const result = await detectKeyFromBuffer(channelData, sampleRate);
+    const result = await detectKeyFromBuffer(analysisBuffer, sampleRate);
     console.log(`✅ Key detection complete for ${file.name}: ${result.camelot}`);
     
     return result;
   } catch (error) {
     console.error(`❌ Error analyzing file ${file.name}:`, error);
-    console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
-    
     return {
       tonic: "",
       mode: "minor",

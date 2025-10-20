@@ -85,7 +85,7 @@ export const Guide = () => {
           Guide
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto border-slate-700 text-white dark:border-slate-700 light:border-gray-200 light:text-gray-900 bg-indigo-900">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-slate-900 border-slate-700 text-white">
         <DialogHeader>
           <DialogTitle className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
             Spectrum - Complete User Guide
@@ -94,14 +94,14 @@ export const Guide = () => {
         
         <div className="space-y-8">
           {/* Quick Start Guide */}
-          <Card className="border-slate-700 dark:border-slate-700 light:border-gray-200 bg-blue-300">
-            <CardHeader className="bg-blue-200">
-              <CardTitle className="flex items-center gap-2 text-blue-400 dark:text-blue-400 light:text-blue-600">
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-blue-400">
                 <Upload className="h-5 w-5" />
                 Quick Start Guide
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6 bg-blue-300">
+            <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="text-center p-6 bg-slate-700/50 dark:bg-slate-700/50 light:bg-white rounded-lg border border-slate-600 dark:border-slate-600 light:border-gray-200">
                   <Upload className="h-12 w-12 mx-auto mb-4 text-blue-400" />
@@ -160,14 +160,14 @@ export const Guide = () => {
           </Card>
 
           {/* Minimum Technical Requirements - Moved here from bottom */}
-          <Card className="bg-slate-800 border-slate-700 dark:bg-slate-800 dark:border-slate-700 light:bg-gray-50 light:border-gray-200">
-            <CardHeader className="bg-blue-200">
-              <CardTitle className="flex items-center gap-2 text-orange-400 dark:text-orange-400 light:text-orange-600">
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-orange-400">
                 <Cpu className="h-5 w-5" />
                 Minimum Technical Requirements
               </CardTitle>
             </CardHeader>
-            <CardContent className="bg-blue-300 space-y-4 text-sm">
+            <CardContent className="space-y-4 text-sm">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-3">
                   <h5 className="font-bold text-cyan-400 dark:text-cyan-400 light:text-cyan-600">Hardware Requirements:</h5>
@@ -202,14 +202,14 @@ export const Guide = () => {
           </Card>
 
           {/* Backend-Free Technologies */}
-          <Card className="bg-slate-800 border-slate-700 dark:bg-slate-800 dark:border-slate-700 light:bg-gray-50 light:border-gray-200">
-            <CardHeader className="bg-blue-200">
-              <CardTitle className="flex items-center gap-2 text-purple-400 dark:text-purple-400 light:text-purple-600">
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-purple-400">
                 <Sparkles className="h-5 w-5" />
                 Backend-Free Technologies & How to Use Them
               </CardTitle>
             </CardHeader>
-            <CardContent className="bg-blue-300">
+            <CardContent>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {features.map((feature, index) => <Card key={index} className="bg-slate-700/50 border-slate-600 dark:bg-slate-700/50 dark:border-slate-600 light:bg-white light:border-gray-200">
                     <CardContent className="p-6">
@@ -242,14 +242,14 @@ export const Guide = () => {
           </Card>
 
           {/* Keyboard Shortcuts */}
-          <Card className="bg-slate-800 border-slate-700 dark:bg-slate-800 dark:border-slate-700 light:bg-gray-50 light:border-gray-200">
-            <CardHeader className="bg-blue-200">
-              <CardTitle className="flex items-center gap-2 text-cyan-400 dark:text-cyan-400 light:text-cyan-600">
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-cyan-400">
                 <Keyboard className="h-5 w-5" />
                 Keyboard Shortcuts for Power Users
               </CardTitle>
             </CardHeader>
-            <CardContent className="bg-blue-300">
+            <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                 <div className="bg-slate-700/50 dark:bg-slate-700/50 light:bg-white p-4 rounded text-center border border-slate-600 dark:border-slate-600 light:border-gray-200">
                   <kbd className="px-3 py-2 bg-slate-900 dark:bg-slate-900 light:bg-gray-800 light:text-white rounded font-mono text-sm block mb-2">Ctrl+U</kbd>

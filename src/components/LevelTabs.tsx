@@ -55,6 +55,7 @@ export const LevelTabs = ({
     language
   } = useLanguage();
   const [activeTab, setActiveTab] = useState('level');
+  const [autoPlayFile, setAutoPlayFile] = useState<AudioFile | null>(null);
   const [selectedFilesForIndividual, setSelectedFilesForIndividual] = useState<string[]>([]);
   const [fileInfoModal, setFileInfoModal] = useState<{
     isOpen: boolean;
@@ -87,6 +88,12 @@ export const LevelTabs = ({
     eqBands: eqBands,
     enableEQ: eqEnabled
   });
+  
+  const handlePlayInMediaPlayer = (file: AudioFile) => {
+    setAutoPlayFile(file);
+    setActiveTab('media-player');
+  };
+  
   const handleProcessingSettingChange = (key: keyof ProcessingSettings, value: any) => {
     setProcessingSettings(prev => ({
       ...prev,
@@ -267,12 +274,23 @@ export const LevelTabs = ({
         </Card>
 
         {/* Enhanced Track Management */}
-        <EnhancedTrackManagement audioFiles={audioFiles} enhancedHistory={enhancedHistory} onDownload={onDownload} onConvert={onConvert} onDownloadAll={onDownloadAll} onClearDownloaded={onClearDownloaded} onClearAll={onClearAll} processingSettings={processingSettings} onFileInfo={file => {
-        setFileInfoModal({
-          isOpen: true,
-          file
-        });
-      }} />
+        <EnhancedTrackManagement 
+          audioFiles={audioFiles} 
+          enhancedHistory={enhancedHistory} 
+          onDownload={onDownload} 
+          onConvert={onConvert} 
+          onDownloadAll={onDownloadAll} 
+          onClearDownloaded={onClearDownloaded} 
+          onClearAll={onClearAll} 
+          onPlayInMediaPlayer={handlePlayInMediaPlayer}
+          processingSettings={processingSettings} 
+          onFileInfo={file => {
+            setFileInfoModal({
+              isOpen: true,
+              file
+            });
+          }} 
+        />
 
         {/* Bottom Action Buttons - Always visible when there are files */}
         {(audioFiles.length > 0 || enhancedHistory.length > 0) && <div className="flex justify-center gap-4 pt-6">
@@ -407,13 +425,19 @@ export const LevelTabs = ({
           onFileDelete={(fileId) => {
             toast.success('File removed from player');
           }}
+          autoPlayFile={autoPlayFile}
+          onAutoPlayComplete={() => setAutoPlayFile(null)}
         />
       </TabsContent>
       
       {/* File Info Modal */}
-      <FileInfoModal file={fileInfoModal.file} isOpen={fileInfoModal.isOpen} onClose={() => setFileInfoModal({
-      isOpen: false,
-      file: null
-    })} />
-    </Tabs>;
+      {fileInfoModal.isOpen && fileInfoModal.file && (
+        <FileInfoModal 
+          file={fileInfoModal.file} 
+          isOpen={fileInfoModal.isOpen} 
+          onClose={() => setFileInfoModal({ isOpen: false, file: null })} 
+        />
+      )}
+    </Tabs>
+  );
 };
