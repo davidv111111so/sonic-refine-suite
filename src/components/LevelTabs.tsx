@@ -17,6 +17,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { IndividualModeQueue } from '@/components/enhancement/IndividualModeQueue';
 import { AIMasteringTab } from '@/components/ai-mastering/AIMasteringTab';
 import { LevelMediaPlayer } from '@/components/media-player/LevelMediaPlayer';
+import { toast } from 'sonner';
 interface LevelTabsProps {
   audioFiles: AudioFile[];
   enhancedHistory: AudioFile[];
@@ -118,26 +119,54 @@ export const LevelTabs = ({
     setEqEnabled(settings.enableEQ);
   };
   const handleFilesUploaded = async (files: AudioFile[]) => {
-    // Detect key for each file
+    // Show analyzing toast
+    const toastId = toast.loading(`Analyzing ${files.length} file${files.length > 1 ? 's' : ''}...`, {
+      description: 'Detecting BPM and key signatures',
+    });
+
+    // Detect key and BPM for each file
     const { detectKeyFromFile } = await import('@/utils/keyDetector');
-    const filesWithKeys = await Promise.all(
+    const { detectBPMFromFile } = await import('@/utils/bpmDetector');
+    
+    const filesWithAnalysis = await Promise.all(
       files.map(async (file) => {
+        let harmonicKey = 'N/A';
+        let bpm: number | undefined = undefined;
+        
         try {
+          // Detect key
           const keyAnalysis = await detectKeyFromFile(file.originalFile);
-          return {
-            ...file,
-            harmonicKey: keyAnalysis.camelot
-          };
+          harmonicKey = keyAnalysis.camelot;
         } catch (error) {
           console.error('Error detecting key:', error);
-          return {
-            ...file,
-            harmonicKey: 'N/A'
-          };
         }
+        
+        try {
+          // Detect BPM
+          const bpmAnalysis = await detectBPMFromFile(file.originalFile);
+          bpm = bpmAnalysis.bpm;
+        } catch (error) {
+          console.error('Error detecting BPM:', error);
+        }
+        
+        return {
+          ...file,
+          harmonicKey,
+          bpm
+        };
       })
     );
-    onFilesUploaded(filesWithKeys);
+    
+    // Update toast with success
+    const detectedBPM = filesWithAnalysis.filter(f => f.bpm).length;
+    const detectedKey = filesWithAnalysis.filter(f => f.harmonicKey && f.harmonicKey !== 'N/A').length;
+    
+    toast.success('Analysis complete!', {
+      id: toastId,
+      description: `BPM: ${detectedBPM}/${files.length} • Key: ${detectedKey}/${files.length}`,
+    });
+    
+    onFilesUploaded(filesWithAnalysis);
     setActiveTab('enhance');
   };
 

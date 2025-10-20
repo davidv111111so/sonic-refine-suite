@@ -34,6 +34,12 @@ export const TrackListFilters = ({ sortBy, onSortChange }: TrackListFiltersProps
             <SelectItem value="key" className="text-white hover:bg-slate-600">
               Key
             </SelectItem>
+            <SelectItem value="bpm-asc" className="text-white hover:bg-slate-600">
+              BPM (Low to High)
+            </SelectItem>
+            <SelectItem value="bpm-desc" className="text-white hover:bg-slate-600">
+              BPM (High to Low)
+            </SelectItem>
             <SelectItem value="size-asc" className="text-white hover:bg-slate-600">
               Size (Ascending)
             </SelectItem>

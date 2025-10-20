@@ -167,7 +167,7 @@ export const NewTrackManagementRow = ({
     return options;
   };
   const audioUrl = file.originalFile ? URL.createObjectURL(file.originalFile) : file.enhancedUrl || '';
-  return <div className="grid grid-cols-7 gap-4 p-4 bg-gradient-to-br from-slate-800/30 to-slate-900/50 border border-slate-600 rounded-lg hover:from-slate-700/40 hover:to-slate-800/60 transition-all duration-300">
+  return <div className="grid grid-cols-8 gap-4 p-4 bg-gradient-to-br from-slate-800/30 to-slate-900/50 border border-slate-600 rounded-lg hover:from-slate-700/40 hover:to-slate-800/60 transition-all duration-300">
       {/* Song Name with Mini Player */}
       <div className="col-span-2 flex flex-col min-w-0">
         <div className="flex items-center gap-2 mb-1">
@@ -217,6 +217,20 @@ export const NewTrackManagementRow = ({
         <Badge variant="outline" className="text-xs w-fit bg-purple-700/30 text-purple-200 border-purple-500/50">
           {file.harmonicKey || 'N/A'}
         </Badge>
+      </div>
+
+      {/* BPM Analysis */}
+      <div className="flex flex-col justify-center">
+        <span className="text-xs text-slate-400 mb-1">BPM</span>
+        {file.bpm ? (
+          <Badge variant="outline" className="text-xs w-fit bg-cyan-700/30 text-cyan-200 border-cyan-500/50 font-mono">
+            {file.bpm}
+          </Badge>
+        ) : (
+          <Badge variant="outline" className="text-xs w-fit bg-slate-700/30 text-slate-400 border-slate-500/50">
+            -
+          </Badge>
+        )}
       </div>
 
       {/* File Size */}

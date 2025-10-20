@@ -52,6 +52,18 @@ export const EnhancedTrackManagement = ({
           const keyB = b.harmonicKey || 'ZZZ';
           return keyA.localeCompare(keyB);
         });
+      case 'bpm-asc':
+        return filesCopy.sort((a, b) => {
+          const bpmA = a.bpm || 0;
+          const bpmB = b.bpm || 0;
+          return bpmA - bpmB;
+        });
+      case 'bpm-desc':
+        return filesCopy.sort((a, b) => {
+          const bpmA = a.bpm || 0;
+          const bpmB = b.bpm || 0;
+          return bpmB - bpmA;
+        });
       case 'size-asc':
         return filesCopy.sort((a, b) => a.size - b.size);
       case 'size-desc':
@@ -111,12 +123,15 @@ export const EnhancedTrackManagement = ({
 
         <div className="space-y-3">
           {/* Header Row */}
-          <div className="grid grid-cols-7 gap-4 p-4 bg-gradient-to-r from-slate-700/50 to-slate-800/50 rounded-lg text-sm font-medium border border-slate-600">
+          <div className="grid grid-cols-8 gap-4 p-4 bg-gradient-to-r from-slate-700/50 to-slate-800/50 rounded-lg text-sm font-medium border border-slate-600">
             <div className="col-span-2 bg-gradient-to-r from-cyan-200 via-blue-200 to-purple-200 bg-clip-text text-transparent font-bold">
               Song Name
             </div>
             <div className="bg-gradient-to-r from-cyan-200 via-blue-200 to-purple-200 bg-clip-text text-transparent font-bold">
               Key
+            </div>
+            <div className="bg-gradient-to-r from-cyan-200 via-blue-200 to-purple-200 bg-clip-text text-transparent font-bold">
+              BPM
             </div>
             <div className="bg-gradient-to-r from-cyan-200 via-blue-200 to-purple-200 bg-clip-text text-transparent font-bold">
               File Size
