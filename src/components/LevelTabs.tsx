@@ -135,18 +135,26 @@ export const LevelTabs = ({
         
         try {
           // Detect key
+          console.log(`\n📝 Starting analysis for: ${file.name}`);
           const keyAnalysis = await detectKeyFromFile(file.originalFile);
           harmonicKey = keyAnalysis.camelot;
+          
+          if (harmonicKey === 'N/A') {
+            console.warn(`⚠️ Key detection returned N/A for ${file.name}`);
+          } else {
+            console.log(`✅ Key detected: ${harmonicKey} for ${file.name}`);
+          }
         } catch (error) {
-          console.error('Error detecting key:', error);
+          console.error(`❌ Error detecting key for ${file.name}:`, error);
         }
         
         try {
           // Detect BPM
           const bpmAnalysis = await detectBPMFromFile(file.originalFile);
           bpm = bpmAnalysis.bpm;
+          console.log(`✅ BPM detected: ${bpm} for ${file.name}`);
         } catch (error) {
-          console.error('Error detecting BPM:', error);
+          console.error(`❌ Error detecting BPM for ${file.name}:`, error);
         }
         
         return {
@@ -157,14 +165,26 @@ export const LevelTabs = ({
       })
     );
     
-    // Update toast with success
+    // Update toast with detailed success info
     const detectedBPM = filesWithAnalysis.filter(f => f.bpm).length;
     const detectedKey = filesWithAnalysis.filter(f => f.harmonicKey && f.harmonicKey !== 'N/A').length;
     
-    toast.success('Analysis complete!', {
-      id: toastId,
-      description: `BPM: ${detectedBPM}/${files.length} • Key: ${detectedKey}/${files.length}`,
-    });
+    if (detectedKey === 0 && detectedBPM === 0) {
+      toast.error('Analysis failed', {
+        id: toastId,
+        description: 'Could not detect BPM or Key. Check console for details.',
+      });
+    } else if (detectedKey < files.length || detectedBPM < files.length) {
+      toast.warning('Analysis partially complete', {
+        id: toastId,
+        description: `BPM: ${detectedBPM}/${files.length} • Key: ${detectedKey}/${files.length}`,
+      });
+    } else {
+      toast.success('Analysis complete!', {
+        id: toastId,
+        description: `BPM: ${detectedBPM}/${files.length} • Key: ${detectedKey}/${files.length}`,
+      });
+    }
     
     onFilesUploaded(filesWithAnalysis);
     setActiveTab('enhance');
