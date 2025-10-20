@@ -5,6 +5,7 @@ import { Slider } from '@/components/ui/slider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Play, Pause, Volume2, VolumeX, Settings } from 'lucide-react';
 import { AudioFile } from '@/types/audio';
+import { useAudioContext } from '@/hooks/useAudioContext';
 
 interface EnhancedMiniPlayerProps {
   file: AudioFile;
@@ -21,30 +22,26 @@ export const EnhancedMiniPlayer = ({
   const [duration, setDuration] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
   const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const { ensureContextRunning, createMediaElementSource } = useAudioContext();
 
-  // Initialize Web Audio API context (persists across plays)
+  // Initialize Web Audio API context using shared context
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    // Create AudioContext only once
-    if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-      console.log('AudioContext created for', file.name);
-    }
-
-    // Create MediaElementSource only once per audio element
-    if (!sourceNodeRef.current && audioContextRef.current) {
+    const initAudio = async () => {
       try {
-        sourceNodeRef.current = audioContextRef.current.createMediaElementSource(audio);
-        sourceNodeRef.current.connect(audioContextRef.current.destination);
+        // Create MediaElementSource using shared context
+        const source = await createMediaElementSource(audio);
+        sourceNodeRef.current = source;
         console.log('MediaElementSource connected for', file.name);
       } catch (error) {
         console.error('Error creating MediaElementSource:', error);
       }
-    }
+    };
+
+    initAudio();
 
     // Pass audio element reference to parent
     if (onAudioElementRef) {
@@ -112,13 +109,9 @@ export const EnhancedMiniPlayer = ({
         onAudioElementRef(null);
       }
 
-      // Cleanup AudioContext on unmount
-      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-        audioContextRef.current.close();
-        audioContextRef.current = null;
-      }
+      // Don't close shared context!
     };
-  }, [file, onAudioElementRef]);
+  }, [file, onAudioElementRef, createMediaElementSource]);
 
   useEffect(() => {
     if (audioRef.current) {
@@ -160,7 +153,6 @@ export const EnhancedMiniPlayer = ({
 
   const togglePlay = async () => {
     const audio = audioRef.current;
-    const ctx = audioContextRef.current;
     
     if (!audio) {
       console.warn('Audio element not available');
@@ -191,11 +183,9 @@ export const EnhancedMiniPlayer = ({
         setIsPlaying(false);
         console.log('Audio paused');
       } else {
-        // Resume AudioContext if suspended
-        if (ctx && ctx.state === 'suspended') {
-          await ctx.resume();
-          console.log('AudioContext resumed');
-        }
+        // Ensure AudioContext is running
+        await ensureContextRunning();
+        console.log('AudioContext ensured running');
 
         // Stop other audio players
         const allAudioElements = document.querySelectorAll('audio');

@@ -14,8 +14,8 @@ import {
   Play, Pause, Square, Volume2, VolumeX, 
   Music, Sliders, TrendingUp, Activity 
 } from 'lucide-react';
-import { getAudioContext, resumeAudioContext } from '@/utils/audioContextManager';
 import { AudioFile } from '@/types/audio';
+import { useAudioContext } from '@/hooks/useAudioContext';
 
 interface AdvancedAudioPlayerProps {
   audioFile: AudioFile | null;
@@ -48,63 +48,63 @@ export const AdvancedAudioPlayer: React.FC<AdvancedAudioPlayerProps> = ({
   const compressorNodeRef = useRef<DynamicsCompressorNode | null>(null);
   const eqFiltersRef = useRef<BiquadFilterNode[]>([]);
   const analyserNodeRef = useRef<AnalyserNode | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
   
   // Canvas for visualization
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number>(0);
 
+  const { audioContext, ensureContextRunning, createMediaElementSource } = useAudioContext();
+
   // Initialize Web Audio API
   useEffect(() => {
-    if (!audioFile || !audioElementRef.current) return;
+    if (!audioFile || !audioElementRef.current || !audioContext) return;
 
     const initAudio = async () => {
-      await resumeAudioContext();
-      
-      const audioContext = getAudioContext();
-      audioContextRef.current = audioContext;
-      
-      // Create audio nodes if they don't exist
-      if (!sourceNodeRef.current) {
-        sourceNodeRef.current = audioContext.createMediaElementSource(audioElementRef.current!);
+      try {
+        // Create audio nodes if they don't exist
+        if (!sourceNodeRef.current) {
+          sourceNodeRef.current = await createMediaElementSource(audioElementRef.current!);
+        }
+        
+        if (!gainNodeRef.current) {
+          gainNodeRef.current = audioContext.createGain();
+        }
+        
+        if (!compressorNodeRef.current) {
+          compressorNodeRef.current = audioContext.createDynamicsCompressor();
+        }
+        
+        if (!analyserNodeRef.current) {
+          analyserNodeRef.current = audioContext.createAnalyser();
+          analyserNodeRef.current.fftSize = 2048;
+        }
+        
+        // Create EQ filters
+        if (eqFiltersRef.current.length === 0) {
+          EQ_FREQUENCIES.forEach((freq, i) => {
+            const filter = audioContext.createBiquadFilter();
+            
+            if (i === 0) {
+              filter.type = 'lowshelf';
+            } else if (i === EQ_FREQUENCIES.length - 1) {
+              filter.type = 'highshelf';
+            } else {
+              filter.type = 'peaking';
+            }
+            
+            filter.frequency.value = freq;
+            filter.gain.value = eqBands[i] || 0;
+            filter.Q.value = 1.0;
+            
+            eqFiltersRef.current.push(filter);
+          });
+        }
+        
+        // Connect audio graph
+        connectAudioGraph();
+      } catch (error) {
+        console.error('Failed to initialize audio:', error);
       }
-      
-      if (!gainNodeRef.current) {
-        gainNodeRef.current = audioContext.createGain();
-      }
-      
-      if (!compressorNodeRef.current) {
-        compressorNodeRef.current = audioContext.createDynamicsCompressor();
-      }
-      
-      if (!analyserNodeRef.current) {
-        analyserNodeRef.current = audioContext.createAnalyser();
-        analyserNodeRef.current.fftSize = 2048;
-      }
-      
-      // Create EQ filters
-      if (eqFiltersRef.current.length === 0) {
-        EQ_FREQUENCIES.forEach((freq, i) => {
-          const filter = audioContext.createBiquadFilter();
-          
-          if (i === 0) {
-            filter.type = 'lowshelf';
-          } else if (i === EQ_FREQUENCIES.length - 1) {
-            filter.type = 'highshelf';
-          } else {
-            filter.type = 'peaking';
-          }
-          
-          filter.frequency.value = freq;
-          filter.gain.value = eqBands[i] || 0;
-          filter.Q.value = 1.0;
-          
-          eqFiltersRef.current.push(filter);
-        });
-      }
-      
-      // Connect audio graph
-      connectAudioGraph();
     };
 
     initAudio();
@@ -113,15 +113,13 @@ export const AdvancedAudioPlayer: React.FC<AdvancedAudioPlayerProps> = ({
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
+      // Don't close shared context!
     };
-  }, [audioFile]);
+  }, [audioFile, audioContext, createMediaElementSource]);
 
   // Connect audio processing graph
   const connectAudioGraph = () => {
-    if (!sourceNodeRef.current || !gainNodeRef.current || !analyserNodeRef.current) return;
-    
-    const audioContext = audioContextRef.current;
-    if (!audioContext) return;
+    if (!sourceNodeRef.current || !gainNodeRef.current || !analyserNodeRef.current || !audioContext) return;
 
     let currentNode: AudioNode = sourceNodeRef.current;
     
@@ -147,38 +145,38 @@ export const AdvancedAudioPlayer: React.FC<AdvancedAudioPlayerProps> = ({
 
   // Update EQ bands in real-time
   useEffect(() => {
-    if (eqFiltersRef.current.length === 0 || !audioContextRef.current) return;
+    if (eqFiltersRef.current.length === 0 || !audioContext) return;
     
     eqFiltersRef.current.forEach((filter, index) => {
       if (eqBands[index] !== undefined) {
         filter.gain.setValueAtTime(
           eqBands[index],
-          audioContextRef.current!.currentTime
+          audioContext.currentTime
         );
       }
     });
-  }, [eqBands]);
+  }, [eqBands, audioContext]);
 
   // Update volume
   useEffect(() => {
-    if (gainNodeRef.current && audioContextRef.current) {
+    if (gainNodeRef.current && audioContext) {
       const gainValue = isMuted ? 0 : volume;
       gainNodeRef.current.gain.setValueAtTime(
         gainValue,
-        audioContextRef.current.currentTime
+        audioContext.currentTime
       );
     }
-  }, [volume, isMuted]);
+  }, [volume, isMuted, audioContext]);
 
   // Update compression
   useEffect(() => {
-    if (compressorNodeRef.current && audioContextRef.current) {
+    if (compressorNodeRef.current && audioContext) {
       compressorNodeRef.current.threshold.setValueAtTime(
         compressionThreshold,
-        audioContextRef.current.currentTime
+        audioContext.currentTime
       );
     }
-  }, [compressionThreshold]);
+  }, [compressionThreshold, audioContext]);
 
   // Visualization
   useEffect(() => {
@@ -230,14 +228,21 @@ export const AdvancedAudioPlayer: React.FC<AdvancedAudioPlayerProps> = ({
   const handlePlayPause = async () => {
     if (!audioElementRef.current) return;
 
-    await resumeAudioContext();
+    try {
+      // Ensure AudioContext is running
+      await ensureContextRunning();
 
-    if (isPlaying) {
-      audioElementRef.current.pause();
-    } else {
-      audioElementRef.current.play();
+      if (isPlaying) {
+        audioElementRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        await audioElementRef.current.play();
+        setIsPlaying(true);
+      }
+    } catch (error) {
+      console.error('Playback failed:', error);
+      setIsPlaying(false);
     }
-    setIsPlaying(!isPlaying);
   };
 
   const handleStop = () => {

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Music, Download, Trash2, Clock, CheckCircle, Loader2, AlertTriangle, Play, Pause } from 'lucide-react';
-import { resumeAudioContext } from '@/utils/audioContextManager';
+import { useAudioContext } from '@/hooks/useAudioContext';
 
 interface Track {
   id: string;
@@ -35,6 +35,7 @@ export const TrackList: React.FC<TrackListProps> = ({
 }) => {
   const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
   const audioRefs = useRef<Map<string, HTMLAudioElement>>(new Map());
+  const { ensureContextRunning } = useAudioContext();
 
   const formatDuration = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -45,33 +46,39 @@ export const TrackList: React.FC<TrackListProps> = ({
   const handlePlayPause = async (track: Track, e: React.MouseEvent) => {
     e.stopPropagation();
     
-    await resumeAudioContext();
+    try {
+      // Ensure AudioContext is running
+      await ensureContextRunning();
 
-    if (playingTrackId === track.id) {
-      // Pause current track
-      const audio = audioRefs.current.get(track.id);
-      audio?.pause();
+      if (playingTrackId === track.id) {
+        // Pause current track
+        const audio = audioRefs.current.get(track.id);
+        audio?.pause();
+        setPlayingTrackId(null);
+      } else {
+        // Stop any currently playing track
+        if (playingTrackId) {
+          const prevAudio = audioRefs.current.get(playingTrackId);
+          prevAudio?.pause();
+        }
+
+        // Create or get audio element
+        let audio = audioRefs.current.get(track.id);
+        if (!audio) {
+          audio = new Audio(URL.createObjectURL(track.originalFile));
+          audioRefs.current.set(track.id, audio);
+          
+          audio.onended = () => {
+            setPlayingTrackId(null);
+          };
+        }
+
+        await audio.play();
+        setPlayingTrackId(track.id);
+      }
+    } catch (error) {
+      console.error('Playback failed:', error);
       setPlayingTrackId(null);
-    } else {
-      // Stop any currently playing track
-      if (playingTrackId) {
-        const prevAudio = audioRefs.current.get(playingTrackId);
-        prevAudio?.pause();
-      }
-
-      // Create or get audio element
-      let audio = audioRefs.current.get(track.id);
-      if (!audio) {
-        audio = new Audio(URL.createObjectURL(track.originalFile));
-        audioRefs.current.set(track.id, audio);
-        
-        audio.onended = () => {
-          setPlayingTrackId(null);
-        };
-      }
-
-      audio.play();
-      setPlayingTrackId(track.id);
     }
   };
 

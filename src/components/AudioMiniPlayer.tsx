@@ -4,6 +4,7 @@ import { Slider } from '@/components/ui/slider';
 import { Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { AudioFile } from '@/types/audio';
+import { useAudioContext } from '@/hooks/useAudioContext';
 
 interface AudioMiniPlayerProps {
   file: AudioFile;
@@ -14,20 +15,23 @@ export const AudioMiniPlayer = ({ file }: AudioMiniPlayerProps) => {
   const [volume, setVolume] = useState(0.5);
   const [currentTime, setCurrentTime] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const { ensureContextRunning } = useAudioContext();
 
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = volume;
-      if (isPlaying) {
-        audioRef.current.play().catch(error => {
-          console.error("Playback failed:", error);
-          setIsPlaying(false);
-        });
-      } else {
-        audioRef.current.pause();
-      }
     }
-  }, [isPlaying, volume, file.enhancedUrl]);
+  }, [volume]);
+
+  useEffect(() => {
+    // Reset playback when file changes
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setIsPlaying(false);
+      setCurrentTime(0);
+    }
+  }, [file.enhancedUrl]);
 
   useEffect(() => {
     const audioElement = audioRef.current;
@@ -54,8 +58,24 @@ export const AudioMiniPlayer = ({ file }: AudioMiniPlayerProps) => {
     };
   }, []);
 
-  const togglePlay = () => {
-    setIsPlaying(!isPlaying);
+  const togglePlay = async () => {
+    if (!audioRef.current) return;
+
+    try {
+      // Ensure AudioContext is running before playing
+      await ensureContextRunning();
+      
+      if (isPlaying) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        await audioRef.current.play();
+        setIsPlaying(true);
+      }
+    } catch (error) {
+      console.error("Playback failed:", error);
+      setIsPlaying(false);
+    }
   };
 
   const handleVolumeChange = (value: number[]) => {
