@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { SpectrumLogo } from '@/components/SpectrumLogo';
+import { LevelLogo } from '@/components/LevelLogo';
 
 export const AnimatedTitle = () => {
-  return <SpectrumLogo />;
+  return <LevelLogo />;
 };

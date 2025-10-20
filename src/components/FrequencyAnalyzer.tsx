@@ -1,13 +1,13 @@
 
 import { useEffect, useRef } from 'react';
 
-interface SpectrumAnalyzerProps {
+interface FrequencyAnalyzerProps {
   audioUrl?: string;
   playing?: boolean;
   height?: number;
 }
 
-export const SpectrumAnalyzer = ({ audioUrl, playing = false, height = 120 }: SpectrumAnalyzerProps) => {
+export const FrequencyAnalyzer = ({ audioUrl, playing = false, height = 120 }: FrequencyAnalyzerProps) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animationRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);

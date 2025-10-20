@@ -86,17 +86,24 @@ export const AIMasteringTab = () => {
       body: formData,
     });
     
-    if (error || !data.path) {
+    if (error || !data?.path) {
       throw new Error(error?.message || "File upload failed.");
     }
     
+    toast.success(`✅ ${file.name} uploaded successfully`);
     return data.path;
   };
 
   const handleMastering = async () => {
-    if (!targetFile || (!referenceFile && !selectedPreset)) {
-      setError("Please select target and reference files or a preset.");
-      toast.error("Please select target and reference files or a preset.");
+    if (!targetFile) {
+      setError("Please select a target audio file.");
+      toast.error("Please select a target audio file.");
+      return;
+    }
+
+    if (!referenceFile && !selectedPreset) {
+      setError("Please select a reference file or choose a genre preset.");
+      toast.error("Please select a reference file or choose a genre preset.");
       return;
     }
 
@@ -105,34 +112,36 @@ export const AIMasteringTab = () => {
     setDownloadUrl(null);
 
     try {
+      // Upload target file to backend
       const targetPath = await uploadFileDirectly(targetFile);
       
       let referencePath: string | undefined;
       
-      if (activeMode === 'preset' && selectedPreset) {
-        // Backend will use preset_id instead of reference_path
-        referencePath = undefined;
-      } else if (referenceFile) {
+      // Upload reference file if custom reference mode
+      if (activeMode === 'custom' && referenceFile) {
         referencePath = await uploadFileDirectly(referenceFile);
       }
 
-      setStatusMessage('Starting mastering process...');
+      setStatusMessage('Starting AI mastering process...');
+      toast.info('🎵 Starting AI mastering...');
       
       const requestBody: any = { 
         target_path: targetPath
       };
       
-      if (selectedPreset && activeMode === 'preset') {
+      // Add preset_id or reference_path based on mode
+      if (activeMode === 'preset' && selectedPreset) {
         requestBody.preset_id = selectedPreset;
-      } else if (referencePath) {
+      } else if (activeMode === 'custom' && referencePath) {
         requestBody.reference_path = referencePath;
       }
       
+      // Call backend via edge function
       const { data, error } = await supabase.functions.invoke('start-mastering-job', {
         body: requestBody,
       });
       
-      if (error || !data.jobId) {
+      if (error || !data?.jobId) {
         throw new Error(error?.message || "Could not start the mastering job.");
       }
       
@@ -171,18 +180,18 @@ export const AIMasteringTab = () => {
           const fullDownloadUrl = `https://mastering-backend-857351913435.us-central1.run.app${data.downloadUrl}`;
           setDownloadUrl(fullDownloadUrl);
           clearInterval(poller.current!);
-          toast.success('✅ Mastering complete! Your file is ready.');
+          toast.success('✅ Mastering complete! Downloading your file...');
           
-          // Auto-download the file
+          // Auto-download the mastered file
           const link = document.createElement('a');
           link.href = fullDownloadUrl;
-          link.download = data.outputFile || 'mastered_audio.wav';
+          link.download = data.outputFile || `mastered_${targetFile?.name || 'audio.wav'}`;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
         } else if (data.status === 'failed') {
           setJobStatus('failed');
-          setError(data.error || 'The job failed on the server.');
+          setError(data.error || 'The mastering job failed on the server.');
           setStatusMessage('An error occurred during mastering.');
           clearInterval(poller.current!);
           toast.error('❌ Mastering failed. Please try again.');

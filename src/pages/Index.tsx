@@ -5,7 +5,7 @@ import { Footer } from '@/components/Footer';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { CopyrightNotice } from '@/components/CopyrightNotice';
 import { UserHeader } from '@/components/UserHeader';
-import { SpectrumTabs } from '@/components/SpectrumTabs';
+import { LevelTabs } from '@/components/LevelTabs';
 import { useToast } from '@/hooks/use-toast';
 import { useFileManagement } from '@/hooks/useFileManagement';
 import { useAdvancedAudioProcessing } from '@/hooks/useAdvancedAudioProcessing';
@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { AnimatedTitle } from '@/components/AnimatedTitle';
 const Index = () => {
-  console.log('Spectrum app render started');
+  console.log('Level app render started');
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [eqBands, setEqBands] = useState([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]); // 10-band EQ (5 bands mapped to specific indices)
   const [eqEnabled, setEqEnabled] = useState(true);
@@ -152,7 +152,7 @@ const Index = () => {
           description: `${file.name} is ready for download.`
         });
         if (notificationsEnabled) {
-          new Notification('Spectrum - Enhancement Complete', {
+          new Notification('Level - Enhancement Complete', {
             body: `${file.name} is ready for download`,
             icon: '/favicon.ico'
           });
@@ -184,7 +184,7 @@ const Index = () => {
     setProcessingQueue([]);
     setIsProcessing(false);
     if (notificationsEnabled && filesToProcess.length > 0) {
-      new Notification('Spectrum - All Enhancements Complete', {
+      new Notification('Level - All Enhancements Complete', {
         body: `${filesToProcess.length} files ready for download`,
         icon: '/favicon.ico'
       });
@@ -251,7 +251,7 @@ const Index = () => {
       const url = URL.createObjectURL(zipBlob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `spectrum_enhanced_${Date.now()}.zip`;
+      a.download = `level_enhanced_${Date.now()}.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -361,7 +361,7 @@ const Index = () => {
             <CardHeader className="pb-3">
               <CardTitle className="text-white text-lg flex items-center gap-3">
                 <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
-                Spectrum Processing Status
+                Level Processing Status
                 {processingQueue.length > 0 && <span className="text-sm text-blue-300">({processingQueue.length} in queue)</span>}
               </CardTitle>
             </CardHeader>
@@ -378,7 +378,7 @@ const Index = () => {
           </Card>}
 
         {/* Main Tabs */}
-        <SpectrumTabs audioFiles={audioFiles} enhancedHistory={enhancedHistory} onFilesUploaded={handleFilesUploaded} onDownload={handleDownloadEnhanced} onConvert={handleConvertFile} onDownloadAll={handleDownloadAll} onClearDownloaded={handleClearDownloaded} onClearAll={handleClearAll} onEnhanceFiles={handleEnhanceFiles} eqBands={eqBands} onEQBandChange={handleEQBandChange} onResetEQ={resetEQ} eqEnabled={eqEnabled} setEqEnabled={setEqEnabled} />
+        <LevelTabs audioFiles={audioFiles} enhancedHistory={enhancedHistory} onFilesUploaded={handleFilesUploaded} onDownload={handleDownloadEnhanced} onConvert={handleConvertFile} onDownloadAll={handleDownloadAll} onClearDownloaded={handleClearDownloaded} onClearAll={handleClearAll} onEnhanceFiles={handleEnhanceFiles} eqBands={eqBands} onEQBandChange={handleEQBandChange} onResetEQ={resetEQ} eqEnabled={eqEnabled} setEqEnabled={setEqEnabled} />
 
         {/* Copyright Notice at Bottom */}
         <div className="mt-8">

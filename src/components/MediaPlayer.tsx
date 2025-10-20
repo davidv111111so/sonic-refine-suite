@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
-import { SpectrumAnalyzer } from './SpectrumAnalyzer';
+import { FrequencyAnalyzer } from './FrequencyAnalyzer';
 import { useToast } from '@/hooks/use-toast';
 
 export const MediaPlayer = () => {
@@ -292,18 +292,18 @@ export const MediaPlayer = () => {
       />
 
       {/* File Selection */}
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="p-6">
           <div className="text-center">
             <Button
               onClick={() => fileInputRef.current?.click()}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               <Upload className="h-5 w-5 mr-2" />
               Select Audio File
             </Button>
             {currentFile && (
-              <p className="mt-2 text-slate-300">
+              <p className="mt-2 text-muted-foreground">
                 Loaded: {currentFile.name}
               </p>
             )}
@@ -311,14 +311,14 @@ export const MediaPlayer = () => {
         </CardContent>
       </Card>
 
-      {/* Spectrum Analyzer */}
+      {/* Frequency Analyzer */}
       {audioUrl && (
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-white text-center">Spectrum Analyzer</CardTitle>
+            <CardTitle className="text-foreground text-center">Frequency Analyzer</CardTitle>
           </CardHeader>
           <CardContent>
-            <SpectrumAnalyzer 
+            <FrequencyAnalyzer 
               audioUrl={audioUrl} 
               playing={isPlaying}
               height={200}
@@ -328,21 +328,21 @@ export const MediaPlayer = () => {
       )}
 
       {/* Player Controls */}
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="p-6 space-y-4">
           {/* Progress Bar */}
           <div 
-            className="h-3 bg-slate-700 rounded-full cursor-pointer"
+            className="h-3 bg-muted rounded-full cursor-pointer"
             onClick={handleSeek}
           >
             <div 
-              className="bg-blue-500 h-full rounded-full transition-all"
+              className="bg-primary h-full rounded-full transition-all"
               style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
             ></div>
           </div>
 
           {/* Time Display */}
-          <div className="flex justify-between text-sm text-slate-400">
+          <div className="flex justify-between text-sm text-muted-foreground">
             <span>{formatTime(currentTime)}</span>
             <span>{formatTime(duration)}</span>
           </div>
@@ -354,7 +354,7 @@ export const MediaPlayer = () => {
               size="lg"
               onClick={() => handleSkip(-10)}
               disabled={!audioUrl}
-              className="text-white hover:text-blue-400"
+              className="text-foreground hover:text-primary"
             >
               <SkipBack className="h-6 w-6" />
             </Button>
@@ -364,7 +364,7 @@ export const MediaPlayer = () => {
               size="lg"
               onClick={handlePlayPause}
               disabled={!audioUrl}
-              className="text-white hover:text-blue-400"
+              className="text-foreground hover:text-primary"
             >
               {isPlaying ? (
                 <Pause className="h-8 w-8" />
@@ -378,7 +378,7 @@ export const MediaPlayer = () => {
               size="lg"
               onClick={() => handleSkip(10)}
               disabled={!audioUrl}
-              className="text-white hover:text-blue-400"
+              className="text-foreground hover:text-primary"
             >
               <SkipForward className="h-6 w-6" />
             </Button>
@@ -386,7 +386,7 @@ export const MediaPlayer = () => {
 
           {/* Volume Control */}
           <div className="flex items-center gap-4">
-            <Volume2 className="h-5 w-5 text-slate-400" />
+            <Volume2 className="h-5 w-5 text-muted-foreground" />
             <Slider
               value={[volume]}
               onValueChange={([value]) => setVolume(value)}
@@ -395,15 +395,15 @@ export const MediaPlayer = () => {
               step={1}
               className="flex-1"
             />
-            <span className="text-sm text-slate-400 w-12">{volume}%</span>
+            <span className="text-sm text-muted-foreground w-12">{volume}%</span>
           </div>
         </CardContent>
       </Card>
 
       {/* Enhanced 10-Band EQ */}
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-white">
+          <CardTitle className="flex items-center gap-2 text-foreground">
             <Sliders className="h-5 w-5" />
             10-Band Equalizer
           </CardTitle>
@@ -418,7 +418,6 @@ export const MediaPlayer = () => {
               variant="outline"
               size="sm"
               onClick={resetEQ}
-              className="bg-slate-700 border-slate-600 hover:bg-slate-600 text-white"
             >
               Reset EQ
             </Button>

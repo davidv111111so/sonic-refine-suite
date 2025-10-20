@@ -16,7 +16,7 @@ import { BarChart3, Settings, Upload, Zap, Package } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { IndividualModeQueue } from '@/components/enhancement/IndividualModeQueue';
 import { AIMasteringTab } from '@/components/ai-mastering/AIMasteringTab';
-interface SpectrumTabsProps {
+interface LevelTabsProps {
   audioFiles: AudioFile[];
   enhancedHistory: AudioFile[];
   onFilesUploaded: (files: AudioFile[]) => void;
@@ -32,7 +32,7 @@ interface SpectrumTabsProps {
   eqEnabled: boolean;
   setEqEnabled: (enabled: boolean) => void;
 }
-export const SpectrumTabs = ({
+export const LevelTabs = ({
   audioFiles,
   enhancedHistory,
   onFilesUploaded,
@@ -47,12 +47,12 @@ export const SpectrumTabs = ({
   onResetEQ,
   eqEnabled,
   setEqEnabled
-}: SpectrumTabsProps) => {
+}: LevelTabsProps) => {
   const {
     t,
     language
   } = useLanguage();
-  const [activeTab, setActiveTab] = useState('spectrum');
+  const [activeTab, setActiveTab] = useState('level');
   const [selectedFilesForIndividual, setSelectedFilesForIndividual] = useState<string[]>([]);
   const [fileInfoModal, setFileInfoModal] = useState<{
     isOpen: boolean;
@@ -180,13 +180,13 @@ export const SpectrumTabs = ({
       fileIdsToProcess: filesToProcess.map(f => f.id) // Add specific file IDs to process
     };
     onEnhanceFiles(finalSettings);
-    setActiveTab('spectrum');
+    setActiveTab('level');
   };
   return <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       <TabsList className="grid w-full grid-cols-3 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-black dark:via-slate-900 dark:to-black border-2 border-slate-600 dark:border-slate-700 p-1 rounded-xl shadow-xl">
-        <TabsTrigger value="spectrum" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:via-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-cyan-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl">
+        <TabsTrigger value="level" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:via-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-cyan-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl">
           <BarChart3 className="h-5 w-5" />
-          <span className="text-lg text-blue-50">{t('button.spectrum')}</span>
+          <span className="text-lg text-blue-50">Level</span>
         </TabsTrigger>
         <TabsTrigger value="enhance" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:via-pink-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl">
           <Settings className="h-5 w-5" />
@@ -198,7 +198,7 @@ export const SpectrumTabs = ({
         </TabsTrigger>
       </TabsList>
 
-      <TabsContent value="spectrum" className="space-y-6">
+      <TabsContent value="level" className="space-y-6">
         {/* Upload Section */}
         <Card className="bg-slate-900/90 dark:bg-black/90 border-slate-600">
           <CardHeader>
@@ -238,10 +238,10 @@ export const SpectrumTabs = ({
         <Card className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 dark:from-purple-950/40 dark:to-blue-950/40 border-purple-400/40 shadow-xl shadow-purple-500/20">
           <CardHeader className="pb-4 bg-gray-800">
             <div className="flex items-center justify-between gap-4">
-              {/* Spectrum Button */}
+              {/* Level Button */}
               <Button onClick={handleEnhanceFiles} disabled={audioFiles.length === 0} variant="spectrum" size="lg" className="shadow-xl shrink-0 rounded-xl text-4xl">
                 <Zap className="h-6 w-6 mr-2 animate-pulse" />
-                <span className="text-xl tracking-widest font-black">SPECTRUM</span>
+                <span className="text-xl tracking-widest font-black">LEVEL</span>
                 {!processingSettings.batchMode && selectedFilesForIndividual.length > 0 ? (
                   <Badge className="ml-3 bg-cyan-400 text-black border-cyan-300 px-3 py-0.5 text-sm font-bold animate-pulse">
                     {selectedFilesForIndividual.length} Selected
