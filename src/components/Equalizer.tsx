@@ -109,7 +109,10 @@ export const Equalizer: React.FC<EqualizerProps> = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setBands([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])}
+                  onClick={() => {
+                    const newBands = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+                    setBands(newBands);
+                  }}
                   disabled={disabled}
                   className="text-xs bg-slate-700 border-slate-600 hover:bg-slate-600 text-white"
                 >
@@ -118,7 +121,10 @@ export const Equalizer: React.FC<EqualizerProps> = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setBands([6, 4, 2, 1, 0, -1, -2, -1, 2, 4])}
+                  onClick={() => {
+                    const newBands = [6, 4, 2, 1, 0, -1, -2, -1, 2, 4];
+                    setBands(newBands);
+                  }}
                   disabled={disabled}
                   className="text-xs bg-slate-700 border-slate-600 hover:bg-slate-600 text-white"
                 >
@@ -127,7 +133,10 @@ export const Equalizer: React.FC<EqualizerProps> = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setBands([-2, -1, 0, 1, 2, 4, 6, 6, 4, 2])}
+                  onClick={() => {
+                    const newBands = [-2, -1, 0, 1, 2, 4, 6, 6, 4, 2];
+                    setBands(newBands);
+                  }}
                   disabled={disabled}
                   className="text-xs bg-slate-700 border-slate-600 hover:bg-slate-600 text-white"
                 >
@@ -136,7 +145,10 @@ export const Equalizer: React.FC<EqualizerProps> = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setBands([4, 2, 0, -2, -4, -4, -2, 0, 2, 4])}
+                  onClick={() => {
+                    const newBands = [4, 2, 0, -2, -4, -4, -2, 0, 2, 4];
+                    setBands(newBands);
+                  }}
                   disabled={disabled}
                   className="text-xs bg-slate-700 border-slate-600 hover:bg-slate-600 text-white"
                 >
@@ -145,7 +157,10 @@ export const Equalizer: React.FC<EqualizerProps> = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setBands([-4, -2, 0, 2, 4, 4, 2, 0, -2, -4])}
+                  onClick={() => {
+                    const newBands = [-4, -2, 0, 2, 4, 4, 2, 0, -2, -4];
+                    setBands(newBands);
+                  }}
                   disabled={disabled}
                   className="text-xs bg-slate-700 border-slate-600 hover:bg-slate-600 text-white"
                 >
@@ -154,7 +169,10 @@ export const Equalizer: React.FC<EqualizerProps> = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setBands([2, 1, 0, -1, -2, -1, 0, 1, 2, 3])}
+                  onClick={() => {
+                    const newBands = [2, 1, 0, -1, -2, -1, 0, 1, 2, 3];
+                    setBands(newBands);
+                  }}
                   disabled={disabled}
                   className="text-xs bg-slate-700 border-slate-600 hover:bg-slate-600 text-white"
                 >

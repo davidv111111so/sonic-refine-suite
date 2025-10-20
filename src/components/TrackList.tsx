@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Music, Download, Trash2, Clock, CheckCircle, Loader2, AlertTriangle } from 'lucide-react';
+import { Music, Download, Trash2, Clock, CheckCircle, Loader2, AlertTriangle, Play, Pause } from 'lucide-react';
+import { resumeAudioContext } from '@/utils/audioContextManager';
 
 interface Track {
   id: string;
@@ -32,11 +33,58 @@ export const TrackList: React.FC<TrackListProps> = ({
   onTrackRemove,
   onTrackExport
 }) => {
+  const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
+  const audioRefs = useRef<Map<string, HTMLAudioElement>>(new Map());
+
   const formatDuration = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  const handlePlayPause = async (track: Track, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    await resumeAudioContext();
+
+    if (playingTrackId === track.id) {
+      // Pause current track
+      const audio = audioRefs.current.get(track.id);
+      audio?.pause();
+      setPlayingTrackId(null);
+    } else {
+      // Stop any currently playing track
+      if (playingTrackId) {
+        const prevAudio = audioRefs.current.get(playingTrackId);
+        prevAudio?.pause();
+      }
+
+      // Create or get audio element
+      let audio = audioRefs.current.get(track.id);
+      if (!audio) {
+        audio = new Audio(URL.createObjectURL(track.originalFile));
+        audioRefs.current.set(track.id, audio);
+        
+        audio.onended = () => {
+          setPlayingTrackId(null);
+        };
+      }
+
+      audio.play();
+      setPlayingTrackId(track.id);
+    }
+  };
+
+  useEffect(() => {
+    // Cleanup audio elements on unmount
+    return () => {
+      audioRefs.current.forEach(audio => {
+        audio.pause();
+        audio.src = '';
+      });
+      audioRefs.current.clear();
+    };
+  }, []);
 
   const formatFileSize = (bytes: number): string => {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
@@ -100,7 +148,8 @@ export const TrackList: React.FC<TrackListProps> = ({
         ) : (
           <div className="space-y-2">
             {/* Header Row */}
-            <div className="grid grid-cols-6 gap-4 p-3 bg-slate-700/50 rounded-lg text-sm font-medium text-slate-300">
+            <div className="grid grid-cols-7 gap-4 p-3 bg-slate-700/50 rounded-lg text-sm font-medium text-slate-300">
+              <div>Play</div>
               <div className="col-span-2">Track Name</div>
               <div>Duration</div>
               <div>Size</div>
@@ -113,7 +162,7 @@ export const TrackList: React.FC<TrackListProps> = ({
               <div
                 key={track.id}
                 className={`
-                  grid grid-cols-6 gap-4 p-3 rounded-lg border transition-all duration-200 cursor-pointer
+                  grid grid-cols-7 gap-4 p-3 rounded-lg border transition-all duration-200 cursor-pointer
                   ${selectedTrackId === track.id 
                     ? 'bg-blue-900/30 border-blue-500/50 shadow-lg' 
                     : 'bg-slate-800/50 border-slate-600 hover:bg-slate-700/50 hover:border-slate-500'
@@ -121,6 +170,23 @@ export const TrackList: React.FC<TrackListProps> = ({
                 `}
                 onClick={() => onTrackSelect(track.id)}
               >
+                {/* Play/Pause Button */}
+                <div className="flex items-center">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => handlePlayPause(track, e)}
+                    disabled={track.status !== 'ready'}
+                    className="h-8 w-8 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/20"
+                  >
+                    {playingTrackId === track.id ? (
+                      <Pause className="h-4 w-4" />
+                    ) : (
+                      <Play className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+
                 {/* Track Name */}
                 <div className="col-span-2 flex flex-col min-w-0">
                   <span className="text-white font-medium truncate">

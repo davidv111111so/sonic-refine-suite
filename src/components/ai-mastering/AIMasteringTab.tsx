@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Music, Upload, Crown, Lock, Loader2 } from 'lucide-react';
+import { Music, Upload, Crown, Lock, Loader2, Settings } from 'lucide-react';
 import { useUserSubscription } from '@/hooks/useUserSubscription';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { saveAs } from 'file-saver';
+import { MasteringAdvancedSettings, MasteringSettings } from './MasteringAdvancedSettings';
 
 export const AIMasteringTab = () => {
   const { t } = useLanguage();
@@ -21,6 +22,20 @@ export const AIMasteringTab = () => {
   const [activeMode, setActiveMode] = useState<'preset' | 'custom'>('preset');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+  const [advancedSettings, setAdvancedSettings] = useState<MasteringSettings>({
+    outputBits: 24,
+    dithering: true,
+    limiterMethod: 'modern',
+    limiterCeiling: -0.3,
+    targetLoudness: -14,
+    dynamicRange: 12,
+    spectralBalance: true,
+    lowEndEnhancement: 50,
+    highEndCrispness: 50,
+    stereoWidth: 100,
+    warmth: 50,
+  });
 
   const targetInputRef = useRef<HTMLInputElement>(null);
   const referenceInputRef = useRef<HTMLInputElement>(null);
@@ -102,6 +117,9 @@ export const AIMasteringTab = () => {
       else if (activeMode === 'preset' && selectedPreset) {
         formData.append('preset_id', selectedPreset);
       }
+
+      // Add advanced settings as JSON
+      formData.append('advanced_settings', JSON.stringify(advancedSettings));
 
       console.log('🎵 Sending request to:', `${BACKEND_URL}/process/ai-mastering`);
       console.log('📦 FormData contents:', {
@@ -219,10 +237,28 @@ export const AIMasteringTab = () => {
             <h1 className="text-3xl font-bold mb-2 text-primary">AI Audio Mastering</h1>
             <p className="text-muted-foreground">Upload your track and choose a reference to master your audio with AI.</p>
           </div>
-          <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs h-7 flex items-center px-3">
-            ✨ Premium
-          </Badge>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setShowAdvancedSettings(true)}
+              className="flex items-center gap-2"
+            >
+              <Settings className="h-4 w-4" />
+              Advanced Settings
+            </Button>
+            <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs h-7 flex items-center px-3">
+              ✨ Premium
+            </Badge>
+          </div>
         </div>
+
+        {/* Advanced Settings Modal */}
+        <MasteringAdvancedSettings
+          open={showAdvancedSettings}
+          onOpenChange={setShowAdvancedSettings}
+          settings={advancedSettings}
+          onSettingsChange={setAdvancedSettings}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column: Target and Presets */}
