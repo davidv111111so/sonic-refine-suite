@@ -77,25 +77,20 @@ export const AIMasteringTab = () => {
   };
 
   const uploadFileDirectly = async (file: File): Promise<string> => {
-    setStatusMessage(`Requesting upload for ${file.name}...`);
-    
-    const { data, error } = await supabase.functions.invoke('generate-upload-url', {
-      body: { fileName: file.name, fileType: file.type },
-    });
-    
-    if (error) throw new Error("Could not get a secure upload URL.");
-
     setStatusMessage(`Uploading ${file.name}...`);
     
-    const uploadResponse = await fetch(data.signedUrl, {
-      method: 'PUT',
-      headers: { 'Content-Type': file.type },
-      body: file,
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const { data, error } = await supabase.functions.invoke('generate-upload-url', {
+      body: formData,
     });
     
-    if (!uploadResponse.ok) throw new Error("File upload failed.");
+    if (error || !data.path) {
+      throw new Error(error?.message || "File upload failed.");
+    }
     
-    return data.gcsFileName;
+    return data.path;
   };
 
   const handleMastering = async () => {
@@ -108,33 +103,38 @@ export const AIMasteringTab = () => {
     setError('');
     setJobStatus('uploading');
     setDownloadUrl(null);
-    setMasteredFile(null);
 
     try {
-      const targetGcsPath = await uploadFileDirectly(targetFile);
+      const targetPath = await uploadFileDirectly(targetFile);
       
-      let referenceGcsPath: string;
+      let referencePath: string | undefined;
       
       if (activeMode === 'preset' && selectedPreset) {
-        // For presets, use the preset ID - backend will handle the mapping
-        referenceGcsPath = `presets/${selectedPreset}.wav`;
+        // Backend will use preset_id instead of reference_path
+        referencePath = undefined;
       } else if (referenceFile) {
-        referenceGcsPath = await uploadFileDirectly(referenceFile);
-      } else {
-        throw new Error("No reference file or preset selected.");
+        referencePath = await uploadFileDirectly(referenceFile);
       }
 
       setStatusMessage('Starting mastering process...');
       
+      const requestBody: any = { 
+        target_path: targetPath
+      };
+      
+      if (selectedPreset && activeMode === 'preset') {
+        requestBody.preset_id = selectedPreset;
+      } else if (referencePath) {
+        requestBody.reference_path = referencePath;
+      }
+      
       const { data, error } = await supabase.functions.invoke('start-mastering-job', {
-        body: { 
-          targetGcsPath, 
-          referenceGcsPath,
-          userId: user?.id 
-        },
+        body: requestBody,
       });
       
-      if (error) throw new Error("Could not start the mastering job.");
+      if (error || !data.jobId) {
+        throw new Error(error?.message || "Could not start the mastering job.");
+      }
       
       setJobId(data.jobId);
       setJobStatus('processing');
@@ -168,9 +168,18 @@ export const AIMasteringTab = () => {
         if (data.status === 'completed') {
           setJobStatus('completed');
           setStatusMessage('Mastering complete!');
-          setDownloadUrl(data.downloadUrl);
+          const fullDownloadUrl = `https://mastering-backend-857351913435.us-central1.run.app${data.downloadUrl}`;
+          setDownloadUrl(fullDownloadUrl);
           clearInterval(poller.current!);
           toast.success('✅ Mastering complete! Your file is ready.');
+          
+          // Auto-download the file
+          const link = document.createElement('a');
+          link.href = fullDownloadUrl;
+          link.download = data.outputFile || 'mastered_audio.wav';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
         } else if (data.status === 'failed') {
           setJobStatus('failed');
           setError(data.error || 'The job failed on the server.');
@@ -178,7 +187,7 @@ export const AIMasteringTab = () => {
           clearInterval(poller.current!);
           toast.error('❌ Mastering failed. Please try again.');
         }
-      }, 10000); // Poll every 10 seconds
+      }, 5000); // Poll every 5 seconds
     }
     
     return () => {
@@ -187,8 +196,6 @@ export const AIMasteringTab = () => {
   }, [jobStatus, jobId]);
 
   const isProcessing = jobStatus === 'uploading' || jobStatus === 'processing';
-
-  const [masteredFile, setMasteredFile] = useState<{ name: string; url: string } | null>(null);
 
   if (loading) {
     return (
@@ -392,8 +399,10 @@ export const AIMasteringTab = () => {
                         <CheckCircle className="h-6 w-6 text-green-400" />
                         <h3 className="text-xl font-semibold text-green-400">Mastering Complete!</h3>
                       </div>
+                      <p className="text-muted-foreground text-sm">Your mastered file has been downloaded automatically.</p>
                       <a 
                         href={downloadUrl}
+                        download
                         className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-all"
                       >
                         <Download className="h-5 w-5" />

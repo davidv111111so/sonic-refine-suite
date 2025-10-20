@@ -1,44 +1,51 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
+
 const BACKEND_URL = 'https://mastering-backend-857351913435.us-central1.run.app'
 
-// Define CORS headers to be reused
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*', // Allow any origin
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', // Allow these methods
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', // Allow these headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
 serve(async (req) => {
-  // --- ROBUST OPTIONS HANDLER ---
-  // This is the crucial fix. It immediately responds to the preflight request.
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: CORS_HEADERS })
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
     const userAuthHeader = req.headers.get('Authorization')
+    const formData = await req.formData()
+    const file = formData.get('file')
 
-    // Call the debug endpoint
-    const response = await fetch(`${BACKEND_URL}/api/debug-headers`, {
+    if (!file) {
+      return new Response(
+        JSON.stringify({ error: 'No file provided' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Forward file to backend /api/upload endpoint
+    const backendFormData = new FormData()
+    backendFormData.append('target', file)
+
+    const response = await fetch(`${BACKEND_URL}/api/upload`, {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
+      headers: {
         'Authorization': userAuthHeader || '',
       },
-      body: JSON.stringify({ message: "Debug call from Edge Function" }),
+      body: backendFormData,
     })
-    const data = await response.json()
 
-    // Return the successful response from the debug endpoint
-    return new Response(JSON.stringify(data), { 
-      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
-      status: response.status 
+    const data = await response.json()
+    
+    return new Response(JSON.stringify(data), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: response.status
     })
   } catch (error) {
-    // Return an error response if something goes wrong
     return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
       status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   }
 })
