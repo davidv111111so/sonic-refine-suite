@@ -31,7 +31,7 @@ export const DynamicsCompressorControls: React.FC<DynamicsCompressorControlsProp
           {/* Threshold */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm text-white font-medium">Threshold</label>
+              <label className="text-sm font-medium text-orange-300">Threshold</label>
               <span className="text-xs font-mono text-cyan-400 bg-slate-800/50 px-2 py-1 rounded">
                 {settings.threshold.toFixed(1)}dB
               </span>
