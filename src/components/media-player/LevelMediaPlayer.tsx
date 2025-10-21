@@ -364,7 +364,7 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
           <div className="flex flex-col items-center justify-center gap-4 text-center">
             <Upload className="h-12 w-12 text-cyan-400" />
             <div>
-              <p className="text-lg font-semibold text-white mb-2">
+              <p className="text-lg font-semibold mb-2 text-cyan-300">
                 {isDragActive ? 'Drop files here...' : 'Drop audio files here or click to browse'}
               </p>
               <p className="text-sm text-slate-400">
