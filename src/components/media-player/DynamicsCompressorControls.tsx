@@ -99,7 +99,7 @@ export const DynamicsCompressorControls: React.FC<DynamicsCompressorControlsProp
           {/* Gain Reduction Meter */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm text-white font-medium">Gain Reduction</label>
+              <label className="text-sm font-medium text-amber-300">Gain Reduction</label>
               <span className="text-xs font-mono text-red-400 bg-slate-800/50 px-2 py-1 rounded">
                 {gainReduction.toFixed(1)}dB
               </span>
