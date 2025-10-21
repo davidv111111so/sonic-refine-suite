@@ -19,29 +19,106 @@ export const AIMasteringTab = () => {
     loading
   } = useUserSubscription();
   const navigate = useNavigate();
-  const [targetFile, setTargetFile] = useState<File | null>(null);
+  
+  // Load state from localStorage on mount
+  const [targetFile, setTargetFile] = useState<File | null>(() => {
+    try {
+      const saved = localStorage.getItem('aiMastering_targetFile');
+      // Can't restore File object, just show we had one
+      return saved ? null : null;
+    } catch {
+      return null;
+    }
+  });
+  
   const [referenceFile, setReferenceFile] = useState<File | null>(null);
-  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
-  const [activeMode, setActiveMode] = useState<'preset' | 'custom'>('preset');
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(() => {
+    try {
+      const saved = localStorage.getItem('aiMastering_selectedPreset');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  
+  const [activeMode, setActiveMode] = useState<'preset' | 'custom'>(() => {
+    try {
+      const saved = localStorage.getItem('aiMastering_activeMode');
+      return saved ? JSON.parse(saved) : 'preset';
+    } catch {
+      return 'preset';
+    }
+  });
+  
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
-  const [advancedSettings, setAdvancedSettings] = useState<MasteringSettings>({
-    outputBits: 24,
-    dithering: true,
-    limiterMethod: 'modern',
-    limiterCeiling: -0.3,
-    targetLoudness: -14,
-    dynamicRange: 12,
-    spectralBalance: true,
-    lowEndEnhancement: 50,
-    highEndCrispness: 50,
-    stereoWidth: 100,
-    warmth: 50
+  
+  const [advancedSettings, setAdvancedSettings] = useState<MasteringSettings>(() => {
+    try {
+      const saved = localStorage.getItem('aiMastering_advancedSettings');
+      return saved ? JSON.parse(saved) : {
+        outputBits: 24,
+        dithering: true,
+        limiterMethod: 'modern',
+        limiterCeiling: -0.3,
+        targetLoudness: -14,
+        dynamicRange: 12,
+        spectralBalance: true,
+        lowEndEnhancement: 50,
+        highEndCrispness: 50,
+        stereoWidth: 100,
+        warmth: 50
+      };
+    } catch {
+      return {
+        outputBits: 24,
+        dithering: true,
+        limiterMethod: 'modern',
+        limiterCeiling: -0.3,
+        targetLoudness: -14,
+        dynamicRange: 12,
+        spectralBalance: true,
+        lowEndEnhancement: 50,
+        highEndCrispness: 50,
+        stereoWidth: 100,
+        warmth: 50
+      };
+    }
   });
+  
   const targetInputRef = useRef<HTMLInputElement>(null);
   const referenceInputRef = useRef<HTMLInputElement>(null);
   const BACKEND_URL = 'http://127.0.0.1:8000';
+  
+  // Save state to localStorage whenever it changes
+  React.useEffect(() => {
+    try {
+      if (selectedPreset) {
+        localStorage.setItem('aiMastering_selectedPreset', JSON.stringify(selectedPreset));
+      } else {
+        localStorage.removeItem('aiMastering_selectedPreset');
+      }
+    } catch (e) {
+      console.error('Failed to save preset:', e);
+    }
+  }, [selectedPreset]);
+  
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('aiMastering_activeMode', JSON.stringify(activeMode));
+    } catch (e) {
+      console.error('Failed to save mode:', e);
+    }
+  }, [activeMode]);
+  
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('aiMastering_advancedSettings', JSON.stringify(advancedSettings));
+    } catch (e) {
+      console.error('Failed to save settings:', e);
+    }
+  }, [advancedSettings]);
   const MASTERING_PRESETS = [{
     id: 'rock',
     displayName: 'Rock',

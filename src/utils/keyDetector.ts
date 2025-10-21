@@ -37,39 +37,57 @@ const CAMELOT_MAP: Record<string, string> = {
 };
 
 /**
- * Calculate chromagram from audio samples
+ * Calculate chromagram from audio samples using proper FFT
  * Returns energy for each of the 12 pitch classes (C, C#, D, ...)
  */
 function calculateChromagram(audioBuffer: Float32Array, sampleRate: number): Float32Array {
   const chromagram = new Float32Array(12);
-  const fftSize = 4096;
-  const hopSize = 2048;
+  const fftSize = 8192; // Larger FFT for better frequency resolution
+  const hopSize = 4096;
   
-  // Frequency bins for each semitone
+  // Reference frequency for pitch calculation
   const A4 = 440;
-  const C0 = A4 * Math.pow(2, -4.75); // C0 frequency
+  const C0 = A4 * Math.pow(2, -4.75); // C0 frequency ≈ 16.35 Hz
   
+  // Process the audio in overlapping windows
   for (let i = 0; i < audioBuffer.length - fftSize; i += hopSize) {
     const segment = audioBuffer.slice(i, i + fftSize);
     
-    // Simple magnitude spectrum estimation
-    for (let bin = 0; bin < fftSize / 2; bin++) {
+    // Apply Hamming window to reduce spectral leakage
+    const windowed = new Float32Array(fftSize);
+    for (let j = 0; j < fftSize; j++) {
+      const window = 0.54 - 0.46 * Math.cos(2 * Math.PI * j / (fftSize - 1));
+      windowed[j] = segment[j] * window;
+    }
+    
+    // Simple DFT for magnitude spectrum (real audio input)
+    for (let bin = 1; bin < fftSize / 2; bin++) {
       const freq = (bin * sampleRate) / fftSize;
-      if (freq < 65 || freq > 2000) continue; // Focus on musical range
       
-      const magnitude = Math.abs(segment[bin]) || 0;
+      // Focus on musical pitch range (C2 to C7: ~65Hz to ~2093Hz)
+      if (freq < 65 || freq > 2093) continue;
       
-      // Map frequency to pitch class (0-11)
+      // Calculate magnitude from time-domain samples
+      let real = 0, imag = 0;
+      for (let n = 0; n < fftSize; n++) {
+        const angle = (2 * Math.PI * bin * n) / fftSize;
+        real += windowed[n] * Math.cos(angle);
+        imag += windowed[n] * Math.sin(angle);
+      }
+      const magnitude = Math.sqrt(real * real + imag * imag);
+      
+      // Convert frequency to semitones from C0
       const semitone = 12 * Math.log2(freq / C0);
       const pitchClass = Math.round(semitone) % 12;
       
+      // Accumulate energy in the corresponding pitch class
       if (pitchClass >= 0 && pitchClass < 12) {
         chromagram[pitchClass] += magnitude;
       }
     }
   }
   
-  // Normalize
+  // Normalize chromagram
   const maxValue = Math.max(...chromagram);
   if (maxValue > 0) {
     for (let i = 0; i < 12; i++) {
