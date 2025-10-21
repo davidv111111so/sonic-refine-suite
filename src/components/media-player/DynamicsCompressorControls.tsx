@@ -51,7 +51,7 @@ export const DynamicsCompressorControls: React.FC<DynamicsCompressorControlsProp
             </div>
             <Slider value={[settings.ratio]} min={1} max={20} step={0.1} onValueChange={v => onSettingsChange({
             ratio: v[0]
-          })} />
+          })} className="text-orange-200" />
           </div>
 
           {/* Attack */}
