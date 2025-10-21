@@ -34,7 +34,7 @@ export const IndividualModeQueue = ({
           </p> : files.map(file => <div key={file.id} className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${selectedFiles.includes(file.id) ? 'bg-blue-900/95 border-cyan-500' : 'bg-slate-800/50 border-slate-700 hover:bg-blue-900/95'}`}>
               <Checkbox checked={selectedFiles.includes(file.id)} onCheckedChange={() => onToggleFile(file.id)} className="border-cyan-500" />
               <div className="flex-1 min-w-0">
-                <p className="text-black dark:text-white font-bold text-sm truncate">{file.name}</p>
+                <p className="font-bold text-sm truncate text-amber-200">{file.name}</p>
                 <p className="text-xs font-medium text-black dark:text-cyan-300">
                   {file.artist || 'Unknown Artist'}
                 </p>
