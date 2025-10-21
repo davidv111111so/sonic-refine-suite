@@ -194,7 +194,7 @@ export const LevelTabs = ({
     }
     
     onFilesUploaded(filesWithAnalysis);
-    setActiveTab('enhance');
+    // Stay on Level tab - removed auto-navigation
   };
 
   const handleToggleFileForIndividual = (fileId: string) => {

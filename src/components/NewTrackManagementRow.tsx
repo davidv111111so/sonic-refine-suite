@@ -191,29 +191,15 @@ export const NewTrackManagementRow = ({
           </div>
         </div>
         
-        {/* Mini Player with Seek Control */}
-        {audioUrl && <div className="flex flex-col gap-1 mt-1">
-            <div className="flex items-center gap-2">
-              <Button size="sm" variant="outline" onClick={togglePlayPause} className="h-7 w-7 p-0 bg-slate-700 border-slate-500 hover:bg-slate-600">
-                {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
-              </Button>
-              <audio ref={audioRef} src={audioUrl} preload="auto" />
-              <span className="text-xs text-white font-medium">
-                {file.artist || 'Unknown Artist'}
-              </span>
-            </div>
-            {/* Seek Slider */}
-            <div className="flex items-center gap-2 w-full">
-              <span className="text-[10px] text-slate-300 font-mono">{formatTime(currentTime)}</span>
-              <Slider 
-                value={[currentTime]} 
-                onValueChange={handleSeek}
-                max={duration || 100}
-                step={0.1}
-                className="flex-1"
-              />
-              <span className="text-[10px] text-slate-300 font-mono">{formatTime(duration)}</span>
-            </div>
+        {/* Mini Player - No Seek Control */}
+        {audioUrl && <div className="flex items-center gap-2 mt-1">
+            <Button size="sm" variant="outline" onClick={togglePlayPause} className="h-7 w-7 p-0 bg-slate-700 border-slate-500 hover:bg-slate-600">
+              {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+            </Button>
+            <audio ref={audioRef} src={audioUrl} preload="auto" />
+            <span className="text-xs text-white font-medium">
+              {file.artist || 'Unknown Artist'}
+            </span>
           </div>}
       </div>
 
@@ -269,14 +255,14 @@ export const NewTrackManagementRow = ({
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-2">
-        {onFileInfo && <Button variant="outline" size="sm" onClick={() => onFileInfo(file)} className="text-xs bg-slate-700 border-slate-500 hover:bg-slate-600 text-orange-600">
+      <div className="flex items-center gap-1 pr-2">
+        {onFileInfo && <Button variant="outline" size="sm" onClick={() => onFileInfo(file)} className="h-7 w-7 p-0 bg-slate-700 border-slate-500 hover:bg-slate-600 text-orange-400">
             <Info className="h-3 w-3" />
           </Button>}
-        <Button variant="outline" size="sm" disabled={file.status !== 'enhanced'} onClick={() => onDownload(file)} className="text-xs bg-green-700 border-green-500 hover:bg-green-600 text-white disabled:bg-slate-700 disabled:border-slate-500 disabled:text-slate-400">
+        <Button variant="outline" size="sm" disabled={file.status !== 'enhanced'} onClick={() => onDownload(file)} className="h-7 w-7 p-0 bg-green-700 border-green-500 hover:bg-green-600 text-white disabled:bg-slate-700 disabled:border-slate-500 disabled:text-slate-400">
           <Download className="h-3 w-3" />
         </Button>
-        <Button variant="outline" size="sm" onClick={() => onRemove(file.id)} className="text-xs bg-red-700/50 border-red-500 hover:bg-red-600 text-red-200">
+        <Button variant="outline" size="sm" onClick={() => onRemove(file.id)} className="h-7 w-7 p-0 bg-red-700/50 border-red-500 hover:bg-red-600 text-red-200">
           <X className="h-3 w-3" />
         </Button>
       </div>
