@@ -75,11 +75,9 @@ const Index = () => {
     setIsProcessing(true);
     // Filter based on fileIdsToProcess if provided, otherwise process all uploaded files
     let filesToProcess = audioFiles.filter(file => file.status === 'uploaded');
-    
     if (settings.fileIdsToProcess && settings.fileIdsToProcess.length > 0) {
       filesToProcess = filesToProcess.filter(file => settings.fileIdsToProcess.includes(file.id));
     }
-    
     if (filesToProcess.length === 0) {
       setIsProcessing(false);
       toast({
@@ -386,7 +384,7 @@ const Index = () => {
         </div>
       </div>
       
-      <Footer />
+      <Footer className="mx-[20px]" />
     </div>;
 };
 export default Index;
