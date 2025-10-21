@@ -31,7 +31,7 @@ export const DynamicsCompressorControls: React.FC<DynamicsCompressorControlsProp
           {/* Threshold */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-orange-300">Threshold</label>
+              <label className="text-sm text-white font-medium">Threshold</label>
               <span className="text-xs font-mono text-cyan-400 bg-slate-800/50 px-2 py-1 rounded">
                 {settings.threshold.toFixed(1)}dB
               </span>
@@ -51,7 +51,7 @@ export const DynamicsCompressorControls: React.FC<DynamicsCompressorControlsProp
             </div>
             <Slider value={[settings.ratio]} min={1} max={20} step={0.1} onValueChange={v => onSettingsChange({
             ratio: v[0]
-          })} className="text-orange-200" />
+          })} className="text-orange-300" />
           </div>
 
           {/* Attack */}
@@ -73,7 +73,7 @@ export const DynamicsCompressorControls: React.FC<DynamicsCompressorControlsProp
           {/* Release */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-orange-300">Release</label>
+              <label className="text-sm text-white font-medium">Release</label>
               <span className="text-xs font-mono text-cyan-400 bg-slate-800/50 px-2 py-1 rounded">
                 {settings.release.toFixed(0)}ms
               </span>
