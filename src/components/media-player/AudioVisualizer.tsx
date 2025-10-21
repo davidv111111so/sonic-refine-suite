@@ -79,7 +79,7 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
 
       {/* VU Meters */}
       <div className="space-y-3">
-        <label className="text-sm text-slate-400 block">VU Meters</label>
+        <label className="text-sm block text-orange-300">VU Meters</label>
         
         {/* Left Channel */}
         <div className="space-y-1">
