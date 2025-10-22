@@ -185,7 +185,7 @@ export const NewTrackManagementRow = ({
         
         {/* Mini Player - No Seek Control */}
         {audioUrl && <div className="flex items-center gap-2 mt-1">
-            <Button size="sm" variant="outline" onClick={togglePlayPause} className="h-7 w-7 p-0 bg-slate-700 border-slate-500 hover:bg-slate-600">
+            <Button size="sm" variant="outline" onClick={togglePlayPause} className="h-7 w-7 p-0 border-slate-500 bg-zinc-950 hover:bg-zinc-800">
               {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
             </Button>
             <audio ref={audioRef} src={audioUrl} preload="auto" />
