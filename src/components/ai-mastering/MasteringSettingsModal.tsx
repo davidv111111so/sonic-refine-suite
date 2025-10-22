@@ -55,7 +55,7 @@ export const MasteringSettingsModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-slate-900 border-slate-700">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-slate-900 border-slate-700 z-[9999]">
         <DialogHeader>
           <DialogTitle className="text-2xl text-white">Advanced Settings</DialogTitle>
           <p className="text-sm text-slate-400 mt-2">Essential mastering parameters for professional results</p>

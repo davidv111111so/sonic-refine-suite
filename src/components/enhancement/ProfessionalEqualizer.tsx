@@ -189,91 +189,146 @@ export const ProfessionalEqualizer = ({
               </div>
             </div>
 
-            {/* Professional EQ - Compact 35% smaller */}
-            <div className="bg-gradient-to-br from-slate-900 via-black to-slate-950 dark:from-black dark:via-slate-950 dark:to-black rounded-xl p-4 border-2 border-slate-700 dark:border-slate-800 shadow-2xl">
+            {/* Professional EQ with DJ Grid Background */}
+            <div className="relative bg-gradient-to-br from-slate-950 via-black to-slate-900 rounded-xl p-6 border-2 border-cyan-500/30 shadow-2xl overflow-hidden">
               
-              {/* EQ Background Grid */}
-              <div className="absolute inset-6 bg-slate-900/50 dark:bg-black/60 rounded-lg border border-slate-700 dark:border-slate-800">
-                {/* Horizontal grid lines */}
-                {getTickMarks().map((mark, idx) => (
-                  <div 
+              {/* Animated DJ Grid Background */}
+              <div className="absolute inset-0 opacity-30">
+                <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <linearGradient id="gridGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.6" />
+                      <stop offset="20%" stopColor="#3b82f6" stopOpacity="0.4" />
+                      <stop offset="40%" stopColor="#8b5cf6" stopOpacity="0.4" />
+                      <stop offset="60%" stopColor="#ec4899" stopOpacity="0.4" />
+                      <stop offset="100%" stopColor="#ef4444" stopOpacity="0.6" />
+                    </linearGradient>
+                  </defs>
+                  
+                  {/* Frequency Zone Labels */}
+                  <text x="5%" y="15%" fill="#06b6d4" fontSize="10" opacity="0.5" fontWeight="bold">SUB</text>
+                  <text x="5%" y="35%" fill="#3b82f6" fontSize="10" opacity="0.5" fontWeight="bold">BASS</text>
+                  <text x="5%" y="55%" fill="#8b5cf6" fontSize="10" opacity="0.5" fontWeight="bold">MID</text>
+                  <text x="5%" y="75%" fill="#ec4899" fontSize="10" opacity="0.5" fontWeight="bold">HIGH</text>
+                  <text x="5%" y="95%" fill="#ef4444" fontSize="10" opacity="0.5" fontWeight="bold">AIR</text>
+                  
+                  {/* Horizontal grid lines */}
+                  {[...Array(13)].map((_, i) => (
+                    <line
+                      key={`h-${i}`}
+                      x1="0"
+                      y1={`${(i / 12) * 100}%`}
+                      x2="100%"
+                      y2={`${(i / 12) * 100}%`}
+                      stroke="url(#gridGradient)"
+                      strokeWidth="0.5"
+                      opacity="0.3"
+                    />
+                  ))}
+                  
+                  {/* Vertical grid lines */}
+                  {[...Array(11)].map((_, i) => (
+                    <line
+                      key={`v-${i}`}
+                      x1={`${(i / 10) * 100}%`}
+                      y1="0"
+                      x2={`${(i / 10) * 100}%`}
+                      y2="100%"
+                      stroke="url(#gridGradient)"
+                      strokeWidth="0.5"
+                      opacity="0.2"
+                    />
+                  ))}
+                </svg>
+              </div>
+              
+              {/* dB Scale */}
+              <div className="absolute left-2 top-6 bottom-6 flex flex-col justify-between">
+                {getTickMarks().map((mark) => (
+                  <span 
                     key={mark}
-                    className="absolute left-0 right-0 border-t border-slate-700/30 dark:border-slate-800/40"
-                    style={{ top: `${((12 - mark) / 24) * 100}%` }}
+                    className="text-[10px] text-cyan-400/70 font-mono"
                   >
-                    <span className="absolute -left-7 -top-2 text-[10px] text-slate-500 dark:text-slate-600 font-mono">
-                      {mark > 0 ? `+${mark}` : mark}dB
-                    </span>
-                  </div>
+                    {mark > 0 ? `+${mark}` : mark}
+                  </span>
                 ))}
               </div>
 
-              <div className="flex justify-center items-end gap-2 py-3 relative z-10">
-                {eqFrequencies.map((freq, index) => (
-                  <div key={index} className="flex flex-col items-center group">
-                    
-                    {/* Frequency Label - Editable */}
-                    {editingBand === index ? (
-                      <Input
-                        type="number"
-                        value={tempFreqValue}
-                        onChange={(e) => handleFrequencyChange(e.target.value)}
-                        onBlur={() => handleFrequencyBlur(index)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleFrequencySubmit(index);
-                          if (e.key === 'Escape') setEditingBand(null);
-                        }}
-                        className="w-12 h-5 text-[8px] text-center p-0 bg-slate-800 border-blue-500 text-blue-300"
-                        autoFocus
-                      />
-                    ) : (
-                      <div 
-                        className="text-[9px] text-center mb-1.5 font-mono text-blue-400 dark:text-blue-300 cursor-pointer hover:text-blue-300 hover:underline"
-                        onClick={() => handleFrequencyClick(index)}
-                        title={`Click to edit (Range: ${frequencyRanges[index][0]}-${frequencyRanges[index][1]} Hz)`}
-                      >
-                        {eqFrequencies[index] < 1000 ? `${eqFrequencies[index]}Hz` : `${(eqFrequencies[index]/1000).toFixed(1)}k`}
-                      </div>
-                    )}
-
-                    {/* Compact Fader Container - 35% smaller */}
-                    <div className="relative h-28 w-5 mb-2">
+              <div className="flex justify-center items-end gap-3 py-4 relative z-10 pl-8">
+                {eqFrequencies.map((freq, index) => {
+                  // Color coding by frequency zone
+                  const getFreqColor = () => {
+                    if (index <= 1) return 'from-cyan-400 to-cyan-600'; // SUB
+                    if (index <= 3) return 'from-blue-400 to-blue-600'; // BASS
+                    if (index <= 6) return 'from-purple-400 to-purple-600'; // MID
+                    if (index <= 8) return 'from-pink-400 to-pink-600'; // HIGH
+                    return 'from-red-400 to-red-600'; // AIR
+                  };
+                  
+                  return (
+                    <div key={index} className="flex flex-col items-center group">
                       
-                      {/* Compact Fader Track Background */}
-                      <div 
-                        className="absolute inset-x-0.5 inset-y-1 rounded-full border shadow-inner"
-                        style={{
-                          background: `linear-gradient(180deg, #3b82f620 0%, #1e293b 50%, #3b82f620 100%)`,
-                          borderColor: '#334155',
-                          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5)'
-                        }}
-                      />
-
-                      {/* Compact Slider */}
-                      <div className="h-full flex items-center justify-center">
-                        <Slider
-                          orientation="vertical"
-                          value={[eqBands[index] || 0]}
-                          onValueChange={([value]) => onEQBandChange(index, value)}
-                          min={-12}
-                          max={12}
-                          step={0.5}
-                          className="h-24 w-4 group-hover:scale-105 transition-transform duration-200"
+                      {/* Frequency Label - Editable */}
+                      {editingBand === index ? (
+                        <Input
+                          type="number"
+                          value={tempFreqValue}
+                          onChange={(e) => handleFrequencyChange(e.target.value)}
+                          onBlur={() => handleFrequencyBlur(index)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleFrequencySubmit(index);
+                            if (e.key === 'Escape') setEditingBand(null);
+                          }}
+                          className="w-14 h-6 text-[9px] text-center p-0 bg-slate-800 border-cyan-500 text-cyan-300"
+                          autoFocus
                         />
+                      ) : (
+                        <div 
+                          className={`text-[10px] text-center mb-2 font-mono bg-gradient-to-r ${getFreqColor()} bg-clip-text text-transparent font-bold cursor-pointer hover:opacity-80`}
+                          onClick={() => handleFrequencyClick(index)}
+                          title={`Click to edit (Range: ${frequencyRanges[index][0]}-${frequencyRanges[index][1]} Hz)`}
+                        >
+                          {eqFrequencies[index] < 1000 ? `${eqFrequencies[index]}Hz` : `${(eqFrequencies[index]/1000).toFixed(1)}k`}
+                        </div>
+                      )}
+
+                      {/* Professional Fader with Rails */}
+                      <div className="relative h-32 w-6 mb-2">
+                        
+                        {/* Fader Rail Background with Gradient */}
+                        <div 
+                          className={`absolute inset-x-1 inset-y-2 rounded-full border-2 shadow-inner bg-gradient-to-b ${getFreqColor()} opacity-20`}
+                          style={{
+                            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.6)'
+                          }}
+                        />
+
+                        {/* Professional Slider */}
+                        <div className="h-full flex items-center justify-center">
+                          <Slider
+                            orientation="vertical"
+                            value={[eqBands[index] || 0]}
+                            onValueChange={([value]) => onEQBandChange(index, value)}
+                            min={-12}
+                            max={12}
+                            step={0.5}
+                            className="h-28 w-5 group-hover:scale-110 transition-transform duration-200"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Value Display with Color */}
+                      <div className={`text-[9px] text-center font-mono bg-gradient-to-r ${getFreqColor()} bg-clip-text text-transparent font-bold bg-black/80 rounded px-2 py-1`}>
+                        {eqBands[index] > 0 ? '+' : ''}{eqBands[index].toFixed(1)}
                       </div>
                     </div>
-
-                    {/* Compact Value Display */}
-                    <div className="text-[8px] text-center font-mono text-slate-300 dark:text-slate-200 bg-black/60 rounded px-1 py-0.5">
-                      {eqBands[index] > 0 ? '+' : ''}{eqBands[index]}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Professional EQ Branding */}
-              <div className="absolute bottom-1 right-2 text-[8px] text-slate-500 dark:text-slate-600 font-mono">
-                SPECTRUM EQ
+              <div className="absolute bottom-2 right-3 text-[9px] font-mono bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent font-bold">
+                SPECTRUM PRO EQ
               </div>
             </div>
           </div>
