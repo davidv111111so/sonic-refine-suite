@@ -174,7 +174,7 @@ export default function Auth() {
                         <Separator className="w-full bg-slate-700" />
                       </div>
                       <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-slate-900 px-2 text-amber-200">Or continue with</span>
+                        <span className="bg-slate-900 px-2 text-stone-950 font-extrabold">Or continue with</span>
                       </div>
                     </div>
 
