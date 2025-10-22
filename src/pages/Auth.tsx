@@ -129,7 +129,7 @@ export default function Auth() {
             </div>
           </div>
           <CardTitle className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
-            Spectrum Audio
+            Level Audio
           </CardTitle>
           <CardDescription className="text-slate-400">
             Sign in to enhance your audio files
