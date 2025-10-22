@@ -61,7 +61,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                       {file.duration && <span>{formatDuration(file.duration)}</span>}
                       {file.bpm && <>
                           <span>•</span>
-                          <span>{file.bpm} BPM</span>
+                          <span className="text-amber-400">{file.bpm} BPM</span>
                         </>}
                     </div>
                   </div>
