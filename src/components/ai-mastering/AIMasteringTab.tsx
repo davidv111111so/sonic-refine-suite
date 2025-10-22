@@ -276,9 +276,6 @@ export const AIMasteringTab = () => {
         mode: activeMode
       });
       const response = await axios.post(`${BACKEND_URL}/process/ai-mastering`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        },
         responseType: 'blob',
         timeout: 120000 // 2 minute timeout for processing
       });

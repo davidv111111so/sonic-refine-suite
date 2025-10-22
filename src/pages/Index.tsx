@@ -384,7 +384,7 @@ const Index = () => {
         </div>
       </div>
       
-      <Footer className="mx-0" />
+      <Footer />
     </div>;
 };
 export default Index;
