@@ -20,21 +20,29 @@ export const AIMasteringTab = () => {
   } = useUserSubscription();
   const navigate = useNavigate();
   
-  // Load state from localStorage on mount
-  const [targetFile, setTargetFile] = useState<File | null>(() => {
+  // State with sessionStorage persistence for file metadata
+  const [targetFile, setTargetFile] = useState<File | null>(null);
+  const [targetFileInfo, setTargetFileInfo] = useState<{name: string; size: number} | null>(() => {
     try {
-      const saved = localStorage.getItem('aiMastering_targetFile');
-      // Can't restore File object, just show we had one
-      return saved ? null : null;
+      const saved = sessionStorage.getItem('aiMastering_targetFile');
+      return saved ? JSON.parse(saved) : null;
     } catch {
       return null;
     }
   });
   
   const [referenceFile, setReferenceFile] = useState<File | null>(null);
+  const [referenceFileInfo, setReferenceFileInfo] = useState<{name: string; size: number} | null>(() => {
+    try {
+      const saved = sessionStorage.getItem('aiMastering_referenceFile');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [selectedPreset, setSelectedPreset] = useState<string | null>(() => {
     try {
-      const saved = localStorage.getItem('aiMastering_selectedPreset');
+      const saved = sessionStorage.getItem('aiMastering_selectedPreset');
       return saved ? JSON.parse(saved) : null;
     } catch {
       return null;
@@ -43,7 +51,7 @@ export const AIMasteringTab = () => {
   
   const [activeMode, setActiveMode] = useState<'preset' | 'custom'>(() => {
     try {
-      const saved = localStorage.getItem('aiMastering_activeMode');
+      const saved = sessionStorage.getItem('aiMastering_activeMode');
       return saved ? JSON.parse(saved) : 'preset';
     } catch {
       return 'preset';
@@ -56,7 +64,7 @@ export const AIMasteringTab = () => {
   
   const [advancedSettings, setAdvancedSettings] = useState<MasteringSettings>(() => {
     try {
-      const saved = localStorage.getItem('aiMastering_advancedSettings');
+      const saved = sessionStorage.getItem('aiMastering_advancedSettings');
       return saved ? JSON.parse(saved) : {
         outputBits: 24,
         dithering: true,
@@ -91,13 +99,37 @@ export const AIMasteringTab = () => {
   const referenceInputRef = useRef<HTMLInputElement>(null);
   const BACKEND_URL = 'http://127.0.0.1:8000';
   
-  // Save state to localStorage whenever it changes
+  // Save state to sessionStorage whenever it changes
+  React.useEffect(() => {
+    try {
+      if (targetFileInfo) {
+        sessionStorage.setItem('aiMastering_targetFile', JSON.stringify(targetFileInfo));
+      } else {
+        sessionStorage.removeItem('aiMastering_targetFile');
+      }
+    } catch (e) {
+      console.error('Failed to save target file info:', e);
+    }
+  }, [targetFileInfo]);
+  
+  React.useEffect(() => {
+    try {
+      if (referenceFileInfo) {
+        sessionStorage.setItem('aiMastering_referenceFile', JSON.stringify(referenceFileInfo));
+      } else {
+        sessionStorage.removeItem('aiMastering_referenceFile');
+      }
+    } catch (e) {
+      console.error('Failed to save reference file info:', e);
+    }
+  }, [referenceFileInfo]);
+  
   React.useEffect(() => {
     try {
       if (selectedPreset) {
-        localStorage.setItem('aiMastering_selectedPreset', JSON.stringify(selectedPreset));
+        sessionStorage.setItem('aiMastering_selectedPreset', JSON.stringify(selectedPreset));
       } else {
-        localStorage.removeItem('aiMastering_selectedPreset');
+        sessionStorage.removeItem('aiMastering_selectedPreset');
       }
     } catch (e) {
       console.error('Failed to save preset:', e);
@@ -106,7 +138,7 @@ export const AIMasteringTab = () => {
   
   React.useEffect(() => {
     try {
-      localStorage.setItem('aiMastering_activeMode', JSON.stringify(activeMode));
+      sessionStorage.setItem('aiMastering_activeMode', JSON.stringify(activeMode));
     } catch (e) {
       console.error('Failed to save mode:', e);
     }
@@ -114,7 +146,7 @@ export const AIMasteringTab = () => {
   
   React.useEffect(() => {
     try {
-      localStorage.setItem('aiMastering_advancedSettings', JSON.stringify(advancedSettings));
+      sessionStorage.setItem('aiMastering_advancedSettings', JSON.stringify(advancedSettings));
     } catch (e) {
       console.error('Failed to save settings:', e);
     }
@@ -220,10 +252,16 @@ export const AIMasteringTab = () => {
     icon: '🎷',
     gradient: 'from-purple-500 to-indigo-600'
   }] as const;
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, setFile: (file: File | null) => void) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'target' | 'reference') => {
     const file = e.target.files?.[0];
     if (file) {
-      setFile(file);
+      if (type === 'target') {
+        setTargetFile(file);
+        setTargetFileInfo({ name: file.name, size: file.size });
+      } else {
+        setReferenceFile(file);
+        setReferenceFileInfo({ name: file.name, size: file.size });
+      }
     }
     if (e.target) {
       e.target.value = '';
@@ -233,6 +271,7 @@ export const AIMasteringTab = () => {
     setSelectedPreset(presetId);
     setActiveMode('preset');
     setReferenceFile(null);
+    setReferenceFileInfo(null);
   };
   const handleCustomReferenceClick = () => {
     setActiveMode('custom');
@@ -281,10 +320,17 @@ export const AIMasteringTab = () => {
       });
       console.log('✅ Response received:', response.status);
 
-      // Success - download the file
+      // Success - download the file and clear session
       const filename = `mastered_${targetFile.name.replace(/\.[^/.]+$/, '')}.wav`;
       saveAs(response.data, filename);
       toast.success('✅ Mastering complete! File downloaded.');
+      
+      // Clear session storage
+      sessionStorage.removeItem('aiMastering_targetFile');
+      sessionStorage.removeItem('aiMastering_referenceFile');
+      setTargetFileInfo(null);
+      setReferenceFileInfo(null);
+      
       setIsProcessing(false);
     } catch (err) {
       console.error('❌ Mastering error:', err);
@@ -381,8 +427,15 @@ export const AIMasteringTab = () => {
                 <div className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors" onClick={() => targetInputRef.current?.click()}>
                   <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                   <p className="text-muted-foreground">Drag and drop or click to select</p>
-                  <input type="file" ref={targetInputRef} onChange={e => handleFileChange(e, setTargetFile)} className="hidden" accept=".wav,.mp3,.flac" />
+                  <input type="file" ref={targetInputRef} onChange={e => handleFileChange(e, 'target')} className="hidden" accept=".wav,.mp3,.flac" />
                 </div>
+                {targetFileInfo && !targetFile && (
+                  <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-md">
+                    <p className="text-sm text-blue-400 mb-2">Previous session detected:</p>
+                    <p className="text-xs text-muted-foreground">{targetFileInfo.name} ({(targetFileInfo.size / 1024 / 1024).toFixed(2)} MB)</p>
+                    <p className="text-xs text-yellow-400 mt-2">⚠️ Please re-upload to process</p>
+                  </div>
+                )}
                 {targetFile && <div className="mt-4 flex items-center justify-between bg-muted p-3 rounded-md">
                     <div className="flex items-center flex-1 min-w-0">
                       <Music className="h-6 w-6 mr-2 text-muted-foreground flex-shrink-0" />
@@ -390,6 +443,7 @@ export const AIMasteringTab = () => {
                     </div>
                     <Button onClick={() => {
                   setTargetFile(null);
+                  setTargetFileInfo(null);
                   if (targetInputRef.current) {
                     targetInputRef.current.value = '';
                   }
@@ -425,8 +479,15 @@ export const AIMasteringTab = () => {
                   <div className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${activeMode === 'custom' ? 'border-primary' : 'border-border hover:border-primary'}`} onClick={handleCustomReferenceClick}>
                     <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                     <p className="text-muted-foreground">Select a custom reference file</p>
-                    <input type="file" ref={referenceInputRef} onChange={e => handleFileChange(e, setReferenceFile)} className="hidden" accept=".wav,.mp3,.flac" />
+                    <input type="file" ref={referenceInputRef} onChange={e => handleFileChange(e, 'reference')} className="hidden" accept=".wav,.mp3,.flac" />
                   </div>
+                  {referenceFileInfo && !referenceFile && activeMode === 'custom' && (
+                    <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-md">
+                      <p className="text-sm text-blue-400 mb-2">Previous reference detected:</p>
+                      <p className="text-xs text-muted-foreground">{referenceFileInfo.name} ({(referenceFileInfo.size / 1024 / 1024).toFixed(2)} MB)</p>
+                      <p className="text-xs text-yellow-400 mt-2">⚠️ Please re-upload to process</p>
+                    </div>
+                  )}
                   {referenceFile && activeMode === 'custom' && <div className="mt-4 flex items-center justify-between bg-muted p-3 rounded-md">
                       <div className="flex items-center flex-1 min-w-0">
                         <Music className="h-6 w-6 mr-2 text-muted-foreground flex-shrink-0" />
@@ -434,6 +495,7 @@ export const AIMasteringTab = () => {
                       </div>
                       <Button onClick={() => {
                     setReferenceFile(null);
+                    setReferenceFileInfo(null);
                     if (referenceInputRef.current) {
                       referenceInputRef.current.value = '';
                     }

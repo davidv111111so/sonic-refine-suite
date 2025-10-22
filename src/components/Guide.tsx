@@ -85,7 +85,7 @@ export const Guide = () => {
           Guide
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-slate-900 border-slate-700 text-white z-[9999]">
+      <DialogContent className="max-w-6xl h-[90vh] overflow-y-auto bg-slate-900 border-2 border-cyan-500/50 text-white z-[99999] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
             Spectrum - Complete User Guide

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -8,7 +8,10 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { User, Mail, Calendar, Shield } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { User, Mail, Calendar, Shield, Settings } from 'lucide-react';
+import { AccountSettings } from './AccountSettings';
 
 interface ProfileModalProps {
   open: boolean;
@@ -37,12 +40,18 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md bg-slate-900 border-slate-700 text-white z-[9999]">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-slate-900 border-slate-700 text-white z-[9999]">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-cyan-400">Profile</DialogTitle>
+          <DialogTitle className="text-2xl font-bold text-cyan-400">My Account</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <Tabs defaultValue="profile" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 bg-slate-800">
+            <TabsTrigger value="profile">Profile</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="profile" className="space-y-6 py-4">
           {/* Avatar Section */}
           <div className="flex flex-col items-center gap-4">
             <Avatar className="h-24 w-24 border-4 border-cyan-500">
@@ -98,7 +107,12 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               </div>
             </div>
           </div>
-        </div>
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <AccountSettings />
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
