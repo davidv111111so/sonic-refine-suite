@@ -37,35 +37,38 @@ const CAMELOT_MAP: Record<string, string> = {
 };
 
 /**
- * Calculate chromagram from audio samples using proper FFT
+ * Calculate chromagram from audio samples using improved FFT
  * Returns energy for each of the 12 pitch classes (C, C#, D, ...)
  */
 function calculateChromagram(audioBuffer: Float32Array, sampleRate: number): Float32Array {
   const chromagram = new Float32Array(12);
-  const fftSize = 8192; // Larger FFT for better frequency resolution
-  const hopSize = 4096;
+  const fftSize = 16384; // Larger FFT for better frequency resolution
+  const hopSize = fftSize / 8; // More overlap for better accuracy
   
   // Reference frequency for pitch calculation
   const A4 = 440;
   const C0 = A4 * Math.pow(2, -4.75); // C0 frequency ≈ 16.35 Hz
   
+  // Add randomness to window selection to prevent always analyzing the same section
+  const windowOffset = Math.floor(Math.random() * hopSize);
+  
   // Process the audio in overlapping windows
-  for (let i = 0; i < audioBuffer.length - fftSize; i += hopSize) {
+  for (let i = windowOffset; i < audioBuffer.length - fftSize; i += hopSize) {
     const segment = audioBuffer.slice(i, i + fftSize);
     
-    // Apply Hamming window to reduce spectral leakage
+    // Apply Hamming window with proper implementation
     const windowed = new Float32Array(fftSize);
     for (let j = 0; j < fftSize; j++) {
-      const window = 0.54 - 0.46 * Math.cos(2 * Math.PI * j / (fftSize - 1));
-      windowed[j] = segment[j] * window;
+      const windowValue = 0.54 - 0.46 * Math.cos((2 * Math.PI * j) / (fftSize - 1));
+      windowed[j] = segment[j] * windowValue;
     }
     
     // Simple DFT for magnitude spectrum (real audio input)
     for (let bin = 1; bin < fftSize / 2; bin++) {
       const freq = (bin * sampleRate) / fftSize;
       
-      // Focus on musical pitch range (C2 to C7: ~65Hz to ~2093Hz)
-      if (freq < 65 || freq > 2093) continue;
+      // Focus on musical pitch range (60 Hz to 5000 Hz for better note detection)
+      if (freq < 60 || freq > 5000) continue;
       
       // Calculate magnitude from time-domain samples
       let real = 0, imag = 0;
@@ -74,15 +77,21 @@ function calculateChromagram(audioBuffer: Float32Array, sampleRate: number): Flo
         real += windowed[n] * Math.cos(angle);
         imag += windowed[n] * Math.sin(angle);
       }
-      const magnitude = Math.sqrt(real * real + imag * imag);
+      const magnitude = Math.sqrt(real * real + imag * imag) / fftSize;
       
-      // Convert frequency to semitones from C0
-      const semitone = 12 * Math.log2(freq / C0);
-      const pitchClass = Math.round(semitone) % 12;
+      // Convert frequency to MIDI note number (A4 = 440 Hz = MIDI 69)
+      const midiNote = 12 * Math.log2(freq / 440) + 69;
       
-      // Accumulate energy in the corresponding pitch class
-      if (pitchClass >= 0 && pitchClass < 12) {
-        chromagram[pitchClass] += magnitude;
+      if (midiNote >= 24 && midiNote < 108) { // Focus on musical range (C1 to B7)
+        const pitchClass = Math.round(midiNote) % 12;
+        
+        // Weight by frequency to emphasize fundamentals
+        const freqWeight = 1 / Math.sqrt(freq / 100);
+        
+        // Accumulate energy in the corresponding pitch class
+        if (pitchClass >= 0 && pitchClass < 12) {
+          chromagram[pitchClass] += magnitude * freqWeight;
+        }
       }
     }
   }
@@ -91,7 +100,7 @@ function calculateChromagram(audioBuffer: Float32Array, sampleRate: number): Flo
   const maxValue = Math.max(...chromagram);
   if (maxValue > 0) {
     for (let i = 0; i < 12; i++) {
-      chromagram[i] /= maxValue;
+      chromagram[i] = (chromagram[i] / maxValue) * 100; // Scale to percentage
     }
   }
   

@@ -20,84 +20,64 @@ export const AIMasteringTab = () => {
   } = useUserSubscription();
   const navigate = useNavigate();
   
-  // Load state from localStorage on mount
-  const [targetFile, setTargetFile] = useState<File | null>(() => {
-    try {
-      const saved = localStorage.getItem('aiMastering_targetFile');
-      // Can't restore File object, just show we had one
-      return saved ? null : null;
-    } catch {
-      return null;
-    }
-  });
-  
+  // State management with sessionStorage
+  const [targetFile, setTargetFile] = useState<File | null>(null);
   const [referenceFile, setReferenceFile] = useState<File | null>(null);
-  const [selectedPreset, setSelectedPreset] = useState<string | null>(() => {
-    try {
-      const saved = localStorage.getItem('aiMastering_selectedPreset');
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
-  
-  const [activeMode, setActiveMode] = useState<'preset' | 'custom'>(() => {
-    try {
-      const saved = localStorage.getItem('aiMastering_activeMode');
-      return saved ? JSON.parse(saved) : 'preset';
-    } catch {
-      return 'preset';
-    }
-  });
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+  const [activeMode, setActiveMode] = useState<'preset' | 'custom'>('preset');
   
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   
-  const [advancedSettings, setAdvancedSettings] = useState<MasteringSettings>(() => {
-    try {
-      const saved = localStorage.getItem('aiMastering_advancedSettings');
-      return saved ? JSON.parse(saved) : {
-        outputBits: 24,
-        dithering: true,
-        limiterMethod: 'modern',
-        limiterCeiling: -0.3,
-        targetLoudness: -14,
-        dynamicRange: 12,
-        spectralBalance: true,
-        lowEndEnhancement: 50,
-        highEndCrispness: 50,
-        stereoWidth: 100,
-        warmth: 50
-      };
-    } catch {
-      return {
-        outputBits: 24,
-        dithering: true,
-        limiterMethod: 'modern',
-        limiterCeiling: -0.3,
-        targetLoudness: -14,
-        dynamicRange: 12,
-        spectralBalance: true,
-        lowEndEnhancement: 50,
-        highEndCrispness: 50,
-        stereoWidth: 100,
-        warmth: 50
-      };
-    }
+  const [advancedSettings, setAdvancedSettings] = useState<MasteringSettings>({
+    outputBits: 24,
+    dithering: true,
+    limiterMethod: 'modern',
+    limiterCeiling: -0.3,
+    targetLoudness: -14,
+    dynamicRange: 12,
+    spectralBalance: true,
+    lowEndEnhancement: 50,
+    highEndCrispness: 50,
+    stereoWidth: 100,
+    warmth: 50
   });
+  
+  // Load state from sessionStorage on mount
+  React.useEffect(() => {
+    try {
+      const savedTarget = sessionStorage.getItem('aiMastering_target');
+      const savedPreset = sessionStorage.getItem('aiMastering_preset');
+      const savedMode = sessionStorage.getItem('aiMastering_mode');
+      const savedSettings = sessionStorage.getItem('aiMastering_settings');
+      
+      if (savedPreset) setSelectedPreset(savedPreset);
+      if (savedMode) setActiveMode(savedMode as 'preset' | 'custom');
+      if (savedSettings) setAdvancedSettings(JSON.parse(savedSettings));
+      
+      if (savedTarget) {
+        const fileData = JSON.parse(savedTarget);
+        toast.info('Previous session detected', {
+          description: `File "${fileData.name}" from previous session. Please re-upload to process.`,
+        });
+      }
+    } catch (error) {
+      console.warn('Failed to restore session:', error);
+    }
+  }, []);
   
   const targetInputRef = useRef<HTMLInputElement>(null);
   const referenceInputRef = useRef<HTMLInputElement>(null);
   const BACKEND_URL = 'http://127.0.0.1:8000';
   
-  // Save state to localStorage whenever it changes
+  // Save state to sessionStorage whenever it changes
   React.useEffect(() => {
     try {
       if (selectedPreset) {
-        localStorage.setItem('aiMastering_selectedPreset', JSON.stringify(selectedPreset));
+        sessionStorage.setItem('aiMastering_preset', selectedPreset);
       } else {
-        localStorage.removeItem('aiMastering_selectedPreset');
+        sessionStorage.removeItem('aiMastering_preset');
       }
     } catch (e) {
       console.error('Failed to save preset:', e);
@@ -106,7 +86,7 @@ export const AIMasteringTab = () => {
   
   React.useEffect(() => {
     try {
-      localStorage.setItem('aiMastering_activeMode', JSON.stringify(activeMode));
+      sessionStorage.setItem('aiMastering_mode', activeMode);
     } catch (e) {
       console.error('Failed to save mode:', e);
     }
@@ -114,7 +94,7 @@ export const AIMasteringTab = () => {
   
   React.useEffect(() => {
     try {
-      localStorage.setItem('aiMastering_advancedSettings', JSON.stringify(advancedSettings));
+      sessionStorage.setItem('aiMastering_settings', JSON.stringify(advancedSettings));
     } catch (e) {
       console.error('Failed to save settings:', e);
     }
@@ -224,6 +204,21 @@ export const AIMasteringTab = () => {
     const file = e.target.files?.[0];
     if (file) {
       setFile(file);
+      
+      // Save to sessionStorage
+      if (setFile === setTargetFile) {
+        try {
+          const fileData = {
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            lastModified: file.lastModified,
+          };
+          sessionStorage.setItem('aiMastering_target', JSON.stringify(fileData));
+        } catch (error) {
+          console.warn('Failed to save to session:', error);
+        }
+      }
     }
     if (e.target) {
       e.target.value = '';

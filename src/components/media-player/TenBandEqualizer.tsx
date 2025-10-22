@@ -36,8 +36,32 @@ export const TenBandEqualizer: React.FC<TenBandEqualizerProps> = ({
         </Button>
       </div>
 
-      <div className="grid grid-cols-10 gap-3 bg-slate-950/50 p-6 rounded-xl border border-slate-700/50">
-        {bands.map((band, index) => <div key={index} className="flex flex-col items-center gap-3">
+      <div className="grid grid-cols-10 gap-3 bg-slate-950/50 p-6 rounded-xl border border-slate-700/50 relative">
+        {/* Professional DJ Grid Background */}
+        <div className="absolute inset-0 pointer-events-none opacity-30">
+          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="eq-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(6, 182, 212, 0.3)" strokeWidth="0.5"/>
+              </pattern>
+              <linearGradient id="freq-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="rgba(239, 68, 68, 0.2)" />
+                <stop offset="50%" stopColor="rgba(34, 197, 94, 0.2)" />
+                <stop offset="100%" stopColor="rgba(59, 130, 246, 0.2)" />
+              </linearGradient>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#eq-grid)" />
+            <rect width="100%" height="100%" fill="url(#freq-gradient)" />
+            {/* Center line at 0dB */}
+            <line x1="0" y1="50%" x2="100%" y2="50%" stroke="rgba(6, 182, 212, 0.5)" strokeWidth="1.5" strokeDasharray="5,5"/>
+            {/* +6dB line */}
+            <line x1="0" y1="25%" x2="100%" y2="25%" stroke="rgba(34, 197, 94, 0.3)" strokeWidth="1" strokeDasharray="3,3"/>
+            {/* -6dB line */}
+            <line x1="0" y1="75%" x2="100%" y2="75%" stroke="rgba(239, 68, 68, 0.3)" strokeWidth="1" strokeDasharray="3,3"/>
+          </svg>
+        </div>
+        
+        {bands.map((band, index) => <div key={index} className="flex flex-col items-center gap-3 relative z-10">
             {/* Gain value display with gradient */}
             <div className={`text-xs font-mono font-bold px-3 py-2 rounded-lg min-w-[65px] text-center transition-all ${band.gain > 0 ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white' : band.gain < 0 ? 'bg-gradient-to-r from-red-600 to-orange-600 text-white' : 'bg-slate-800/70 text-slate-400'}`}>
               {band.gain >= 0 ? '+' : ''}{band.gain.toFixed(1)}dB
