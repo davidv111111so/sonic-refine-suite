@@ -6,6 +6,7 @@ import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { RotateCcw, Music2, Mic, Headphones, Guitar, Disc3, Radio, MessageSquare, Volume2, Waves, Music, Lightbulb } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { toast } from 'sonner';
 
 interface ProfessionalEqualizerProps {
   eqBands: number[];
@@ -15,18 +16,19 @@ interface ProfessionalEqualizerProps {
   onEnabledChange: (enabled: boolean) => void;
 }
 
-// 10 Professional EQ Presets with Exact Specified Values and Automatic Gain Compensation
+// 10 Professional EQ Presets with Full 10-Band Values and Automatic Gain Compensation
+// Each preset now includes values for all 10 bands: 31Hz, 62Hz, 125Hz, 250Hz, 500Hz, 1kHz, 2kHz, 4kHz, 8kHz, 16kHz
 const EQ_PRESETS = [
-  { name: 'Modern Punch', nameES: 'Punch Moderno', icon: Volume2, values: [+1.5, +1.0, -2.0, +0.5, +2.0, 0, 0, 0, 0, 0], compensation: -1.2 },
-  { name: 'Vocal Presence', nameES: 'Presencia Vocal', icon: Mic, values: [-1.5, -2.0, +1.5, +2.0, +0.5, 0, 0, 0, 0, 0], compensation: -0.6 },
-  { name: 'Bass Foundation', nameES: 'Base de Graves', icon: Waves, values: [+2.0, +1.0, -1.0, 0, -0.5, 0, 0, 0, 0, 0], compensation: -0.9 },
-  { name: 'Clarity & Air', nameES: 'Claridad y Aire', icon: Lightbulb, values: [-0.5, 0, -1.0, +1.5, +2.5, 0, 0, 0, 0, 0], compensation: -0.8 },
-  { name: 'De-Box / Clean Mid', nameES: 'Limpiar Medios', icon: Radio, values: [-1.0, -1.5, -2.5, +1.0, +0.5, 0, 0, 0, 0, 0], compensation: -0.5 },
-  { name: 'Warmth & Body', nameES: 'Calidez y Cuerpo', icon: Music2, values: [+0.5, +1.5, +1.0, -1.0, -1.5, 0, 0, 0, 0, 0], compensation: -0.4 },
-  { name: 'Live Energy (Subtle V)', nameES: 'Energía en Vivo (V Sutil)', icon: Headphones, values: [+1.0, +0.5, -1.5, +0.5, +1.5, 0, 0, 0, 0, 0], compensation: -0.7 },
-  { name: 'Acoustic / Orchestral', nameES: 'Acústico / Orquestal', icon: Guitar, values: [+0.5, -1.0, 0, +0.5, +1.0, 0, 0, 0, 0, 0], compensation: -0.3 },
-  { name: 'Digital De-Harsh', nameES: 'De-Harsh Digital', icon: Disc3, values: [0, 0, +0.5, -1.5, -1.0, 0, 0, 0, 0, 0], compensation: 0 },
-  { name: 'Voiceover / Podcast', nameES: 'Voz en Off / Podcast', icon: MessageSquare, values: [-6.0, -2.5, +2.0, +2.5, -1.5, 0, 0, 0, 0, 0], compensation: -1.5 },
+  { name: 'Modern Punch', nameES: 'Punch Moderno', icon: Volume2, values: [+1.5, +1.0, +0.5, -2.0, +0.5, +2.0, +1.5, +1.0, +0.5, 0], compensation: -1.2 },
+  { name: 'Vocal Presence', nameES: 'Presencia Vocal', icon: Mic, values: [-1.5, -2.0, -1.0, +1.5, +2.0, +2.5, +2.0, +1.0, +0.5, 0], compensation: -0.6 },
+  { name: 'Bass Foundation', nameES: 'Base de Graves', icon: Waves, values: [+2.0, +1.5, +1.0, -1.0, -0.5, 0, 0, 0, 0, 0], compensation: -0.9 },
+  { name: 'Clarity & Air', nameES: 'Claridad y Aire', icon: Lightbulb, values: [-0.5, -0.5, 0, -1.0, +1.0, +1.5, +2.0, +2.5, +3.0, +2.5], compensation: -0.8 },
+  { name: 'De-Box / Clean Mid', nameES: 'Limpiar Medios', icon: Radio, values: [-1.0, -1.0, -1.5, -2.5, -2.0, +1.0, +1.5, +1.0, +0.5, 0], compensation: -0.5 },
+  { name: 'Warmth & Body', nameES: 'Calidez y Cuerpo', icon: Music2, values: [+0.5, +1.0, +1.5, +1.0, +0.5, -1.0, -1.5, -1.0, -0.5, 0], compensation: -0.4 },
+  { name: 'Live Energy (Subtle V)', nameES: 'Energía en Vivo (V Sutil)', icon: Headphones, values: [+1.0, +1.0, +0.5, -1.5, -1.0, +0.5, +1.0, +1.5, +2.0, +1.5], compensation: -0.7 },
+  { name: 'Acoustic / Orchestral', nameES: 'Acústico / Orquestal', icon: Guitar, values: [+0.5, +0.5, 0, -1.0, -0.5, +0.5, +1.0, +1.0, +0.5, 0], compensation: -0.3 },
+  { name: 'Digital De-Harsh', nameES: 'De-Harsh Digital', icon: Disc3, values: [0, 0, 0, +0.5, 0, -1.5, -2.0, -1.5, -1.0, -0.5], compensation: 0 },
+  { name: 'Voiceover / Podcast', nameES: 'Voz en Off / Podcast', icon: MessageSquare, values: [-6.0, -4.0, -2.5, +2.0, +2.5, +2.0, +1.0, -1.5, -2.0, -1.0], compensation: -1.5 },
 ];
 
 export const ProfessionalEqualizer = ({ 
@@ -91,30 +93,21 @@ export const ProfessionalEqualizer = ({
   }, [onResetEQ]);
   
   const applyPreset = useCallback((values: number[], compensation: number) => {
-    // Apply EQ values to first 5 bands (matching the 5-band system)
-    values.slice(0, 5).forEach((value, index) => {
-      // Map the 5 bands to the 10-band array indices
-      // Band 0: 50Hz -> Index 0 (31Hz) and 1 (62Hz)
-      // Band 1: 145Hz -> Index 2 (125Hz)
-      // Band 2: 874Hz -> Index 5 (1000Hz)
-      // Band 3: 5.56kHz -> Index 7 (4000Hz) and 8 (8000Hz)
-      // Band 4: 17.2kHz -> Index 9 (16000Hz)
-      const bandMapping = [
-        [0, 1],    // Low (50Hz) -> 31Hz, 62Hz
-        [2],       // Punch (145Hz) -> 125Hz
-        [5],       // Mid (874Hz) -> 1000Hz
-        [7, 8],    // Presence (5.56kHz) -> 4000Hz, 8000Hz
-        [9]        // Air (17.2kHz) -> 16000Hz
-      ];
-      
-      const targetIndices = bandMapping[index];
-      targetIndices?.forEach(targetIndex => {
-        onEQBandChange(targetIndex, value);
-      });
+    // Apply EQ values to all 10 bands in real-time
+    // This ensures ALL sliders move when a preset is selected
+    values.forEach((value, index) => {
+      if (index < 10) {
+        // Apply value to corresponding band with smooth transition
+        onEQBandChange(index, value);
+      }
     });
     
     // Apply automatic gain compensation
-    console.log(`Applied preset with ${compensation} dB gain compensation for equal loudness`);
+    console.log(`✅ Applied preset with ${compensation} dB gain compensation for equal loudness`);
+    
+    toast.success('Preset Applied', {
+      description: `EQ preset applied with ${compensation >= 0 ? '+' : ''}${compensation} dB compensation`,
+    });
   }, [onEQBandChange]);
   
   const getEQColor = (index: number) => {

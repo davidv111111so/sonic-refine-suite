@@ -10,6 +10,8 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import { saveAs } from 'file-saver';
 import { MasteringAdvancedSettings, MasteringSettings } from './MasteringAdvancedSettings';
+import { AdminReferenceManager } from './AdminReferenceManager';
+import { mapSettingsToEnhancedBackend, validateBackendParams } from './AdvancedSettingsBackend';
 export const AIMasteringTab = () => {
   const {
     t
@@ -305,8 +307,20 @@ export const AIMasteringTab = () => {
         formData.append('preset_id', selectedPreset);
       }
 
+      // Map UI settings to backend parameters and validate
+      const backendParams = mapSettingsToEnhancedBackend(advancedSettings);
+      const validationErrors = validateBackendParams(backendParams);
+      
+      if (validationErrors.length > 0) {
+        toast.error('Invalid settings', {
+          description: validationErrors.join(', ')
+        });
+        setIsProcessing(false);
+        return;
+      }
+      
       // Add advanced settings as JSON
-      formData.append('advanced_settings', JSON.stringify(advancedSettings));
+      formData.append('advanced_settings', JSON.stringify(backendParams));
       console.log('🎵 Sending request to:', `${BACKEND_URL}/process/ai-mastering`);
       console.log('📦 FormData contents:', {
         target: targetFile.name,
@@ -524,5 +538,9 @@ export const AIMasteringTab = () => {
           </div>
         </div>
       </div>
+      
+      {/* Admin Reference Manager - Only visible to admins */}
+      <AdminReferenceManager />
+      
     </div>;
 };

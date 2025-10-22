@@ -90,15 +90,23 @@ export const TenBandEqualizer: React.FC<TenBandEqualizerProps> = ({
       </div>
 
       {/* Real-time frequency response visualization */}
-      <div className="mt-6 p-4 bg-slate-950/50 rounded-lg border border-slate-700/50">
-        <div className="text-xs text-center text-slate-400 mb-2 bg-green-300">
+      <div className="mt-6 p-4 bg-slate-950/50 rounded-lg border border-slate-700/50 relative overflow-hidden">
+        {/* Animated gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/5 via-purple-500/5 to-pink-500/5 animate-pulse"></div>
+        
+        <div className="text-xs text-center text-slate-400 mb-2 relative z-10 font-semibold">
           Frequency Response Curve
         </div>
-        <div className="h-20 relative flex items-end justify-around">
+        <div className="h-20 relative flex items-end justify-around z-10">
           {bands.map((band, index) => {
           const height = Math.max(0, Math.min(100, 50 + band.gain / 12 * 40));
-          return <div key={index} className="w-full mx-0.5 bg-gradient-to-t from-cyan-500 to-purple-500 rounded-t transition-all duration-300" style={{
-            height: `${height}%`
+          const color = index < 2 ? 'from-cyan-500 to-cyan-400' : 
+                        index < 5 ? 'from-purple-500 to-purple-400' : 
+                        index < 8 ? 'from-pink-500 to-pink-400' : 
+                        'from-red-500 to-red-400';
+          return <div key={index} className={`w-full mx-0.5 bg-gradient-to-t ${color} rounded-t transition-all duration-300 shadow-lg`} style={{
+            height: `${height}%`,
+            boxShadow: `0 0 10px ${index < 2 ? '#06b6d4' : index < 5 ? '#8b5cf6' : index < 8 ? '#ec4899' : '#ef4444'}40`
           }} />;
         })}
         </div>
