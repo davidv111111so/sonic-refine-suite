@@ -11,28 +11,7 @@ import { Upload, Trash2, Music, Shield, CheckCircle2, AlertCircle } from 'lucide
 import { toast } from 'sonner';
 import { useUserSubscription } from '@/hooks/useUserSubscription';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-const GENRES = [
-  'Flat',
-  'Bass Boost',
-  'Treble Boost',
-  'Jazz',
-  'Classical',
-  'Electronic',
-  'V-Shape',
-  'Vocal',
-  'Rock',
-  'Hip-Hop',
-  'Podcast',
-  'Live',
-  'Techno',
-  'House',
-  'Trance',
-  'Drum & Bass',
-  'Dubstep',
-  'Progressive House',
-  'Deep House',
-  'Tech House'
-];
+const GENRES = ['Flat', 'Bass Boost', 'Treble Boost', 'Jazz', 'Classical', 'Electronic', 'V-Shape', 'Vocal', 'Rock', 'Hip-Hop', 'Podcast', 'Live', 'Techno', 'House', 'Trance', 'Drum & Bass', 'Dubstep', 'Progressive House', 'Deep House', 'Tech House'];
 interface ReferenceTrack {
   genre: string;
   filename: string;
@@ -209,13 +188,7 @@ export const AdminReferenceManager: React.FC = () => {
                         <Music className="h-4 w-4 text-cyan-400" />
                         {genre}
                       </h3>
-                      {ref && <Button 
-                          size="sm" 
-                          variant="ghost" 
-                          onClick={() => setDeleteConfirm(genre)} 
-                          className="h-8 w-8 p-0 hover:bg-red-500/30 hover:text-red-300 rounded-full bg-red-500/10"
-                          title="Remove reference"
-                        >
+                      {ref && <Button size="sm" variant="ghost" onClick={() => setDeleteConfirm(genre)} className="h-8 w-8 p-0 hover:bg-red-500/30 hover:text-red-300 rounded-full bg-red-500/10" title="Remove reference">
                           <span className="text-red-400 font-bold">×</span>
                         </Button>}
                     </div>
@@ -233,7 +206,7 @@ export const AdminReferenceManager: React.FC = () => {
                         </div>
                       </div> : <div className="flex items-center gap-2 p-3 border-2 border-dashed border-slate-600 rounded text-center">
                         <AlertCircle className="h-5 w-5 text-slate-500" />
-                        <p className="text-sm text-slate-500">No reference uploaded</p>
+                        <p className="text-sm text-green-400">No reference uploaded</p>
                       </div>}
 
                     <label>
