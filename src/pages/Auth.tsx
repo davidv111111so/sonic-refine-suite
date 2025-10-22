@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { Loader2, Music, Lock, Mail, User, Chrome } from 'lucide-react';
+import { ShaderAnimation } from '@/components/ui/shader-animation';
+
 export default function Auth() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -17,6 +19,26 @@ export default function Auth() {
   const [fullName, setFullName] = useState('');
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
+  const [showIntro, setShowIntro] = useState(true);
+  const [introOpacity, setIntroOpacity] = useState(1);
+
+  // Handle intro animation timing
+  useEffect(() => {
+    // After 5 seconds, start fading out
+    const fadeTimer = setTimeout(() => {
+      setIntroOpacity(0);
+    }, 5000);
+
+    // After 6 seconds (5s display + 1s fade), remove intro completely
+    const removeTimer = setTimeout(() => {
+      setShowIntro(false);
+    }, 6000);
+
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(removeTimer);
+    };
+  }, []);
   useEffect(() => {
     // Check if user is already logged in
     supabase.auth.getSession().then(({
@@ -120,8 +142,31 @@ export default function Auth() {
       setLoading(false);
     }
   };
-  return <div className="min-h-screen bg-gradient-to-br from-slate-950 via-black to-slate-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-slate-900/90 border-slate-700">
+  return (
+    <>
+      {/* Intro Animation */}
+      {showIntro && (
+        <div 
+          className="fixed inset-0 z-50 transition-opacity duration-1000"
+          style={{ opacity: introOpacity }}
+        >
+          <ShaderAnimation />
+          <span 
+            className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 text-center text-8xl font-extrabold tracking-tighter whitespace-pre-wrap bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent"
+            style={{
+              fontFamily: "'Orbitron', 'Exo 2', 'Rajdhani', 'Audiowide', monospace",
+              textShadow: '0 0 40px rgba(6, 182, 212, 0.6), 0 0 80px rgba(59, 130, 246, 0.4)',
+              letterSpacing: '0.15em'
+            }}
+          >
+            LEVEL
+          </span>
+        </div>
+      )}
+
+      {/* Auth Page */}
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-black to-slate-900 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-slate-900/90 border-slate-700">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
             <div className="p-3 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full">
@@ -254,5 +299,7 @@ export default function Auth() {
             </form>}
         </CardContent>
       </Card>
-    </div>;
+    </div>
+    </>
+  );
 }
