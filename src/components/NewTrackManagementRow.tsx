@@ -55,31 +55,25 @@ export const NewTrackManagementRow = ({
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
-
     const handleLoadedMetadata = () => {
       setDuration(audio.duration);
     };
-
     const handleTimeUpdate = () => {
       setCurrentTime(audio.currentTime);
     };
-
     const handleEnded = () => {
       setIsPlaying(false);
       setCurrentTime(0);
     };
-
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('ended', handleEnded);
-
     return () => {
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('ended', handleEnded);
     };
   }, []);
-
   useEffect(() => {
     if (audioRef.current) {
       if (isPlaying) {
@@ -96,7 +90,6 @@ export const NewTrackManagementRow = ({
       setIsPlaying(!isPlaying);
     }
   };
-
   const handleSeek = (value: number[]) => {
     const newTime = value[0];
     setCurrentTime(newTime);
@@ -104,7 +97,6 @@ export const NewTrackManagementRow = ({
       audioRef.current.currentTime = newTime;
     }
   };
-
   const formatTime = (time: number) => {
     if (!isFinite(time)) return '0:00';
     const minutes = Math.floor(time / 60);
@@ -205,7 +197,7 @@ export const NewTrackManagementRow = ({
 
       {/* Key Analysis */}
       <div className="flex flex-col justify-center">
-        <span className="text-xs text-slate-400 mb-1">Key</span>
+        <span className="text-xs mb-1 text-emerald-400">Key</span>
         <Badge variant="outline" className="text-xs w-fit bg-purple-700/30 text-purple-200 border-purple-500/50">
           {file.harmonicKey || 'N/A'}
         </Badge>
@@ -214,15 +206,11 @@ export const NewTrackManagementRow = ({
       {/* BPM Analysis */}
       <div className="flex flex-col justify-center">
         <span className="text-xs text-slate-400 mb-1">BPM</span>
-        {file.bpm ? (
-          <Badge variant="outline" className="text-xs w-fit bg-cyan-700/30 text-cyan-200 border-cyan-500/50 font-mono">
+        {file.bpm ? <Badge variant="outline" className="text-xs w-fit bg-cyan-700/30 text-cyan-200 border-cyan-500/50 font-mono">
             {file.bpm}
-          </Badge>
-        ) : (
-          <Badge variant="outline" className="text-xs w-fit bg-slate-700/30 text-slate-400 border-slate-500/50">
+          </Badge> : <Badge variant="outline" className="text-xs w-fit bg-slate-700/30 text-slate-400 border-slate-500/50">
             -
-          </Badge>
-        )}
+          </Badge>}
       </div>
 
       {/* File Size */}
