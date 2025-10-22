@@ -189,7 +189,7 @@ export const NewTrackManagementRow = ({
               {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
             </Button>
             <audio ref={audioRef} src={audioUrl} preload="auto" />
-            <span className="text-xs text-white font-medium">
+            <span className="text-xs font-medium text-orange-200">
               {file.artist || 'Unknown Artist'}
             </span>
           </div>}
