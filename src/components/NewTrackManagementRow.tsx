@@ -205,7 +205,7 @@ export const NewTrackManagementRow = ({
 
       {/* BPM Analysis */}
       <div className="flex flex-col justify-center">
-        <span className="text-xs text-slate-400 mb-1">BPM</span>
+        <span className="text-xs mb-1 text-emerald-400">BPM</span>
         {file.bpm ? <Badge variant="outline" className="text-xs w-fit bg-cyan-700/30 text-cyan-200 border-cyan-500/50 font-mono">
             {file.bpm}
           </Badge> : <Badge variant="outline" className="text-xs w-fit bg-slate-700/30 text-slate-400 border-slate-500/50">
