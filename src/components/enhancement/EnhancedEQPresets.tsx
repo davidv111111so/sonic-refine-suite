@@ -28,13 +28,13 @@ export const EnhancedEQPresets = ({
 
     // Create comprehensive preset data
     const presetData = {
-      name: `Spectrum Preset ${new Date().toLocaleDateString()}`,
+      name: `Level Preset ${new Date().toLocaleDateString()}`,
       version: "2.0",
       timestamp: new Date().toISOString(),
       eqBands: eqBands,
       processingSettings: processingSettings,
       metadata: {
-        createdBy: "Spectrum Audio Processor",
+        createdBy: "Level Audio Processor",
         description: "Complete audio processing preset including EQ and effects"
       }
     };

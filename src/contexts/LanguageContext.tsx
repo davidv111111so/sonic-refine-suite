@@ -14,10 +14,20 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 const translations = {
   EN: {
     // Header & Navigation
-    'header.title': 'Spectrum Audio Processor',
+    'header.title': 'Level Audio Processor',
     'header.upload': 'Upload',
     'header.enhance': 'Enhance',
     'header.settings': 'Settings',
+    
+    // EQ Presets
+    'eq.preset.flat': 'Flat',
+    'eq.preset.bassBoost': 'Bass Boost',
+    'eq.preset.vocalEnhance': 'Vocal Enhance',
+    'eq.preset.bright': 'Bright',
+    'eq.preset.warm': 'Warm',
+    'eq.preset.club': 'Club',
+    'eq.preset.rock': 'Rock',
+    'eq.preset.jazz': 'Jazz',
     
     // Upload Section
     'upload.title': 'Upload Audio Files',
