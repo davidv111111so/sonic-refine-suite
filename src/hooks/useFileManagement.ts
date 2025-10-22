@@ -2,6 +2,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { AudioFile } from '@/types/audio';
 import { useToast } from '@/hooks/use-toast';
+import { useAudioAnalysis } from './useAudioAnalysis';
 
 const STORAGE_KEY = 'audioEnhancer_files';
 const STORAGE_VERSION = '2.0'; // Version for migration compatibility
@@ -15,6 +16,7 @@ interface StoredFileData {
 export const useFileManagement = () => {
   const [audioFiles, setAudioFiles] = useState<AudioFile[]>([]);
   const { toast } = useToast();
+  const { analyzeFile } = useAudioAnalysis();
 
   // Enhanced file loading with error handling and migration
   useEffect(() => {
@@ -174,7 +176,8 @@ export const useFileManagement = () => {
         originalUrl,
         artist,
         title,
-        status: 'uploaded' as const
+        status: 'uploaded' as const,
+        bpm: null, // Initialize BPM as null
       };
     });
     
@@ -197,11 +200,27 @@ export const useFileManagement = () => {
           title: "Files uploaded successfully",
           description: `${newFiles.length} new audio files added to your collection`,
         });
+        
+        // Trigger BPM detection for new files asynchronously
+        newFiles.forEach(async (audioFile) => {
+          try {
+            const result = await analyzeFile(audioFile);
+            
+            // Update file with detected BPM
+            setAudioFiles(prevFiles => prevFiles.map(f => 
+              f.id === audioFile.id 
+                ? { ...f, bpm: result.bpm } 
+                : f
+            ));
+          } catch (error) {
+            console.error(`BPM detection failed for ${audioFile.name}:`, error);
+          }
+        });
       }
       
       return [...prev, ...newFiles];
     });
-  }, [toast]);
+  }, [toast, analyzeFile]);
 
   const handleRemoveFile = useCallback((fileId: string) => {
     setAudioFiles(prev => {
