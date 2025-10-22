@@ -163,7 +163,7 @@ export const AdminReferenceManager: React.FC = () => {
   return <Card className="bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900 border-purple-500/50">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-white">
+          <CardTitle className="flex items-center gap-2 text-amber-200">
             <Shield className="h-5 w-5 text-purple-400" />
             Admin: Reference Track Management
           </CardTitle>
