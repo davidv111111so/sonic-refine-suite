@@ -19,18 +19,7 @@ export const DynamicsCompressorControls: React.FC<DynamicsCompressorControlsProp
   gainReduction,
   onSettingsChange
 }) => {
-  return <Card className="bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 p-6 relative">
-      {/* Premium overlay */}
-      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] rounded-lg z-10 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full shadow-xl">
-            <span className="text-2xl">⭐</span>
-            <span className="text-white font-bold text-lg">Premium Feature</span>
-          </div>
-          <p className="text-slate-300 mt-3 text-sm">Upgrade to unlock professional dynamics processing</p>
-        </div>
-      </div>
-      
+  return <Card className="bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 p-6">
       <h3 className="text-lg font-semibold text-purple-400 mb-6 flex items-center gap-2">
         <span className="text-2xl">🎛️</span>
         Dynamics Compressor

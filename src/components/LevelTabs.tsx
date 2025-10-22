@@ -126,91 +126,65 @@ export const LevelTabs = ({
     setEqEnabled(settings.enableEQ);
   };
   const handleFilesUploaded = async (files: AudioFile[]) => {
-    // Process files WITHOUT analysis first - add them immediately
-    onFilesUploaded(files);
-    
     // Show analyzing toast
     const toastId = toast.loading(`Analyzing ${files.length} file${files.length > 1 ? 's' : ''}...`, {
-      description: 'Processing in background (0/' + files.length + ')',
+      description: 'Detecting BPM and key signatures',
     });
 
-    // Import detection utilities
+    // Detect key and BPM for each file
     const { detectKeyFromFile } = await import('@/utils/keyDetector');
     const { detectBPMFromFile } = await import('@/utils/bpmDetector');
     
-    let completed = 0;
-    let detectedBPM = 0;
-    let detectedKey = 0;
-    
-    // Process files ONE AT A TIME to prevent crashes
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      let harmonicKey = 'N/A';
-      let bpm: number | undefined = undefined;
-      
-      try {
-        // Update progress
-        toast.loading(`Analyzing ${files.length} file${files.length > 1 ? 's' : ''}...`, {
-          id: toastId,
-          description: `Processing in background (${i + 1}/${files.length})`,
-        });
+    const filesWithAnalysis = await Promise.all(
+      files.map(async (file) => {
+        let harmonicKey = 'N/A';
+        let bpm: number | undefined = undefined;
         
-        // Detect key with timeout
         try {
-          const keyPromise = detectKeyFromFile(file.originalFile);
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Key detection timeout')), 10000)
-          );
-          
-          const keyAnalysis = await Promise.race([keyPromise, timeoutPromise]) as any;
+          // Detect key
+          console.log(`\n📝 Starting analysis for: ${file.name}`);
+          const keyAnalysis = await detectKeyFromFile(file.originalFile);
           harmonicKey = keyAnalysis.camelot;
           
-          if (harmonicKey !== 'N/A') {
-            detectedKey++;
+          if (harmonicKey === 'N/A') {
+            console.warn(`⚠️ Key detection returned N/A for ${file.name}`);
+          } else {
+            console.log(`✅ Key detected: ${harmonicKey} for ${file.name}`);
           }
         } catch (error) {
-          console.warn(`⚠️ Key detection failed for ${file.name}:`, error);
+          console.error(`❌ Error detecting key for ${file.name}:`, error);
         }
         
-        // Detect BPM with timeout
         try {
-          const bpmPromise = detectBPMFromFile(file.originalFile);
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('BPM detection timeout')), 10000)
-          );
-          
-          const bpmAnalysis = await Promise.race([bpmPromise, timeoutPromise]) as any;
+          // Detect BPM
+          const bpmAnalysis = await detectBPMFromFile(file.originalFile);
           bpm = bpmAnalysis.bpm;
-          
-          if (bpm) {
-            detectedBPM++;
-          }
+          console.log(`✅ BPM detected: ${bpm} for ${file.name}`);
         } catch (error) {
-          console.warn(`⚠️ BPM detection failed for ${file.name}:`, error);
+          console.error(`❌ Error detecting BPM for ${file.name}:`, error);
         }
         
-        // Update the file with analysis results
-        onFilesUploaded([{
+        return {
           ...file,
           harmonicKey,
           bpm
-        }]);
-        
-        completed++;
-        
-        // Small delay between files to prevent UI freeze
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-      } catch (error) {
-        console.error(`❌ Error analyzing ${file.name}:`, error);
-      }
-    }
+        };
+      })
+    );
     
-    // Final toast
+    // Update toast with detailed success info
+    const detectedBPM = filesWithAnalysis.filter(f => f.bpm).length;
+    const detectedKey = filesWithAnalysis.filter(f => f.harmonicKey && f.harmonicKey !== 'N/A').length;
+    
     if (detectedKey === 0 && detectedBPM === 0) {
-      toast.error('Analysis complete', {
+      toast.error('Analysis failed', {
         id: toastId,
-        description: 'Could not detect BPM or Key for any files.',
+        description: 'Could not detect BPM or Key. Check console for details.',
+      });
+    } else if (detectedKey < files.length || detectedBPM < files.length) {
+      toast.warning('Analysis partially complete', {
+        id: toastId,
+        description: `BPM: ${detectedBPM}/${files.length} • Key: ${detectedKey}/${files.length}`,
       });
     } else {
       toast.success('Analysis complete!', {
@@ -218,6 +192,9 @@ export const LevelTabs = ({
         description: `BPM: ${detectedBPM}/${files.length} • Key: ${detectedKey}/${files.length}`,
       });
     }
+    
+    onFilesUploaded(filesWithAnalysis);
+    // Stay on Level tab - removed auto-navigation
   };
 
   const handleToggleFileForIndividual = (fileId: string) => {
