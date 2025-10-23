@@ -3,9 +3,6 @@ import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { useUserSubscription } from '@/hooks/useUserSubscription';
-import { Lock, Crown } from 'lucide-react';
 
 export interface CompressorSettings {
   threshold: number;
@@ -26,10 +23,7 @@ export const DynamicsCompressorControls: React.FC<DynamicsCompressorControlsProp
   gainReduction,
   onSettingsChange
 }) => {
-  const { isPremium, isAdmin, loading } = useUserSubscription();
-  
-  // Admins bypass premium check
-  const hasAccess = isAdmin || isPremium;
+  // All users now have unrestricted access
 
   return (
     <Card className="bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 p-6">
@@ -38,34 +32,9 @@ export const DynamicsCompressorControls: React.FC<DynamicsCompressorControlsProp
           <span className="text-2xl">🎛️</span>
           Dynamics Compressor
         </h3>
-        {!hasAccess && !loading && (
-          <Badge variant="outline" className="bg-amber-500/20 text-amber-300 border-amber-400 flex items-center gap-1">
-            <Crown className="h-3 w-3" />
-            Premium
-          </Badge>
-        )}
-        {isAdmin && (
-          <Badge variant="outline" className="bg-purple-500/20 text-purple-300 border-purple-400">
-            Admin
-          </Badge>
-        )}
       </div>
       
-      {!hasAccess && !loading ? (
-        <div className="text-center py-8 space-y-4">
-          <Lock className="h-12 w-12 text-slate-500 mx-auto" />
-          <div>
-            <h4 className="text-lg font-semibold text-white mb-2">Premium Feature</h4>
-            <p className="text-slate-400 text-sm">
-              Upgrade to Premium to access professional dynamics compression tools
-            </p>
-          </div>
-          <button className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold rounded-lg transition-all">
-            Upgrade to Premium
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-2 gap-6">
           {/* Left column */}
           <div className="space-y-6">
             {/* Threshold */}
@@ -169,7 +138,6 @@ export const DynamicsCompressorControls: React.FC<DynamicsCompressorControlsProp
             </div>
           </div>
         </div>
-      )}
     </Card>
   );
 };

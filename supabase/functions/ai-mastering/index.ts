@@ -36,27 +36,7 @@ serve(async (req) => {
       );
     }
 
-    // Check premium status - CRITICAL SECURITY CHECK
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('subscription')
-      .eq('id', user.id)
-      .single();
-
-    const { data: userRole } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .single();
-
-    const isPremium = profile?.subscription === 'premium' || userRole?.role === 'admin';
-
-    if (!isPremium) {
-      return new Response(
-        JSON.stringify({ error: 'Premium subscription required for AI mastering' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // All users now have unrestricted access to AI mastering
 
     const formData = await req.formData();
     const targetFile = formData.get('target');

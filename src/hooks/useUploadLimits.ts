@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useUserSubscription } from './useUserSubscription';
-import { toast } from 'sonner';
 
 interface UploadLimits {
   dailyLimit: number;
@@ -12,32 +10,16 @@ interface UploadLimits {
 }
 
 export const useUploadLimits = () => {
-  const { isPremium, isAdmin, loading: subscriptionLoading } = useUserSubscription();
   const [uploadsToday, setUploadsToday] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // Admins have no limits
-  if (isAdmin) {
-    return {
-      dailyLimit: Infinity,
-      maxFileSize: Infinity,
-      uploadsToday: 0,
-      canUpload: true,
-      remainingUploads: Infinity,
-      loading: false,
-      incrementUploadCount: async () => {},
-      resetDailyCount: async () => {},
-    };
-  }
-
-  const dailyLimit = isPremium ? 50 : 5;
-  const maxFileSize = isPremium ? 150 : 50;
+  // No limits for any user - all features unrestricted
+  const dailyLimit = Infinity;
+  const maxFileSize = Infinity;
 
   useEffect(() => {
-    if (!subscriptionLoading) {
-      fetchUploadCount();
-    }
-  }, [subscriptionLoading, isPremium]);
+    fetchUploadCount();
+  }, []);
 
   const fetchUploadCount = async () => {
     try {
