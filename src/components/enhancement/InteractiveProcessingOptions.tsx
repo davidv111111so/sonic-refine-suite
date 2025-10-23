@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Settings, RotateCcw, AlertTriangle, Users } from 'lucide-react';
 import { AudioSettingsTooltip } from '@/components/AudioSettingsTooltip';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useUserSubscription } from '@/hooks/useUserSubscription';
 interface InteractiveProcessingOptionsProps {
   noiseReduction: number;
   noiseReductionEnabled: boolean;
@@ -60,6 +61,9 @@ export const InteractiveProcessingOptions = ({
   const {
     t
   } = useLanguage();
+  const {
+    isPremium
+  } = useUserSubscription();
 
   // Check if stereo widening is in anti-phase territory (>70% is risky)
   const isAntiPhase = stereoWidening > 70;
@@ -166,10 +170,11 @@ export const InteractiveProcessingOptions = ({
             <label className="text-sm font-bold bg-gradient-to-r from-blue-200 to-cyan-200 bg-clip-text flex items-center text-cyan-300">
               {t('settings.stereoWidening')}
               <AudioSettingsTooltip setting="stereoWidening" />
+              {isPremium && <span className="ml-2 text-[10px] bg-gradient-to-r from-yellow-400 to-orange-400 text-black px-2 py-0.5 rounded-full font-bold">PREMIUM</span>}
             </label>
-            <Switch checked={stereoWideningEnabled} onCheckedChange={onStereoWideningEnabledChange} className="text-left bg-indigo-900 hover:bg-indigo-800" />
+            <Switch checked={stereoWideningEnabled} onCheckedChange={onStereoWideningEnabledChange} disabled={!isPremium} className="text-left bg-indigo-900 hover:bg-indigo-800" />
           </div>
-          {stereoWideningEnabled && <div className="space-y-2">
+          {stereoWideningEnabled && isPremium && <div className="space-y-2">
               {isAntiPhase && <div className="flex items-center gap-2 p-2 bg-red-900/30 border border-red-600/50 rounded-md">
                   <AlertTriangle className="h-4 w-4 text-red-400" />
                   <span className="text-[10px] text-red-300">{t('processing.antiPhaseWarning')}</span>
@@ -181,6 +186,7 @@ export const InteractiveProcessingOptions = ({
               <Slider value={[stereoWidening]} onValueChange={([value]) => onStereoWideningChange(value)} min={0} max={100} step={1} className={`w-full ${isAntiPhase ? '[&_[role=slider]]:bg-red-500 [&_[role=slider]]:border-red-600' : ''}`} />
               <p className="text-[10px] text-red-400">{t('processing.stereoWideningInfo')}</p>
             </div>}
+          {!isPremium && stereoWideningEnabled && <p className="text-[10px] text-amber-400">{t('processing.premiumRequired')}</p>}
         </div>
       </CardContent>
     </Card>;

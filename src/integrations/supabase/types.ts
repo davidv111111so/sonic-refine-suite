@@ -14,33 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      daily_uploads: {
-        Row: {
-          created_at: string | null
-          id: string
-          updated_at: string | null
-          upload_count: number
-          upload_date: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          updated_at?: string | null
-          upload_count?: number
-          upload_date?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          updated_at?: string | null
-          upload_count?: number
-          upload_date?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
           created_at: string | null

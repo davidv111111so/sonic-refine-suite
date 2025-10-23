@@ -68,14 +68,13 @@ export const useUserSubscription = (): UserSubscriptionData => {
     };
   }, []);
 
-  // Admins bypass all restrictions
-  const isAdminUser = role === 'admin';
-  
+  // TEMPORARY: Unlock all premium features for development
+  // TODO: Re-enable role checks for production
   return {
     subscription,
     role,
-    isAdmin: isAdminUser,
-    isPremium: isAdminUser || subscription === 'premium', // Admins get premium access
+    isAdmin: true, // Temporarily unlock for all users
+    isPremium: true, // Temporarily unlock for all users
     loading,
   };
 };

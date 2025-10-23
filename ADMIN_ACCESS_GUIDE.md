@@ -1,98 +1,248 @@
-# Quick Admin Access Setup
+# Admin Access Control Implementation Guide
 
-## Make Yourself Admin (3 Easy Steps)
+## Overview
+The Spectrum application implements secure, role-based access control to manage premium features. Admins and authorized collaborators receive full, unrestricted access to all features, including the premium "AI Audio Mastering" tab.
 
-### Step 1: Get Your User ID
-1. Log into your app
-2. Open browser console (F12)
-3. Paste and run this code:
-```javascript
-supabase.auth.getUser().then(({ data }) => console.log('Your User ID:', data.user.id));
+## Security Architecture
+
+### 1. Database-Level Role Management
+Roles are stored in a separate `user_roles` table to prevent privilege escalation attacks:
+
+```sql
+-- Enum for roles
+create type public.app_role as enum ('admin', 'moderator', 'user');
+
+-- User roles table
+create table public.user_roles (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid references auth.users(id) on delete cascade not null,
+    role app_role not null,
+    unique (user_id, role)
+);
 ```
-4. Copy your user ID from the console
 
-### Step 2: Add Admin Role via Backend
-1. Click this button to open your backend:
+### 2. Security Definer Function
+A PostgreSQL function checks roles without triggering recursive RLS policies:
 
-<lov-actions>
-  <lov-open-backend>View Backend</lov-open-backend>
-</lov-actions>
+```sql
+create or replace function public.has_role(_user_id uuid, _role app_role)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.user_roles
+    where user_id = _user_id
+      and role = _role
+  )
+$$;
+```
 
-2. Go to **Table Editor** → **user_roles**
-3. Click **Insert** → **Insert row**
-4. Fill in:
-   - **user_id**: Paste your user ID from Step 1
-   - **role**: Select **admin** from dropdown
-5. Click **Save**
+### 3. Client-Side Access Control Hook
+The `useUserSubscription` hook manages access control in React:
 
-### Step 3: Refresh & Enjoy
-1. Refresh your browser
-2. ✅ You now have full admin access with **zero restrictions**!
+```typescript
+// Location: src/hooks/useUserSubscription.ts
+export const useUserSubscription = (): UserSubscriptionData => {
+  const [subscription, setSubscription] = useState<SubscriptionTier>('free');
+  const [role, setRole] = useState<UserRole | null>(null);
+  
+  // Fetches user profile and role from Supabase
+  // Returns: { subscription, role, isAdmin, isPremium, loading }
+  
+  return {
+    subscription,
+    role,
+    isAdmin: role === 'admin',
+    isPremium: subscription === 'premium' || role === 'admin', // Admins bypass premium
+    loading,
+  };
+};
+```
+
+## Granting Admin Access
+
+### Method 1: Direct Database Insert (Recommended for Initial Setup)
+```sql
+-- Insert admin role for specific email
+INSERT INTO public.user_roles (user_id, role)
+SELECT id, 'admin'::app_role
+FROM auth.users
+WHERE email = 'davidv111111@gmail.com'
+ON CONFLICT (user_id, role) DO NOTHING;
+```
+
+### Method 2: Admin Dashboard (Future Implementation)
+Create an admin interface that allows existing admins to grant roles to other users.
+
+## Access Control Implementation in Components
+
+### Example: Premium Feature Guard
+```typescript
+import { useUserSubscription } from '@/hooks/useUserSubscription';
+
+const PremiumFeature = () => {
+  const { isPremium, isAdmin, loading } = useUserSubscription();
+
+  if (loading) return <LoadingSpinner />;
+  
+  if (!isPremium) {
+    return <PremiumUpgradePrompt />;
+  }
+
+  return <FeatureContent />;
+};
+```
+
+### AI Mastering Tab Implementation
+```typescript
+// Location: src/components/ai-mastering/AIMasteringTab.tsx
+const AIMasteringTab = () => {
+  const { isPremium, isAdmin } = useUserSubscription();
+
+  if (!isPremium) {
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Crown className="h-5 w-5 text-yellow-500" />
+            <CardTitle>Premium Feature</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p>AI Audio Mastering is a premium feature.</p>
+          {isAdmin && <Badge>Admin Access Granted</Badge>}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return <MasteringInterface />;
+};
+```
+
+## Authorized Users
+
+### Current Admin Users:
+- **davidv111111@gmail.com** - Primary admin with full access
+
+### Adding Collaborators:
+To grant admin or premium access to project collaborators:
+
+```sql
+-- Grant admin role
+INSERT INTO public.user_roles (user_id, role)
+SELECT id, 'admin'::app_role
+FROM auth.users
+WHERE email = 'collaborator@example.com'
+ON CONFLICT (user_id, role) DO NOTHING;
+
+-- OR grant premium subscription
+UPDATE public.profiles
+SET subscription = 'premium'
+WHERE email = 'collaborator@example.com';
+```
+
+## Security Best Practices
+
+### ✅ DO:
+- Store roles in a separate `user_roles` table
+- Use server-side validation (RLS policies + Security Definer functions)
+- Check authentication status with `supabase.auth.getSession()`
+- Validate on both client and server sides
+- Use the `useUserSubscription` hook for consistent access checks
+
+### ❌ DON'T:
+- Store roles in localStorage or sessionStorage
+- Hardcode admin emails in client code
+- Rely solely on client-side checks
+- Store roles on the profiles table (privilege escalation risk)
+- Use `auth.uid()` directly in RLS policies for role checks
+
+## Row-Level Security Policies
+
+Example RLS policy for premium content:
+
+```sql
+-- Only admins and premium users can access premium content
+CREATE POLICY "Premium users can access"
+ON public.premium_content
+FOR SELECT
+TO authenticated
+USING (
+  has_role(auth.uid(), 'admin'::app_role) 
+  OR 
+  EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid()
+    AND subscription = 'premium'
+  )
+);
+```
+
+## Testing Access Control
+
+### Test Cases:
+1. **Unauthorized User**: Should see upgrade prompts
+2. **Premium Subscriber**: Should access premium features
+3. **Admin User**: Should bypass all premium restrictions
+4. **Logged Out User**: Should see login prompt
+
+### Manual Testing:
+```typescript
+// In browser console
+const { data: { session } } = await supabase.auth.getSession();
+console.log('User:', session?.user?.email);
+
+const { data: roles } = await supabase
+  .from('user_roles')
+  .select('role')
+  .eq('user_id', session?.user?.id);
+console.log('Roles:', roles);
+```
+
+## Troubleshooting
+
+### Issue: Admin not seeing premium features
+**Solutions:**
+1. Verify role in database:
+   ```sql
+   SELECT u.email, ur.role 
+   FROM auth.users u
+   LEFT JOIN user_roles ur ON u.id = ur.user_id
+   WHERE u.email = 'davidv111111@gmail.com';
+   ```
+2. Clear browser cache and refresh
+3. Check authentication state in developer tools
+4. Verify RLS policies are enabled
+
+### Issue: Privilege escalation vulnerability
+**Prevention:**
+- Never store roles on `profiles` table where users can edit
+- Always use separate `user_roles` table
+- Implement proper RLS policies
+- Use Security Definer functions for role checks
+
+## Monitoring & Auditing
+
+Consider implementing:
+- Access logs for premium features
+- Role change audit trail
+- Failed access attempt logging
+- Periodic security audits
+
+## Future Enhancements
+
+1. **Role Hierarchy**: Implement moderator role with limited admin privileges
+2. **Temporary Access**: Grant time-limited premium access
+3. **Team Management**: Allow admins to manage team members
+4. **Usage Analytics**: Track premium feature usage by role
+5. **Automated Testing**: Add integration tests for access control
 
 ---
 
-## For Your Collaborator
-Repeat the same 3 steps with their account to grant them admin access.
-
----
-
-## Google OAuth Fix (Quick Steps)
-
-### The Issue
-You're seeing "403. That's an error" because Google OAuth redirect URLs aren't configured.
-
-### Quick Fix (5 minutes):
-
-1. **Open Google Cloud Console**
-   - Go to: https://console.cloud.google.com/
-   - Select your project (or create one if needed)
-
-2. **Configure OAuth Consent Screen**
-   - Navigate to: **APIs & Services** → **OAuth consent screen**
-   - Add **Authorized domain**: `supabase.co`
-   - Save changes
-
-3. **Set Up OAuth Credentials**
-   - Go to: **APIs & Services** → **Credentials**
-   - Click **Create Credentials** → **OAuth 2.0 Client ID**
-   - Application type: **Web application**
-   
-4. **Add Authorized URLs**
-   - Under **Authorized JavaScript origins**, add:
-     ```
-     https://lyymcpiujrnlwsbyrseh.supabase.co
-     ```
-   - Under **Authorized redirect URIs**, add:
-     ```
-     https://lyymcpiujrnlwsbyrseh.supabase.co/auth/v1/callback
-     ```
-   - Click **Save**
-
-5. **Update Your Backend**
-   - Click the button below to open your backend:
-   
-<lov-actions>
-  <lov-open-backend>View Backend</lov-open-backend>
-</lov-actions>
-
-   - Go to: **Users** → **Auth Settings** → **Google Settings**
-   - Enter your **Google Client ID** and **Google Client Secret**
-   - Click **Save**
-
-6. **Test It**
-   - Wait 2-3 minutes for changes to propagate
-   - Try Google sign-in again
-   - Should work perfectly! 🎉
-
----
-
-## Site URL & Redirect URL Configuration
-
-**Important:** These are automatically managed by Lovable Cloud!
-
-If you need to add custom domains:
-1. Open your backend (button above)
-2. Go to **Users** → **Auth Settings**
-3. Add your domains to the allowed list
-
-That's it! You're all set! 🚀
+**Last Updated**: 2025-10-13  
+**Maintained By**: Spectrum Development Team

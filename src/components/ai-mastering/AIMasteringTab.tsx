@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { Music, Upload, Loader2, Settings } from 'lucide-react';
+import { Music, Upload, Crown, Lock, Loader2, Settings } from 'lucide-react';
+import { useUserSubscription } from '@/hooks/useUserSubscription';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,7 +16,11 @@ export const AIMasteringTab = () => {
   const {
     t
   } = useLanguage();
-  const [loading, setLoading] = useState(false);
+  const {
+    isPremium,
+    loading
+  } = useUserSubscription();
+  const navigate = useNavigate();
   
   // State with sessionStorage persistence for file metadata
   const [targetFile, setTargetFile] = useState<File | null>(null);
@@ -379,8 +385,32 @@ export const AIMasteringTab = () => {
         </CardContent>
       </Card>;
   }
-  
-  // All users now have unrestricted access to AI mastering
+  if (!isPremium) {
+    return <Card className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 border-purple-400/40 shadow-xl">
+        <CardContent className="p-12 text-center space-y-6">
+          <div className="flex justify-center">
+            <div className="relative">
+              <Lock className="h-24 w-24 text-purple-400 animate-pulse" />
+              <Crown className="h-12 w-12 text-yellow-400 absolute -top-2 -right-2 animate-bounce" />
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-200 via-pink-200 to-blue-200 bg-clip-text text-transparent">
+              {t('aiMastering.premiumFeature')}
+            </h2>
+            <p className="text-slate-300 text-lg">
+              {t('aiMastering.unlockMessage')}
+            </p>
+          </div>
+
+          <Button onClick={() => navigate('/auth')} className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 text-white font-bold py-6 px-12 rounded-xl shadow-2xl shadow-purple-500/50 text-lg" size="lg">
+            <Crown className="h-6 w-6 mr-2" />
+            {t('aiMastering.upgradeToPremium')}
+          </Button>
+        </CardContent>
+      </Card>;
+  }
   return <div className="min-h-screen p-4 sm:p-6 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex justify-between items-start">
