@@ -146,7 +146,10 @@ export const UserHeader = () => {
               <span>Profile</span>
             </DropdownMenuItem>
             {isAdmin && (
-              <DropdownMenuItem className="text-yellow-400 hover:bg-slate-800 cursor-pointer">
+              <DropdownMenuItem 
+                onClick={() => navigate('/admin')}
+                className="text-yellow-400 hover:bg-slate-800 cursor-pointer"
+              >
                 <Shield className="mr-2 h-4 w-4" />
                 <span>Admin Panel</span>
               </DropdownMenuItem>

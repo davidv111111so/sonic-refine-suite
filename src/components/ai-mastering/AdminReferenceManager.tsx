@@ -11,7 +11,7 @@ import { Upload, Trash2, Music, Shield, CheckCircle2, AlertCircle } from 'lucide
 import { toast } from 'sonner';
 import { useUserSubscription } from '@/hooks/useUserSubscription';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-const GENRES = ['Flat', 'Bass Boost', 'Treble Boost', 'Jazz', 'Classical', 'Electronic', 'V-Shape', 'Vocal', 'Rock', 'Hip-Hop', 'Podcast', 'Live', 'Techno', 'House', 'Trance', 'Drum & Bass', 'Dubstep', 'Progressive House', 'Deep House', 'Tech House'];
+const GENRES = ['Rock', 'Indie Rock', 'Punk Rock', 'Dance Pop', 'Drum & Bass'];
 interface ReferenceTrack {
   genre: string;
   filename: string;

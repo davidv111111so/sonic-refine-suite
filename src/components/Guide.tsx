@@ -5,8 +5,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { HelpCircle, Upload, Settings, Sparkles, Sliders, Save, Zap, Volume2, Headphones, Keyboard, Archive, Palette, Download, Music, Cpu } from 'lucide-react';
-export const Guide = () => {
-  const [isOpen, setIsOpen] = useState(false);
+interface GuideProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export const Guide = ({ open, onOpenChange }: GuideProps) => {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isOpen = open !== undefined ? open : internalOpen;
+  const setIsOpen = onOpenChange || setInternalOpen;
   const features = [{
     name: "JSZip - Batch ZIP Downloads",
     description: "Download multiple enhanced files as a single ZIP archive for easy sharing",
