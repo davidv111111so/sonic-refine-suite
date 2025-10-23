@@ -4,9 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { LogOut, User as UserIcon, Shield, Trash2 } from 'lucide-react';
+import { LogOut, User as UserIcon, Shield, Trash2, Book } from 'lucide-react';
 import { toast } from 'sonner';
 import { ProfileModal } from '@/components/ProfileModal';
+import { Guide } from '@/components/Guide';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +26,7 @@ export const UserHeader = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
 
   useEffect(() => {
     // Get current session
@@ -116,6 +118,16 @@ export const UserHeader = () => {
   return (
     <>
       <div className="flex items-center gap-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowGuide(true)}
+          className="flex items-center gap-2"
+        >
+          <Book className="h-4 w-4" />
+          Guide
+        </Button>
+        
         <div className="text-right hidden md:block">
           <p className="text-sm font-medium text-cyan-300 brightness-125">
             {profile?.full_name || user.email}
@@ -179,6 +191,8 @@ export const UserHeader = () => {
         profile={profile}
         isAdmin={isAdmin}
       />
+
+      <Guide open={showGuide} onOpenChange={setShowGuide} />
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent className="bg-slate-900 border-slate-700 text-white">

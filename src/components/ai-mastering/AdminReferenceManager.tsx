@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Upload, Trash2, Music, Shield, CheckCircle2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useUserSubscription } from '@/hooks/useUserSubscription';
+import { useReferenceTracksDB } from '@/hooks/useReferenceTracksDB';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 const GENRES = ['Rock', 'Indie Rock', 'Punk Rock', 'Dance Pop', 'Drum & Bass'];
 interface ReferenceTrack {
@@ -19,10 +20,8 @@ interface ReferenceTrack {
   uploadedAt: number;
 }
 export const AdminReferenceManager: React.FC = () => {
-  const {
-    isAdmin,
-    loading
-  } = useUserSubscription();
+  const { isAdmin, loading } = useUserSubscription();
+  const { saveReference, getAllReferences, deleteReference } = useReferenceTracksDB();
   const [references, setReferences] = useState<Map<string, ReferenceTrack>>(new Map());
   const [uploading, setUploading] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -31,50 +30,27 @@ export const AdminReferenceManager: React.FC = () => {
   useEffect(() => {
     loadReferences();
   }, []);
+
   const loadReferences = async () => {
     try {
-      const db = await openDB();
-      const tx = db.transaction('references', 'readonly');
-      const store = tx.objectStore('references');
-      const getAllKeysRequest = store.getAllKeys();
-      const allKeys = await new Promise<IDBValidKey[]>((resolve, reject) => {
-        getAllKeysRequest.onsuccess = () => resolve(getAllKeysRequest.result);
-        getAllKeysRequest.onerror = () => reject(getAllKeysRequest.error);
-      });
+      const allRefs = await getAllReferences();
       const refsMap = new Map<string, ReferenceTrack>();
-      for (const key of allKeys) {
-        const getRequest = store.get(key);
-        const data = await new Promise<any>((resolve, reject) => {
-          getRequest.onsuccess = () => resolve(getRequest.result);
-          getRequest.onerror = () => reject(getRequest.error);
+      
+      Object.entries(allRefs).forEach(([genre, track]) => {
+        refsMap.set(genre, {
+          genre: track.genre,
+          filename: track.filename,
+          size: track.size,
+          uploadedAt: track.uploadedAt,
         });
-        if (data) {
-          refsMap.set(key as string, {
-            genre: data.genre,
-            filename: data.filename,
-            size: data.size,
-            uploadedAt: data.uploadedAt
-          });
-        }
-      }
+      });
+      
       setReferences(refsMap);
     } catch (error) {
       console.error('Failed to load references:', error);
     }
   };
-  const openDB = (): Promise<IDBDatabase> => {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open('spectrum-references', 1);
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result);
-      request.onupgradeneeded = event => {
-        const db = (event.target as IDBOpenDBRequest).result;
-        if (!db.objectStoreNames.contains('references')) {
-          db.createObjectStore('references');
-        }
-      };
-    });
-  };
+
   const handleUpload = async (genre: string, file: File) => {
     if (!file.type.startsWith('audio/')) {
       toast.error('Invalid file', {
@@ -90,26 +66,7 @@ export const AdminReferenceManager: React.FC = () => {
     }
     setUploading(genre);
     try {
-      const arrayBuffer = await file.arrayBuffer();
-      const db = await openDB();
-      const tx = db.transaction('references', 'readwrite');
-      const store = tx.objectStore('references');
-      const trackData = {
-        genre,
-        data: arrayBuffer,
-        filename: file.name,
-        size: file.size,
-        uploadedAt: Date.now()
-      };
-      const putRequest = store.put(trackData, genre);
-      await new Promise((resolve, reject) => {
-        putRequest.onsuccess = () => resolve(undefined);
-        putRequest.onerror = () => reject(putRequest.error);
-      });
-      await new Promise((resolve, reject) => {
-        tx.oncomplete = () => resolve(undefined);
-        tx.onerror = () => reject(tx.error);
-      });
+      await saveReference(genre, file);
       await loadReferences();
       toast.success('Reference uploaded', {
         description: `${genre} reference track saved successfully`
@@ -123,20 +80,10 @@ export const AdminReferenceManager: React.FC = () => {
       setUploading(null);
     }
   };
+
   const handleDelete = async (genre: string) => {
     try {
-      const db = await openDB();
-      const tx = db.transaction('references', 'readwrite');
-      const store = tx.objectStore('references');
-      const deleteRequest = store.delete(genre);
-      await new Promise((resolve, reject) => {
-        deleteRequest.onsuccess = () => resolve(undefined);
-        deleteRequest.onerror = () => reject(deleteRequest.error);
-      });
-      await new Promise((resolve, reject) => {
-        tx.oncomplete = () => resolve(undefined);
-        tx.onerror = () => reject(tx.error);
-      });
+      await deleteReference(genre);
       await loadReferences();
       toast.success('Reference deleted', {
         description: `${genre} reference track removed`
