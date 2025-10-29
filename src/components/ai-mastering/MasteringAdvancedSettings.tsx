@@ -123,22 +123,21 @@ export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps>
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] bg-slate-900 border-slate-700 text-white">
-        <div className="overflow-y-auto max-h-[calc(85vh-100px)] pr-4">
-          <DialogHeader className="mb-4">
-            <DialogTitle className="flex items-center gap-2 text-xl">
-              <Settings className="h-5 w-5" />
-              Advanced Mastering Settings
-            </DialogTitle>
-            <DialogDescription>
-              Fine-tune mastering parameters for professional results
-            </DialogDescription>
-          </DialogHeader>
-
-        <div className="space-y-6 py-2">
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-xl">
+            <Settings className="h-5 w-5" />
+            AI Mastering - Advanced Settings
+          </DialogTitle>
+          <DialogDescription>
+            Fine-tune mastering parameters for professional results
+          </DialogDescription>
+        </DialogHeader>
+        <div className="overflow-y-auto max-h-[calc(85vh-120px)] pr-2 -mr-2">
+        <div className="space-y-6">
           {/* Core Settings */}
-          <div className="space-y-4 p-4 bg-slate-900/50 rounded-lg">
-            <h3 className="font-semibold text-white flex items-center gap-2">
+          <div className="space-y-4 p-4 rounded-lg border">
+            <h3 className="font-semibold flex items-center gap-2">
               ⚙️ Core Settings
             </h3>
             
@@ -150,7 +149,7 @@ export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps>
                   value={settings.threshold}
                   onChange={(e) => handleChange('threshold', parseFloat(e.target.value))}
                   step="0.000001"
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white"
+                  className="w-full px-3 py-2 bg-background border rounded-md"
                 />
               </div>
               
@@ -161,7 +160,7 @@ export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps>
                   value={settings.epsilon}
                   onChange={(e) => handleChange('epsilon', parseFloat(e.target.value))}
                   step="0.000001"
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white"
+                  className="w-full px-3 py-2 bg-background border rounded-md"
                 />
               </div>
               
@@ -172,7 +171,7 @@ export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps>
                   value={settings.max_piece_length}
                   onChange={(e) => handleChange('max_piece_length', parseFloat(e.target.value))}
                   step="1"
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white"
+                  className="w-full px-3 py-2 bg-background border rounded-md"
                 />
               </div>
               
@@ -183,7 +182,7 @@ export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps>
                   value={settings.bpm}
                   onChange={(e) => handleChange('bpm', parseFloat(e.target.value))}
                   step="0.1"
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white"
+                  className="w-full px-3 py-2 bg-background border rounded-md"
                 />
               </div>
               
@@ -193,7 +192,7 @@ export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps>
                   type="number"
                   value={settings.time_signature_numerator}
                   onChange={(e) => handleChange('time_signature_numerator', parseInt(e.target.value))}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white"
+                  className="w-full px-3 py-2 bg-background border rounded-md"
                 />
               </div>
               
@@ -203,7 +202,7 @@ export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps>
                   type="number"
                   value={settings.time_signature_denominator}
                   onChange={(e) => handleChange('time_signature_denominator', parseInt(e.target.value))}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white"
+                  className="w-full px-3 py-2 bg-background border rounded-md"
                 />
               </div>
               
@@ -214,15 +213,15 @@ export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps>
                   value={settings.piece_length_bars}
                   onChange={(e) => handleChange('piece_length_bars', parseFloat(e.target.value))}
                   step="0.1"
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white"
+                  className="w-full px-3 py-2 bg-background border rounded-md"
                 />
               </div>
             </div>
           </div>
 
           {/* Method Settings */}
-          <div className="space-y-4 p-4 bg-slate-900/50 rounded-lg">
-            <h3 className="font-semibold text-white flex items-center gap-2">
+          <div className="space-y-4 p-4 rounded-lg border">
+            <h3 className="font-semibold flex items-center gap-2">
               🔧 Method Settings
             </h3>
             
@@ -277,9 +276,9 @@ export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps>
           </div>
 
           {/* Spectrum Analysis */}
-          <div className="space-y-4 p-4 bg-slate-900/50 rounded-lg">
+          <div className="space-y-4 p-4 rounded-lg border">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-white flex items-center gap-2">
+              <h3 className="font-semibold flex items-center gap-2">
                 📊 Spectrum Analysis
               </h3>
               <div className="flex items-center gap-2">
@@ -298,7 +297,7 @@ export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps>
                   type="number"
                   value={settings.spectrum_smoothing_width}
                   onChange={(e) => handleChange('spectrum_smoothing_width', parseInt(e.target.value))}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white"
+                  className="w-full px-3 py-2 bg-background border rounded-md"
                 />
               </div>
               
@@ -308,7 +307,7 @@ export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps>
                   type="number"
                   value={settings.smoothing_steps}
                   onChange={(e) => handleChange('smoothing_steps', parseInt(e.target.value))}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white"
+                  className="w-full px-3 py-2 bg-background border rounded-md"
                 />
               </div>
               
@@ -318,7 +317,7 @@ export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps>
                   type="number"
                   value={settings.spectrum_correction_hops}
                   onChange={(e) => handleChange('spectrum_correction_hops', parseInt(e.target.value))}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white"
+                  className="w-full px-3 py-2 bg-background border rounded-md"
                 />
               </div>
               
@@ -328,7 +327,7 @@ export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps>
                   type="number"
                   value={settings.loudness_steps}
                   onChange={(e) => handleChange('loudness_steps', parseInt(e.target.value))}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white"
+                  className="w-full px-3 py-2 bg-background border rounded-md"
                 />
               </div>
               
@@ -338,7 +337,7 @@ export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps>
                   type="number"
                   value={settings.spectrum_bands}
                   onChange={(e) => handleChange('spectrum_bands', parseInt(e.target.value))}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white"
+                  className="w-full px-3 py-2 bg-background border rounded-md"
                 />
               </div>
               
@@ -348,15 +347,15 @@ export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps>
                   type="number"
                   value={settings.fft_size}
                   onChange={(e) => handleChange('fft_size', parseInt(e.target.value))}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white"
+                  className="w-full px-3 py-2 bg-background border rounded-md"
                 />
               </div>
             </div>
           </div>
 
           {/* Normalization */}
-          <div className="space-y-4 p-4 bg-slate-900/50 rounded-lg">
-            <h3 className="font-semibold text-white flex items-center gap-2">
+          <div className="space-y-4 p-4 rounded-lg border">
+            <h3 className="font-semibold flex items-center gap-2">
               🎚️ Normalization
             </h3>
             
@@ -378,8 +377,8 @@ export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps>
           </div>
 
           {/* Limiter Settings */}
-          <div className="space-y-4 p-4 bg-slate-900/50 rounded-lg">
-            <h3 className="font-semibold text-white flex items-center gap-2">
+          <div className="space-y-4 p-4 rounded-lg border">
+            <h3 className="font-semibold flex items-center gap-2">
               🔊 Limiter Settings
             </h3>
             
@@ -406,7 +405,7 @@ export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps>
                 value={settings.limiter_threshold_db}
                 onChange={(e) => handleChange('limiter_threshold_db', parseFloat(e.target.value))}
                 step="0.1"
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white"
+                className="w-full px-3 py-2 bg-background border rounded-md"
               />
             </div>
             
@@ -420,8 +419,8 @@ export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps>
           </div>
 
           {/* Output Processing */}
-          <div className="space-y-4 p-4 bg-slate-900/50 rounded-lg">
-            <h3 className="font-semibold text-white flex items-center gap-2">
+          <div className="space-y-4 p-4 rounded-lg border">
+            <h3 className="font-semibold flex items-center gap-2">
               🎛️ Output Processing
             </h3>
             
@@ -443,8 +442,8 @@ export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps>
           </div>
 
           {/* Output Format */}
-          <div className="space-y-4 p-4 bg-slate-900/50 rounded-lg">
-            <h3 className="font-semibold text-white flex items-center gap-2">
+          <div className="space-y-4 p-4 rounded-lg border">
+            <h3 className="font-semibold flex items-center gap-2">
               💾 Output Format
             </h3>
             
@@ -501,7 +500,7 @@ export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-between pt-4">
+          <div className="flex justify-between pt-4 border-t">
             <Button
               variant="outline"
               onClick={handleReset}
@@ -512,9 +511,8 @@ export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps>
             </Button>
             <Button
               onClick={() => onOpenChange(false)}
-              className="bg-gradient-to-r from-green-600 to-emerald-600"
             >
-              Apply Settings
+              Save & Close
             </Button>
           </div>
         </div>
