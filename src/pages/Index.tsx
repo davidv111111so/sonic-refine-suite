@@ -27,9 +27,6 @@ const Index = () => {
     setShowIntro(false);
   };
 
-  if (showIntro) {
-    return <IntroAnimation onComplete={handleIntroComplete} />;
-  }
   console.log('Level app render started');
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [eqBands, setEqBands] = useState([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]); // 10-band EQ (5 bands mapped to specific indices)
@@ -328,6 +325,11 @@ const Index = () => {
       description: `${downloadedFiles.length} downloaded files have been cleared.`
     });
   }, [enhancedHistory, toast]);
+  
+  if (showIntro) {
+    return <IntroAnimation onComplete={handleIntroComplete} />;
+  }
+  
   return <div className="min-h-screen transition-colors duration-300 bg-blue-950">
       <div className="container mx-auto px-4 py-6 max-w-6xl">
         {/* Header */}
