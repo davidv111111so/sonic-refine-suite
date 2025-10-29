@@ -1,4 +1,5 @@
 export { LevelMediaPlayer } from './LevelMediaPlayer';
+export { AdvancedMediaPlayer } from './AdvancedMediaPlayer';
 export { TenBandEqualizer } from './TenBandEqualizer';
 export { DynamicsCompressorControls } from './DynamicsCompressorControls';
 export { AudioVisualizer } from './AudioVisualizer';

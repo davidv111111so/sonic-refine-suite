@@ -25,26 +25,46 @@ import { Button } from '@/components/ui/button';
 import { Settings, RotateCcw } from 'lucide-react';
 
 export interface MasteringSettings {
-  // Output settings
-  outputBits: 16 | 24 | 32;
-  dithering: boolean;
+  // Core Matchering settings
+  threshold: number;
+  epsilon: number;
+  max_piece_length: number;
+  bpm: number;
+  time_signature_numerator: number;
+  time_signature_denominator: number;
+  piece_length_bars: number;
   
-  // Limiter settings
-  limiterMethod: 'classic' | 'modern' | 'transparent';
-  limiterCeiling: number; // dB (typically -0.1 to -3)
-  
-  // Dynamics
-  targetLoudness: number; // LUFS (-23 to -6)
-  dynamicRange: number; // LU (6-20)
+  // Method settings
+  resampling_method: string;
+  spectrum_compensation: string;
+  loudness_compensation: string;
   
   // Spectrum analysis
-  spectralBalance: boolean;
-  lowEndEnhancement: number; // 0-100%
-  highEndCrispness: number; // 0-100%
+  analyze_full_spectrum: boolean;
+  spectrum_smoothing_width: number;
+  smoothing_steps: number;
+  spectrum_correction_hops: number;
+  loudness_steps: number;
+  spectrum_bands: number;
+  fft_size: number;
   
-  // Advanced
-  stereoWidth: number; // 0-100%
-  warmth: number; // 0-100%
+  // Normalization
+  normalize_reference: boolean;
+  normalize: boolean;
+  
+  // Limiter
+  limiter_method: string;
+  limiter_threshold_db: number;
+  loudness_correction_limiting: boolean;
+  
+  // Output processing
+  amplify: boolean;
+  clipping: boolean;
+  
+  // Output format
+  output_bits: string;
+  output_channels: number;
+  dithering_method: string;
 }
 
 interface MasteringAdvancedSettingsProps {
@@ -55,17 +75,33 @@ interface MasteringAdvancedSettingsProps {
 }
 
 const DEFAULT_SETTINGS: MasteringSettings = {
-  outputBits: 24,
-  dithering: true,
-  limiterMethod: 'modern',
-  limiterCeiling: -0.3,
-  targetLoudness: -14,
-  dynamicRange: 12,
-  spectralBalance: true,
-  lowEndEnhancement: 50,
-  highEndCrispness: 50,
-  stereoWidth: 100,
-  warmth: 50,
+  threshold: 0.998138,
+  epsilon: 0.000001,
+  max_piece_length: 30.0,
+  bpm: 0.0,
+  time_signature_numerator: 4,
+  time_signature_denominator: 4,
+  piece_length_bars: 8.0,
+  resampling_method: 'FastSinc',
+  spectrum_compensation: 'Frequency-Domain (Gain Envelope)',
+  loudness_compensation: 'LUFS (Whole Signal)',
+  analyze_full_spectrum: false,
+  spectrum_smoothing_width: 3,
+  smoothing_steps: 1,
+  spectrum_correction_hops: 2,
+  loudness_steps: 10,
+  spectrum_bands: 32,
+  fft_size: 4096,
+  normalize_reference: false,
+  normalize: false,
+  limiter_method: 'True Peak',
+  limiter_threshold_db: -1.0,
+  loudness_correction_limiting: false,
+  amplify: false,
+  clipping: false,
+  output_bits: '32 (IEEE float)',
+  output_channels: 2,
+  dithering_method: 'TPDF',
 };
 
 export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps> = ({
@@ -100,34 +136,243 @@ export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps>
           </DialogHeader>
 
         <div className="space-y-6 py-2">
-          {/* Output Format */}
+          {/* Core Settings */}
           <div className="space-y-4 p-4 bg-slate-900/50 rounded-lg">
             <h3 className="font-semibold text-white flex items-center gap-2">
-              🎚️ Output Format
+              ⚙️ Core Settings
+            </h3>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Threshold</Label>
+                <input
+                  type="number"
+                  value={settings.threshold}
+                  onChange={(e) => handleChange('threshold', parseFloat(e.target.value))}
+                  step="0.000001"
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Epsilon</Label>
+                <input
+                  type="number"
+                  value={settings.epsilon}
+                  onChange={(e) => handleChange('epsilon', parseFloat(e.target.value))}
+                  step="0.000001"
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Max Piece Length (seconds)</Label>
+                <input
+                  type="number"
+                  value={settings.max_piece_length}
+                  onChange={(e) => handleChange('max_piece_length', parseFloat(e.target.value))}
+                  step="1"
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>BPM</Label>
+                <input
+                  type="number"
+                  value={settings.bpm}
+                  onChange={(e) => handleChange('bpm', parseFloat(e.target.value))}
+                  step="0.1"
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Time Signature Numerator</Label>
+                <input
+                  type="number"
+                  value={settings.time_signature_numerator}
+                  onChange={(e) => handleChange('time_signature_numerator', parseInt(e.target.value))}
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Time Signature Denominator</Label>
+                <input
+                  type="number"
+                  value={settings.time_signature_denominator}
+                  onChange={(e) => handleChange('time_signature_denominator', parseInt(e.target.value))}
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Piece Length (bars)</Label>
+                <input
+                  type="number"
+                  value={settings.piece_length_bars}
+                  onChange={(e) => handleChange('piece_length_bars', parseFloat(e.target.value))}
+                  step="0.1"
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Method Settings */}
+          <div className="space-y-4 p-4 bg-slate-900/50 rounded-lg">
+            <h3 className="font-semibold text-white flex items-center gap-2">
+              🔧 Method Settings
             </h3>
             
             <div className="space-y-2">
-              <Label>Bit Depth</Label>
+              <Label>Resampling Method</Label>
               <Select
-                value={settings.outputBits.toString()}
-                onValueChange={(v) => handleChange('outputBits', parseInt(v))}
+                value={settings.resampling_method}
+                onValueChange={(v) => handleChange('resampling_method', v)}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="16">16-bit (CD Quality)</SelectItem>
-                  <SelectItem value="24">24-bit (Studio Quality)</SelectItem>
-                  <SelectItem value="32">32-bit Float (Maximum)</SelectItem>
+                  <SelectItem value="FastSinc">FastSinc</SelectItem>
+                  <SelectItem value="Sinc">Sinc</SelectItem>
+                  <SelectItem value="Linear">Linear</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
+            <div className="space-y-2">
+              <Label>Spectrum Compensation</Label>
+              <Select
+                value={settings.spectrum_compensation}
+                onValueChange={(v) => handleChange('spectrum_compensation', v)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Frequency-Domain (Gain Envelope)">Frequency-Domain (Gain Envelope)</SelectItem>
+                  <SelectItem value="Time-Domain">Time-Domain</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Loudness Compensation</Label>
+              <Select
+                value={settings.loudness_compensation}
+                onValueChange={(v) => handleChange('loudness_compensation', v)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="LUFS (Whole Signal)">LUFS (Whole Signal)</SelectItem>
+                  <SelectItem value="RMS">RMS</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Spectrum Analysis */}
+          <div className="space-y-4 p-4 bg-slate-900/50 rounded-lg">
             <div className="flex items-center justify-between">
-              <Label>Dithering</Label>
+              <h3 className="font-semibold text-white flex items-center gap-2">
+                📊 Spectrum Analysis
+              </h3>
+              <div className="flex items-center gap-2">
+                <Label className="text-sm">Analyze Full Spectrum</Label>
+                <Switch
+                  checked={settings.analyze_full_spectrum}
+                  onCheckedChange={(v) => handleChange('analyze_full_spectrum', v)}
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Spectrum Smoothing Width</Label>
+                <input
+                  type="number"
+                  value={settings.spectrum_smoothing_width}
+                  onChange={(e) => handleChange('spectrum_smoothing_width', parseInt(e.target.value))}
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Smoothing Steps</Label>
+                <input
+                  type="number"
+                  value={settings.smoothing_steps}
+                  onChange={(e) => handleChange('smoothing_steps', parseInt(e.target.value))}
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Spectrum Correction Hops</Label>
+                <input
+                  type="number"
+                  value={settings.spectrum_correction_hops}
+                  onChange={(e) => handleChange('spectrum_correction_hops', parseInt(e.target.value))}
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Loudness Steps</Label>
+                <input
+                  type="number"
+                  value={settings.loudness_steps}
+                  onChange={(e) => handleChange('loudness_steps', parseInt(e.target.value))}
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Spectrum Bands</Label>
+                <input
+                  type="number"
+                  value={settings.spectrum_bands}
+                  onChange={(e) => handleChange('spectrum_bands', parseInt(e.target.value))}
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>FFT Size</Label>
+                <input
+                  type="number"
+                  value={settings.fft_size}
+                  onChange={(e) => handleChange('fft_size', parseInt(e.target.value))}
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Normalization */}
+          <div className="space-y-4 p-4 bg-slate-900/50 rounded-lg">
+            <h3 className="font-semibold text-white flex items-center gap-2">
+              🎚️ Normalization
+            </h3>
+            
+            <div className="flex items-center justify-between">
+              <Label>Normalize Reference</Label>
               <Switch
-                checked={settings.dithering}
-                onCheckedChange={(v) => handleChange('dithering', v)}
+                checked={settings.normalize_reference}
+                onCheckedChange={(v) => handleChange('normalize_reference', v)}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <Label>Normalize</Label>
+              <Switch
+                checked={settings.normalize}
+                onCheckedChange={(v) => handleChange('normalize', v)}
               />
             </div>
           </div>
@@ -141,150 +386,117 @@ export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps>
             <div className="space-y-2">
               <Label>Limiter Method</Label>
               <Select
-                value={settings.limiterMethod}
-                onValueChange={(v) => handleChange('limiterMethod', v)}
+                value={settings.limiter_method}
+                onValueChange={(v) => handleChange('limiter_method', v)}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="classic">Classic (Aggressive)</SelectItem>
-                  <SelectItem value="modern">Modern (Balanced)</SelectItem>
-                  <SelectItem value="transparent">Transparent (Clean)</SelectItem>
+                  <SelectItem value="True Peak">True Peak</SelectItem>
+                  <SelectItem value="Sample Peak">Sample Peak</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <div className="flex justify-between">
-                <Label>Ceiling</Label>
-                <span className="text-sm text-slate-400">{settings.limiterCeiling} dB</span>
-              </div>
-              <Slider
-                value={[settings.limiterCeiling]}
-                min={-3}
-                max={-0.1}
-                step={0.1}
-                onValueChange={(v) => handleChange('limiterCeiling', v[0])}
+              <Label>Limiter Threshold dB</Label>
+              <input
+                type="number"
+                value={settings.limiter_threshold_db}
+                onChange={(e) => handleChange('limiter_threshold_db', parseFloat(e.target.value))}
+                step="0.1"
+                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white"
               />
             </div>
-          </div>
-
-          {/* Loudness & Dynamics */}
-          <div className="space-y-4 p-4 bg-slate-900/50 rounded-lg">
-            <h3 className="font-semibold text-white flex items-center gap-2">
-              📊 Loudness & Dynamics
-            </h3>
             
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <Label>Target Loudness</Label>
-                <span className="text-sm text-slate-400">{settings.targetLoudness} LUFS</span>
-              </div>
-              <Slider
-                value={[settings.targetLoudness]}
-                min={-23}
-                max={-6}
-                step={1}
-                onValueChange={(v) => handleChange('targetLoudness', v[0])}
-              />
-              <p className="text-xs text-slate-500">
-                Streaming: -14 LUFS | Club: -8 LUFS | Spotify: -14 LUFS
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <Label>Dynamic Range</Label>
-                <span className="text-sm text-slate-400">{settings.dynamicRange} LU</span>
-              </div>
-              <Slider
-                value={[settings.dynamicRange]}
-                min={6}
-                max={20}
-                step={1}
-                onValueChange={(v) => handleChange('dynamicRange', v[0])}
-              />
-            </div>
-          </div>
-
-          {/* Spectral Balance */}
-          <div className="space-y-4 p-4 bg-slate-900/50 rounded-lg">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-white flex items-center gap-2">
-                🎨 Spectral Balance
-              </h3>
+              <Label>Loudness Correction Limiting</Label>
               <Switch
-                checked={settings.spectralBalance}
-                onCheckedChange={(v) => handleChange('spectralBalance', v)}
+                checked={settings.loudness_correction_limiting}
+                onCheckedChange={(v) => handleChange('loudness_correction_limiting', v)}
               />
             </div>
-
-            {settings.spectralBalance && (
-              <>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <Label>Low-End Enhancement</Label>
-                    <span className="text-sm text-slate-400">{settings.lowEndEnhancement}%</span>
-                  </div>
-                  <Slider
-                    value={[settings.lowEndEnhancement]}
-                    min={0}
-                    max={100}
-                    step={5}
-                    onValueChange={(v) => handleChange('lowEndEnhancement', v[0])}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <Label>High-End Crispness</Label>
-                    <span className="text-sm text-slate-400">{settings.highEndCrispness}%</span>
-                  </div>
-                  <Slider
-                    value={[settings.highEndCrispness]}
-                    min={0}
-                    max={100}
-                    step={5}
-                    onValueChange={(v) => handleChange('highEndCrispness', v[0])}
-                  />
-                </div>
-              </>
-            )}
           </div>
 
-          {/* Advanced Controls */}
+          {/* Output Processing */}
           <div className="space-y-4 p-4 bg-slate-900/50 rounded-lg">
             <h3 className="font-semibold text-white flex items-center gap-2">
-              ⚙️ Advanced Controls
+              🎛️ Output Processing
+            </h3>
+            
+            <div className="flex items-center justify-between">
+              <Label>Amplify</Label>
+              <Switch
+                checked={settings.amplify}
+                onCheckedChange={(v) => handleChange('amplify', v)}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <Label>Clipping</Label>
+              <Switch
+                checked={settings.clipping}
+                onCheckedChange={(v) => handleChange('clipping', v)}
+              />
+            </div>
+          </div>
+
+          {/* Output Format */}
+          <div className="space-y-4 p-4 bg-slate-900/50 rounded-lg">
+            <h3 className="font-semibold text-white flex items-center gap-2">
+              💾 Output Format
             </h3>
             
             <div className="space-y-2">
-              <div className="flex justify-between">
-                <Label>Stereo Width</Label>
-                <span className="text-sm text-slate-400">{settings.stereoWidth}%</span>
-              </div>
-              <Slider
-                value={[settings.stereoWidth]}
-                min={0}
-                max={150}
-                step={5}
-                onValueChange={(v) => handleChange('stereoWidth', v[0])}
-              />
+              <Label>Output Bits</Label>
+              <Select
+                value={settings.output_bits}
+                onValueChange={(v) => handleChange('output_bits', v)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="16">16-bit</SelectItem>
+                  <SelectItem value="24">24-bit</SelectItem>
+                  <SelectItem value="32">32-bit</SelectItem>
+                  <SelectItem value="32 (IEEE float)">32 (IEEE float)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
-              <div className="flex justify-between">
-                <Label>Warmth</Label>
-                <span className="text-sm text-slate-400">{settings.warmth}%</span>
-              </div>
-              <Slider
-                value={[settings.warmth]}
-                min={0}
-                max={100}
-                step={5}
-                onValueChange={(v) => handleChange('warmth', v[0])}
-              />
+              <Label>Output Channels</Label>
+              <Select
+                value={settings.output_channels.toString()}
+                onValueChange={(v) => handleChange('output_channels', parseInt(v))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">Mono (1)</SelectItem>
+                  <SelectItem value="2">Stereo (2)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Dithering Method</Label>
+              <Select
+                value={settings.dithering_method}
+                onValueChange={(v) => handleChange('dithering_method', v)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="None">None</SelectItem>
+                  <SelectItem value="TPDF">TPDF</SelectItem>
+                  <SelectItem value="RPDF">RPDF</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

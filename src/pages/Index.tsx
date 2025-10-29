@@ -6,6 +6,7 @@ import { LanguageToggle } from '@/components/LanguageToggle';
 import { CopyrightNotice } from '@/components/CopyrightNotice';
 import { UserHeader } from '@/components/UserHeader';
 import { LevelTabs } from '@/components/LevelTabs';
+import { IntroAnimation } from '@/components/IntroAnimation';
 import { useToast } from '@/hooks/use-toast';
 import { useFileManagement } from '@/hooks/useFileManagement';
 import { useAdvancedAudioProcessing } from '@/hooks/useAdvancedAudioProcessing';
@@ -14,7 +15,21 @@ import { AudioFile, AudioStats } from '@/types/audio';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { AnimatedTitle } from '@/components/AnimatedTitle';
+
 const Index = () => {
+  const [showIntro, setShowIntro] = useState(() => {
+    const introShown = sessionStorage.getItem('introShown');
+    return !introShown;
+  });
+
+  const handleIntroComplete = () => {
+    sessionStorage.setItem('introShown', 'true');
+    setShowIntro(false);
+  };
+
+  if (showIntro) {
+    return <IntroAnimation onComplete={handleIntroComplete} />;
+  }
   console.log('Level app render started');
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [eqBands, setEqBands] = useState([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]); // 10-band EQ (5 bands mapped to specific indices)

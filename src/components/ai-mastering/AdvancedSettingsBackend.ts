@@ -40,97 +40,56 @@ export interface BackendMasteringParams {
  * Convert UI settings to backend parameters
  */
 export function mapSettingsToBackend(settings: MasteringSettings): BackendMasteringParams {
-  // Map limiter method
-  const limiterMethodMap: Record<string, string> = {
-    'classic': 'True Peak',
-    'modern': 'True Peak',
-    'transparent': 'True Peak'
-  };
-
-  // Map spectrum compensation based on spectralBalance setting
-  const spectrumCompensation = settings.spectralBalance 
-    ? 'Frequency-Domain (Gain Envelope)' 
-    : 'Frequency-Domain (Gain Envelope)';
-
-  // Map loudness compensation
-  const loudnessCompensation = 'LUFS (Whole Signal)';
-
-  // Map resampling method
-  const resamplingMethod = 'FastSinc';
-
-  // Map dithering
-  const ditheringMethod = settings.dithering ? 'TPDF' : 'None';
+  // Parse output bits
+  const outputBits = parseInt(settings.output_bits.split(' ')[0]);
 
   return {
-    // Core Matchering settings
-    threshold: 0.998138, // Default from image
-    epsilon: 0.000001, // Default from image
-    max_piece_length: 30.0, // seconds
-    bpm: 0.0, // Auto-detect
-    time_signature_numerator: 4,
-    time_signature_denominator: 4,
-    piece_length_bars: 8.0,
-    resampling_method: resamplingMethod,
-    spectrum_compensation: spectrumCompensation,
-    loudness_compensation: loudnessCompensation,
+    // Core Matchering settings - directly from UI
+    threshold: settings.threshold,
+    epsilon: settings.epsilon,
+    max_piece_length: settings.max_piece_length,
+    bpm: settings.bpm,
+    time_signature_numerator: settings.time_signature_numerator,
+    time_signature_denominator: settings.time_signature_denominator,
+    piece_length_bars: settings.piece_length_bars,
+    resampling_method: settings.resampling_method,
+    spectrum_compensation: settings.spectrum_compensation,
+    loudness_compensation: settings.loudness_compensation,
     
     // Spectrum analysis
-    analyze_full_spectrum: settings.spectralBalance,
-    spectrum_smoothing_width: 3,
-    smoothing_steps: 1,
-    spectrum_correction_hops: 2,
-    loudness_steps: 10,
-    spectrum_bands: 32,
-    fft_size: 4096,
+    analyze_full_spectrum: settings.analyze_full_spectrum,
+    spectrum_smoothing_width: settings.spectrum_smoothing_width,
+    smoothing_steps: settings.smoothing_steps,
+    spectrum_correction_hops: settings.spectrum_correction_hops,
+    loudness_steps: settings.loudness_steps,
+    spectrum_bands: settings.spectrum_bands,
+    fft_size: settings.fft_size,
     
     // Normalization
-    normalize_reference: true,
-    normalize: true,
+    normalize_reference: settings.normalize_reference,
+    normalize: settings.normalize,
     
     // Limiter
-    limiter_method: limiterMethodMap[settings.limiterMethod] || 'True Peak',
-    limiter_threshold_db: settings.limiterCeiling,
-    loudness_correction_limiting: true,
+    limiter_method: settings.limiter_method,
+    limiter_threshold_db: settings.limiter_threshold_db,
+    loudness_correction_limiting: settings.loudness_correction_limiting,
     
     // Output processing
-    amplify: settings.spectralBalance,
-    clipping: false,
+    amplify: settings.amplify,
+    clipping: settings.clipping,
     
     // Output format
-    output_bits: settings.outputBits,
-    output_channels: 2,
-    dithering_method: ditheringMethod,
+    output_bits: outputBits,
+    output_channels: settings.output_channels,
+    dithering_method: settings.dithering_method,
   };
 }
 
 /**
- * Enhanced settings with additional parameters
+ * Convert UI settings to enhanced backend parameters (same as base for new interface)
  */
-export interface EnhancedBackendParams extends BackendMasteringParams {
-  // Additional custom parameters
-  target_loudness_lufs: number;
-  dynamic_range_lu: number;
-  low_end_enhancement: number;
-  high_end_crispness: number;
-  stereo_width_percent: number;
-  warmth_percent: number;
-}
-
-/**
- * Convert UI settings to enhanced backend parameters
- */
-export function mapSettingsToEnhancedBackend(settings: MasteringSettings): EnhancedBackendParams {
-  const baseParams = mapSettingsToBackend(settings);
-  
-  return {
-    ...baseParams,
-    target_loudness_lufs: settings.targetLoudness,
-    dynamic_range_lu: settings.dynamicRange,
-    low_end_enhancement: settings.lowEndEnhancement,
-    high_end_crispness: settings.highEndCrispness,
-    stereo_width_percent: settings.stereoWidth,
-    warmth_percent: settings.warmth,
-  };
+export function mapSettingsToEnhancedBackend(settings: MasteringSettings): BackendMasteringParams {
+  return mapSettingsToBackend(settings);
 }
 
 /**
