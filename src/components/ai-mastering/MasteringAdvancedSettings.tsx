@@ -451,7 +451,7 @@ export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps>
             <div className="space-y-2">
               <Label>Output Bits</Label>
               <Select
-                value={settings.output_bits}
+                value={settings.output_bits || '32 (IEEE float)'}
                 onValueChange={(v) => handleChange('output_bits', v)}
               >
                 <SelectTrigger>
@@ -469,7 +469,7 @@ export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps>
             <div className="space-y-2">
               <Label>Output Channels</Label>
               <Select
-                value={settings.output_channels.toString()}
+                value={settings.output_channels?.toString() || '2'}
                 onValueChange={(v) => handleChange('output_channels', parseInt(v))}
               >
                 <SelectTrigger>
