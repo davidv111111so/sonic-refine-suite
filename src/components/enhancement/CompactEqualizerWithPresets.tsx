@@ -78,10 +78,13 @@ export const CompactEqualizerWithPresets = ({
   const { t, language } = useLanguage();
   const eqFrequencies = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
 
-  // Memoized preset application function
+  // Memoized preset application function with animated band movement
   const applyPreset = useCallback((values: number[]) => {
+    // Apply each band change with staggered delay for visual effect
     values.forEach((value, index) => {
-      onEQBandChange(index, value);
+      setTimeout(() => {
+        onEQBandChange(index, value);
+      }, index * 50); // 50ms delay between each band
     });
   }, [onEQBandChange]);
 

@@ -11,13 +11,8 @@ import { Upload, Trash2, Music, Shield, CheckCircle2, AlertCircle } from 'lucide
 import { toast } from 'sonner';
 import { useUserSubscription } from '@/hooks/useUserSubscription';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-const GENRES = ['Flat', 'Bass Boost', 'Treble Boost', 'Jazz', 'Classical', 'Electronic', 'V-Shape', 'Vocal', 'Rock', 'Hip-Hop', 'Podcast', 'Live', 'Techno', 'House', 'Trance', 'Drum & Bass', 'Dubstep', 'Progressive House', 'Deep House', 'Tech House'];
-interface ReferenceTrack {
-  genre: string;
-  filename: string;
-  size: number;
-  uploadedAt: number;
-}
+import { GENRE_PRESETS } from './GenreReferenceSelector';
+import { saveReferenceTrack, getAllReferenceTracks, deleteReferenceTrack as deleteTrack, type ReferenceTrack } from '@/utils/referenceTrackStorage';
 export const AdminReferenceManager: React.FC = () => {
   const {
     isAdmin,
@@ -31,50 +26,20 @@ export const AdminReferenceManager: React.FC = () => {
   useEffect(() => {
     loadReferences();
   }, []);
+
   const loadReferences = async () => {
     try {
-      const db = await openDB();
-      const tx = db.transaction('references', 'readonly');
-      const store = tx.objectStore('references');
-      const getAllKeysRequest = store.getAllKeys();
-      const allKeys = await new Promise<IDBValidKey[]>((resolve, reject) => {
-        getAllKeysRequest.onsuccess = () => resolve(getAllKeysRequest.result);
-        getAllKeysRequest.onerror = () => reject(getAllKeysRequest.error);
-      });
+      const tracks = await getAllReferenceTracks();
       const refsMap = new Map<string, ReferenceTrack>();
-      for (const key of allKeys) {
-        const getRequest = store.get(key);
-        const data = await new Promise<any>((resolve, reject) => {
-          getRequest.onsuccess = () => resolve(getRequest.result);
-          getRequest.onerror = () => reject(getRequest.error);
-        });
-        if (data) {
-          refsMap.set(key as string, {
-            genre: data.genre,
-            filename: data.filename,
-            size: data.size,
-            uploadedAt: data.uploadedAt
-          });
-        }
-      }
+      tracks.forEach(track => {
+        refsMap.set(track.genre, track);
+      });
       setReferences(refsMap);
     } catch (error) {
       console.error('Failed to load references:', error);
     }
   };
-  const openDB = (): Promise<IDBDatabase> => {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open('spectrum-references', 1);
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result);
-      request.onupgradeneeded = event => {
-        const db = (event.target as IDBOpenDBRequest).result;
-        if (!db.objectStoreNames.contains('references')) {
-          db.createObjectStore('references');
-        }
-      };
-    });
-  };
+
   const handleUpload = async (genre: string, file: File) => {
     if (!file.type.startsWith('audio/')) {
       toast.error('Invalid file', {
@@ -88,28 +53,10 @@ export const AdminReferenceManager: React.FC = () => {
       });
       return;
     }
+    
     setUploading(genre);
     try {
-      const arrayBuffer = await file.arrayBuffer();
-      const db = await openDB();
-      const tx = db.transaction('references', 'readwrite');
-      const store = tx.objectStore('references');
-      const trackData = {
-        genre,
-        data: arrayBuffer,
-        filename: file.name,
-        size: file.size,
-        uploadedAt: Date.now()
-      };
-      const putRequest = store.put(trackData, genre);
-      await new Promise((resolve, reject) => {
-        putRequest.onsuccess = () => resolve(undefined);
-        putRequest.onerror = () => reject(putRequest.error);
-      });
-      await new Promise((resolve, reject) => {
-        tx.oncomplete = () => resolve(undefined);
-        tx.onerror = () => reject(tx.error);
-      });
+      await saveReferenceTrack(genre, file);
       await loadReferences();
       toast.success('Reference uploaded', {
         description: `${genre} reference track saved successfully`
@@ -123,20 +70,10 @@ export const AdminReferenceManager: React.FC = () => {
       setUploading(null);
     }
   };
+
   const handleDelete = async (genre: string) => {
     try {
-      const db = await openDB();
-      const tx = db.transaction('references', 'readwrite');
-      const store = tx.objectStore('references');
-      const deleteRequest = store.delete(genre);
-      await new Promise((resolve, reject) => {
-        deleteRequest.onsuccess = () => resolve(undefined);
-        deleteRequest.onerror = () => reject(deleteRequest.error);
-      });
-      await new Promise((resolve, reject) => {
-        tx.oncomplete = () => resolve(undefined);
-        tx.onerror = () => reject(tx.error);
-      });
+      await deleteTrack(genre);
       await loadReferences();
       toast.success('Reference deleted', {
         description: `${genre} reference track removed`
@@ -177,7 +114,8 @@ export const AdminReferenceManager: React.FC = () => {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {GENRES.map(genre => {
+          {GENRE_PRESETS.map(genrePreset => {
+          const genre = genrePreset.id;
           const ref = references.get(genre);
           const isUploading = uploading === genre;
           return <Card key={genre} className="bg-slate-800/50 border-slate-700">
@@ -186,17 +124,17 @@ export const AdminReferenceManager: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <h3 className="font-semibold flex items-center gap-2 text-slate-50">
                         <Music className="h-4 w-4 text-cyan-400" />
-                        {genre}
+                        {genrePreset.name}
                       </h3>
                       {ref && <Button size="sm" variant="ghost" onClick={() => setDeleteConfirm(genre)} className="h-8 w-8 p-0 hover:bg-red-500/30 hover:text-red-300 rounded-full bg-red-500/10" title="Remove reference">
                           <span className="text-red-400 font-bold">×</span>
                         </Button>}
                     </div>
 
-                    {ref ? <div className="flex items-start gap-2 p-2 bg-green-500/10 rounded border border-green-500/30">
+                      {ref ? <div className="flex items-start gap-2 p-2 bg-green-500/10 rounded border border-green-500/30">
                         <CheckCircle2 className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-white truncate">{ref.filename}</p>
+                          <p className="text-sm font-medium text-white truncate">{ref.name}</p>
                           <p className="text-xs text-slate-400">
                             {(ref.size / 1024 / 1024).toFixed(2)} MB
                           </p>
@@ -206,7 +144,7 @@ export const AdminReferenceManager: React.FC = () => {
                         </div>
                       </div> : <div className="flex items-center gap-2 p-3 border-2 border-dashed border-slate-600 rounded text-center">
                         <AlertCircle className="h-5 w-5 text-slate-500" />
-                        <p className="text-sm text-green-400">No reference uploaded</p>
+                        <p className="text-sm text-slate-400">No reference uploaded</p>
                       </div>}
 
                     <label>
