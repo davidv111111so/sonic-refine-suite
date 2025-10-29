@@ -80,17 +80,18 @@ export const Guide = () => {
   };
   return <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="border-slate-600 dark:border-slate-600 light:border-gray-300 text-white bg-blue-600 hover:bg-blue-500 relative z-50">
+        <Button variant="outline" size="sm" className="border-slate-600 text-white bg-blue-600 hover:bg-blue-500">
           <HelpCircle className="h-4 w-4 mr-2" />
           Guide
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-6xl h-[90vh] overflow-y-auto bg-slate-900 border-2 border-cyan-500/50 text-white z-[9999] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-            Spectrum - Complete User Guide
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="max-w-6xl max-h-[90vh] bg-slate-900 border-2 border-cyan-500/50 text-white">
+        <div className="overflow-y-auto max-h-[calc(90vh-120px)] pr-4">
+          <DialogHeader className="mb-6">
+            <DialogTitle className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+              Spectrum - Complete User Guide
+            </DialogTitle>
+          </DialogHeader>
         
         <div className="space-y-8">
           {/* Quick Start Guide */}
@@ -310,6 +311,7 @@ export const Guide = () => {
               </div>
             </CardContent>
           </Card>
+        </div>
         </div>
       </DialogContent>
     </Dialog>;

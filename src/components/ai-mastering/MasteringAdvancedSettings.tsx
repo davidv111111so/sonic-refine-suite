@@ -87,18 +87,19 @@ export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps>
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-slate-900 border-slate-700 text-white z-[9999]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl">
-            <Settings className="h-5 w-5" />
-            Advanced Mastering Settings
-          </DialogTitle>
-          <DialogDescription>
-            Fine-tune mastering parameters for professional results
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[85vh] bg-slate-900 border-slate-700 text-white">
+        <div className="overflow-y-auto max-h-[calc(85vh-100px)] pr-4">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Settings className="h-5 w-5" />
+              Advanced Mastering Settings
+            </DialogTitle>
+            <DialogDescription>
+              Fine-tune mastering parameters for professional results
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <div className="space-y-6 py-2">
           {/* Output Format */}
           <div className="space-y-4 p-4 bg-slate-900/50 rounded-lg">
             <h3 className="font-semibold text-white flex items-center gap-2">
@@ -304,6 +305,7 @@ export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps>
               Apply Settings
             </Button>
           </div>
+        </div>
         </div>
       </DialogContent>
     </Dialog>
