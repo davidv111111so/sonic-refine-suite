@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { HelpCircle, Upload, Settings, Sparkles, Sliders, Save, Zap, Volume2, Headphones, Keyboard, Archive, Palette, Download, Music, Cpu } from 'lucide-react';
@@ -90,14 +90,17 @@ export const Guide = () => {
           Guide
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-6xl max-h-[85vh] overflow-hidden">
+      <DialogContent className="max-w-6xl max-h-[85vh] !bg-slate-900 text-white border-slate-700 overflow-hidden before:!opacity-0 [&>div]:!bg-transparent">{/* Force solid background and hide gradient overlay */}
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">
+          <DialogTitle className="text-2xl font-bold text-white">
             Level Audio - Complete User Guide
           </DialogTitle>
+          <DialogDescription className="text-slate-400">
+            Learn how to use Level Audio's powerful features for professional audio enhancement.
+          </DialogDescription>
         </DialogHeader>
-        <div className="overflow-y-auto max-h-[calc(85vh-80px)] pr-2 -mr-2">
-          <div className="space-y-8">
+        <div className="overflow-y-auto max-h-[calc(85vh-120px)] pr-4 bg-slate-900">{/*  space-y-8 container */}
+          <div className="space-y-8 py-2">{/*  content wrapper */}
             {/* Quick Start Guide */}
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
