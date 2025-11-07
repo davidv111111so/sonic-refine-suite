@@ -1,4 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Guide } from '@/components/Guide';
 import { Footer } from '@/components/Footer';
@@ -17,6 +19,9 @@ import { Progress } from '@/components/ui/progress';
 import { AnimatedTitle } from '@/components/AnimatedTitle';
 
 const Index = () => {
+  const navigate = useNavigate();
+  const { user, loading } = useAuth();
+
   const [showIntro, setShowIntro] = useState(() => {
     const introShown = sessionStorage.getItem('introShown');
     return !introShown;
@@ -26,6 +31,13 @@ const Index = () => {
     sessionStorage.setItem('introShown', 'true');
     setShowIntro(false);
   };
+
+  // Authentication guard - redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/auth');
+    }
+  }, [user, loading, navigate]);
 
   console.log('Level app render started');
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
@@ -326,6 +338,18 @@ const Index = () => {
     });
   }, [enhancedHistory, toast]);
   
+  // Show loading state while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto"></div>
+          <p className="mt-4 text-slate-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (showIntro) {
     return <IntroAnimation onComplete={handleIntroComplete} />;
   }
