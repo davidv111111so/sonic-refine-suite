@@ -27,20 +27,20 @@ export function AccountSettings() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
-      if (!user?.email) {
-        throw new Error('No user email found');
+      if (!user) {
+        throw new Error('No user found');
       }
 
-      // Sign out first
-      const { error: signOutError } = await supabase.auth.signOut();
-      if (signOutError) throw signOutError;
+      // Call edge function to delete all user data
+      const { error: deleteError } = await supabase.functions.invoke('delete-account');
+      
+      if (deleteError) throw deleteError;
 
-      toast.success('Account deletion initiated. You have been logged out.');
+      toast.success('Account and all data deleted successfully.');
       navigate('/auth');
 
     } catch (error: any) {
       toast.error(error.message || 'Error deleting account');
-    } finally {
       setLoading(false);
     }
   };

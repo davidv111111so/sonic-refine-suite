@@ -10,6 +10,25 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { Loader2, Music, Lock, Mail, User, Chrome } from 'lucide-react';
 import { ShaderAnimation } from '@/components/ui/shader-animation';
+import { z } from 'zod';
+
+const signUpSchema = z.object({
+  email: z.string().trim().email('Invalid email address'),
+  password: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain an uppercase letter')
+    .regex(/[0-9]/, 'Password must contain a number'),
+  fullName: z.string().trim().min(2, 'Full name is required')
+});
+
+const signInSchema = z.object({
+  email: z.string().trim().email('Invalid email address'),
+  password: z.string().min(1, 'Password is required')
+});
+
+const resetPasswordSchema = z.object({
+  email: z.string().trim().email('Invalid email address')
+});
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -64,20 +83,26 @@ export default function Auth() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
     try {
-      const {
-        error,
-        data
-      } = await supabase.auth.signUp({
-        email,
-        password,
+      const result = signUpSchema.safeParse({ email, password, fullName });
+      if (!result.success) {
+        toast.error(result.error.errors[0].message);
+        setLoading(false);
+        return;
+      }
+
+      const { error } = await supabase.auth.signUp({
+        email: result.data.email,
+        password: result.data.password,
         options: {
           emailRedirectTo: `${window.location.origin}/`,
           data: {
-            full_name: fullName
+            full_name: result.data.fullName
           }
         }
       });
+
       if (error) throw error;
       toast.success('Account created successfully! You can now log in.');
       setEmail('');
@@ -92,13 +117,20 @@ export default function Auth() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
     try {
-      const {
-        error
-      } = await supabase.auth.signInWithPassword({
-        email,
-        password
+      const result = signInSchema.safeParse({ email, password });
+      if (!result.success) {
+        toast.error(result.error.errors[0].message);
+        setLoading(false);
+        return;
+      }
+
+      const { error } = await supabase.auth.signInWithPassword({
+        email: result.data.email,
+        password: result.data.password
       });
+
       if (error) throw error;
       toast.success('Signed in successfully!');
       navigate('/');
@@ -126,12 +158,19 @@ export default function Auth() {
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
     try {
-      const {
-        error
-      } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+      const result = resetPasswordSchema.safeParse({ email: resetEmail });
+      if (!result.success) {
+        toast.error(result.error.errors[0].message);
+        setLoading(false);
+        return;
+      }
+
+      const { error } = await supabase.auth.resetPasswordForEmail(result.data.email, {
         redirectTo: `${window.location.origin}/auth`
       });
+
       if (error) throw error;
       toast.success('Password reset link sent! Check your email.');
       setResetEmail('');
