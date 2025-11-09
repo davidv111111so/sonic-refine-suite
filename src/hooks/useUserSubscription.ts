@@ -16,6 +16,7 @@ export const useUserSubscription = (): UserSubscriptionData => {
   const [subscription, setSubscription] = useState<SubscriptionTier>('free');
   const [role, setRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isPremiumAccess, setIsPremiumAccess] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -49,6 +50,15 @@ export const useUserSubscription = (): UserSubscriptionData => {
         if (userRole) {
           setRole(userRole.role as UserRole);
         }
+
+        // Check premium access using database function (includes whitelist)
+        const { data: premiumData, error: premiumError } = await supabase.rpc('has_premium_access', {
+          _user_id: session.user.id
+        });
+        
+        if (!premiumError && premiumData !== null) {
+          setIsPremiumAccess(premiumData);
+        }
       } catch (error) {
         console.error('Error fetching user subscription data:', error);
       } finally {
@@ -70,7 +80,7 @@ export const useUserSubscription = (): UserSubscriptionData => {
 
   // Determine admin and premium status from database values
   const isAdmin = role === 'admin';
-  const isPremium = subscription === 'premium' || isAdmin;
+  const isPremium = isPremiumAccess || subscription === 'premium' || isAdmin;
 
   return {
     subscription,

@@ -73,21 +73,52 @@ export default function Auth() {
   }, []);
   useEffect(() => {
     // Check if user is already logged in
-    supabase.auth.getSession().then(({
+    supabase.auth.getSession().then(async ({
       data: {
         session
       }
     }) => {
       if (session) {
+        // Check if user is in beta whitelist
+        const { data: isBetaUser, error } = await supabase.rpc('is_beta_user', {
+          _user_id: session.user.id
+        });
+        
+        if (error || !isBetaUser) {
+          // Not in beta whitelist - sign out
+          await supabase.auth.signOut();
+          toast.error('Access Restricted', {
+            description: 'This app is currently in beta testing. Access is limited to authorized users only.'
+          });
+          return;
+        }
+        
+        // Beta user - allow access
         navigate('/');
       }
     });
+    
     const {
       data: {
         subscription
       }
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
+        // Check if user is in beta whitelist
+        const { data: isBetaUser, error } = await supabase.rpc('is_beta_user', {
+          _user_id: session.user.id
+        });
+        
+        if (error || !isBetaUser) {
+          // Not in beta whitelist - sign out and show error
+          await supabase.auth.signOut();
+          toast.error('Access Restricted', {
+            description: 'This app is currently in beta testing. Access is limited to authorized users only.'
+          });
+          return;
+        }
+        
+        // Beta user - redirect to home page
         navigate('/');
       }
     });

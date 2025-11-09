@@ -28,7 +28,7 @@ export const TenBandEqualizer: React.FC<TenBandEqualizerProps> = ({
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent flex items-center gap-3">
           <span className="text-3xl">🎚️</span>
-          Professional 10-Band Equalizer
+          Professional Equalizer
         </h3>
         <Button variant="outline" size="sm" onClick={onReset} className="bg-slate-800 border-slate-600 hover:bg-slate-700 text-white hover:text-cyan-400 transition-all">
           <RotateCcw className="h-4 w-4 mr-2" />
@@ -89,14 +89,10 @@ export const TenBandEqualizer: React.FC<TenBandEqualizerProps> = ({
           </div>)}
       </div>
 
-      {/* Real-time frequency response visualization */}
       <div className="mt-6 p-4 bg-slate-950/50 rounded-lg border border-slate-700/50 relative overflow-hidden">
         {/* Animated gradient background */}
         <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/5 via-purple-500/5 to-pink-500/5 animate-pulse"></div>
         
-        <div className="text-xs text-center text-slate-400 mb-2 relative z-10 font-semibold">
-          Frequency Response Curve
-        </div>
         <div className="h-20 relative flex items-end justify-around z-10">
           {bands.map((band, index) => {
           const height = Math.max(0, Math.min(100, 50 + band.gain / 12 * 40));

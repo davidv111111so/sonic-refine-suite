@@ -10,8 +10,8 @@ import { TenBandEqualizer, EQBand } from './TenBandEqualizer';
 import { DynamicsCompressorControls, CompressorSettings } from './DynamicsCompressorControls';
 import { AudioVisualizer } from './AudioVisualizer';
 import { PlaylistPanel } from './PlaylistPanel';
+import { MediaPlayerUpload } from './MediaPlayerUpload';
 import { toast } from 'sonner';
-import { useDropzone } from 'react-dropzone';
 interface LevelMediaPlayerProps {
   files: AudioFile[];
   onFilesAdded?: (files: AudioFile[]) => void;
@@ -113,34 +113,13 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
     };
   }, [loop]);
 
-  // File upload handler
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    const newAudioFiles: AudioFile[] = acceptedFiles.map(file => ({
-      id: `${Date.now()}-${file.name}`,
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      originalFile: file,
-      originalUrl: URL.createObjectURL(file),
-      status: 'uploaded' as const,
-      fileType: file.name.split('.').pop()?.toLowerCase() as 'mp3' | 'wav' | 'flac' | 'unsupported'
-    }));
+  // File upload handler with proper analysis
+  const handleFilesAdded = useCallback((newFiles: AudioFile[]) => {
     if (onFilesAdded) {
-      onFilesAdded(newAudioFiles);
+      onFilesAdded(newFiles);
     }
-    toast.success(`Added ${acceptedFiles.length} file(s) to player`);
+    toast.success(`Added ${newFiles.length} file(s) to player`);
   }, [onFilesAdded]);
-  const {
-    getRootProps,
-    getInputProps,
-    isDragActive
-  } = useDropzone({
-    onDrop,
-    accept: {
-      'audio/*': ['.mp3', '.wav', '.flac', '.m4a', '.ogg']
-    },
-    multiple: true
-  });
 
   // Initialize Web Audio API nodes
   useEffect(() => {
@@ -356,23 +335,8 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
   return <div className="space-y-6 p-6">
-      {/* Upload Zone */}
-      <Card className="bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700">
-        <div {...getRootProps()} className={`p-8 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isDragActive ? 'border-cyan-500 bg-cyan-500/10' : 'border-slate-600 hover:border-cyan-500/50 hover:bg-slate-800/50'}`}>
-          <input {...getInputProps()} />
-          <div className="flex flex-col items-center justify-center gap-4 text-center">
-            <Upload className="h-12 w-12 text-cyan-400" />
-            <div>
-              <p className="text-lg font-semibold mb-2 text-cyan-300">
-                {isDragActive ? 'Drop files here...' : 'Drop audio files here or click to browse'}
-              </p>
-              <p className="text-sm text-slate-400">
-                Supports MP3, WAV, FLAC, M4A, OGG
-              </p>
-            </div>
-          </div>
-        </div>
-      </Card>
+      {/* Upload Zone with Terms & Conditions */}
+      <MediaPlayerUpload onFilesAdded={handleFilesAdded} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Player Section */}
