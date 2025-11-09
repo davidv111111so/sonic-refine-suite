@@ -325,20 +325,10 @@ export const AIMasteringTab = () => {
     }
     setError('');
     setIsProcessing(true);
+    
     try {
       toast.info('🎵 Starting AI mastering...');
-      const formData = new FormData();
-      formData.append('target', targetFile);
-
-      // If using custom reference, add the reference file
-      if (activeMode === 'custom' && referenceFile) {
-        formData.append('reference', referenceFile);
-      }
-      // If using preset mode, add preset_id as a form field
-      else if (activeMode === 'preset' && selectedPreset) {
-        formData.append('preset_id', selectedPreset);
-      }
-
+      
       // Map UI settings to backend parameters and validate
       const backendParams = mapSettingsToEnhancedBackend(advancedSettings);
       const validationErrors = validateBackendParams(backendParams);
@@ -350,43 +340,155 @@ export const AIMasteringTab = () => {
         setIsProcessing(false);
         return;
       }
-      
-      // Add advanced settings as JSON
-      formData.append('advanced_settings', JSON.stringify(backendParams));
-      
-      // Call the Supabase edge function with authentication
-      const { data: responseData, error: functionError } = await supabase.functions.invoke('ai-mastering', {
-        body: formData
+
+      // Step 1: Generate upload URL for target file
+      toast.info('📤 Uploading target file...');
+      const { data: targetUploadData, error: targetUploadError } = await supabase.functions.invoke('generate-upload-url', {
+        body: {
+          fileName: targetFile.name,
+          fileType: targetFile.type || 'audio/wav'
+        }
       });
 
-      if (functionError) {
-        throw new Error(functionError.message || 'Edge function error');
+      if (targetUploadError || !targetUploadData?.uploadUrl) {
+        throw new Error('Failed to generate upload URL for target file');
       }
 
-      if (!responseData?.downloadUrl) {
-        throw new Error('No download URL received from backend');
+      // Upload target file to GCS
+      const targetUploadResponse = await fetch(targetUploadData.uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': targetFile.type || 'audio/wav',
+        },
+        body: targetFile
+      });
+
+      if (!targetUploadResponse.ok) {
+        throw new Error('Failed to upload target file to cloud storage');
       }
 
-      // Download the mastered file
-      const fileResponse = await fetch(responseData.downloadUrl);
-      if (!fileResponse.ok) {
-        throw new Error('Failed to download mastered file');
-      }
+      // Step 2: Handle reference file or preset
+      let referenceGcsPath = null;
       
-      const blob = await fileResponse.blob();
+      if (activeMode === 'custom' && referenceFile) {
+        toast.info('📤 Uploading reference file...');
+        const { data: refUploadData, error: refUploadError } = await supabase.functions.invoke('generate-upload-url', {
+          body: {
+            fileName: referenceFile.name,
+            fileType: referenceFile.type || 'audio/wav'
+          }
+        });
 
-      // Success - download the file and clear session
-      const filename = `mastered_${targetFile.name.replace(/\.[^/.]+$/, '')}.wav`;
-      saveAs(blob, filename);
-      toast.success('✅ Mastering complete! File downloaded.');
+        if (refUploadError || !refUploadData?.uploadUrl) {
+          throw new Error('Failed to generate upload URL for reference file');
+        }
+
+        // Upload reference file to GCS
+        const refUploadResponse = await fetch(refUploadData.uploadUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': referenceFile.type || 'audio/wav',
+          },
+          body: referenceFile
+        });
+
+        if (!refUploadResponse.ok) {
+          throw new Error('Failed to upload reference file to cloud storage');
+        }
+
+        referenceGcsPath = refUploadData.gcsPath;
+      }
+
+      // Step 3: Start mastering job
+      toast.info('🎨 Starting mastering job...');
+      const jobPayload: any = {
+        targetGcsPath: targetUploadData.gcsPath,
+        advancedSettings: backendParams
+      };
+
+      if (activeMode === 'custom' && referenceGcsPath) {
+        jobPayload.referenceGcsPath = referenceGcsPath;
+      } else if (activeMode === 'preset' && selectedPreset) {
+        jobPayload.presetId = selectedPreset;
+      }
+
+      const { data: jobData, error: jobError } = await supabase.functions.invoke('start-mastering-job', {
+        body: jobPayload
+      });
+
+      if (jobError || !jobData?.jobId) {
+        throw new Error('Failed to start mastering job');
+      }
+
+      const jobId = jobData.jobId;
+      toast.info(`🎫 Job started (ID: ${jobId.substring(0, 8)}...)`);
+
+      // Step 4: Poll for job status
+      let attempts = 0;
+      const maxAttempts = 120; // 10 minutes (5s intervals)
       
-      // Clear session storage
-      sessionStorage.removeItem('aiMastering_targetFile');
-      sessionStorage.removeItem('aiMastering_referenceFile');
-      setTargetFileInfo(null);
-      setReferenceFileInfo(null);
+      const pollStatus = async (): Promise<void> => {
+        attempts++;
+        
+        const { data: statusData, error: statusError } = await supabase.functions.invoke('get-job-status', {
+          body: { jobId }
+        });
+
+        if (statusError) {
+          throw new Error('Failed to check job status');
+        }
+
+        const status = statusData?.status;
+        const progress = statusData?.progress || 0;
+
+        if (status === 'completed') {
+          // Job complete - download file
+          if (!statusData.downloadUrl) {
+            throw new Error('No download URL provided');
+          }
+
+          toast.success('✅ Mastering complete! Downloading...');
+          
+          const fileResponse = await fetch(statusData.downloadUrl);
+          if (!fileResponse.ok) {
+            throw new Error('Failed to download mastered file');
+          }
+          
+          const blob = await fileResponse.blob();
+          const filename = `mastered_${targetFile.name.replace(/\.[^/.]+$/, '')}.wav`;
+          saveAs(blob, filename);
+          
+          toast.success('✅ File downloaded successfully!');
+          
+          // Clear session storage
+          sessionStorage.removeItem('aiMastering_targetFile');
+          sessionStorage.removeItem('aiMastering_referenceFile');
+          setTargetFileInfo(null);
+          setReferenceFileInfo(null);
+          setIsProcessing(false);
+          
+        } else if (status === 'failed') {
+          throw new Error(statusData.error || 'Mastering job failed');
+          
+        } else if (status === 'processing' || status === 'pending') {
+          // Update progress
+          toast.info(`⚙️ Processing... ${Math.round(progress)}%`, { id: 'mastering-progress' });
+          
+          if (attempts >= maxAttempts) {
+            throw new Error('Job timeout - please try again');
+          }
+          
+          // Continue polling
+          await new Promise(resolve => setTimeout(resolve, 5000));
+          await pollStatus();
+          
+        } else {
+          throw new Error(`Unknown job status: ${status}`);
+        }
+      };
+
+      await pollStatus();
       
-      setIsProcessing(false);
     } catch (err) {
       let errorMsg = 'An error occurred during mastering';
       
@@ -395,6 +497,8 @@ export const AIMasteringTab = () => {
       } else if (typeof err === 'string') {
         errorMsg = err;
       }
+      
+      console.error('Mastering error:', err);
       setError(errorMsg);
       setIsProcessing(false);
       toast.error(`❌ ${errorMsg}`);

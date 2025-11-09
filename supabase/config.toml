@@ -3,5 +3,14 @@ project_id = "lyymcpiujrnlwsbyrseh"
 [functions]
 enabled = true
 
-[functions.ai-mastering]
+[functions.generate-upload-url]
+verify_jwt = true
+
+[functions.start-mastering-job]
+verify_jwt = true
+
+[functions.get-job-status]
+verify_jwt = true
+
+[functions.delete-account]
 verify_jwt = true
