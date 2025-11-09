@@ -40,8 +40,10 @@ export interface BackendMasteringParams {
  * Convert UI settings to backend parameters
  */
 export function mapSettingsToBackend(settings: MasteringSettings): BackendMasteringParams {
-  // Parse output bits
-  const outputBits = parseInt(settings.output_bits.split(' ')[0]);
+  // Parse output bits with fallback to 32 if undefined
+  const outputBits = settings.output_bits 
+    ? parseInt(settings.output_bits.split(' ')[0]) 
+    : 32;
 
   return {
     // Core Matchering settings - directly from UI
