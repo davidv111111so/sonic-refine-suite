@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 
-const BACKEND_URL = 'https://mastering-backend-857351913435.us-central1.run.app'
+const BACKEND_URL = 'https://spectrum-backend-857351913435.us-central1.run.app'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,38 +9,35 @@ const corsHeaders = {
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const userAuthHeader = req.headers.get('Authorization')
-    const formData = await req.formData()
-    const file = formData.get('file')
-
-    if (!file) {
-      return new Response(
-        JSON.stringify({ error: 'No file provided' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      throw new Error('Missing authorization header')
     }
 
-    // Forward file to backend /api/upload endpoint
-    const backendFormData = new FormData()
-    backendFormData.append('target', file)
+    const { fileName, fileType } = await req.json()
 
-    const response = await fetch(`${BACKEND_URL}/api/upload`, {
+    const response = await fetch(`${BACKEND_URL}/api/generate-upload-url`, {
       method: 'POST',
       headers: {
-        'Authorization': userAuthHeader || '',
+        'Content-Type': 'application/json',
+        'Authorization': authHeader,
       },
-      body: backendFormData,
+      body: JSON.stringify({ fileName, fileType }),
     })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Backend error: ${response.status} - ${errorText}`)
+    }
 
     const data = await response.json()
     
     return new Response(JSON.stringify(data), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: response.status
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
