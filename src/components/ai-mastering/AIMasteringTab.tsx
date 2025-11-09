@@ -7,8 +7,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import axios from 'axios';
 import { saveAs } from 'file-saver';
+import { supabase } from '@/integrations/supabase/client';
 import { MasteringAdvancedSettings, MasteringSettings } from './MasteringAdvancedSettings';
 import { AdminReferenceManager } from './AdminReferenceManager';
 import { mapSettingsToEnhancedBackend, validateBackendParams } from './AdvancedSettingsBackend';
@@ -353,22 +353,31 @@ export const AIMasteringTab = () => {
       
       // Add advanced settings as JSON
       formData.append('advanced_settings', JSON.stringify(backendParams));
-      console.log('🎵 Sending request to:', `${BACKEND_URL}/process/ai-mastering`);
-      console.log('📦 FormData contents:', {
-        target: targetFile.name,
-        reference: referenceFile?.name,
-        preset_id: selectedPreset,
-        mode: activeMode
+      
+      // Call the Supabase edge function with authentication
+      const { data: responseData, error: functionError } = await supabase.functions.invoke('ai-mastering', {
+        body: formData
       });
-      const response = await axios.post(`${BACKEND_URL}/process/ai-mastering`, formData, {
-        responseType: 'blob',
-        timeout: 120000 // 2 minute timeout for processing
-      });
-      console.log('✅ Response received:', response.status);
+
+      if (functionError) {
+        throw new Error(functionError.message || 'Edge function error');
+      }
+
+      if (!responseData?.downloadUrl) {
+        throw new Error('No download URL received from backend');
+      }
+
+      // Download the mastered file
+      const fileResponse = await fetch(responseData.downloadUrl);
+      if (!fileResponse.ok) {
+        throw new Error('Failed to download mastered file');
+      }
+      
+      const blob = await fileResponse.blob();
 
       // Success - download the file and clear session
       const filename = `mastered_${targetFile.name.replace(/\.[^/.]+$/, '')}.wav`;
-      saveAs(response.data, filename);
+      saveAs(blob, filename);
       toast.success('✅ Mastering complete! File downloaded.');
       
       // Clear session storage
@@ -379,31 +388,13 @@ export const AIMasteringTab = () => {
       
       setIsProcessing(false);
     } catch (err) {
-      console.error('❌ Mastering error:', err);
       let errorMsg = 'An error occurred during mastering';
-      if (axios.isAxiosError(err)) {
-        // Check if error response is a blob (from backend error)
-        if (err.response?.data instanceof Blob) {
-          try {
-            const text = await err.response.data.text();
-            const errorData = JSON.parse(text);
-            errorMsg = errorData.detail || errorData.message || text;
-          } catch {
-            errorMsg = 'Backend error occurred';
-          }
-        } else if (err.response?.data?.detail) {
-          errorMsg = err.response.data.detail;
-        } else if (err.code === 'ECONNABORTED') {
-          errorMsg = 'Request timeout - Processing took too long';
-        } else if (err.code === 'ERR_NETWORK') {
-          errorMsg = 'Cannot connect to backend at https://spectrum-backend-857351913435.us-central1.run.app';
-        } else if (err.response) {
-          errorMsg = `Backend error: ${err.response.status} - ${err.response.statusText}`;
-        } else {
-          errorMsg = err.message || 'Network error';
-        }
+      
+      if (err instanceof Error) {
+        errorMsg = err.message;
+      } else if (typeof err === 'string') {
+        errorMsg = err;
       }
-      console.error('📝 Error message:', errorMsg);
       setError(errorMsg);
       setIsProcessing(false);
       toast.error(`❌ ${errorMsg}`);

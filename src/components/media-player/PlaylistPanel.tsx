@@ -2,18 +2,33 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Music, Play } from 'lucide-react';
+import { Music, Play, Trash2 } from 'lucide-react';
 import { AudioFile } from '@/types/audio';
+import { toast } from 'sonner';
+
 interface PlaylistPanelProps {
   files: AudioFile[];
   currentFileId: string | null;
   onFileSelect: (file: AudioFile) => void;
+  onFileDelete?: (fileId: string) => void;
 }
 export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
   files,
   currentFileId,
-  onFileSelect
+  onFileSelect,
+  onFileDelete
 }) => {
+  
+  const handleDelete = (e: React.MouseEvent, fileId: string, fileName: string) => {
+    e.stopPropagation(); // Prevent triggering file selection
+    
+    if (window.confirm(`Delete "${fileName}" from playlist?`)) {
+      if (onFileDelete) {
+        onFileDelete(fileId);
+        toast.success(`Deleted: ${fileName}`);
+      }
+    }
+  };
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -66,9 +81,22 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                     </div>
                   </div>
 
-                  {isPlaying && <div className="text-xs font-semibold text-cyan-400 bg-cyan-500/20 px-2 py-1 rounded">
-                      NOW PLAYING
-                    </div>}
+                  <div className="flex items-center gap-2">
+                    {isPlaying && <div className="text-xs font-semibold text-cyan-400 bg-cyan-500/20 px-2 py-1 rounded">
+                        NOW PLAYING
+                      </div>}
+                    
+                    {onFileDelete && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => handleDelete(e, file.id, file.name)}
+                        className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>;
         })}
           </div>

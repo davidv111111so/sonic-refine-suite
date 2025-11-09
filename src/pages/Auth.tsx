@@ -40,6 +40,19 @@ export default function Auth() {
   const [resetEmail, setResetEmail] = useState('');
   const [showIntro, setShowIntro] = useState(true);
   const [introOpacity, setIntroOpacity] = useState(1);
+  const [isSignUp, setIsSignUp] = useState(false);
+
+  // Handle password reset from email link
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const mode = params.get('mode');
+    
+    if (mode === 'reset') {
+      setShowResetPassword(true);
+      setIsSignUp(false);
+      setShowIntro(false);
+    }
+  }, []);
 
   // Handle intro animation timing
   useEffect(() => {
@@ -168,7 +181,7 @@ export default function Auth() {
       }
 
       const { error } = await supabase.auth.resetPasswordForEmail(result.data.email, {
-        redirectTo: `${window.location.origin}/auth`
+        redirectTo: `${window.location.origin}/auth?mode=reset`
       });
 
       if (error) throw error;

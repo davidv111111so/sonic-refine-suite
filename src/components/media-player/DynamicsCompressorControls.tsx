@@ -3,11 +3,10 @@ import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Progress } from '@/components/ui/progress';
 export interface CompressorSettings {
-  threshold: number;
-  ratio: number;
-  attack: number;
-  release: number;
-  knee: number;
+  threshold: number;  // Range: 0 to -3dB
+  ratio: number;      // Range: 1 to 4.0:1
+  attack: number;     // Range: 0.0001 to 0.003s (0.1ms to 3ms)
+  release: number;    // Range: 0 to 0.003s (0ms to 3ms)
 }
 interface DynamicsCompressorControlsProps {
   settings: CompressorSettings;
@@ -20,80 +19,112 @@ export const DynamicsCompressorControls: React.FC<DynamicsCompressorControlsProp
   onSettingsChange
 }) => {
   return <Card className="bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 p-6">
-      <h3 className="text-lg font-semibold text-purple-400 mb-6 flex items-center gap-2">
-        <span className="text-2xl">🎛️</span>
-        Dynamics Compressor
-      </h3>
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold text-purple-400 flex items-center gap-2">
+          <span className="text-2xl">🎛️</span>
+          Dynamic Range Compressor (DRC)
+        </h3>
+        <p className="text-xs text-slate-400 mt-1">
+          Professional audio compression with studio-grade precision controls
+        </p>
+      </div>
 
       <div className="grid grid-cols-2 gap-6">
         {/* Left column */}
         <div className="space-y-6">
-          {/* Threshold */}
+          {/* Threshold: Limited to 0 to -3dB */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-orange-300">Threshold</label>
+              <label className="text-sm font-medium text-orange-300">
+                Threshold
+                <span className="text-xs text-slate-500 ml-2">(0 to -3dB)</span>
+              </label>
               <span className="text-xs font-mono text-cyan-400 bg-slate-800/50 px-2 py-1 rounded">
                 {settings.threshold.toFixed(1)}dB
               </span>
             </div>
-            <Slider value={[settings.threshold]} min={-60} max={0} step={1} onValueChange={v => onSettingsChange({
-            threshold: v[0]
-          })} />
+            <Slider 
+              value={[settings.threshold]} 
+              min={-3} 
+              max={0} 
+              step={0.1} 
+              onValueChange={v => onSettingsChange({ threshold: v[0] })} 
+            />
+            <p className="text-xs text-slate-500 mt-1">
+              Signal level where compression begins
+            </p>
           </div>
 
-          {/* Ratio */}
+          {/* Ratio: Limited to max 4.0:1 */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-orange-300">Ratio</label>
+              <label className="text-sm font-medium text-orange-300">
+                Ratio
+                <span className="text-xs text-slate-500 ml-2">(max 4:1)</span>
+              </label>
               <span className="text-xs font-mono text-cyan-400 bg-slate-800/50 px-2 py-1 rounded">
                 {settings.ratio.toFixed(1)}:1
               </span>
             </div>
-            <Slider value={[settings.ratio]} min={1} max={20} step={0.1} onValueChange={v => onSettingsChange({
-            ratio: v[0]
-          })} className="text-orange-300" />
-          </div>
-
-          {/* Attack */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-orange-300">Attack</label>
-              <span className="text-xs font-mono text-cyan-400 bg-slate-800/50 px-2 py-1 rounded">
-                {settings.attack.toFixed(1)}ms
-              </span>
-            </div>
-            <Slider value={[settings.attack * 1000]} min={0} max={100} step={1} onValueChange={v => onSettingsChange({
-            attack: v[0] / 1000
-          })} />
+            <Slider 
+              value={[settings.ratio]} 
+              min={1} 
+              max={4} 
+              step={0.1} 
+              onValueChange={v => onSettingsChange({ ratio: v[0] })} 
+            />
+            <p className="text-xs text-slate-500 mt-1">
+              Amount of compression applied above threshold
+            </p>
           </div>
         </div>
 
         {/* Right column */}
         <div className="space-y-6">
-          {/* Release */}
+          {/* Attack: 0.1ms to 3ms */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-orange-300">Release</label>
+              <label className="text-sm font-medium text-orange-300">
+                Attack
+                <span className="text-xs text-slate-500 ml-2">(0.1-3ms)</span>
+              </label>
               <span className="text-xs font-mono text-cyan-400 bg-slate-800/50 px-2 py-1 rounded">
-                {settings.release.toFixed(0)}ms
+                {(settings.attack * 1000).toFixed(1)}ms
               </span>
             </div>
-            <Slider value={[settings.release * 1000]} min={0} max={1000} step={10} onValueChange={v => onSettingsChange({
-            release: v[0] / 1000
-          })} />
+            <Slider 
+              value={[settings.attack * 1000]} 
+              min={0.1} 
+              max={3} 
+              step={0.1} 
+              onValueChange={v => onSettingsChange({ attack: v[0] / 1000 })} 
+            />
+            <p className="text-xs text-slate-500 mt-1">
+              How quickly compression responds
+            </p>
           </div>
 
-          {/* Knee */}
+          {/* Release: 0ms to 3ms */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-orange-300">Knee</label>
+              <label className="text-sm font-medium text-orange-300">
+                Release
+                <span className="text-xs text-slate-500 ml-2">(0-3ms)</span>
+              </label>
               <span className="text-xs font-mono text-cyan-400 bg-slate-800/50 px-2 py-1 rounded">
-                {settings.knee.toFixed(1)}dB
+                {(settings.release * 1000).toFixed(1)}ms
               </span>
             </div>
-            <Slider value={[settings.knee]} min={0} max={40} step={1} onValueChange={v => onSettingsChange({
-            knee: v[0]
-          })} />
+            <Slider 
+              value={[settings.release * 1000]} 
+              min={0} 
+              max={3} 
+              step={0.1} 
+              onValueChange={v => onSettingsChange({ release: v[0] / 1000 })} 
+            />
+            <p className="text-xs text-slate-500 mt-1">
+              How quickly compression stops after signal drops
+            </p>
           </div>
 
           {/* Gain Reduction Meter */}
@@ -105,6 +136,9 @@ export const DynamicsCompressorControls: React.FC<DynamicsCompressorControlsProp
               </span>
             </div>
             <Progress value={Math.abs(gainReduction) * 2} className="h-3 bg-slate-700" />
+            <p className="text-xs text-slate-500 mt-1">
+              Real-time compression meter
+            </p>
           </div>
         </div>
       </div>

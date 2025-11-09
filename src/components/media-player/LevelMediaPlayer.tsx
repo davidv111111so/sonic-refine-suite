@@ -51,11 +51,10 @@ const INITIAL_EQ_BANDS: EQBand[] = [{
   gain: 0
 }];
 const INITIAL_COMPRESSOR: CompressorSettings = {
-  threshold: -24,
-  ratio: 4,
-  attack: 0.003,
-  release: 0.25,
-  knee: 30
+  threshold: -1.5,     // Within 0 to -3dB range
+  ratio: 2.5,          // Within 1 to 4:1 range
+  attack: 0.001,       // 1ms - within 0.1ms to 3ms range
+  release: 0.0015      // 1.5ms - within 0ms to 3ms range
 };
 export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
   files,
@@ -162,14 +161,14 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
       gainNodeRef.current = gain;
     }
 
-    // Create compressor
+    // Create compressor with DRC constraints
     if (!compressorNodeRef.current) {
       const compressor = audioContext.createDynamicsCompressor();
       compressor.threshold.value = compressorSettings.threshold;
       compressor.ratio.value = compressorSettings.ratio;
       compressor.attack.value = compressorSettings.attack;
       compressor.release.value = compressorSettings.release;
-      compressor.knee.value = compressorSettings.knee;
+      compressor.knee.value = 0; // Knee removed - hard knee compression
       compressorNodeRef.current = compressor;
     }
 
@@ -271,7 +270,7 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
     });
   }, [eqBands]);
 
-  // Update compressor in real-time
+  // Update compressor in real-time with DRC constraints
   useEffect(() => {
     if (!compressorNodeRef.current) return;
     const audioContext = getAudioContext();
@@ -281,7 +280,7 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
     comp.ratio.setValueAtTime(compressorSettings.ratio, audioContext.currentTime);
     comp.attack.setValueAtTime(compressorSettings.attack, audioContext.currentTime);
     comp.release.setValueAtTime(compressorSettings.release, audioContext.currentTime);
-    comp.knee.setValueAtTime(compressorSettings.knee, audioContext.currentTime);
+    comp.knee.setValueAtTime(0, audioContext.currentTime); // Always 0 - hard knee
   }, [compressorSettings]);
 
   // Update volume
@@ -444,7 +443,12 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
           <AudioVisualizer analyserNode={analyserNodeRef.current} isPlaying={isPlaying} />
 
           {/* Playlist */}
-          <PlaylistPanel files={files} currentFileId={currentFile?.id || null} onFileSelect={setCurrentFile} />
+          <PlaylistPanel 
+            files={files} 
+            currentFileId={currentFile?.id || null} 
+            onFileSelect={setCurrentFile}
+            onFileDelete={onFileDelete}
+          />
         </div>
       </div>
     </div>;

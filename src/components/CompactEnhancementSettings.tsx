@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Settings, Zap, Volume2, Headphones, Sparkles, Trash2 } from 'lucide-react';
 import { EnhancedMiniPlayer } from '@/components/EnhancedMiniPlayer';
+import { useEstimatedFileSize, formatFileSize } from '@/hooks/useEstimatedFileSize';
 
 interface CompactEnhancementSettingsProps {
   onEnhance: (settings: any) => void;
@@ -20,7 +21,36 @@ interface CompactEnhancementSettingsProps {
   onApplyPreset?: (settings: any) => void;
 }
 
-export const CompactEnhancementSettings = ({ 
+// Sub-component for file size estimation
+const FileEstimateRow: React.FC<{ file: any; settings: any }> = ({ file, settings }) => {
+  const estimatedSize = useEstimatedFileSize(file.size, {
+    format: settings.outputFormat,
+    sampleRate: settings.sampleRate,
+    bitDepth: settings.bitDepth,
+    bitrate: settings.targetBitrate,
+    duration: file.duration,
+    channels: 2
+  });
+
+  return (
+    <div className="grid grid-cols-2 gap-4 text-sm">
+      <div>
+        <span className="text-slate-400">Before:</span>
+        <span className="ml-2 text-white font-semibold">
+          {formatFileSize(file.size)}
+        </span>
+      </div>
+      <div>
+        <span className="text-slate-400">After:</span>
+        <span className="ml-2 text-cyan-400 font-semibold">
+          ~{formatFileSize(estimatedSize)}
+        </span>
+      </div>
+    </div>
+  );
+};
+
+export const CompactEnhancementSettings = ({
   onEnhance, 
   isProcessing, 
   hasFiles,
@@ -92,13 +122,6 @@ export const CompactEnhancementSettings = ({
     onEnhance(finalSettings);
   };
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
 
   const ToggleButton = ({ enabled, onToggle, icon, label, color }: any) => (
     <button
@@ -166,29 +189,27 @@ export const CompactEnhancementSettings = ({
           <CardContent className="pt-0">
             <div className="space-y-2 max-h-60 overflow-y-auto">
               {uploadedFiles.map((file) => (
-                <div key={file.id} className="space-y-2">
-                  <div className="flex items-center justify-between p-3 bg-slate-800/50 rounded border border-slate-700">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-white truncate font-medium">{file.name}</p>
-                      <div className="text-xs text-slate-400">
-                        {formatFileSize(file.size)} • Ready for enhancement
+                  <div key={file.id} className="space-y-2">
+                    <div className="flex items-center justify-between p-3 bg-slate-800/50 rounded border border-slate-700">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-white truncate font-medium">{file.name}</p>
+                        <FileEstimateRow file={file} settings={settings} />
                       </div>
+                      {(file.status === 'error' || file.status === 'uploaded') && onRemoveFile && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onRemoveFile(file.id)}
+                          className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-900/50 ml-2"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
-                    {(file.status === 'error' || file.status === 'uploaded') && onRemoveFile && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onRemoveFile(file.id)}
-                        className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-900/50 ml-2"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
+                    
+                    {/* Mini Player for each file */}
+                    <EnhancedMiniPlayer file={file} />
                   </div>
-                  
-                  {/* Mini Player for each file */}
-                  <EnhancedMiniPlayer file={file} />
-                </div>
               ))}
             </div>
           </CardContent>
