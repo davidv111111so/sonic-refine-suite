@@ -131,7 +131,7 @@ export const AIMasteringTab = () => {
   
   const targetInputRef = useRef<HTMLInputElement>(null);
   const referenceInputRef = useRef<HTMLInputElement>(null);
-  const BACKEND_URL = 'http://127.0.0.1:8000';
+  const BACKEND_URL = 'https://spectrum-backend-857351913435.us-central1.run.app';
   
   // Save state to sessionStorage whenever it changes
   React.useEffect(() => {
@@ -396,7 +396,7 @@ export const AIMasteringTab = () => {
         } else if (err.code === 'ECONNABORTED') {
           errorMsg = 'Request timeout - Processing took too long';
         } else if (err.code === 'ERR_NETWORK') {
-          errorMsg = 'Cannot connect to backend at http://127.0.0.1:8000';
+          errorMsg = 'Cannot connect to backend at https://spectrum-backend-857351913435.us-central1.run.app';
         } else if (err.response) {
           errorMsg = `Backend error: ${err.response.status} - ${err.response.statusText}`;
         } else {
