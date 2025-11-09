@@ -19,15 +19,27 @@ serve(async (req) => {
     // Verify user authentication
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error('Missing authorization header');
       return new Response(
         JSON.stringify({ error: 'Missing authorization header' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
+    // Extract token from Bearer format
+    const token = authHeader.startsWith('Bearer ') 
+      ? authHeader.substring(7) 
+      : authHeader;
+    
+    if (!token || token.trim() === '') {
+      console.error('Invalid or empty token');
+      return new Response(
+        JSON.stringify({ error: 'Invalid authorization token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
       return new Response(
@@ -88,8 +100,8 @@ serve(async (req) => {
       matcheringFormData.append('preset_id', presetId);
     }
 
-    // Get JWT token from authorization header
-    const jwtToken = authHeader.replace('Bearer ', '');
+    // Get JWT token (already extracted)
+    const jwtToken = token;
 
     // Call external Matchering API
     console.log('Calling Matchering API with JWT authentication...');
