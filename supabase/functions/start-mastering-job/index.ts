@@ -21,16 +21,17 @@ serve(async (req) => {
       throw new Error('Missing authorization header')
     }
 
-    console.log('Auth header present, creating Supabase client...')
+    console.log('Auth header present, extracting JWT...')
+    const jwt = authHeader.replace('Bearer ', '')
+    
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     )
 
-    // Verify user and get user ID
-    console.log('Verifying user...')
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
+    // Verify user and get user ID by passing JWT explicitly
+    console.log('Verifying user with JWT...')
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(jwt)
     
     if (userError) {
       console.error('User verification error:', userError)
