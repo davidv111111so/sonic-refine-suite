@@ -1,4 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const BACKEND_URL = 'https://spectrum-backend-857351913435.us-central1.run.app'
 
@@ -13,17 +14,40 @@ serve(async (req) => {
   }
 
   try {
+    // 1. Extract user's JWT from request
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) throw new Error('Missing Authorization header')
 
-    const token = authHeader.replace('Bearer ', '').trim()
-    if (!token) throw new Error('Token is empty')
+    const userJWT = authHeader.replace('Bearer ', '').trim()
+    if (!userJWT) throw new Error('Token is empty')
 
+    // 2. Verify user is authenticated using Supabase
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    )
+    
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(userJWT)
+    if (authError || !user) {
+      console.error('Auth verification failed:', authError)
+      throw new Error('Unauthorized: Invalid user token')
+    }
+
+    console.log('User authenticated:', user.id)
+
+    // 3. Get backend API token
+    const BACKEND_API_TOKEN = Deno.env.get('SPECTRUM_BACKEND_API_TOKEN')
+    if (!BACKEND_API_TOKEN) {
+      throw new Error('SPECTRUM_BACKEND_API_TOKEN not configured')
+    }
+
+    // 4. Call backend with API token (not user JWT)
     const { jobId } = await req.json()
+    
     const response = await fetch(`${BACKEND_URL}/api/get-job-status/${jobId}`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${BACKEND_API_TOKEN}`
       }
     })
 
