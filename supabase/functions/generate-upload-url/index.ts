@@ -46,12 +46,21 @@ serve(async (req) => {
     console.log('User verified:', user.id)
 
     const { fileName, fileType } = await req.json()
+    
+    // Get backend API token
+    const backendToken = Deno.env.get('SPECTRUM_BACKEND_API_TOKEN')
+    if (!backendToken) {
+      console.error('SPECTRUM_BACKEND_API_TOKEN not configured')
+      throw new Error('Backend authentication not configured')
+    }
 
     // Send user ID to backend for identification
+    console.log('Calling backend API...')
     const response = await fetch(`${BACKEND_URL}/api/generate-upload-url`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${backendToken}`,
         'X-User-ID': user.id,
         'X-User-Email': user.email || '',
       },
