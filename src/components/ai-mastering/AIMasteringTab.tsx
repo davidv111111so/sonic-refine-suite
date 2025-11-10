@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Music, Upload, Crown, Lock, Loader2, Settings } from 'lucide-react';
+import { Music, Upload, Crown, Lock, Loader2, Settings, BookOpen } from 'lucide-react';
 import { useUserSubscription } from '@/hooks/useUserSubscription';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { MasteringAdvancedSettings, MasteringSettings } from './MasteringAdvancedSettings';
 import { AdminReferenceManager } from './AdminReferenceManager';
 import { mapSettingsToEnhancedBackend, validateBackendParams } from './AdvancedSettingsBackend';
+import { AIMasteringGuide } from './AIMasteringGuide';
 export const AIMasteringTab = () => {
   const {
     t
@@ -63,6 +64,7 @@ export const AIMasteringTab = () => {
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   
   const [advancedSettings, setAdvancedSettings] = useState<MasteringSettings>(() => {
     try {
@@ -546,6 +548,10 @@ export const AIMasteringTab = () => {
             <p className="text-muted-foreground">Upload your track and choose a reference to master your audio with AI.</p>
           </div>
           <div className="flex items-center gap-3">
+            <Button variant="outline" onClick={() => setShowGuide(true)} className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4" />
+              Help Guide
+            </Button>
             <Button variant="outline" onClick={() => setShowAdvancedSettings(true)} className="flex items-center gap-2 text-sky-500">
               <Settings className="h-4 w-4" />
               Advanced Settings
@@ -558,6 +564,9 @@ export const AIMasteringTab = () => {
 
         {/* Advanced Settings Modal */}
         <MasteringAdvancedSettings open={showAdvancedSettings} onOpenChange={setShowAdvancedSettings} settings={advancedSettings} onSettingsChange={setAdvancedSettings} />
+        
+        {/* Help Guide Modal */}
+        <AIMasteringGuide open={showGuide} onOpenChange={setShowGuide} />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column: Target and Presets */}
