@@ -345,6 +345,17 @@ export const AIMasteringTab = () => {
 
       // Step 1: Generate upload URL for target file
       toast.info('📤 Uploading target file...');
+      
+      // Check if user is authenticated
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Authentication required', {
+          description: 'Please log out and log in again to continue.'
+        });
+        setIsProcessing(false);
+        return;
+      }
+      
       const { data: targetUploadData, error: targetUploadError } = await supabase.functions.invoke('generate-upload-url', {
         body: {
           fileName: targetFile.name,
@@ -352,7 +363,12 @@ export const AIMasteringTab = () => {
         }
       });
 
-      if (targetUploadError || !targetUploadData?.uploadUrl) {
+      if (targetUploadError) {
+        console.error('Upload URL error:', targetUploadError);
+        throw new Error(`Failed to generate upload URL: ${targetUploadError.message}`);
+      }
+      
+      if (!targetUploadData?.uploadUrl) {
         throw new Error('Failed to generate upload URL for target file');
       }
 
