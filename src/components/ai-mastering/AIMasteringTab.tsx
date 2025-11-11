@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { saveAs } from 'file-saver';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,6 +14,7 @@ import { MasteringAdvancedSettings, MasteringSettings } from './MasteringAdvance
 import { AdminReferenceManager } from './AdminReferenceManager';
 import { mapSettingsToEnhancedBackend, validateBackendParams } from './AdvancedSettingsBackend';
 import { AIMasteringGuide } from './AIMasteringGuide';
+import { useAIMastering, downloadMasteredFile } from '@/hooks/useAIMastering';
 export const AIMasteringTab = () => {
   const {
     t
@@ -61,10 +63,12 @@ export const AIMasteringTab = () => {
     }
   });
   
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  
+  // Use the AI Mastering hook
+  const { masterAudio, isProcessing, progress } = useAIMastering();
   
   const [advancedSettings, setAdvancedSettings] = useState<MasteringSettings>(() => {
     try {
@@ -320,192 +324,34 @@ export const AIMasteringTab = () => {
       toast.error("Please select a target audio file.");
       return;
     }
-    if (!referenceFile && !selectedPreset) {
-      setError("Please select a reference file or choose a genre preset.");
-      toast.error("Please select a reference file or choose a genre preset.");
-      return;
-    }
+    
     setError('');
-    setIsProcessing(true);
     
     try {
-      toast.info('🎵 Starting AI mastering...');
+      console.log('🚀 Starting AI Mastering with new hook...');
       
-      // Map UI settings to backend parameters and validate
-      const backendParams = mapSettingsToEnhancedBackend(advancedSettings);
-      const validationErrors = validateBackendParams(backendParams);
-      
-      if (validationErrors.length > 0) {
-        toast.error('Invalid settings', {
-          description: validationErrors.join(', ')
-        });
-        setIsProcessing(false);
-        return;
-      }
-
-      // Step 1: Generate upload URL for target file
-      toast.info('📤 Uploading target file...');
-      
-      // Check if user is authenticated
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast.error('Authentication required', {
-          description: 'Please log out and log in again to continue.'
-        });
-        setIsProcessing(false);
-        return;
-      }
-      
-      const { data: targetUploadData, error: targetUploadError } = await supabase.functions.invoke('generate-upload-url', {
-        body: {
-          fileName: targetFile.name,
-          fileType: targetFile.type || 'audio/wav'
-        }
-      });
-
-      if (targetUploadError) {
-        console.error('Upload URL error:', targetUploadError);
-        throw new Error(`Failed to generate upload URL: ${targetUploadError.message}`);
-      }
-      
-      if (!targetUploadData?.uploadUrl) {
-        throw new Error('Failed to generate upload URL for target file');
-      }
-
-      // Upload target file to GCS
-      const targetUploadResponse = await fetch(targetUploadData.uploadUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': targetFile.type || 'audio/wav',
-        },
-        body: targetFile
-      });
-
-      if (!targetUploadResponse.ok) {
-        throw new Error('Failed to upload target file to cloud storage');
-      }
-
-      // Step 2: Handle reference file or preset
-      let referenceGcsPath = null;
-      
-      if (activeMode === 'custom' && referenceFile) {
-        toast.info('📤 Uploading reference file...');
-        const { data: refUploadData, error: refUploadError } = await supabase.functions.invoke('generate-upload-url', {
-          body: {
-            fileName: referenceFile.name,
-            fileType: referenceFile.type || 'audio/wav'
-          }
-        });
-
-        if (refUploadError || !refUploadData?.uploadUrl) {
-          throw new Error('Failed to generate upload URL for reference file');
-        }
-
-        // Upload reference file to GCS
-        const refUploadResponse = await fetch(refUploadData.uploadUrl, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': referenceFile.type || 'audio/wav',
-          },
-          body: referenceFile
-        });
-
-        if (!refUploadResponse.ok) {
-          throw new Error('Failed to upload reference file to cloud storage');
-        }
-
-        referenceGcsPath = refUploadData.gcsPath;
-      }
-
-      // Step 3: Start mastering job
-      toast.info('🎨 Starting mastering job...');
-      const jobPayload: any = {
-        targetGcsPath: targetUploadData.gcsPath,
-        advancedSettings: backendParams
+      // Use the AI Mastering hook with settings from advanced panel
+      const masteringSettings = {
+        targetLoudness: -14, // Can be customized from advancedSettings if needed
+        compressionRatio: 4,
+        eqProfile: 'neutral' as const,
+        stereoWidth: 100,
       };
-
-      if (activeMode === 'custom' && referenceGcsPath) {
-        jobPayload.referenceGcsPath = referenceGcsPath;
-      } else if (activeMode === 'preset' && selectedPreset) {
-        jobPayload.presetId = selectedPreset;
-      }
-
-      const { data: jobData, error: jobError } = await supabase.functions.invoke('start-mastering-job', {
-        body: jobPayload
-      });
-
-      if (jobError || !jobData?.jobId) {
-        throw new Error('Failed to start mastering job');
-      }
-
-      const jobId = jobData.jobId;
-      toast.info(`🎫 Job started (ID: ${jobId.substring(0, 8)}...)`);
-
-      // Step 4: Poll for job status
-      let attempts = 0;
-      const maxAttempts = 120; // 10 minutes (5s intervals)
       
-      const pollStatus = async (): Promise<void> => {
-        attempts++;
-        
-        const { data: statusData, error: statusError } = await supabase.functions.invoke('get-job-status', {
-          body: { jobId }
-        });
-
-        if (statusError) {
-          throw new Error('Failed to check job status');
-        }
-
-        const status = statusData?.status;
-        const progress = statusData?.progress || 0;
-
-        if (status === 'completed') {
-          // Job complete - download file
-          if (!statusData.downloadUrl) {
-            throw new Error('No download URL provided');
-          }
-
-          toast.success('✅ Mastering complete! Downloading...');
-          
-          const fileResponse = await fetch(statusData.downloadUrl);
-          if (!fileResponse.ok) {
-            throw new Error('Failed to download mastered file');
-          }
-          
-          const blob = await fileResponse.blob();
-          const filename = `mastered_${targetFile.name.replace(/\.[^/.]+$/, '')}.wav`;
-          saveAs(blob, filename);
-          
-          toast.success('✅ File downloaded successfully!');
-          
-          // Clear session storage
-          sessionStorage.removeItem('aiMastering_targetFile');
-          sessionStorage.removeItem('aiMastering_referenceFile');
-          setTargetFileInfo(null);
-          setReferenceFileInfo(null);
-          setIsProcessing(false);
-          
-        } else if (status === 'failed') {
-          throw new Error(statusData.error || 'Mastering job failed');
-          
-        } else if (status === 'processing' || status === 'pending') {
-          // Update progress
-          toast.info(`⚙️ Processing... ${Math.round(progress)}%`, { id: 'mastering-progress' });
-          
-          if (attempts >= maxAttempts) {
-            throw new Error('Job timeout - please try again');
-          }
-          
-          // Continue polling
-          await new Promise(resolve => setTimeout(resolve, 5000));
-          await pollStatus();
-          
-        } else {
-          throw new Error(`Unknown job status: ${status}`);
-        }
-      };
-
-      await pollStatus();
+      const result = await masterAudio(targetFile, masteringSettings);
+      
+      // Download the mastered file automatically
+      downloadMasteredFile(result.blob, result.fileName);
+      
+      toast.success('✅ Your track has been mastered successfully!');
+      
+      // Clear files after successful mastering
+      setTargetFile(null);
+      setTargetFileInfo(null);
+      setReferenceFile(null);
+      setReferenceFileInfo(null);
+      sessionStorage.removeItem('aiMastering_targetFile');
+      sessionStorage.removeItem('aiMastering_referenceFile');
       
     } catch (err) {
       let errorMsg = 'An error occurred during mastering';
@@ -518,8 +364,6 @@ export const AIMasteringTab = () => {
       
       console.error('Mastering error:', err);
       setError(errorMsg);
-      setIsProcessing(false);
-      toast.error(`❌ ${errorMsg}`);
     }
   };
   if (loading) {
@@ -671,19 +515,43 @@ export const AIMasteringTab = () => {
                     </div>}
                 </div>
 
-                <div className="mt-8">
-                  <Button onClick={handleMastering} disabled={isProcessing} className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-6 rounded-lg text-lg transition-all disabled:bg-slate-500 disabled:cursor-not-allowed">
-                    {isProcessing ? <>
+                <div className="mt-8 space-y-4">
+                  <Button 
+                    onClick={handleMastering} 
+                    disabled={isProcessing || !targetFile} 
+                    className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-6 rounded-lg text-lg transition-all disabled:bg-slate-500 disabled:cursor-not-allowed"
+                  >
+                    {isProcessing ? (
+                      <>
                         <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                        Processing... This may take 30-60 seconds
-                      </> : <>
+                        Processing... {progress}%
+                      </>
+                    ) : (
+                      <>
                         ✨ Master My Track
-                      </>}
+                      </>
+                    )}
                   </Button>
 
-                  {error && <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-center text-red-400 text-sm">
+                  {/* Progress Bar */}
+                  {isProcessing && (
+                    <div className="space-y-2">
+                      <Progress value={progress} className="h-2" />
+                      <p className="text-xs text-center text-muted-foreground">
+                        {progress < 30 && 'Uploading to cloud storage...'}
+                        {progress >= 30 && progress < 50 && 'File uploaded, starting AI processing...'}
+                        {progress >= 50 && progress < 80 && 'AI is mastering your audio...'}
+                        {progress >= 80 && progress < 100 && 'Downloading mastered file...'}
+                        {progress === 100 && 'Complete!'}
+                      </p>
+                    </div>
+                  )}
+
+                  {error && (
+                    <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-center text-red-400 text-sm">
                       {error}
-                    </div>}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

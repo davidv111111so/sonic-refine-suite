@@ -131,9 +131,11 @@ export const useAIMastering = () => {
         description: 'AI is analyzing and mastering your audio',
       });
 
-      const backendUrl = import.meta.env.VITE_PYTHON_BACKEND_URL;
+      const backendUrl = import.meta.env.VITE_PYTHON_BACKEND_URL || 'https://spectrum-backend-857351913435.us-central1.run.app';
+      
       if (!backendUrl) {
-        throw new Error('VITE_PYTHON_BACKEND_URL is not configured');
+        console.error('❌ Backend URL not configured');
+        throw new Error('Backend URL is not configured. Please set VITE_PYTHON_BACKEND_URL or contact support.');
       }
 
       console.log('🤖 Calling Python backend for AI mastering...');
