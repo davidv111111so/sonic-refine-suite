@@ -358,12 +358,147 @@ Para eliminar archivos temporales automáticamente:
 
 ---
 
+## ✅ EDGE FUNCTION IMPLEMENTADA
+
+### Edge Function: `generate-upload-url`
+
+**Estado**: ✅ Desplegada y lista para usar
+
+**Ubicación**: `supabase/functions/generate-upload-url/index.ts`
+
+**Funcionalidad**:
+- ✅ Autentica usuarios con Supabase JWT
+- ✅ Genera signed URLs para upload (PUT, válida 1 hora)
+- ✅ Genera signed URLs para download (GET, válida 24 horas)
+- ✅ Crea nombres de archivo únicos con timestamp
+- ✅ Organiza archivos por usuario: `audio-uploads/{userId}/{timestamp}-{fileName}`
+- ✅ Manejo completo de CORS
+- ✅ Logs detallados con emojis para fácil debugging
+- ✅ Validación de parámetros
+- ✅ Manejo robusto de errores
+
+**Uso desde el Frontend**:
+
+```typescript
+import { supabase } from '@/integrations/supabase/client'
+
+async function getUploadUrl(fileName: string, fileType: string, fileSize?: number) {
+  const { data, error } = await supabase.functions.invoke('generate-upload-url', {
+    body: {
+      fileName,
+      fileType,
+      fileSize // opcional
+    }
+  })
+  
+  if (error) {
+    console.error('Error generating upload URL:', error)
+    throw error
+  }
+  
+  return data // { uploadUrl, downloadUrl, fileName, bucket, expiresIn, metadata }
+}
+
+// Ejemplo: Subir un archivo
+async function uploadFile(file: File) {
+  // 1. Obtener signed URLs
+  const { uploadUrl, downloadUrl, fileName } = await getUploadUrl(
+    file.name,
+    file.type,
+    file.size
+  )
+  
+  // 2. Subir el archivo directamente a GCS
+  const uploadResponse = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': file.type
+    },
+    body: file
+  })
+  
+  if (!uploadResponse.ok) {
+    throw new Error('Failed to upload file to GCS')
+  }
+  
+  console.log('File uploaded successfully!')
+  console.log('Download URL:', downloadUrl)
+  console.log('File path in GCS:', fileName)
+  
+  return { downloadUrl, fileName }
+}
+```
+
+**Respuesta de la Edge Function**:
+
+```json
+{
+  "uploadUrl": "https://storage.googleapis.com/level-audio-mastering/audio-uploads/...",
+  "downloadUrl": "https://storage.googleapis.com/level-audio-mastering/audio-uploads/...",
+  "fileName": "audio-uploads/user-id/1234567890-my-audio-file.mp3",
+  "bucket": "level-audio-mastering",
+  "expiresIn": {
+    "upload": "1 hour",
+    "download": "24 hours"
+  },
+  "metadata": {
+    "originalFileName": "my-audio-file.mp3",
+    "fileType": "audio/mpeg",
+    "fileSize": 5242880,
+    "userId": "user-id",
+    "timestamp": 1234567890
+  }
+}
+```
+
+**Logs de la Edge Function**:
+
+Puedes monitorear los logs en tiempo real para debugging:
+
+```
+🚀 Starting generate-upload-url function
+✅ User authenticated: {userId}
+📝 Request parameters: {fileName, fileType, fileSize}
+🔧 GCS Configuration: {projectId, bucketName}
+✅ Credentials parsed successfully
+✅ Google Cloud Storage client initialized
+📁 Generated unique filename: audio-uploads/...
+✅ Upload URL generated (valid for 1 hour)
+✅ Download URL generated (valid for 24 hours)
+🎉 Signed URLs generated successfully
+```
+
+---
+
 ## SIGUIENTE PASO
 
-Una vez completada esta configuración, el siguiente paso sería:
+### Integración con el Frontend
 
-1. **Actualizar el backend Python** para integrar GCS
-2. **Actualizar las Edge Functions** si necesitan cambios
-3. **Actualizar el frontend** para usar las nuevas URLs
+Ahora puedes integrar esta Edge Function con tu frontend de Level:
 
-¿Quieres que proceda con la implementación del código ahora?
+1. **Actualizar el componente de upload** para usar la nueva Edge Function
+2. **Implementar el flujo de upload directo a GCS** usando las signed URLs
+3. **Actualizar otras Edge Functions** (start-mastering-job, get-job-status) si es necesario
+4. **Probar el flujo completo** de upload y mastering
+
+### Flujo Recomendado
+
+```
+Usuario selecciona archivo
+    ↓
+Frontend llama generate-upload-url Edge Function
+    ↓
+Edge Function genera signed URLs de GCS
+    ↓
+Frontend sube archivo directamente a GCS usando uploadUrl
+    ↓
+Frontend notifica al backend Python que el archivo está listo
+    ↓
+Backend procesa el audio desde GCS
+    ↓
+Backend guarda resultado en GCS
+    ↓
+Backend retorna signed URL del archivo procesado
+```
+
+¿Quieres que actualice las otras Edge Functions o el frontend ahora?

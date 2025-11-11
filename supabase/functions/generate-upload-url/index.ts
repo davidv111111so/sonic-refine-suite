@@ -1,7 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const BACKEND_URL = 'https://spectrum-backend-857351913435.us-central1.run.app'
+import { Storage } from 'https://esm.sh/@google-cloud/storage@7.7.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,65 +10,152 @@ const corsHeaders = {
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    // 1. Extract user's JWT from request
+    console.log('🚀 Starting generate-upload-url function')
+
+    // 1. Authenticate user with Supabase
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) throw new Error('Missing Authorization header from client')
+    if (!authHeader) {
+      console.error('❌ Missing Authorization header')
+      throw new Error('Missing Authorization header')
+    }
 
     const userJWT = authHeader.replace('Bearer ', '').trim()
-    if (!userJWT) throw new Error('Token is empty')
+    if (!userJWT) {
+      console.error('❌ Empty JWT token')
+      throw new Error('Empty JWT token')
+    }
 
-    // 2. Verify user is authenticated using Supabase
     const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!
     )
-    
+
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(userJWT)
     if (authError || !user) {
-      console.error('Auth verification failed:', authError)
-      throw new Error('Unauthorized: Invalid user token')
+      console.error('❌ Authentication failed:', authError?.message)
+      throw new Error(`Unauthorized: ${authError?.message || 'Invalid user token'}`)
     }
 
-    console.log('User authenticated:', user.id)
+    console.log('✅ User authenticated:', user.id)
 
-    // 3. Get backend API token
-    const BACKEND_API_TOKEN = Deno.env.get('SPECTRUM_BACKEND_API_TOKEN')
-    if (!BACKEND_API_TOKEN) {
-      throw new Error('SPECTRUM_BACKEND_API_TOKEN not configured')
+    // 2. Parse and validate request body
+    const body = await req.json()
+    const { fileName, fileType, fileSize } = body
+
+    if (!fileName || !fileType) {
+      console.error('❌ Missing required parameters:', { fileName, fileType })
+      throw new Error('Missing required parameters: fileName and fileType are required')
     }
 
-    // 4. Call backend with API token (not user JWT)
-    const { fileName, fileType } = await req.json()
-    console.log(`Requesting upload URL for: ${fileName}`)
+    console.log('📝 Request parameters:', { fileName, fileType, fileSize })
 
-    const response = await fetch(`${BACKEND_URL}/api/generate-upload-url`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${BACKEND_API_TOKEN}`
+    // 3. Load Google Cloud credentials
+    const projectId = Deno.env.get('GOOGLE_CLOUD_PROJECT_ID')
+    const bucketName = Deno.env.get('GOOGLE_CLOUD_BUCKET_NAME')
+    const credentialsJSON = Deno.env.get('GOOGLE_APPLICATION_CREDENTIALS_JSON')
+
+    if (!projectId || !bucketName || !credentialsJSON) {
+      console.error('❌ Missing Google Cloud configuration')
+      throw new Error('Server configuration error: Missing Google Cloud credentials')
+    }
+
+    console.log('🔧 GCS Configuration:', { projectId, bucketName })
+
+    // 4. Parse credentials JSON
+    let credentials
+    try {
+      credentials = JSON.parse(credentialsJSON)
+      console.log('✅ Credentials parsed successfully')
+    } catch (error) {
+      console.error('❌ Failed to parse credentials JSON:', error)
+      throw new Error('Invalid Google Cloud credentials format')
+    }
+
+    // 5. Initialize Google Cloud Storage client
+    const storage = new Storage({
+      projectId: projectId,
+      credentials: credentials
+    })
+
+    console.log('✅ Google Cloud Storage client initialized')
+
+    // 6. Generate unique filename with timestamp
+    const timestamp = Date.now()
+    const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_')
+    const uniqueFileName = `audio-uploads/${user.id}/${timestamp}-${sanitizedFileName}`
+
+    console.log('📁 Generated unique filename:', uniqueFileName)
+
+    // 7. Get bucket reference
+    const bucket = storage.bucket(bucketName)
+
+    // 8. Generate signed URL for upload (PUT, 1 hour)
+    const uploadOptions = {
+      version: 'v4' as const,
+      action: 'write' as const,
+      expires: Date.now() + 60 * 60 * 1000, // 1 hour
+      contentType: fileType,
+    }
+
+    const [uploadUrl] = await bucket.file(uniqueFileName).getSignedUrl(uploadOptions)
+    console.log('✅ Upload URL generated (valid for 1 hour)')
+
+    // 9. Generate signed URL for download (GET, 24 hours)
+    const downloadOptions = {
+      version: 'v4' as const,
+      action: 'read' as const,
+      expires: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
+    }
+
+    const [downloadUrl] = await bucket.file(uniqueFileName).getSignedUrl(downloadOptions)
+    console.log('✅ Download URL generated (valid for 24 hours)')
+
+    // 10. Prepare response
+    const response = {
+      uploadUrl,
+      downloadUrl,
+      fileName: uniqueFileName,
+      bucket: bucketName,
+      expiresIn: {
+        upload: '1 hour',
+        download: '24 hours'
       },
-      body: JSON.stringify({ fileName, fileType }),
-    })
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('Backend error:', response.status, errorText)
-      throw new Error(`Backend error: ${response.status} - ${errorText}`)
+      metadata: {
+        originalFileName: fileName,
+        fileType,
+        fileSize,
+        userId: user.id,
+        timestamp
+      }
     }
 
-    const data = await response.json()
-    return new Response(JSON.stringify(data), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    console.log('🎉 Signed URLs generated successfully')
+
+    return new Response(JSON.stringify(response), {
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'application/json' 
+      },
+      status: 200
     })
+
   } catch (error) {
-    console.error('Edge Function Error:', error.message)
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error('💥 Error in generate-upload-url:', error.message)
+    console.error('Stack trace:', error.stack)
+
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      details: 'Failed to generate signed URLs for Google Cloud Storage'
+    }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'application/json' 
+      }
     })
   }
 })
