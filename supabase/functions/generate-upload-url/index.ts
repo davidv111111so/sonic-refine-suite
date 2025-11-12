@@ -257,8 +257,23 @@ async function createJWT(credentials: any): Promise<string> {
   const encodedPayload = base64UrlEncode(JSON.stringify(payload))
   const signatureInput = `${encodedHeader}.${encodedPayload}`
 
-  // Import the private key
-  const privateKey = credentials.private_key.replace(/\\n/g, '\n')
+  // Import the private key - normalize line breaks
+  // Handle both \n escape sequences and actual line breaks
+  let privateKey = credentials.private_key
+  
+  // If the key doesn't have proper line breaks, add them
+  if (!privateKey.includes('\n')) {
+    privateKey = privateKey.replace(/\\n/g, '\n')
+  }
+  
+  // Ensure the key has the proper PEM format
+  privateKey = privateKey.trim()
+  
+  console.log('🔑 Private key format check:')
+  console.log('   Has BEGIN marker:', privateKey.includes('BEGIN PRIVATE KEY'))
+  console.log('   Has END marker:', privateKey.includes('END PRIVATE KEY'))
+  console.log('   Total length:', privateKey.length)
+  console.log('   Has line breaks:', privateKey.includes('\n'))
   
   const keyData = await crypto.subtle.importKey(
     'pkcs8',
@@ -286,19 +301,41 @@ async function createJWT(credentials: any): Promise<string> {
  * Convert PEM private key to ArrayBuffer
  */
 function pemToArrayBuffer(pem: string): ArrayBuffer {
-  const pemContents = pem
-    .replace('-----BEGIN PRIVATE KEY-----', '')
-    .replace('-----END PRIVATE KEY-----', '')
-    .replace(/\s/g, '')
-  
-  const binaryString = atob(pemContents)
-  const bytes = new Uint8Array(binaryString.length)
-  
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i)
+  try {
+    // Remove PEM headers and footers, and all whitespace
+    let pemContents = pem
+      .replace(/-----BEGIN PRIVATE KEY-----/g, '')
+      .replace(/-----END PRIVATE KEY-----/g, '')
+      .replace(/-----BEGIN RSA PRIVATE KEY-----/g, '')
+      .replace(/-----END RSA PRIVATE KEY-----/g, '')
+      .replace(/\s+/g, '')  // Remove all whitespace including \n, \r, spaces, tabs
+      .trim()
+    
+    // Log the first and last few characters for debugging (without exposing the full key)
+    console.log('🔐 Processing private key...')
+    console.log(`   Key length after cleanup: ${pemContents.length} chars`)
+    console.log(`   First 20 chars: ${pemContents.substring(0, 20)}`)
+    console.log(`   Last 20 chars: ${pemContents.substring(pemContents.length - 20)}`)
+    
+    // Decode base64 to binary
+    const binaryString = atob(pemContents)
+    const bytes = new Uint8Array(binaryString.length)
+    
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i)
+    }
+    
+    console.log('✅ Private key converted to ArrayBuffer successfully')
+    return bytes.buffer
+    
+  } catch (error) {
+    console.error('❌ Error converting PEM to ArrayBuffer:', error)
+    console.error('   PEM format check:')
+    console.error('   - Has BEGIN marker:', pem.includes('BEGIN PRIVATE KEY'))
+    console.error('   - Has END marker:', pem.includes('END PRIVATE KEY'))
+    console.error('   - Length:', pem.length)
+    throw new Error(`Failed to process private key: ${error.message}`)
   }
-  
-  return bytes.buffer
 }
 
 /**
