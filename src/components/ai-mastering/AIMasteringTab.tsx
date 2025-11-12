@@ -68,7 +68,7 @@ export const AIMasteringTab = () => {
   const [showGuide, setShowGuide] = useState(false);
   
   // Use the AI Mastering hook
-  const { masterAudio, isProcessing, progress } = useAIMastering();
+  const { masterAudio, isProcessing, progress, cancelProcessing } = useAIMastering();
   
   const [advancedSettings, setAdvancedSettings] = useState<MasteringSettings>(() => {
     try {
@@ -532,6 +532,17 @@ export const AIMasteringTab = () => {
                       </>
                     )}
                   </Button>
+
+                  {/* Cancel Button */}
+                  {isProcessing && (
+                    <Button 
+                      onClick={cancelProcessing}
+                      variant="destructive"
+                      className="w-full"
+                    >
+                      Cancel Processing
+                    </Button>
+                  )}
 
                   {/* Progress Bar */}
                   {isProcessing && (

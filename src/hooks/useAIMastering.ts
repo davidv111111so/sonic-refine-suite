@@ -1,6 +1,11 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+
+// Constants
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second base delay
 
 // Types
 export interface MasteringSettings {
@@ -53,6 +58,7 @@ export const useAIMastering = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const { toast } = useToast();
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const masterAudio = async (
     file: File,
@@ -60,9 +66,21 @@ export const useAIMastering = () => {
   ): Promise<MasteringResult> => {
     setIsProcessing(true);
     setProgress(0);
+    
+    // Create abort controller for cancellation
+    abortControllerRef.current = new AbortController();
 
     try {
       console.log('🎵 Starting AI Mastering process for:', file.name);
+      
+      // Validate file size
+      if (file.size > MAX_FILE_SIZE) {
+        throw new Error(
+          `File size (${formatFileSize(file.size)}) exceeds maximum allowed size (${formatFileSize(MAX_FILE_SIZE)})`
+        );
+      }
+      
+      console.log('✅ File size validated:', formatFileSize(file.size));
       
       // Merge settings with defaults
       const masteringSettings: Required<MasteringSettings> = {
@@ -101,7 +119,7 @@ export const useAIMastering = () => {
         bucket: urlData.bucket,
       });
 
-      // Step 2: Upload file to GCS (30%)
+      // Step 2: Upload file to GCS with retry and progress (30%)
       setProgress(30);
       toast({
         title: 'Uploading audio...',
@@ -109,18 +127,50 @@ export const useAIMastering = () => {
       });
 
       console.log('☁️ Uploading file to Google Cloud Storage...');
-      const uploadResponse = await fetch(urlData.uploadUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': file.type,
-        },
-        body: file,
-      });
-
-      if (!uploadResponse.ok) {
-        console.error('❌ GCS upload failed:', uploadResponse.status, uploadResponse.statusText);
-        throw new Error(`Failed to upload to cloud storage: ${uploadResponse.statusText}`);
-      }
+      
+      // Use XMLHttpRequest for better progress tracking
+      const uploadWithProgress = (): Promise<void> => {
+        return new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          
+          xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+              const uploadPercent = (e.loaded / e.total) * 20; // 20% of total progress
+              setProgress(30 + Math.round(uploadPercent));
+            }
+          });
+          
+          xhr.addEventListener('load', () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve();
+            } else {
+              reject(new Error(`Upload failed with status ${xhr.status}`));
+            }
+          });
+          
+          xhr.addEventListener('error', () => {
+            reject(new Error('Network error during upload'));
+          });
+          
+          xhr.addEventListener('abort', () => {
+            reject(new Error('Upload cancelled'));
+          });
+          
+          // Listen for abort signal
+          if (abortControllerRef.current) {
+            abortControllerRef.current.signal.addEventListener('abort', () => {
+              xhr.abort();
+            });
+          }
+          
+          xhr.open('PUT', urlData.uploadUrl);
+          xhr.setRequestHeader('Content-Type', file.type);
+          xhr.send(file);
+        });
+      };
+      
+      // Retry logic for upload
+      await fetchWithRetry(uploadWithProgress, MAX_RETRIES, RETRY_DELAY);
 
       console.log('✅ File uploaded successfully to GCS');
 
@@ -215,9 +265,26 @@ export const useAIMastering = () => {
     } catch (error) {
       console.error('💥 AI Mastering error:', error);
       
+      // User-friendly error messages
+      let errorMessage = 'An unexpected error occurred';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('cancelled') || error.message.includes('abort')) {
+          errorMessage = 'Processing was cancelled';
+        } else if (error.message.includes('File size')) {
+          errorMessage = error.message;
+        } else if (error.message.includes('Network')) {
+          errorMessage = 'Network error. Please check your connection and try again.';
+        } else if (error.message.includes('timeout')) {
+          errorMessage = 'Request timed out. The file may be too large or processing is taking longer than expected.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: 'Mastering failed',
-        description: error instanceof Error ? error.message : 'An unexpected error occurred',
+        description: errorMessage,
         variant: 'destructive',
       });
 
@@ -225,6 +292,19 @@ export const useAIMastering = () => {
     } finally {
       setIsProcessing(false);
       setProgress(0);
+      abortControllerRef.current = null;
+    }
+  };
+  
+  // Function to cancel ongoing processing
+  const cancelProcessing = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      console.log('🛑 Processing cancelled by user');
+      toast({
+        title: 'Cancelled',
+        description: 'Audio mastering was cancelled',
+      });
     }
   };
 
@@ -232,8 +312,38 @@ export const useAIMastering = () => {
     masterAudio,
     isProcessing,
     progress,
+    cancelProcessing,
   };
 };
+
+// Helper function: Retry with exponential backoff
+async function fetchWithRetry<T>(
+  fn: () => Promise<T>,
+  retries: number = MAX_RETRIES,
+  delay: number = RETRY_DELAY
+): Promise<T> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      const isLastAttempt = i === retries - 1;
+      
+      if (isLastAttempt) {
+        throw error;
+      }
+      
+      // Check if error is cancellation - don't retry
+      if (error instanceof Error && 
+          (error.message.includes('cancel') || error.message.includes('abort'))) {
+        throw error;
+      }
+      
+      console.log(`⚠️ Attempt ${i + 1} failed, retrying in ${delay * (i + 1)}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
 
 // Helper function to trigger file download in browser
 export const downloadMasteredFile = (blob: Blob, fileName: string) => {
