@@ -15,6 +15,7 @@ import { AdminReferenceManager } from './AdminReferenceManager';
 import { mapSettingsToEnhancedBackend, validateBackendParams } from './AdvancedSettingsBackend';
 import { AIMasteringGuide } from './AIMasteringGuide';
 import { useAIMastering, downloadMasteredFile } from '@/hooks/useAIMastering';
+import { AIMasteringSetupChecker } from './AIMasteringSetupChecker';
 export const AIMasteringTab = () => {
   const {
     t
@@ -402,6 +403,9 @@ export const AIMasteringTab = () => {
   }
   return <div className="min-h-screen p-4 sm:p-6 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
+        {/* Setup Checker - Remove this once all checks pass */}
+        <AIMasteringSetupChecker />
+
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-bold mb-2 text-primary">AI Audio Mastering</h1>
