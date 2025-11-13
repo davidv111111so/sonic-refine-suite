@@ -24,10 +24,13 @@ export const AIMasteringTab = () => {
     loading
   } = useUserSubscription();
   const navigate = useNavigate();
-  
+
   // State with sessionStorage persistence for file metadata
   const [targetFile, setTargetFile] = useState<File | null>(null);
-  const [targetFileInfo, setTargetFileInfo] = useState<{name: string; size: number} | null>(() => {
+  const [targetFileInfo, setTargetFileInfo] = useState<{
+    name: string;
+    size: number;
+  } | null>(() => {
     try {
       const saved = sessionStorage.getItem('aiMastering_targetFile');
       return saved ? JSON.parse(saved) : null;
@@ -35,9 +38,11 @@ export const AIMasteringTab = () => {
       return null;
     }
   });
-  
   const [referenceFile, setReferenceFile] = useState<File | null>(null);
-  const [referenceFileInfo, setReferenceFileInfo] = useState<{name: string; size: number} | null>(() => {
+  const [referenceFileInfo, setReferenceFileInfo] = useState<{
+    name: string;
+    size: number;
+  } | null>(() => {
     try {
       const saved = sessionStorage.getItem('aiMastering_referenceFile');
       return saved ? JSON.parse(saved) : null;
@@ -53,7 +58,6 @@ export const AIMasteringTab = () => {
       return null;
     }
   });
-  
   const [activeMode, setActiveMode] = useState<'preset' | 'custom'>(() => {
     try {
       const saved = sessionStorage.getItem('aiMastering_activeMode');
@@ -62,14 +66,17 @@ export const AIMasteringTab = () => {
       return 'preset';
     }
   });
-  
   const [error, setError] = useState<string>('');
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
-  
+
   // Use the AI Mastering hook
-  const { masterAudio, isProcessing, progress, cancelProcessing } = useAIMastering();
-  
+  const {
+    masterAudio,
+    isProcessing,
+    progress,
+    cancelProcessing
+  } = useAIMastering();
   const [advancedSettings, setAdvancedSettings] = useState<MasteringSettings>(() => {
     try {
       const saved = sessionStorage.getItem('aiMastering_advancedSettings');
@@ -100,7 +107,7 @@ export const AIMasteringTab = () => {
         clipping: false,
         output_bits: '32 (IEEE float)',
         output_channels: 2,
-        dithering_method: 'TPDF',
+        dithering_method: 'TPDF'
       };
     } catch {
       return {
@@ -130,15 +137,14 @@ export const AIMasteringTab = () => {
         clipping: false,
         output_bits: '32 (IEEE float)',
         output_channels: 2,
-        dithering_method: 'TPDF',
+        dithering_method: 'TPDF'
       };
     }
   });
-  
   const targetInputRef = useRef<HTMLInputElement>(null);
   const referenceInputRef = useRef<HTMLInputElement>(null);
   const BACKEND_URL = 'https://spectrum-backend-857351913435.us-central1.run.app';
-  
+
   // Save state to sessionStorage whenever it changes
   React.useEffect(() => {
     try {
@@ -151,7 +157,6 @@ export const AIMasteringTab = () => {
       console.error('Failed to save target file info:', e);
     }
   }, [targetFileInfo]);
-  
   React.useEffect(() => {
     try {
       if (referenceFileInfo) {
@@ -163,7 +168,6 @@ export const AIMasteringTab = () => {
       console.error('Failed to save reference file info:', e);
     }
   }, [referenceFileInfo]);
-  
   React.useEffect(() => {
     try {
       if (selectedPreset) {
@@ -175,7 +179,6 @@ export const AIMasteringTab = () => {
       console.error('Failed to save preset:', e);
     }
   }, [selectedPreset]);
-  
   React.useEffect(() => {
     try {
       sessionStorage.setItem('aiMastering_activeMode', JSON.stringify(activeMode));
@@ -183,7 +186,6 @@ export const AIMasteringTab = () => {
       console.error('Failed to save mode:', e);
     }
   }, [activeMode]);
-  
   React.useEffect(() => {
     try {
       sessionStorage.setItem('aiMastering_advancedSettings', JSON.stringify(advancedSettings));
@@ -297,10 +299,16 @@ export const AIMasteringTab = () => {
     if (file) {
       if (type === 'target') {
         setTargetFile(file);
-        setTargetFileInfo({ name: file.name, size: file.size });
+        setTargetFileInfo({
+          name: file.name,
+          size: file.size
+        });
       } else {
         setReferenceFile(file);
-        setReferenceFileInfo({ name: file.name, size: file.size });
+        setReferenceFileInfo({
+          name: file.name,
+          size: file.size
+        });
       }
     }
     if (e.target) {
@@ -324,27 +332,24 @@ export const AIMasteringTab = () => {
       toast.error("Please select a target audio file.");
       return;
     }
-    
     setError('');
-    
     try {
       console.log('🚀 Starting AI Mastering with new hook...');
-      
+
       // Use the AI Mastering hook with settings from advanced panel
       const masteringSettings = {
-        targetLoudness: -14, // Can be customized from advancedSettings if needed
+        targetLoudness: -14,
+        // Can be customized from advancedSettings if needed
         compressionRatio: 4,
         eqProfile: 'neutral' as const,
-        stereoWidth: 100,
+        stereoWidth: 100
       };
-      
       const result = await masterAudio(targetFile, masteringSettings);
-      
+
       // Download the mastered file automatically
       downloadMasteredFile(result.blob, result.fileName);
-      
       toast.success('✅ Your track has been mastered successfully!');
-      
+
       // Clear files after successful mastering
       setTargetFile(null);
       setTargetFileInfo(null);
@@ -352,16 +357,13 @@ export const AIMasteringTab = () => {
       setReferenceFileInfo(null);
       sessionStorage.removeItem('aiMastering_targetFile');
       sessionStorage.removeItem('aiMastering_referenceFile');
-      
     } catch (err) {
       let errorMsg = 'An error occurred during mastering';
-      
       if (err instanceof Error) {
         errorMsg = err.message;
       } else if (typeof err === 'string') {
         errorMsg = err;
       }
-      
       console.error('Mastering error:', err);
       setError(errorMsg);
     }
@@ -408,7 +410,7 @@ export const AIMasteringTab = () => {
             <p className="text-muted-foreground">Upload your track and choose a reference to master your audio with AI.</p>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={() => setShowGuide(true)} className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setShowGuide(true)} className="flex items-center gap-2 text-stone-300">
               <BookOpen className="h-4 w-4" />
               Help Guide
             </Button>
@@ -439,13 +441,11 @@ export const AIMasteringTab = () => {
                   <p className="text-muted-foreground">Drag and drop or click to select</p>
                   <input type="file" ref={targetInputRef} onChange={e => handleFileChange(e, 'target')} className="hidden" accept=".wav,.mp3,.flac" />
                 </div>
-                {targetFileInfo && !targetFile && (
-                  <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-md">
+                {targetFileInfo && !targetFile && <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-md">
                     <p className="text-sm text-blue-400 mb-2">Previous session detected:</p>
                     <p className="text-xs text-muted-foreground">{targetFileInfo.name} ({(targetFileInfo.size / 1024 / 1024).toFixed(2)} MB)</p>
                     <p className="text-xs text-yellow-400 mt-2">⚠️ Please re-upload to process</p>
-                  </div>
-                )}
+                  </div>}
                 {targetFile && <div className="mt-4 flex items-center justify-between bg-muted p-3 rounded-md">
                     <div className="flex items-center flex-1 min-w-0">
                       <Music className="h-6 w-6 mr-2 text-muted-foreground flex-shrink-0" />
@@ -491,13 +491,11 @@ export const AIMasteringTab = () => {
                     <p className="text-muted-foreground">Select a custom reference file</p>
                     <input type="file" ref={referenceInputRef} onChange={e => handleFileChange(e, 'reference')} className="hidden" accept=".wav,.mp3,.flac" />
                   </div>
-                  {referenceFileInfo && !referenceFile && activeMode === 'custom' && (
-                    <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-md">
+                  {referenceFileInfo && !referenceFile && activeMode === 'custom' && <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-md">
                       <p className="text-sm text-blue-400 mb-2">Previous reference detected:</p>
                       <p className="text-xs text-muted-foreground">{referenceFileInfo.name} ({(referenceFileInfo.size / 1024 / 1024).toFixed(2)} MB)</p>
                       <p className="text-xs text-yellow-400 mt-2">⚠️ Please re-upload to process</p>
-                    </div>
-                  )}
+                    </div>}
                   {referenceFile && activeMode === 'custom' && <div className="mt-4 flex items-center justify-between bg-muted p-3 rounded-md">
                       <div className="flex items-center flex-1 min-w-0">
                         <Music className="h-6 w-6 mr-2 text-muted-foreground flex-shrink-0" />
@@ -516,37 +514,22 @@ export const AIMasteringTab = () => {
                 </div>
 
                 <div className="mt-8 space-y-4">
-                  <Button 
-                    onClick={handleMastering} 
-                    disabled={isProcessing || !targetFile} 
-                    className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-6 rounded-lg text-lg transition-all disabled:bg-slate-500 disabled:cursor-not-allowed"
-                  >
-                    {isProcessing ? (
-                      <>
+                  <Button onClick={handleMastering} disabled={isProcessing || !targetFile} className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-6 rounded-lg text-lg transition-all disabled:bg-slate-500 disabled:cursor-not-allowed">
+                    {isProcessing ? <>
                         <Loader2 className="h-5 w-5 mr-2 animate-spin" />
                         Processing... {progress}%
-                      </>
-                    ) : (
-                      <>
+                      </> : <>
                         ✨ Master My Track
-                      </>
-                    )}
+                      </>}
                   </Button>
 
                   {/* Cancel Button */}
-                  {isProcessing && (
-                    <Button 
-                      onClick={cancelProcessing}
-                      variant="destructive"
-                      className="w-full"
-                    >
+                  {isProcessing && <Button onClick={cancelProcessing} variant="destructive" className="w-full">
                       Cancel Processing
-                    </Button>
-                  )}
+                    </Button>}
 
                   {/* Progress Bar */}
-                  {isProcessing && (
-                    <div className="space-y-2">
+                  {isProcessing && <div className="space-y-2">
                       <Progress value={progress} className="h-2" />
                       <p className="text-xs text-center text-muted-foreground">
                         {progress < 30 && 'Uploading to cloud storage...'}
@@ -555,14 +538,11 @@ export const AIMasteringTab = () => {
                         {progress >= 80 && progress < 100 && 'Downloading mastered file...'}
                         {progress === 100 && 'Complete!'}
                       </p>
-                    </div>
-                  )}
+                    </div>}
 
-                  {error && (
-                    <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-center text-red-400 text-sm">
+                  {error && <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-center text-red-400 text-sm">
                       {error}
-                    </div>
-                  )}
+                    </div>}
                 </div>
               </CardContent>
             </Card>
