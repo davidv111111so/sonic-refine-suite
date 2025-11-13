@@ -77,9 +77,9 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
         <canvas ref={canvasRef} width={800} height={200} className="w-full rounded-lg border border-slate-700 shadow-inner" />
       </div>
 
-      {/* VU Meters */}
+      {/* dB Meters */}
       <div className="space-y-3">
-        <label className="text-sm block text-orange-300">VU Meters</label>
+        <label className="text-sm block text-orange-300">dB Meters</label>
         
         {/* Left Channel */}
         <div className="space-y-1">

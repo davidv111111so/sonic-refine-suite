@@ -15,4 +15,5 @@ COPY main.py .
 EXPOSE 8080
 
 # Run with gunicorn
-CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 main:app
+# Cloud Run injects PORT as environment variable, default to 8080 if not set
+CMD exec gunicorn --bind :${PORT:-8080} --workers 1 --threads 8 --timeout 0 main:app

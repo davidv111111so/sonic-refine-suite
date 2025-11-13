@@ -112,11 +112,42 @@ export const AIMasteringSetupChecker = () => {
       });
 
       if (error) {
+        // Check if it's a network/connection error
+        if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
+          return {
+            status: 'error',
+            message: 'Edge Function connection error',
+            details: 'Cannot reach Edge Function. It may not be deployed or there is a network issue.',
+            fix: '1. Deploy Edge Function in Lovable Cloud > Edge Functions\n2. Check your internet connection\n3. Verify SUPABASE_URL is correct',
+          };
+        }
+
+        // Check if it's an authentication error
+        if (error.message?.includes('Unauthorized') || error.message?.includes('401')) {
+          return {
+            status: 'error',
+            message: 'Edge Function authentication error',
+            details: error.message,
+            fix: '1. Log out and log back in\n2. Check if your session is valid\n3. Verify SUPABASE_ANON_KEY is correct',
+          };
+        }
+
+        // Check if it's a configuration error
+        if (error.message?.includes('credentials') || error.message?.includes('Google Cloud')) {
+          return {
+            status: 'error',
+            message: 'Edge Function configuration error',
+            details: error.message,
+            fix: 'Configure Google Cloud secrets in Lovable Cloud:\n- GOOGLE_CLOUD_PROJECT_ID\n- GOOGLE_CLOUD_BUCKET_NAME\n- GOOGLE_APPLICATION_CREDENTIALS_JSON',
+          };
+        }
+
+        // Generic error
         return {
           status: 'error',
           message: 'Edge Function error',
-          details: error.message,
-          fix: 'Check Edge Function logs in Lovable Cloud > Edge Functions',
+          details: error.message || 'Unknown error occurred',
+          fix: 'Check Edge Function logs in Lovable Cloud > Edge Functions > generate-upload-url > Logs',
         };
       }
 
@@ -124,42 +155,57 @@ export const AIMasteringSetupChecker = () => {
         return {
           status: 'error',
           message: 'Edge Function returned invalid data',
-          details: 'No uploadUrl in response',
-          fix: 'Verify Edge Function code in supabase/functions/generate-upload-url/',
+          details: 'No uploadUrl in response. Response: ' + JSON.stringify(data).substring(0, 200),
+          fix: 'Verify Edge Function code in supabase/functions/generate-upload-url/index.ts',
         };
       }
 
       return {
         status: 'success',
         message: 'Edge Function is working',
-        details: 'Successfully generated upload URL',
+        details: `Successfully generated upload URL for bucket: ${data.bucket || 'unknown'}`,
       };
     } catch (error) {
       return {
         status: 'error',
         message: 'Failed to call Edge Function',
         details: error instanceof Error ? error.message : 'Unknown error',
-        fix: 'Ensure Edge Function is deployed. Check Lovable Cloud > Edge Functions',
+        fix: '1. Ensure Edge Function is deployed in Lovable Cloud\n2. Check browser console for detailed errors\n3. Verify SUPABASE_URL and SUPABASE_ANON_KEY are correct',
       };
     }
   };
 
   // Check 3: Backend Python
   const checkBackend = async (): Promise<CheckResult> => {
-    const backendUrl =
-      import.meta.env.VITE_PYTHON_BACKEND_URL ||
-      'https://spectrum-backend-857351913435.us-central1.run.app';
+    // En desarrollo, usar localhost si no hay variable de entorno configurada
+    const defaultBackendUrl = import.meta.env.DEV 
+      ? 'http://localhost:8000' 
+      : 'https://mastering-backend-azkp62xtaq-uc.a.run.app';
+    const backendUrl = import.meta.env.VITE_PYTHON_BACKEND_URL || defaultBackendUrl;
 
     try {
       // Try health check first
       let healthCheck = false;
+      let healthDetails = '';
       try {
         const healthResponse = await fetch(`${backendUrl}/health`, {
           method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
         });
-        healthCheck = healthResponse.ok;
-      } catch {
-        // Health endpoint may not exist, continue
+        
+        if (healthResponse.ok) {
+          healthCheck = true;
+          const healthData = await healthResponse.json().catch(() => ({}));
+          healthDetails = healthData.status === 'healthy' 
+            ? `Health: ${healthData.status}, GCS: ${healthData.services?.gcs || 'unknown'}`
+            : 'Health check responded';
+        } else {
+          healthDetails = `Health endpoint returned ${healthResponse.status}`;
+        }
+      } catch (healthError) {
+        healthDetails = 'Health endpoint not available (this is OK if /api/master-audio works)';
       }
 
       // Try mastering endpoint (will fail but we just want to see if it responds)
@@ -180,25 +226,57 @@ export const AIMasteringSetupChecker = () => {
         return {
           status: 'error',
           message: 'Backend endpoint not found',
-          details: '/api/master-audio endpoint does not exist',
-          fix: 'Deploy the backend Python service. See BACKEND_CORS_CONFIG.md',
+          details: '/api/master-audio endpoint does not exist (404)',
+          fix: 'Deploy the backend Python service. See backend/main.py and ensure /api/master-audio route exists',
         };
       }
 
-      // Any other response means backend is accessible
+      // Check for CORS errors
+      if (response.status === 0 || (response.status >= 500 && response.status < 600)) {
+        const errorText = await response.text().catch(() => '');
+        return {
+          status: 'error',
+          message: 'Backend error or CORS issue',
+          details: `Status: ${response.status}. ${errorText.substring(0, 200)}`,
+          fix: '1. Check CORS configuration in backend/main.py\n2. Ensure ALLOWED_ORIGINS includes your frontend URL\n3. Check backend logs for errors',
+        };
+      }
+
+      // 400/422 means endpoint exists but validation failed (expected with test data)
+      if (response.status === 400 || response.status === 422) {
+        return {
+          status: 'success',
+          message: 'Backend is accessible',
+          details: healthCheck 
+            ? `${healthDetails}. Endpoint exists (validation error expected with test data)`
+            : '/api/master-audio endpoint exists and responds (validation error expected)',
+        };
+      }
+
+      // Any other 2xx or 3xx response means backend is accessible
       return {
         status: 'success',
         message: 'Backend is accessible',
         details: healthCheck
-          ? 'Health check passed and /api/master-audio exists'
-          : '/api/master-audio endpoint exists',
+          ? `${healthDetails}. /api/master-audio endpoint exists`
+          : '/api/master-audio endpoint exists and responds',
       };
     } catch (error) {
+      // Check if it's a CORS error
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        return {
+          status: 'error',
+          message: 'Backend CORS error or not accessible',
+          details: 'Cannot connect to backend. This could be:\n- CORS not configured\n- Backend not running\n- Network issue',
+          fix: `1. Ensure backend is running at: ${backendUrl}\n2. Check CORS in backend/main.py includes your origin\n3. For localhost:8080, ensure "http://localhost:8080" is in allowed_origins`,
+        };
+      }
+
       return {
         status: 'error',
         message: 'Backend is not accessible',
         details: error instanceof Error ? error.message : 'Connection failed',
-        fix: `Verify backend is deployed and accessible at: ${backendUrl}`,
+        fix: `1. Verify backend is running at: ${backendUrl}\n2. Check backend logs\n3. Test manually: curl ${backendUrl}/health`,
       };
     }
   };
@@ -228,67 +306,104 @@ export const AIMasteringSetupChecker = () => {
       });
 
       if (error) {
-        if (error.message.includes('credentials') || error.message.includes('Google Cloud')) {
+        // Check for specific error types
+        if (error.message?.includes('credentials') || error.message?.includes('Google Cloud')) {
           return {
             status: 'error',
             message: 'GCS credentials not configured',
             details: error.message,
-            fix: 'Configure Google Cloud secrets in Lovable. See DEPLOY.md section 2.',
+            fix: 'Configure Google Cloud secrets in Lovable Cloud:\n- GOOGLE_CLOUD_PROJECT_ID\n- GOOGLE_CLOUD_BUCKET_NAME\n- GOOGLE_APPLICATION_CREDENTIALS_JSON',
+          };
+        }
+
+        if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
+          return {
+            status: 'error',
+            message: 'Cannot reach Edge Function',
+            details: 'Edge Function may not be deployed or there is a network issue',
+            fix: '1. Deploy Edge Function in Lovable Cloud\n2. Check your internet connection',
           };
         }
         
         return {
           status: 'error',
           message: 'GCS configuration error',
-          details: error.message,
-          fix: 'Check Edge Function logs for detailed error',
+          details: error.message || 'Unknown error',
+          fix: 'Check Edge Function logs in Lovable Cloud > Edge Functions > generate-upload-url > Logs',
         };
       }
 
-      if (!data || !data.uploadUrl || !data.uploadUrl.includes('storage.googleapis.com')) {
+      if (!data || !data.uploadUrl) {
         return {
           status: 'error',
           message: 'Invalid GCS response',
-          details: 'Upload URL does not point to Google Cloud Storage',
-          fix: 'Verify GCS bucket configuration and credentials',
+          details: 'No uploadUrl in response. Response: ' + JSON.stringify(data).substring(0, 200),
+          fix: 'Verify Edge Function code returns uploadUrl and downloadUrl',
+        };
+      }
+
+      // Verify the URL format
+      if (!data.uploadUrl.includes('storage.googleapis.com') && !data.uploadUrl.includes('googleapis.com')) {
+        return {
+          status: 'error',
+          message: 'Invalid GCS URL format',
+          details: `Upload URL does not point to Google Cloud Storage: ${data.uploadUrl.substring(0, 100)}...`,
+          fix: 'Verify GCS bucket configuration and credentials in Edge Function',
+        };
+      }
+
+      // Verify we have both upload and download URLs
+      if (!data.downloadUrl) {
+        return {
+          status: 'warning',
+          message: 'GCS partially configured',
+          details: 'Upload URL generated but download URL missing',
+          fix: 'Check Edge Function code to ensure both URLs are generated',
         };
       }
 
       // Try to verify the bucket exists (HEAD request to upload URL)
+      // This is optional - if it fails, we still consider GCS configured if we got valid URLs
       try {
         const headResponse = await fetch(data.uploadUrl, {
           method: 'HEAD',
         });
         
-        // 400 or 403 means bucket exists but we can't access without proper request
-        // This is actually expected for signed URLs
-        if (headResponse.status === 400 || headResponse.status === 403) {
+        // 400, 403, or 405 means bucket exists but we can't access without proper request
+        // This is actually expected for signed URLs (they require PUT with specific headers)
+        if (headResponse.status === 400 || headResponse.status === 403 || headResponse.status === 405) {
           return {
             status: 'success',
             message: 'GCS is configured correctly',
-            details: 'Bucket exists and signed URLs are generated',
+            details: `Bucket: ${data.bucket || 'unknown'}. Signed URLs generated successfully.`,
           };
         }
-      } catch {
+
+        // 404 might mean the file doesn't exist yet (expected for upload URLs)
+        if (headResponse.status === 404) {
+          return {
+            status: 'success',
+            message: 'GCS is configured correctly',
+            details: `Bucket: ${data.bucket || 'unknown'}. Upload URL ready (file doesn't exist yet, which is expected).`,
+          };
+        }
+      } catch (headError) {
         // Network error or CORS - but if we got the URL, GCS is likely configured
-        return {
-          status: 'success',
-          message: 'GCS appears configured',
-          details: 'Signed URLs are generated (bucket verification skipped due to CORS)',
-        };
+        // This is common with signed URLs that require specific headers
+        console.log('HEAD request failed (expected for signed URLs):', headError);
       }
 
       return {
         status: 'success',
-        message: 'GCS is configured',
-        details: 'Successfully generated GCS signed URL',
+        message: 'GCS is configured correctly',
+        details: `Bucket: ${data.bucket || 'unknown'}. Upload and download URLs generated successfully.`,
       };
     } catch (error) {
       return {
         status: 'error',
         message: 'Failed to verify GCS',
         details: error instanceof Error ? error.message : 'Unknown error',
-        fix: 'Check Google Cloud Storage configuration. See SETUP_GCS.md',
+        fix: '1. Check Google Cloud Storage configuration\n2. Verify Edge Function is deployed\n3. See SETUP_GCS.md for setup instructions',
       };
     }
   };

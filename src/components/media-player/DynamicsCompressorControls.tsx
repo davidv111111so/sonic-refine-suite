@@ -29,6 +29,21 @@ export const DynamicsCompressorControls: React.FC<DynamicsCompressorControlsProp
         </p>
       </div>
 
+      <div className="mb-4 flex justify-end">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onSettingsChange({
+            threshold: -1.5,
+            ratio: 2.0,
+            attack: 0.003,
+            release: 0.25
+          })}
+          className="text-xs"
+        >
+          Reset
+        </Button>
+      </div>
       <div className="grid grid-cols-2 gap-6">
         {/* Left column */}
         <div className="space-y-6">

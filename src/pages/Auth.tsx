@@ -39,8 +39,13 @@ export default function Auth() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const mode = params.get('mode');
-    if (mode === 'reset') {
-      setShowResetPassword(true);
+    const accessToken = params.get('access_token');
+    const type = params.get('type');
+    
+    // Check if this is a password reset callback
+    if (mode === 'reset' || (type === 'recovery' && accessToken)) {
+      setShowUpdatePassword(true);
+      setShowResetPassword(false);
       setIsSignUp(false);
       setShowIntro(false);
     }
@@ -225,6 +230,40 @@ export default function Auth() {
       setLoading(false);
     }
   };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      if (newPassword.length < 8) {
+        toast.error('Password must be at least 8 characters');
+        setLoading(false);
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        toast.error('Passwords do not match');
+        setLoading(false);
+        return;
+      }
+
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) throw error;
+      toast.success('Password updated successfully!');
+      setNewPassword('');
+      setConfirmPassword('');
+      setShowUpdatePassword(false);
+      navigate('/');
+    } catch (error: any) {
+      toast.error(error.message || 'Error updating password');
+    } finally {
+      setLoading(false);
+    }
+  };
   return <>
       {/* Intro Animation */}
       {showIntro && <div className="fixed inset-0 z-50 transition-opacity duration-1000" style={{
@@ -257,7 +296,30 @@ export default function Auth() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {!showResetPassword ? <>
+          {showUpdatePassword ? (
+            <form onSubmit={handleUpdatePassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="new-password" className="text-white">New Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                  <Input id="new-password" type="password" placeholder="••••••••" value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={8} className="pl-10 bg-slate-800 border-slate-700 text-white" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password" className="text-white">Confirm Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                  <Input id="confirm-password" type="password" placeholder="••••••••" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required minLength={8} className="pl-10 bg-slate-800 border-slate-700 text-white" />
+                </div>
+              </div>
+              <Button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600">
+                {loading ? <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </> : 'Update Password'}
+              </Button>
+            </form>
+          ) : !showResetPassword ? <>
               <Tabs defaultValue="signin" className="w-full">
                 <TabsList className="grid w-full grid-cols-2 bg-slate-800">
                   <TabsTrigger value="signin">Sign In</TabsTrigger>
@@ -299,9 +361,9 @@ export default function Auth() {
                       </div>
                     </div>
 
-                    <Button type="button" variant="outline" onClick={handleGoogleSignIn} className="w-full border-slate-700 text-white bg-blue-500 hover:bg-blue-400">
+                    <Button type="button" variant="outline" onClick={handleGoogleSignIn} className="w-full border-slate-700 text-white bg-white hover:bg-gray-100 text-gray-900">
                       <Chrome className="mr-2 h-4 w-4" />
-                      Google
+                      <span className="font-medium">Sign in with Google</span>
                     </Button>
                   </form>
                 </TabsContent>
@@ -345,9 +407,9 @@ export default function Auth() {
                       </div>
                     </div>
 
-                    <Button type="button" variant="outline" onClick={handleGoogleSignIn} className="w-full bg-slate-800 border-slate-700 hover:bg-slate-700 text-blue-600">
+                    <Button type="button" variant="outline" onClick={handleGoogleSignIn} className="w-full bg-white border-slate-700 text-gray-900 hover:bg-gray-100">
                       <Chrome className="mr-2 h-4 w-4" />
-                      Google
+                      <span className="font-medium">Sign up with Google</span>
                     </Button>
                   </form>
                 </TabsContent>

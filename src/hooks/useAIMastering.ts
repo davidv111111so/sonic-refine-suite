@@ -196,7 +196,11 @@ export const useAIMastering = () => {
         description: 'AI is analyzing and mastering your audio',
       });
 
-      const backendUrl = import.meta.env.VITE_PYTHON_BACKEND_URL || 'https://spectrum-backend-857351913435.us-central1.run.app';
+      // En desarrollo, usar localhost si no hay variable de entorno configurada
+      const defaultBackendUrl = import.meta.env.DEV 
+        ? 'http://localhost:8000' 
+        : 'https://mastering-backend-azkp62xtaq-uc.a.run.app';
+      const backendUrl = import.meta.env.VITE_PYTHON_BACKEND_URL || defaultBackendUrl;
       
       console.log('🤖 Calling Python backend for AI mastering...');
       console.log('Backend URL:', backendUrl);
@@ -248,14 +252,34 @@ export const useAIMastering = () => {
             });
 
             console.log('📥 Downloading mastered file from:', masteringData.masteredUrl);
-            const downloadResponse = await fetch(masteringData.masteredUrl);
+            
+            // Retry logic for download
+            let downloadResponse;
+            try {
+              downloadResponse = await fetch(masteringData.masteredUrl, {
+                signal: abortControllerRef.current?.signal,
+              });
+            } catch (fetchError) {
+              console.warn('⚠️ Download fetch error:', fetchError);
+              throw new Error(`Failed to download mastered file: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`);
+            }
 
             if (!downloadResponse.ok) {
-              console.warn('⚠️ Download failed:', downloadResponse.status, downloadResponse.statusText);
-              shouldUseTestingMode = true;
-            } else {
-              blob = await downloadResponse.blob();
+              const errorText = await downloadResponse.text().catch(() => 'Unknown error');
+              console.warn('⚠️ Download failed:', downloadResponse.status, downloadResponse.statusText, errorText);
+              throw new Error(`Failed to download mastered file: ${downloadResponse.status} ${downloadResponse.statusText}`);
             }
+            
+            blob = await downloadResponse.blob();
+            
+            if (!blob || blob.size === 0) {
+              throw new Error('Downloaded file is empty');
+            }
+            
+            console.log('✅ Mastered file downloaded successfully:', {
+              size: blob.size,
+              type: blob.type,
+            });
           }
         }
       } catch (backendError) {

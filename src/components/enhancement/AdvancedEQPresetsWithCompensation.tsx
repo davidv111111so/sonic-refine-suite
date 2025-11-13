@@ -9,53 +9,53 @@ interface AdvancedEQPresetsWithCompensationProps {
 // Professional EQ Presets with Real dB Values
 // Band frequencies: 60Hz, 250Hz, 1kHz, 4kHz, 12kHz
 const EQ_PRESETS = [{
-  name: 'Techno/Hard Dance',
-  nameES: 'Techno/Hard Dance',
+  name: 'Modern Punch',
+  nameES: 'Modern Punch',
   icon: Volume2,
   values: [3.0, 1.5, -2.0, 0.5, 2.5] // Powerful sub-bass, scooped mids, bright top
 }, {
-  name: 'House/Deep House',
-  nameES: 'House/Deep House',
-  icon: Music,
-  values: [2.5, 0.5, -1.5, 1.0, 2.0] // Warm bass, clean mids, smooth highs
-}, {
-  name: 'Trance/Progressive',
-  nameES: 'Trance/Progressive',
-  icon: Waves,
-  values: [1.5, -0.5, 0.5, 2.0, 3.0] // Balanced low, open highs for pads
-}, {
-  name: 'Drum & Bass',
-  nameES: 'Drum & Bass',
-  icon: Disc3,
-  values: [4.0, 2.0, -1.0, 1.5, 2.5] // Massive sub-bass, punch, crisp
-}, {
-  name: 'Hip-Hop/Trap',
-  nameES: 'Hip-Hop/Trap',
-  icon: Music2,
-  values: [3.5, 1.0, -2.0, 0.5, 1.5] // Heavy bass, scooped mids, smooth top
-}, {
-  name: 'Rock/Metal',
-  nameES: 'Rock/Metal',
-  icon: Guitar,
-  values: [2.0, 1.5, 2.0, 1.5, 0.5] // Tight bass, aggressive mids, controlled high
-}, {
-  name: 'Vocal/Speech',
-  nameES: 'Vocal/Locución',
+  name: 'Vocal Presence',
+  nameES: 'Presencia Vocal',
   icon: Mic,
   values: [-4.0, -1.5, 2.5, 2.0, -1.0] // Cut low rumble, boost presence
 }, {
-  name: 'Acoustic/Classical',
-  nameES: 'Acústica/Clásica',
+  name: 'Bass Foundation',
+  nameES: 'Fundamento de Graves',
+  icon: Music,
+  values: [2.5, 0.5, -1.5, 1.0, 2.0] // Warm bass, clean mids, smooth highs
+}, {
+  name: 'Clarity & Air',
+  nameES: 'Claridad y Aire',
+  icon: Waves,
+  values: [1.5, -0.5, 0.5, 2.0, 3.0] // Balanced low, open highs for pads
+}, {
+  name: 'De-Box / Clean Mid',
+  nameES: 'De-Box / Medio Limpio',
+  icon: Disc3,
+  values: [4.0, 2.0, -1.0, 1.5, 2.5] // Massive sub-bass, punch, crisp
+}, {
+  name: 'Warmth & Body',
+  nameES: 'Calidez y Cuerpo',
+  icon: Music2,
+  values: [3.5, 1.0, -2.0, 0.5, 1.5] // Heavy bass, scooped mids, smooth top
+}, {
+  name: 'Live Energy (Subtle V)',
+  nameES: 'Energía en Vivo (V Sutil)',
+  icon: Guitar,
+  values: [2.0, 1.5, 2.0, 1.5, 0.5] // Tight bass, aggressive mids, controlled high
+}, {
+  name: 'Acoustic / Orchestral',
+  nameES: 'Acústica / Orquestal',
   icon: Headphones,
   values: [0.5, 0.0, 0.5, 1.0, 1.5] // Natural, slight air boost
 }, {
-  name: 'Pop/Radio Ready',
-  nameES: 'Pop/Radio',
+  name: 'Digital De-Harsh',
+  nameES: 'Digital De-Harsh',
   icon: Lightbulb,
   values: [1.5, 0.5, -0.5, 2.0, 2.5] // Balanced with bright top
 }, {
-  name: 'Bass Boost',
-  nameES: 'Refuerzo de Graves',
+  name: 'Voiceover / Podcast',
+  nameES: 'Locución / Podcast',
   icon: MessageSquare,
   values: [4.0, 2.0, -1.5, 0.0, 0.5] // Maximum low-end enhancement
 }];

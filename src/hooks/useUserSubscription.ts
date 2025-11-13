@@ -17,6 +17,7 @@ export const useUserSubscription = (): UserSubscriptionData => {
   const [role, setRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
   const [isPremiumAccess, setIsPremiumAccess] = useState(false);
+  const [isAdminEmail, setIsAdminEmail] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -25,8 +26,15 @@ export const useUserSubscription = (): UserSubscriptionData => {
         
         if (!session) {
           setLoading(false);
+          setIsAdminEmail(false);
           return;
         }
+
+        // Check if user email is in admin whitelist (permanent premium access)
+        const adminEmails = ['davidv111111@gmail.com', 'santiagov.t068@gmail.com'];
+        const userEmail = session.user.email?.toLowerCase();
+        const isAdminEmailCheck = userEmail ? adminEmails.includes(userEmail) : false;
+        setIsAdminEmail(isAdminEmailCheck);
 
         // Fetch user profile with subscription
         const { data: profile } = await supabase
@@ -56,9 +64,9 @@ export const useUserSubscription = (): UserSubscriptionData => {
           _user_id: session.user.id
         });
         
-        if (!premiumError && premiumData !== null) {
-          setIsPremiumAccess(premiumData);
-        }
+        // Admin emails get permanent premium access
+        const hasPremium = isAdminEmailCheck || (!premiumError && premiumData === true);
+        setIsPremiumAccess(hasPremium);
       } catch (error) {
         console.error('Error fetching user subscription data:', error);
       } finally {
@@ -78,9 +86,10 @@ export const useUserSubscription = (): UserSubscriptionData => {
     };
   }, []);
 
-  // Determine admin and premium status from database values
-  const isAdmin = role === 'admin';
-  const isPremium = isPremiumAccess || subscription === 'premium' || isAdmin;
+  // Determine admin and premium status
+  // Admin emails get permanent admin role and premium access
+  const isAdmin = role === 'admin' || isAdminEmail;
+  const isPremium = isPremiumAccess || subscription === 'premium' || isAdmin || isAdminEmail;
 
   return {
     subscription,

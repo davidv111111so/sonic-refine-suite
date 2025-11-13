@@ -94,6 +94,7 @@ export const MediaPlayerUpload: React.FC<MediaPlayerUploadProps> = ({ onFilesAdd
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setErrorMessage(null);
     
+    // Always require consent - don't bypass terms and conditions
     if (!hasConsented) {
       setPendingFiles(acceptedFiles);
       setErrorMessage('Please accept the Terms and Conditions before uploading files.');

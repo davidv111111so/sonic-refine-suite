@@ -90,7 +90,7 @@ export const Guide = () => {
           Guide
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-6xl max-h-[85vh] !bg-slate-900 text-white border-slate-700 overflow-hidden before:!opacity-0 [&>div]:!bg-transparent">{/* Force solid background and hide gradient overlay */}
+      <DialogContent className="max-w-6xl max-h-[90vh] !bg-slate-900 text-white border-slate-700 overflow-y-auto before:!opacity-0 [&>div]:!bg-transparent">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-white">
             Level Audio - Complete User Guide
@@ -99,8 +99,8 @@ export const Guide = () => {
             Learn how to use Level Audio's powerful features for professional audio enhancement.
           </DialogDescription>
         </DialogHeader>
-        <div className="overflow-y-auto max-h-[calc(85vh-120px)] pr-4 bg-slate-900">{/*  space-y-8 container */}
-          <div className="space-y-8 py-2">{/*  content wrapper */}
+        <div className="overflow-y-auto max-h-[calc(90vh-120px)] pr-4 bg-slate-900">
+          <div className="space-y-8 py-2">
             {/* Quick Start Guide */}
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>

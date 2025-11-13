@@ -1,0 +1,22 @@
+[
+  {
+    "origin": [
+      "http://localhost:8080",
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "https://7d506715-84dc-4abb-95cb-4ef4492a151b.lovableproject.com",
+      "https://*.lovableproject.com"
+    ],
+    "method": ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"],
+    "responseHeader": [
+      "Content-Type",
+      "Authorization",
+      "x-goog-resumable",
+      "x-goog-content-length-range",
+      "x-goog-meta-*"
+    ],
+    "maxAgeSeconds": 3600
+  }
+]
+
+

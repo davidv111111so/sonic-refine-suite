@@ -171,29 +171,22 @@ export class BackendAudioService {
 
 // Configuration for different deployment environments
 export const getBackendConfig = (): BackendConfig => {
-  const environment = process.env.NODE_ENV || 'development';
+  // Use import.meta.env for Vite (not process.env)
+  const isDev = import.meta.env.DEV;
+  const backendUrl = import.meta.env.VITE_PYTHON_BACKEND_URL;
   
-  switch (environment) {
-    case 'production':
-      return {
-        baseUrl: process.env.REACT_APP_API_URL || 'https://api.yourdomain.com',
-        apiKey: process.env.REACT_APP_API_KEY,
-        timeout: 300000 // 5 minutes for large files
-      };
-    
-    case 'staging':
-      return {
-        baseUrl: process.env.REACT_APP_API_URL || 'https://staging-api.yourdomain.com',
-        apiKey: process.env.REACT_APP_API_KEY,
-        timeout: 180000 // 3 minutes
-      };
-    
-    default:
-      return {
-        baseUrl: 'http://localhost:3001',
-        timeout: 120000 // 2 minutes
-      };
+  if (isDev) {
+    return {
+      baseUrl: backendUrl || 'http://localhost:8000',
+      timeout: 120000 // 2 minutes
+    };
   }
+  
+  // Production
+  return {
+    baseUrl: backendUrl || 'https://mastering-backend-azkp62xtaq-uc.a.run.app',
+    timeout: 300000 // 5 minutes for large files
+  };
 };
 
 // Feature detection for backend availability

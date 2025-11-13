@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { BetaGate } from "@/components/BetaGate";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import { TermsAndConditions } from "./pages/TermsAndConditions";
@@ -35,9 +36,13 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
               <Routes>
-                <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/terms" element={<TermsAndConditions />} />
+                <Route path="/" element={
+                  <BetaGate>
+                    <Index />
+                  </BetaGate>
+                } />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

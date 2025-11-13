@@ -158,8 +158,12 @@ export const InteractiveProcessingOptions = ({
                   <span className="text-xs bg-gradient-to-r from-slate-200 to-gray-200 bg-clip-text text-transparent font-semibold">{t('processing.threshold')}</span>
                   <span className="text-xs font-mono font-bold text-slate-50">{compressionThreshold} dB</span>
                 </div>
-                <Slider value={[compressionThreshold]} onValueChange={([value]) => onCompressionThresholdChange(value)} min={-40} max={0} step={1} className="w-full" />
-                <p className="text-[10px] text-slate-200">{t('processing.thresholdInfo')}</p>
+                <Slider value={[compressionThreshold]} onValueChange={([value]) => onCompressionThresholdChange(value)} min={-24} max={0} step={1} className="w-full" />
+                <p className="text-[10px] text-slate-200">
+                  {t('processing.thresholdInfo')}
+                  <br />
+                  <span className="text-yellow-300">⚠️ Ideal range: -1 to -3 dB to avoid over-compression</span>
+                </p>
               </div>
             </div>}
         </div>

@@ -40,6 +40,24 @@ const getFileTypeIcon = (fileType: string) => {
   };
   return icons[fileType as keyof typeof icons] || icons.other;
 };
+
+// Helper function to estimate file size based on processing settings
+const estimateFileSize = (originalSize: number, settings?: { outputFormat?: string }): number => {
+  if (!settings?.outputFormat) return originalSize;
+  
+  // Format multipliers based on typical compression ratios
+  const formatMultipliers: Record<string, number> = {
+    'mp3': 0.1,  // ~10% of original (highly compressed)
+    'wav': 1.0,  // ~100% of original (uncompressed)
+    'flac': 0.5, // ~50% of original (lossless compression)
+    'ogg': 0.12, // ~12% of original
+    'm4a': 0.11, // ~11% of original
+  };
+  
+  const multiplier = formatMultipliers[settings.outputFormat.toLowerCase()] || 1.0;
+  return Math.round(originalSize * multiplier);
+};
+
 export const EnhancedTrackManagement = ({
   audioFiles,
   enhancedHistory,
@@ -198,7 +216,7 @@ export const EnhancedTrackManagement = ({
                   </div>
                 </div>
 
-                {/* File Size - Enhanced display with Before/After */}
+                {/* File Size - Enhanced display with Before/After - Real-time updates */}
                 <div className="flex flex-col justify-center">
                   {file.status === 'enhanced' && file.enhancedSize ? <div className="space-y-1">
                       <div className="flex items-center gap-1">
@@ -214,6 +232,11 @@ export const EnhancedTrackManagement = ({
                       </div>
                     </div> : <div>
                       <span className="bg-gradient-to-r from-cyan-200 to-blue-200 bg-clip-text text-transparent text-sm font-mono font-bold animate-pulse">{formatFileSize(file.size)}</span>
+                      {processingSettings?.outputFormat && (
+                        <span className="text-xs bg-gradient-to-r from-green-300 to-emerald-300 bg-clip-text text-transparent block animate-pulse">
+                          → ~{formatFileSize(estimateFileSize(file.size, processingSettings))} ({processingSettings.outputFormat.toUpperCase()})
+                        </span>
+                      )}
                       <span className="text-xs bg-gradient-to-r from-purple-200 to-pink-200 bg-clip-text text-transparent block animate-pulse">/ 100MB max</span>
                     </div>}
                 </div>

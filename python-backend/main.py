@@ -6,6 +6,7 @@ import os
 import json
 import time
 import uuid
+from datetime import timedelta
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from google.cloud import storage
@@ -13,13 +14,24 @@ import tempfile
 
 app = Flask(__name__)
 
-# Configure CORS
-ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', 'https://7d506715-84dc-4abb-95cb-4ef4492a151b.lovableproject.com').split(',')
+# Configure CORS - Allow all origins in development, specific origins in production
+ALLOWED_ORIGINS_ENV = os.getenv('ALLOWED_ORIGINS', '*')
+if ALLOWED_ORIGINS_ENV == '*':
+    ALLOWED_ORIGINS = ['*']
+else:
+    ALLOWED_ORIGINS = ALLOWED_ORIGINS_ENV.split(',')
+
 CORS(app, resources={
     r"/api/*": {
         "origins": ALLOWED_ORIGINS,
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"]
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
+        "allow_headers": ["Content-Type", "Authorization", "x-goog-resumable"],
+        "expose_headers": ["Content-Type", "Content-Length"],
+        "supports_credentials": True
+    },
+    r"/health": {
+        "origins": ["*"],
+        "methods": ["GET", "OPTIONS"]
     }
 })
 
@@ -125,20 +137,34 @@ def master_audio():
         output_blob = bucket.blob(output_file_name)
         
         print(f"📤 Uploading to GCS: {output_file_name}")
-        output_blob.upload_from_filename(temp_output_path)
+        try:
+            output_blob.upload_from_filename(temp_output_path)
+            print(f"✅ File uploaded to GCS successfully")
+        except Exception as upload_error:
+            print(f"❌ Error uploading to GCS: {str(upload_error)}")
+            raise Exception(f"Failed to upload mastered file to GCS: {str(upload_error)}")
         
         # Generate signed URL for download
-        mastered_url = output_blob.generate_signed_url(
-            version="v4",
-            expiration=3600,  # 1 hour
-            method="GET"
-        )
-        
-        print(f"✅ Upload complete: {mastered_url}")
+        try:
+            mastered_url = output_blob.generate_signed_url(
+                version="v4",
+                expiration=timedelta(hours=1),  # 1 hour
+                method="GET"
+            )
+            print(f"✅ Signed URL generated: {mastered_url[:80]}...")
+        except Exception as url_error:
+            print(f"❌ Error generating signed URL: {str(url_error)}")
+            # Fallback: use public URL if bucket is public, or return error
+            raise Exception(f"Failed to generate download URL: {str(url_error)}")
         
         # Cleanup temp files
-        os.unlink(temp_input_path)
-        os.unlink(temp_output_path)
+        try:
+            if os.path.exists(temp_input_path):
+                os.unlink(temp_input_path)
+            if os.path.exists(temp_output_path):
+                os.unlink(temp_output_path)
+        except Exception as cleanup_error:
+            print(f"⚠️ Warning: Error cleaning up temp files: {str(cleanup_error)}")
         
         processing_time = int((time.time() - start_time) * 1000)
         
@@ -178,7 +204,7 @@ def extract_blob_name_from_url(url):
                 return path_parts[1]
     
     # If URL format is different, try to extract from alternative formats
-    if BUCKET_NAME in url:
+    if BUCKET_NAME and BUCKET_NAME in url:
         bucket_index = url.find(BUCKET_NAME)
         path = url[bucket_index + len(BUCKET_NAME):].lstrip('/')
         if '?' in path:

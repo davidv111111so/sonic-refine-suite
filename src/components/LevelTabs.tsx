@@ -79,7 +79,7 @@ export const LevelTabs = ({
     trebleEnhancement: 0,
     compression: 4,
     compressionEnabled: false,
-    compressionThreshold: -20, // Default threshold
+    compressionThreshold: -3, // Default threshold (ideal range: -1 to -3 dB)
     compressionRatio: '2:1', // Default ratio
     gainAdjustment: 0,
     stereoWidening: 25,
@@ -109,7 +109,7 @@ export const LevelTabs = ({
       normalizeLevel: -0.3,
       compression: 4,
       compressionEnabled: false,
-      compressionThreshold: -20,
+      compressionThreshold: -3,
       compressionRatio: '2:1',
       stereoWidening: 25,
       stereoWideningEnabled: false,
