@@ -142,17 +142,24 @@ export const useAIMastering = () => {
           
           xhr.addEventListener('load', () => {
             if (xhr.status >= 200 && xhr.status < 300) {
+              console.log('✅ Upload completed successfully:', xhr.status);
               resolve();
             } else {
-              reject(new Error(`Upload failed with status ${xhr.status}`));
+              console.error('❌ Upload failed with status:', xhr.status);
+              console.error('Response:', xhr.responseText);
+              reject(new Error(`Upload failed with status ${xhr.status}: ${xhr.statusText}`));
             }
           });
           
-          xhr.addEventListener('error', () => {
-            reject(new Error('Network error during upload'));
+          xhr.addEventListener('error', (e) => {
+            console.error('❌ Network error during upload:', e);
+            console.error('XHR readyState:', xhr.readyState);
+            console.error('XHR status:', xhr.status);
+            reject(new Error('Network error: Unable to upload to cloud storage. This is likely due to CORS configuration. Please check GCS_CORS_SETUP.md'));
           });
           
           xhr.addEventListener('abort', () => {
+            console.log('⚠️ Upload cancelled by user');
             reject(new Error('Upload cancelled'));
           });
           
@@ -163,8 +170,16 @@ export const useAIMastering = () => {
             });
           }
           
+          console.log('📤 Starting upload to GCS...');
+          console.log('URL:', urlData.uploadUrl.substring(0, 100) + '...');
+          console.log('File type:', file.type);
+          console.log('File size:', formatFileSize(file.size));
+          
           xhr.open('PUT', urlData.uploadUrl);
-          xhr.setRequestHeader('Content-Type', file.type);
+          
+          // Set headers for GCS upload
+          xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+          
           xhr.send(file);
         });
       };
