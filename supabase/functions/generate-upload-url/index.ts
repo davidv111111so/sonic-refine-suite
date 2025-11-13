@@ -163,7 +163,7 @@ serve(async (req) => {
 })
 
 /**
- * Generate a signed URL for Google Cloud Storage using REST API
+ * Generate a signed URL for Google Cloud Storage using V4 signing
  */
 async function generateSignedUrl(params: {
   bucketName: string
@@ -176,58 +176,87 @@ async function generateSignedUrl(params: {
   const { bucketName, fileName, method, contentType, expirationMinutes, credentials } = params
 
   try {
-    // 1. Get OAuth2 access token
-    console.log('📡 Requesting OAuth2 token...')
+    console.log('🔐 Generating signed URL using V4 signing...')
+    console.log(`   Bucket: ${bucketName}`)
+    console.log(`   File: ${fileName}`)
+    console.log(`   Method: ${method}`)
     
-    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-        assertion: await createJWT(credentials)
-      })
-    })
-
-    if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text()
-      console.error('❌ OAuth2 token request failed:', errorText)
-      throw new Error(`Failed to get OAuth2 token: ${errorText}`)
-    }
-
-    const tokenData = await tokenResponse.json()
-    const accessToken = tokenData.access_token
+    // 1. Prepare signing parameters
+    const expirationSeconds = expirationMinutes * 60
+    const now = new Date()
+    const nowISO = now.toISOString().split('.')[0] + 'Z'
+    const datestamp = now.toISOString().split('T')[0].replace(/-/g, '')
     
-    console.log('✅ OAuth2 token obtained')
-
-    // 2. Generate signed URL using Cloud Storage API
-    const expirationTime = new Date(Date.now() + expirationMinutes * 60 * 1000).toISOString()
+    // 2. Create credential scope
+    const credentialScope = `${datestamp}/auto/storage/goog4_request`
+    const credential = `${credentials.client_email}/${credentialScope}`
     
-    const signedUrlResponse = await fetch(
-      `https://storage.googleapis.com/storage/v1/b/${bucketName}/o/${encodeURIComponent(fileName)}/generateSignedUrl`,
+    // 3. Build canonical request
+    const canonicalUri = `/${bucketName}/${fileName}`
+    const canonicalQueryString = [
+      `X-Goog-Algorithm=GOOG4-RSA-SHA256`,
+      `X-Goog-Credential=${encodeURIComponent(credential)}`,
+      `X-Goog-Date=${datestamp}T${now.toISOString().split('T')[1].split('.')[0].replace(/:/g, '')}Z`,
+      `X-Goog-Expires=${expirationSeconds}`,
+      `X-Goog-SignedHeaders=host`
+    ].join('&')
+    
+    const canonicalHeaders = `host:storage.googleapis.com\n`
+    const signedHeaders = 'host'
+    
+    const canonicalRequest = [
+      method,
+      canonicalUri,
+      canonicalQueryString,
+      canonicalHeaders,
+      signedHeaders,
+      'UNSIGNED-PAYLOAD'
+    ].join('\n')
+    
+    console.log('📝 Canonical request created')
+    
+    // 4. Create string to sign
+    const canonicalRequestHash = await sha256(canonicalRequest)
+    const stringToSign = [
+      'GOOG4-RSA-SHA256',
+      `${datestamp}T${now.toISOString().split('T')[1].split('.')[0].replace(/:/g, '')}Z`,
+      credentialScope,
+      canonicalRequestHash
+    ].join('\n')
+    
+    console.log('🔑 String to sign created')
+    
+    // 5. Sign the string
+    const privateKey = credentials.private_key
+    const keyData = await crypto.subtle.importKey(
+      'pkcs8',
+      pemToArrayBuffer(privateKey),
       {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          method: method,
-          expiration: expirationTime,
-          contentType: method === 'PUT' ? contentType : undefined,
-        })
-      }
+        name: 'RSASSA-PKCS1-v1_5',
+        hash: 'SHA-256',
+      },
+      false,
+      ['sign']
     )
-
-    if (!signedUrlResponse.ok) {
-      const errorText = await signedUrlResponse.text()
-      console.error('❌ Signed URL generation failed:', errorText)
-      throw new Error(`Failed to generate signed URL: ${errorText}`)
-    }
-
-    const signedUrlData = await signedUrlResponse.json()
-    return signedUrlData.signedUrl
+    
+    const encoder = new TextEncoder()
+    const signature = await crypto.subtle.sign(
+      'RSASSA-PKCS1-v1_5',
+      keyData,
+      encoder.encode(stringToSign)
+    )
+    
+    const signatureHex = Array.from(new Uint8Array(signature))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('')
+    
+    console.log('✅ Signature generated')
+    
+    // 6. Build final signed URL
+    const signedUrl = `https://storage.googleapis.com${canonicalUri}?${canonicalQueryString}&X-Goog-Signature=${signatureHex}`
+    
+    console.log('✅ Signed URL generated successfully')
+    return signedUrl
 
   } catch (error) {
     console.error('❌ Error generating signed URL:', error)
@@ -236,65 +265,14 @@ async function generateSignedUrl(params: {
 }
 
 /**
- * Create a JWT for Google Cloud authentication
+ * SHA256 hash function
  */
-async function createJWT(credentials: any): Promise<string> {
-  const header = {
-    alg: 'RS256',
-    typ: 'JWT'
-  }
-
-  const now = Math.floor(Date.now() / 1000)
-  const payload = {
-    iss: credentials.client_email,
-    scope: 'https://www.googleapis.com/auth/devstorage.full_control',
-    aud: 'https://oauth2.googleapis.com/token',
-    exp: now + 3600,
-    iat: now
-  }
-
-  const encodedHeader = base64UrlEncode(JSON.stringify(header))
-  const encodedPayload = base64UrlEncode(JSON.stringify(payload))
-  const signatureInput = `${encodedHeader}.${encodedPayload}`
-
-  // Import the private key - normalize line breaks
-  // Handle both \n escape sequences and actual line breaks
-  let privateKey = credentials.private_key
-  
-  // If the key doesn't have proper line breaks, add them
-  if (!privateKey.includes('\n')) {
-    privateKey = privateKey.replace(/\\n/g, '\n')
-  }
-  
-  // Ensure the key has the proper PEM format
-  privateKey = privateKey.trim()
-  
-  console.log('🔑 Private key format check:')
-  console.log('   Has BEGIN marker:', privateKey.includes('BEGIN PRIVATE KEY'))
-  console.log('   Has END marker:', privateKey.includes('END PRIVATE KEY'))
-  console.log('   Total length:', privateKey.length)
-  console.log('   Has line breaks:', privateKey.includes('\n'))
-  
-  const keyData = await crypto.subtle.importKey(
-    'pkcs8',
-    pemToArrayBuffer(privateKey),
-    {
-      name: 'RSASSA-PKCS1-v1_5',
-      hash: 'SHA-256',
-    },
-    false,
-    ['sign']
-  )
-
-  // Sign the JWT
-  const signature = await crypto.subtle.sign(
-    'RSASSA-PKCS1-v1_5',
-    keyData,
-    new TextEncoder().encode(signatureInput)
-  )
-
-  const encodedSignature = base64UrlEncode(signature)
-  return `${signatureInput}.${encodedSignature}`
+async function sha256(message: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const data = encoder.encode(message)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
 /**
@@ -338,25 +316,3 @@ function pemToArrayBuffer(pem: string): ArrayBuffer {
   }
 }
 
-/**
- * Base64 URL encode
- */
-function base64UrlEncode(data: string | ArrayBuffer): string {
-  let base64: string
-  
-  if (typeof data === 'string') {
-    base64 = btoa(data)
-  } else {
-    const bytes = new Uint8Array(data)
-    let binary = ''
-    for (let i = 0; i < bytes.length; i++) {
-      binary += String.fromCharCode(bytes[i])
-    }
-    base64 = btoa(binary)
-  }
-  
-  return base64
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '')
-}
