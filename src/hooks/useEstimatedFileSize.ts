@@ -32,24 +32,27 @@ export const useEstimatedFileSize = (
     let estimated = 0;
 
     switch (format) {
-      case 'wav':
+      case 'wav': {
         // WAV: Uncompressed PCM
         // Formula: (sample_rate * bit_depth * channels * duration) / 8
         estimated = (settings.sampleRate * settings.bitDepth * channels * duration) / 8;
         break;
+      }
 
-      case 'mp3':
+      case 'mp3': {
         // MP3: Compressed audio based on bitrate
         // Formula: (bitrate * duration) / 8
         const bitrate = settings.bitrate || 320; // Default 320kbps
         estimated = (bitrate * 1000 * duration) / 8;
         break;
+      }
 
-      case 'flac':
+      case 'flac': {
         // FLAC: Lossless compression (typically 50-70% of WAV size)
         const wavSize = (settings.sampleRate * settings.bitDepth * channels * duration) / 8;
         estimated = wavSize * 0.6; // Average 60% compression
         break;
+      }
 
       default:
         // Unknown format: use original size as estimate
