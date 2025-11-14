@@ -9,6 +9,7 @@ import { AudioFile } from '@/types/audio';
 import { TenBandEqualizer, EQBand } from './TenBandEqualizer';
 import { DynamicsCompressorControls, CompressorSettings } from './DynamicsCompressorControls';
 import { AudioVisualizer } from './AudioVisualizer';
+import { FunSpectrumVisualizer } from './FunSpectrumVisualizer';
 import { PlaylistPanel } from './PlaylistPanel';
 import { MediaPlayerUpload } from './MediaPlayerUpload';
 import { toast } from 'sonner';
@@ -20,9 +21,6 @@ interface LevelMediaPlayerProps {
   onAutoPlayComplete?: () => void;
 }
 const INITIAL_EQ_BANDS: EQBand[] = [{
-  frequency: 32,
-  gain: 0
-}, {
   frequency: 64,
   gain: 0
 }, {
@@ -46,10 +44,7 @@ const INITIAL_EQ_BANDS: EQBand[] = [{
 }, {
   frequency: 8000,
   gain: 0
-}, {
-  frequency: 16000,
-  gain: 0
-}];
+}]; // Removed 32Hz and 16000Hz as they don't affect audio
 const INITIAL_COMPRESSOR: CompressorSettings = {
   threshold: -1.5,     // Within 0 to -3dB range
   ratio: 2.5,          // Within 1 to 4:1 range
@@ -413,6 +408,9 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
             onFileSelect={setCurrentFile}
             onFileDelete={onFileDelete}
           />
+
+          {/* Fun Spectrum Visualizer */}
+          <FunSpectrumVisualizer analyserNode={analyserNodeRef.current} isPlaying={isPlaying} />
         </div>
       </div>
     </div>;

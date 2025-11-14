@@ -67,18 +67,54 @@ export const AdvancedEQPresetsWithCompensation = memo(({
     language
   } = useLanguage();
 
-  // Map visual bands to actual band indices in 10-band array
-  const bandIndices = [0, 2, 4, 7, 9];
+  // Map 5 visual bands to all 8 bands in the EQ array (now 8 bands after removing 32Hz and 16000Hz)
+  // Interpolate values for smooth transitions across all bands
+  const bandIndices = [0, 1, 2, 3, 4, 5, 6, 7]; // All 8 bands: 64Hz, 125Hz, 250Hz, 500Hz, 1kHz, 2kHz, 4kHz, 8kHz
+  const visualBandIndices = [0, 1, 2, 3, 4]; // 5 visual bands from preset
+  
   const applyPreset = useCallback((preset: typeof EQ_PRESETS[0]) => {
-    // Apply preset values with staggered animation for smooth visual effect
-    // Use correct band indices to match FiveBandEqualizer mapping
-    preset.values.forEach((value, visualIndex) => {
-      setTimeout(() => {
-        const actualBandIndex = bandIndices[visualIndex];
-        onEQBandChange(actualBandIndex, value);
-      }, visualIndex * 40); // Stagger each slider update by 40ms
+    // Interpolate 5 preset values to 8 bands for smooth application
+    const interpolatedValues: number[] = [];
+    
+    // Map each of the 8 bands to the closest preset value
+    bandIndices.forEach((bandIndex) => {
+      // Find the closest visual band index
+      let closestVisualIndex = 0;
+      let minDistance = Infinity;
+      
+      visualBandIndices.forEach((visualIndex, idx) => {
+        // Map visual indices to approximate band positions
+        const visualBandPositions = [0, 1.5, 3.5, 5.5, 7]; // Approximate positions in 8-band array
+        const distance = Math.abs(bandIndex - visualBandPositions[idx]);
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestVisualIndex = idx;
+        }
+      });
+      
+      // Interpolate between adjacent values for smoother transitions
+      const visualPos = bandIndex / (bandIndices.length - 1) * (visualBandIndices.length - 1);
+      const lowerIdx = Math.floor(visualPos);
+      const upperIdx = Math.ceil(visualPos);
+      const t = visualPos - lowerIdx;
+      
+      let value: number;
+      if (lowerIdx === upperIdx || upperIdx >= preset.values.length) {
+        value = preset.values[Math.min(lowerIdx, preset.values.length - 1)];
+      } else {
+        value = preset.values[lowerIdx] * (1 - t) + preset.values[upperIdx] * t;
+      }
+      
+      interpolatedValues.push(value);
     });
-  }, [onEQBandChange]);
+    
+    // Apply all 8 band values with staggered animation for smooth visual effect
+    interpolatedValues.forEach((value, index) => {
+      setTimeout(() => {
+        onEQBandChange(index, value);
+      }, index * 30); // 30ms delay between each band for smooth animation
+    });
+  }, [onEQBandChange, bandIndices, visualBandIndices]);
   return <div className="w-full">
       <div className="text-sm font-bold text-center mb-3 bg-gradient-to-r from-cyan-200 via-purple-200 to-pink-200 bg-clip-text text-transparent mx-0 my-0 bg-blue-600">
         {language === 'ES' ? '✨ Preajustes Profesionales ✨' : '✨ Professional Presets ✨'}

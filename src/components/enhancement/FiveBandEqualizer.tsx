@@ -86,8 +86,8 @@ export const FiveBandEqualizer = memo(({
     onResetEQ();
   };
 
-  // Map 5 bands to the first 5 of the 10-band array
-  const bandIndices = [0, 2, 4, 7, 9];
+  // Map 5 bands to the 8-band array (after removing 32Hz and 16000Hz)
+  const bandIndices = [0, 1, 3, 5, 7]; // 64Hz, 125Hz, 500Hz, 2kHz, 8kHz
   return <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600">
       <CardHeader className="pb-3 bg-zinc-950">
         <div className="flex items-center justify-between">

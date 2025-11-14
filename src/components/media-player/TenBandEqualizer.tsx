@@ -12,7 +12,7 @@ interface TenBandEqualizerProps {
   onBandChange: (index: number, gain: number) => void;
   onReset: () => void;
 }
-const FREQUENCIES = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
+const FREQUENCIES = [64, 125, 250, 500, 1000, 2000, 4000, 8000]; // Removed 32Hz and 16000Hz as they don't affect audio
 export const TenBandEqualizer: React.FC<TenBandEqualizerProps> = ({
   bands,
   onBandChange,
@@ -36,7 +36,7 @@ export const TenBandEqualizer: React.FC<TenBandEqualizerProps> = ({
         </Button>
       </div>
 
-      <div className="grid grid-cols-10 gap-3 bg-slate-950/50 p-6 rounded-xl border border-slate-700/50 relative overflow-hidden">
+      <div className="grid grid-cols-8 gap-3 bg-slate-950/50 p-6 rounded-xl border border-slate-700/50 relative overflow-hidden">
         {/* Professional DJ Grid Background */}
         <svg className="absolute inset-0 w-full h-full opacity-20 pointer-events-none" xmlns="http://www.w3.org/2000/svg">
           <defs>

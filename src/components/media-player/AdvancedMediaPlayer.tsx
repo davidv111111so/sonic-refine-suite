@@ -10,6 +10,7 @@ import { AudioFile } from '@/types/audio';
 import { TenBandEqualizer, EQBand } from './TenBandEqualizer';
 import { DynamicsCompressorControls, CompressorSettings } from './DynamicsCompressorControls';
 import { AudioVisualizer } from './AudioVisualizer';
+import { FunSpectrumVisualizer } from './FunSpectrumVisualizer';
 import { PlaylistPanel } from './PlaylistPanel';
 import { toast } from 'sonner';
 import { useDropzone } from 'react-dropzone';
@@ -23,7 +24,6 @@ interface AdvancedMediaPlayerProps {
 }
 
 const INITIAL_EQ_BANDS: EQBand[] = [
-  { frequency: 32, gain: 0 },
   { frequency: 64, gain: 0 },
   { frequency: 125, gain: 0 },
   { frequency: 250, gain: 0 },
@@ -32,8 +32,7 @@ const INITIAL_EQ_BANDS: EQBand[] = [
   { frequency: 2000, gain: 0 },
   { frequency: 4000, gain: 0 },
   { frequency: 8000, gain: 0 },
-  { frequency: 16000, gain: 0 },
-];
+]; // Removed 32Hz and 16000Hz as they don't affect audio
 
 const INITIAL_COMPRESSOR: CompressorSettings = {
   threshold: -1.5,     // Within 0 to -3dB range
@@ -709,6 +708,9 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
 
           {/* Playlist */}
           <PlaylistPanel files={files} currentFileId={currentFile?.id || null} onFileSelect={setCurrentFile} />
+
+          {/* Fun Spectrum Visualizer */}
+          <FunSpectrumVisualizer analyserNode={analyserNodeRef.current} isPlaying={isPlaying} />
         </div>
       </div>
     </div>
