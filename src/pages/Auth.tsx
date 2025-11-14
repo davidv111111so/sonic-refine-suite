@@ -11,25 +11,18 @@ import { toast } from 'sonner';
 import { Loader2, Music, Lock, Mail, User, Chrome } from 'lucide-react';
 import { ShaderAnimation } from '@/components/ui/shader-animation';
 import { z } from 'zod';
-
 const signUpSchema = z.object({
   email: z.string().trim().email('Invalid email address'),
-  password: z.string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Password must contain an uppercase letter')
-    .regex(/[0-9]/, 'Password must contain a number'),
+  password: z.string().min(8, 'Password must be at least 8 characters').regex(/[A-Z]/, 'Password must contain an uppercase letter').regex(/[0-9]/, 'Password must contain a number'),
   fullName: z.string().trim().min(2, 'Full name is required')
 });
-
 const signInSchema = z.object({
   email: z.string().trim().email('Invalid email address'),
   password: z.string().min(1, 'Password is required')
 });
-
 const resetPasswordSchema = z.object({
   email: z.string().trim().email('Invalid email address')
 });
-
 export default function Auth() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -46,7 +39,6 @@ export default function Auth() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const mode = params.get('mode');
-    
     if (mode === 'reset') {
       setShowResetPassword(true);
       setIsSignUp(false);
@@ -65,7 +57,6 @@ export default function Auth() {
     const removeTimer = setTimeout(() => {
       setShowIntro(false);
     }, 6000);
-
     return () => {
       clearTimeout(fadeTimer);
       clearTimeout(removeTimer);
@@ -80,10 +71,12 @@ export default function Auth() {
     }) => {
       if (session) {
         // Check if user is in beta whitelist
-        const { data: isBetaUser, error } = await supabase.rpc('is_beta_user', {
+        const {
+          data: isBetaUser,
+          error
+        } = await supabase.rpc('is_beta_user', {
           _user_id: session.user.id
         });
-        
         if (error || !isBetaUser) {
           // Not in beta whitelist - sign out
           await supabase.auth.signOut();
@@ -92,12 +85,11 @@ export default function Auth() {
           });
           return;
         }
-        
+
         // Beta user - allow access
         navigate('/');
       }
     });
-    
     const {
       data: {
         subscription
@@ -105,10 +97,12 @@ export default function Auth() {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
         // Check if user is in beta whitelist
-        const { data: isBetaUser, error } = await supabase.rpc('is_beta_user', {
+        const {
+          data: isBetaUser,
+          error
+        } = await supabase.rpc('is_beta_user', {
           _user_id: session.user.id
         });
-        
         if (error || !isBetaUser) {
           // Not in beta whitelist - sign out and show error
           await supabase.auth.signOut();
@@ -117,7 +111,7 @@ export default function Auth() {
           });
           return;
         }
-        
+
         // Beta user - redirect to home page
         navigate('/');
       }
@@ -127,16 +121,20 @@ export default function Auth() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      const result = signUpSchema.safeParse({ email, password, fullName });
+      const result = signUpSchema.safeParse({
+        email,
+        password,
+        fullName
+      });
       if (!result.success) {
         toast.error(result.error.errors[0].message);
         setLoading(false);
         return;
       }
-
-      const { error } = await supabase.auth.signUp({
+      const {
+        error
+      } = await supabase.auth.signUp({
         email: result.data.email,
         password: result.data.password,
         options: {
@@ -146,7 +144,6 @@ export default function Auth() {
           }
         }
       });
-
       if (error) throw error;
       toast.success('Account created successfully! You can now log in.');
       setEmail('');
@@ -161,20 +158,22 @@ export default function Auth() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      const result = signInSchema.safeParse({ email, password });
+      const result = signInSchema.safeParse({
+        email,
+        password
+      });
       if (!result.success) {
         toast.error(result.error.errors[0].message);
         setLoading(false);
         return;
       }
-
-      const { error } = await supabase.auth.signInWithPassword({
+      const {
+        error
+      } = await supabase.auth.signInWithPassword({
         email: result.data.email,
         password: result.data.password
       });
-
       if (error) throw error;
       toast.success('Signed in successfully!');
       navigate('/');
@@ -202,19 +201,20 @@ export default function Auth() {
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      const result = resetPasswordSchema.safeParse({ email: resetEmail });
+      const result = resetPasswordSchema.safeParse({
+        email: resetEmail
+      });
       if (!result.success) {
         toast.error(result.error.errors[0].message);
         setLoading(false);
         return;
       }
-
-      const { error } = await supabase.auth.resetPasswordForEmail(result.data.email, {
+      const {
+        error
+      } = await supabase.auth.resetPasswordForEmail(result.data.email, {
         redirectTo: `${window.location.origin}/auth?mode=reset`
       });
-
       if (error) throw error;
       toast.success('Password reset link sent! Check your email.');
       setResetEmail('');
@@ -225,27 +225,20 @@ export default function Auth() {
       setLoading(false);
     }
   };
-  return (
-    <>
+  return <>
       {/* Intro Animation */}
-      {showIntro && (
-        <div 
-          className="fixed inset-0 z-50 transition-opacity duration-1000"
-          style={{ opacity: introOpacity }}
-        >
+      {showIntro && <div className="fixed inset-0 z-50 transition-opacity duration-1000" style={{
+      opacity: introOpacity
+    }}>
           <ShaderAnimation />
-          <span 
-            className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 text-center text-8xl font-extrabold tracking-tighter whitespace-pre-wrap bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent"
-            style={{
-              fontFamily: "'Orbitron', 'Exo 2', 'Rajdhani', 'Audiowide', monospace",
-              textShadow: '0 0 40px rgba(6, 182, 212, 0.6), 0 0 80px rgba(59, 130, 246, 0.4)',
-              letterSpacing: '0.15em'
-            }}
-          >
+          <span className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 text-center text-8xl font-extrabold tracking-tighter whitespace-pre-wrap bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent" style={{
+        fontFamily: "'Orbitron', 'Exo 2', 'Rajdhani', 'Audiowide', monospace",
+        textShadow: '0 0 40px rgba(6, 182, 212, 0.6), 0 0 80px rgba(59, 130, 246, 0.4)',
+        letterSpacing: '0.15em'
+      }}>
             LEVEL
           </span>
-        </div>
-      )}
+        </div>}
 
       {/* Auth Page */}
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-black to-slate-900 flex items-center justify-center p-4">
@@ -352,7 +345,7 @@ export default function Auth() {
                       </div>
                     </div>
 
-                    <Button type="button" variant="outline" onClick={handleGoogleSignIn} className="w-full bg-slate-800 border-slate-700 text-white hover:bg-slate-700">
+                    <Button type="button" variant="outline" onClick={handleGoogleSignIn} className="w-full bg-slate-800 border-slate-700 hover:bg-slate-700 text-blue-600">
                       <Chrome className="mr-2 h-4 w-4" />
                       Google
                     </Button>
@@ -383,6 +376,5 @@ export default function Auth() {
         </CardContent>
       </Card>
     </div>
-    </>
-  );
+    </>;
 }
