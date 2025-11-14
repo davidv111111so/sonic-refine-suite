@@ -281,7 +281,7 @@ async function sha256(message: string): Promise<string> {
 function pemToArrayBuffer(pem: string): ArrayBuffer {
   try {
     // Remove PEM headers and footers, and all whitespace
-    let pemContents = pem
+    const pemContents = pem
       .replace(/-----BEGIN PRIVATE KEY-----/g, '')
       .replace(/-----END PRIVATE KEY-----/g, '')
       .replace(/-----BEGIN RSA PRIVATE KEY-----/g, '')

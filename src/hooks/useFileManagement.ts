@@ -139,7 +139,7 @@ export const useFileManagement = () => {
       /^(.*?)\s*–\s*(.*)$/, // Artist – Title (em dash)
       /^(.*?)\s*—\s*(.*)$/, // Artist — Title (em dash)
       /^(\d+\.?\s*)?(.*?)\s*-\s*(.*)$/, // Track number. Artist - Title
-      /^(\d+[\.\s]+)(.*)$/ // Just track number prefix
+      /^(\d+[.\s]+)(.*)$/ // Just track number prefix
     ];
     
     for (const pattern of patterns) {

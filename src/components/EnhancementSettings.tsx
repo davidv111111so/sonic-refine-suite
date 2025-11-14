@@ -85,7 +85,7 @@ export const EnhancementSettings = ({ onEnhance, isProcessing, hasFiles, onSaveL
   const estimatedFileSize = useMemo(() => {
     const baseSize = 40;
     const sampleRateMultiplier = settings.sampleRate / 44100;
-    let bitrateMultiplier = settings.targetBitrate / 320;
+    const bitrateMultiplier = settings.targetBitrate / 320;
     
     let formatMultiplier = 1;
     switch (settings.outputFormat) {
