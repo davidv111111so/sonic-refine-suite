@@ -143,3 +143,5 @@ Una vez que los cambios estén en el repositorio:
 - Push: 1-2 minutos
 - Sincronización Lovable: 1-2 minutos adicionales
 
+
+

@@ -95,3 +95,5 @@ Si ves errores de CORS:
 3. Revisa los logs del backend para ver errores específicos
 
 
+
+
