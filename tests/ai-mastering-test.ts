@@ -286,7 +286,7 @@ export async function testBackendConnection(
     logStep('📡', 'Testing /api/master-audio endpoint...');
     
     const testPayload = {
-      inputUrl: 'https://storage.googleapis.com/level-audio-mastering/test.wav',
+      inputUrl: 'https://storage.googleapis.com/spectrum-mastering-files-857351913435/audio-uploads/test/test.wav',
       fileName: 'test-file.wav',
       settings: {
         targetLoudness: -14,
