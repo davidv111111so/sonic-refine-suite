@@ -2,6 +2,7 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
 export interface CompressorSettings {
   threshold: number;  // Range: 0 to -3dB
   ratio: number;      // Range: 1 to 4.0:1

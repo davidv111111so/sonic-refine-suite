@@ -76,7 +76,7 @@ $serviceName = "mastering-backend"
 $region = "us-central1"
 $projectId = "total-acumen-473702-j1"
 $bucketName = "spectrum-mastering-files-857351913435"
-$allowedOrigins = "https://7d506715-84dc-4abb-95cb-4ef4492a151b.lovableproject.com"
+$allowedOrigins = "https://7d506715-84dc-4abb-95cb-4ef4492a151b.lovableproject.com,https://*.lovable.app"
 
 gcloud run deploy $serviceName `
     --source . `

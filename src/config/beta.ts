@@ -12,7 +12,7 @@ export const BETA_CONFIG = {
   ADMIN_EMAILS: [
     'davidv111111@gmail.com',
     'santiagov.t068@gmail.com'
-  ],
+  ] as string[],
   
   // Beta access message
   BETA_MESSAGE: {
