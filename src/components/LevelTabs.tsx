@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -93,6 +93,43 @@ export const LevelTabs = ({
     setAutoPlayFile(file);
     setActiveTab('media-player');
   };
+  
+  // Calculate estimated total output size based on format and settings
+  const estimatedTotalSize = useMemo(() => {
+    if (audioFiles.length === 0) return 0;
+    
+    const totalDuration = audioFiles.reduce((acc, file) => acc + (file.duration || 0), 0);
+    const channels = 2;
+    const format = processingSettings.outputFormat.toLowerCase();
+    
+    let estimated = 0;
+    
+    switch (format) {
+      case 'wav': {
+        // WAV: Uncompressed PCM
+        estimated = (processingSettings.sampleRate * processingSettings.bitDepth * channels * totalDuration) / 8;
+        break;
+      }
+      case 'mp3': {
+        // MP3: Compressed audio based on bitrate
+        const bitrate = processingSettings.bitrate || 320;
+        estimated = (bitrate * 1000 * totalDuration) / 8;
+        break;
+      }
+      case 'flac': {
+        // FLAC: Lossless compression (typically 60% of WAV size)
+        const wavSize = (processingSettings.sampleRate * processingSettings.bitDepth * channels * totalDuration) / 8;
+        estimated = wavSize * 0.6;
+        break;
+      }
+      default:
+        // Unknown format: use original size
+        estimated = audioFiles.reduce((acc, file) => acc + file.size, 0);
+    }
+    
+    // Add small overhead for headers/metadata
+    return Math.round(estimated * 1.015);
+  }, [audioFiles, processingSettings.outputFormat, processingSettings.sampleRate, processingSettings.bitDepth, processingSettings.bitrate]);
   
   const handleProcessingSettingChange = (key: keyof ProcessingSettings, value: any) => {
     setProcessingSettings(prev => ({
@@ -376,7 +413,7 @@ export const LevelTabs = ({
                   <div className="flex items-center gap-2">
                     <span className="text-xs bg-gradient-to-r from-green-200 to-emerald-200 bg-clip-text text-transparent font-bold">→ {language === 'ES' ? 'Después' : 'After'}:</span>
                     <span className="px-2 py-1 bg-green-600/60 rounded-md text-sm font-bold border border-green-400/60 shadow-lg animate-pulse text-neutral-50">
-                      ~{Math.round(audioFiles.reduce((acc, file) => acc + file.size, 0) * 1.35 / 1024 / 1024)}MB
+                      ~{Math.round(estimatedTotalSize / 1024 / 1024)}MB
                     </span>
                   </div>
                 </div>

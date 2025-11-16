@@ -1,12 +1,14 @@
 import React, { useRef, useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
+import { Maximize2, Minimize2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface FunSpectrumVisualizerProps {
   analyserNode: AnalyserNode | null;
   isPlaying: boolean;
 }
 
-type VisualizerMode = "bars" | "wave" | "circular" | "particles";
+type VisualizerMode = "bars" | "wave" | "circular";
 
 export const FunSpectrumVisualizer: React.FC<FunSpectrumVisualizerProps> = ({
   analyserNode,
@@ -16,6 +18,7 @@ export const FunSpectrumVisualizer: React.FC<FunSpectrumVisualizerProps> = ({
   const animationFrameRef = useRef<number>(0);
   const [mode, setMode] = useState<VisualizerMode>("bars");
   const [colorScheme, setColorScheme] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const timeRef = useRef(0);
 
   const colorSchemes = [
@@ -159,27 +162,6 @@ export const FunSpectrumVisualizer: React.FC<FunSpectrumVisualizerProps> = ({
           }
           break;
 
-        case "particles":
-          // Particle system
-          const particleCount = 128;
-          for (let i = 0; i < particleCount; i++) {
-            const dataIndex = Math.floor((i / particleCount) * bufferLength);
-            const intensity = dataArray[dataIndex] / 255;
-
-            const angle = (i / particleCount) * Math.PI * 2 + timeRef.current;
-            const distance = intensity * radius * 1.5;
-            const x = centerX + Math.cos(angle) * distance;
-            const y = centerY + Math.sin(angle) * distance;
-
-            const size = 2 + intensity * 8;
-            const hue = (i / particleCount) * 360 + timeRef.current * 20;
-
-            ctx.fillStyle = `hsl(${hue}, 100%, 60%)`;
-            ctx.beginPath();
-            ctx.arc(x, y, size, 0, Math.PI * 2);
-            ctx.fill();
-          }
-          break;
       }
     };
 
@@ -202,7 +184,6 @@ export const FunSpectrumVisualizer: React.FC<FunSpectrumVisualizerProps> = ({
           "bars",
           "wave",
           "circular",
-          "particles",
         ];
         const currentIndex = modes.indexOf(prev);
         return modes[(currentIndex + 1) % modes.length];
@@ -213,12 +194,16 @@ export const FunSpectrumVisualizer: React.FC<FunSpectrumVisualizerProps> = ({
     return () => clearInterval(interval);
   }, [isPlaying]);
 
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
+  };
+
   if (!isPlaying) {
     return (
       <Card className="bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 p-4">
         <h3 className="text-sm font-semibold text-purple-400 mb-2 flex items-center gap-2">
           <span className="text-xl">🎨</span>
-          Fun Visualizer
+          Level Visualizer
         </h3>
         <div className="text-center py-8 text-slate-500 text-sm">
           Start playing music to see the visualizer
@@ -228,34 +213,44 @@ export const FunSpectrumVisualizer: React.FC<FunSpectrumVisualizerProps> = ({
   }
 
   return (
-    <Card className="bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 p-4">
+    <Card className={`bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 p-4 ${isFullscreen ? 'fixed inset-0 z-[9999] rounded-none' : ''}`}>
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-sm font-semibold text-purple-400 flex items-center gap-2">
           <span className="text-xl">🎨</span>
-          Fun Visualizer
+          Level Visualizer
         </h3>
-        <div className="flex gap-1">
-          {(["bars", "wave", "circular", "particles"] as VisualizerMode[]).map(
-            (m) => (
-              <button
-                key={m}
-                onClick={() => setMode(m)}
-                className={`px-2 py-1 text-xs rounded transition-all ${
-                  mode === m
-                    ? "bg-purple-600 text-white"
-                    : "bg-slate-700 text-slate-400 hover:bg-slate-600"
-                }`}
-              >
-                {m[0].toUpperCase()}
-              </button>
-            )
-          )}
+        <div className="flex gap-2">
+          <div className="flex gap-1">
+            {(["bars", "wave", "circular"] as VisualizerMode[]).map(
+              (m) => (
+                <button
+                  key={m}
+                  onClick={() => setMode(m)}
+                  className={`px-2 py-1 text-xs rounded transition-all ${
+                    mode === m
+                      ? "bg-purple-600 text-white"
+                      : "bg-slate-700 text-slate-400 hover:bg-slate-600"
+                  }`}
+                >
+                  {m[0].toUpperCase()}
+                </button>
+              )
+            )}
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={toggleFullscreen}
+            className="h-7 px-2"
+          >
+            {isFullscreen ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
+          </Button>
         </div>
       </div>
       <canvas
         ref={canvasRef}
         width={400}
-        height={200}
+        height={isFullscreen ? 600 : 200}
         className="w-full rounded-lg border border-slate-700 shadow-lg"
       />
       <div className="mt-2 flex items-center justify-between text-xs text-slate-400">
