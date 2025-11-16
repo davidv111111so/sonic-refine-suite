@@ -1,0 +1,231 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Scrollable text animation for long song titles */
+@keyframes scroll-text {
+  0% {
+    transform: translateX(0%);
+  }
+  25% {
+    transform: translateX(0%);
+  }
+  75% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* Lightning flash animation for Spectrum button */
+@keyframes flash {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scaleY(0.5);
+  }
+  10% {
+    opacity: 1;
+    transform: scaleY(1.2);
+  }
+  20% {
+    opacity: 0;
+    transform: scaleY(0.8);
+  }
+  30% {
+    opacity: 1;
+    transform: scaleY(1.5);
+  }
+  50% {
+    opacity: 0;
+    transform: scaleY(0.5);
+  }
+}
+
+@layer base {
+  :root {
+    /* Light mode - Pure white background with blue accents */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
+
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 0%;
+
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 40%;
+
+    --accent: 221 83% 53%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 89%;
+    --input: 0 0% 89%;
+    --ring: 221 83% 53%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* PURE BLACK Dark mode - #000000 background with bright text */
+    --background: 0 0% 0%; /* Pure black */
+    --foreground: 0 0% 100%; /* Pure white */
+
+    --card: 0 0% 5%; /* Very dark cards */
+    --card-foreground: 0 0% 100%;
+
+    --popover: 0 0% 5%;
+    --popover-foreground: 0 0% 100%;
+
+    --primary: 221 83% 53%; /* Bright blue */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 70%; /* Brighter muted text */
+
+    --accent: 271 91% 65%; /* Bright purple */
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 20%; /* Visible borders */
+    --input: 0 0% 20%;
+    --ring: 221 83% 53%;
+
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  /* Light mode - ensure pure white background */
+  body {
+    @apply bg-white dark:bg-background text-black dark:text-foreground;
+    transition:
+      background-color 0.3s ease,
+      color 0.3s ease;
+  }
+
+  /* Force pure white background in light mode */
+  body:not(.dark) {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* Force PURE BLACK background in dark mode (#000000) */
+  body.dark {
+    background: #000000 !important;
+    color: #ffffff !important;
+  }
+
+  /* Light mode - Keep buttons and overlays with visible colors */
+  body:not(.dark) .bg-slate-800,
+  body:not(.dark) .bg-slate-900 {
+    @apply bg-blue-50 border-blue-200 !important;
+  }
+
+  body:not(.dark) .bg-slate-700 {
+    @apply bg-blue-100 !important;
+  }
+
+  body:not(.dark) .text-white {
+    @apply text-gray-900 !important;
+  }
+
+  body:not(.dark) .text-slate-300,
+  body:not(.dark) .text-slate-400 {
+    @apply text-gray-600 !important;
+  }
+
+  body:not(.dark) .border-slate-600 {
+    @apply border-blue-300 !important;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Custom animation for pulsing slow */
+  .animate-pulse-slow {
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.9;
+      transform: scale(1.02);
+    }
+  }
+}
+
+/* Custom scrollbar styling */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-slate-800;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-600 rounded-lg;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-500;
+}
+
+/* Light mode scrollbar */
+body:not(.dark) ::-webkit-scrollbar-track {
+  @apply bg-gray-200;
+}
+
+body:not(.dark) ::-webkit-scrollbar-thumb {
+  @apply bg-gray-400;
+}
+
+body:not(.dark) ::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-500;
+}

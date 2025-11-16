@@ -1,0 +1,7 @@
+project_id = "lyymcpiujrnlwsbyrseh"
+
+[functions]
+enabled = true
+
+[functions.ai-mastering]
+verify_jwt = true

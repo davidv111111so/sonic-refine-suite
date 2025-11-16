@@ -1,0 +1,30 @@
+Traceback (most recent call last):
+  File "C:\Users\david\SPECTRUM APP\backend\app.py", line 12, in <module>
+    from gcp_utils import (
+    ...<4 lines>...
+    )
+  File "C:\Users\david\SPECTRUM APP\backend\gcp_utils.py", line 8, in <module>
+    _gcs_client = storage.Client()
+  File "C:\Users\david\SPECTRUM APP\backend\.venv\Lib\site-packages\google\cloud\storage\client.py", line 247, in __init__
+    super(Client, self).__init__(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        project=project,
+        ^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+        _http=_http,
+        ^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\david\SPECTRUM APP\backend\.venv\Lib\site-packages\google\cloud\client\__init__.py", line 338, in __init__
+    _ClientProjectMixin.__init__(self, project=project, credentials=credentials)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\david\SPECTRUM APP\backend\.venv\Lib\site-packages\google\cloud\client\__init__.py", line 286, in __init__
+    project = self._determine_default(project)
+  File "C:\Users\david\SPECTRUM APP\backend\.venv\Lib\site-packages\google\cloud\client\__init__.py", line 305, in _determine_default
+    return _determine_default_project(project)
+  File "C:\Users\david\SPECTRUM APP\backend\.venv\Lib\site-packages\google\cloud\_helpers\__init__.py", line 152, in _determine_default_project
+    _, project = google.auth.default()
+                 ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\david\SPECTRUM APP\backend\.venv\Lib\site-packages\google\auth\_default.py", line 739, in default
+    raise exceptions.DefaultCredentialsError(_CLOUD_SDK_MISSING_CREDENTIALS)
+google.auth.exceptions.DefaultCredentialsError: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information.

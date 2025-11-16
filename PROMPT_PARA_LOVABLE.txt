@@ -1,0 +1,39 @@
+Por favor, ejecuta los siguientes pasos para configurar el sistema de AI Mastering:
+
+PASO 1: Verificar y Desplegar Edge Function
+
+1. Ve a Edge Functions en Lovable Cloud
+2. Verifica si la Edge Function "generate-upload-url" está desplegada
+3. Si no está desplegada o necesita actualizarse:
+   - Despliega la Edge Function desde: sonic-refine-suite/supabase/functions/generate-upload-url/index.ts
+   - Asegúrate de que esté activa y funcionando
+   - Revisa los logs para confirmar que no hay errores
+
+PASO 2: Configurar Secrets de Google Cloud
+
+Agrega los siguientes 3 secrets en la sección Secrets de Lovable Cloud:
+
+1. GOOGLE_CLOUD_PROJECT_ID
+   Valor: total-acumen-473702-j1
+
+2. GOOGLE_CLOUD_BUCKET_NAME
+   Valor: spectrum-mastering-files-857351913435
+
+3. GOOGLE_APPLICATION_CREDENTIALS_JSON
+   Valor: [Necesito que me indiques dónde obtener el JSON completo de las credenciales, o si ya lo tienes configurado, úsalo]
+   Formato: JSON completo de service account con todos los campos (type, project_id, private_key, client_email, etc.)
+   IMPORTANTE: El private_key debe tener los saltos de línea como \n (no como saltos de línea reales)
+
+PASO 3: Verificación
+
+Después de configurar:
+- Confirma que los 3 secrets estén presentes y correctamente configurados
+- Verifica que la Edge Function pueda leer estos secrets
+- Prueba la Edge Function con un request de prueba para confirmar que genera URLs correctamente
+
+Si encuentras algún problema o necesitas el JSON de credenciales, avísame y te lo proporciono.
+
+
+
+
+
