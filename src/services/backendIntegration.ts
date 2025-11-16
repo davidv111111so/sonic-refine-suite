@@ -176,8 +176,10 @@ export const getBackendConfig = (): BackendConfig => {
   const backendUrl = import.meta.env.VITE_PYTHON_BACKEND_URL;
   
   if (isDev) {
+    // En desarrollo, usar el mismo host que el frontend para soportar network IPs
+    const defaultUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8000';
     return {
-      baseUrl: backendUrl || 'http://localhost:8000',
+      baseUrl: backendUrl || defaultUrl,
       timeout: 120000 // 2 minutes
     };
   }

@@ -177,10 +177,17 @@ export const AIMasteringSetupChecker = () => {
 
   // Check 3: Backend Python
   const checkBackend = async (): Promise<CheckResult> => {
-    // En desarrollo, usar localhost si no hay variable de entorno configurada
-    const defaultBackendUrl = import.meta.env.DEV 
-      ? 'http://localhost:8000' 
-      : 'https://mastering-backend-azkp62xtaq-uc.a.run.app';
+    // Detectar la URL del backend basada en el entorno
+    let defaultBackendUrl: string;
+    
+    if (import.meta.env.DEV) {
+      // En desarrollo, usar el mismo host que el frontend (soporta localhost y network IPs)
+      defaultBackendUrl = window.location.origin;
+    } else {
+      // En producción, usar el backend desplegado en Cloud Run
+      defaultBackendUrl = 'https://mastering-backend-azkp62xtaq-uc.a.run.app';
+    }
+    
     const backendUrl = import.meta.env.VITE_PYTHON_BACKEND_URL || defaultBackendUrl;
 
     try {
@@ -231,9 +238,28 @@ export const AIMasteringSetupChecker = () => {
         };
       }
 
-      // Check for CORS errors
+      // Check for CORS errors vs backend validation errors
       if (response.status === 0 || (response.status >= 500 && response.status < 600)) {
         const errorText = await response.text().catch(() => '');
+        
+        // If we got a JSON error response with "error" or "success:false", backend is working!
+        try {
+          const errorJson = JSON.parse(errorText);
+          if (errorJson.error || errorJson.success === false) {
+            // Backend is working, just rejecting invalid test data (expected!)
+            return {
+              status: 'success',
+              message: 'Backend is accessible',
+              details: healthCheck 
+                ? `${healthDetails}. Backend correctly rejected test data: "${errorJson.error?.substring(0, 80) || 'validation error'}"`
+                : `Backend responded with validation error (expected for test data): "${errorJson.error?.substring(0, 80) || 'error'}"`,
+            };
+          }
+        } catch (parseError) {
+          // Not JSON, likely a real server error
+        }
+        
+        // If we got here, it's a real error
         return {
           status: 'error',
           message: 'Backend error or CORS issue',

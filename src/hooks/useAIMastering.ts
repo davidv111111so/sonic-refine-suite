@@ -196,10 +196,21 @@ export const useAIMastering = () => {
         description: 'AI is analyzing and mastering your audio',
       });
 
-      // En desarrollo, usar localhost si no hay variable de entorno configurada
-      const defaultBackendUrl = import.meta.env.DEV 
-        ? 'http://localhost:8000' 
-        : 'https://mastering-backend-azkp62xtaq-uc.a.run.app';
+      // Detectar la URL del backend basada en el entorno
+      // Si estamos en desarrollo, usar el mismo host que el frontend
+      // Esto permite que funcione tanto con localhost como con IPs de red local
+      let defaultBackendUrl: string;
+      
+      if (import.meta.env.DEV) {
+        // En desarrollo, usar el mismo host que el frontend (soporta localhost y network IPs)
+        const currentHost = window.location.origin;
+        defaultBackendUrl = currentHost;
+        console.log('🔧 DEV mode detected, using current host:', currentHost);
+      } else {
+        // En producción, usar el backend desplegado en Cloud Run
+        defaultBackendUrl = 'https://mastering-backend-azkp62xtaq-uc.a.run.app';
+      }
+      
       const backendUrl = import.meta.env.VITE_PYTHON_BACKEND_URL || defaultBackendUrl;
       
       console.log('🤖 Calling Python backend for AI mastering...');

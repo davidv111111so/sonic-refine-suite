@@ -157,8 +157,10 @@ export default function Auth() {
       setEmail("");
       setPassword("");
       setFullName("");
-    } catch (error: any) {
-      toast.error(error.message || "Error creating account");
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Error creating account";
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -183,8 +185,10 @@ export default function Auth() {
       if (error) throw error;
       toast.success("Signed in successfully!");
       navigate("/");
-    } catch (error: any) {
-      toast.error(error.message || "Error signing in");
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Error signing in";
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -198,8 +202,10 @@ export default function Auth() {
         },
       });
       if (error) throw error;
-    } catch (error: any) {
-      toast.error(error.message || "Error signing in with Google");
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Error signing in with Google";
+      toast.error(message);
     }
   };
   const handlePasswordReset = async (e: React.FormEvent) => {
@@ -224,8 +230,10 @@ export default function Auth() {
       toast.success("Password reset link sent! Check your email.");
       setResetEmail("");
       setShowResetPassword(false);
-    } catch (error: any) {
-      toast.error(error.message || "Error sending reset email");
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Error sending reset email";
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -258,8 +266,10 @@ export default function Auth() {
       setConfirmPassword("");
       setShowUpdatePassword(false);
       navigate("/");
-    } catch (error: any) {
-      toast.error(error.message || "Error updating password");
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Error updating password";
+      toast.error(message);
     } finally {
       setLoading(false);
     }

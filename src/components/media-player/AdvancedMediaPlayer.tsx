@@ -1,19 +1,34 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
-import { Label } from '@/components/ui/label';
-import { Play, Pause, SkipBack, SkipForward, Volume2, Repeat, Upload, Trash2 } from 'lucide-react';
-import WaveSurfer from 'wavesurfer.js';
-import { getAudioContext, resumeAudioContext } from '@/utils/audioContextManager';
-import { AudioFile } from '@/types/audio';
-import { TenBandEqualizer, EQBand } from './TenBandEqualizer';
-import { DynamicsCompressorControls, CompressorSettings } from './DynamicsCompressorControls';
-import { AudioVisualizer } from './AudioVisualizer';
-import { FunSpectrumVisualizer } from './FunSpectrumVisualizer';
-import { PlaylistPanel } from './PlaylistPanel';
-import { toast } from 'sonner';
-import { useDropzone } from 'react-dropzone';
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { Label } from "@/components/ui/label";
+import {
+  Play,
+  Pause,
+  SkipBack,
+  SkipForward,
+  Volume2,
+  Repeat,
+  Upload,
+  Trash2,
+} from "lucide-react";
+import WaveSurfer from "wavesurfer.js";
+import {
+  getAudioContext,
+  resumeAudioContext,
+} from "@/utils/audioContextManager";
+import { AudioFile } from "@/types/audio";
+import { TenBandEqualizer, EQBand } from "./TenBandEqualizer";
+import {
+  DynamicsCompressorControls,
+  CompressorSettings,
+} from "./DynamicsCompressorControls";
+import { AudioVisualizer } from "./AudioVisualizer";
+import { FunSpectrumVisualizer } from "./FunSpectrumVisualizer";
+import { PlaylistPanel } from "./PlaylistPanel";
+import { toast } from "sonner";
+import { useDropzone } from "react-dropzone";
 
 interface AdvancedMediaPlayerProps {
   files: AudioFile[];
@@ -35,10 +50,10 @@ const INITIAL_EQ_BANDS: EQBand[] = [
 ]; // Removed 32Hz and 16000Hz as they don't affect audio
 
 const INITIAL_COMPRESSOR: CompressorSettings = {
-  threshold: -1.5,     // Within 0 to -3dB range
-  ratio: 2.5,          // Within 1 to 4:1 range
-  attack: 0.001,       // 1ms - within 0.1ms to 3ms range
-  release: 0.0015      // 1.5ms - within 0ms to 3ms range
+  threshold: -1.5, // Within 0 to -3dB range
+  ratio: 2.5, // Within 1 to 4:1 range
+  attack: 0.001, // 1ms - within 0.1ms to 3ms range
+  release: 0.0015, // 1.5ms - within 0ms to 3ms range
 };
 
 export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
@@ -54,7 +69,7 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(0.8);
   const [loop, setLoop] = useState(false);
-  
+
   // Advanced controls
   const [pitchShift, setPitchShift] = useState(0); // -12 to +12 semitones
   const [tempo, setTempo] = useState(100); // 50% to 150%
@@ -62,18 +77,19 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
   const [delayMix, setDelayMix] = useState(0); // 0-100%
   const [delayTime, setDelayTime] = useState(0.5); // seconds
   const [limiterEnabled, setLimiterEnabled] = useState(true);
-  
+
   // Real-time meters
   const [lufsIntegrated, setLufsIntegrated] = useState(0);
   const [lufsMomentary, setLufsMomentary] = useState(0);
   const [truePeak, setTruePeak] = useState(0);
   const [dynamicRange, setDynamicRange] = useState(0);
   const [phaseCorrelation, setPhaseCorrelation] = useState(0);
-  
+
   const [eqBands, setEqBands] = useState<EQBand[]>(INITIAL_EQ_BANDS);
-  const [compressorSettings, setCompressorSettings] = useState<CompressorSettings>(INITIAL_COMPRESSOR);
+  const [compressorSettings, setCompressorSettings] =
+    useState<CompressorSettings>(INITIAL_COMPRESSOR);
   const [gainReduction, setGainReduction] = useState(0);
-  
+
   const waveformRef = useRef<HTMLDivElement>(null);
   const wavesurferRef = useRef<WaveSurfer | null>(null);
   const eqFiltersRef = useRef<BiquadFilterNode[]>([]);
@@ -91,9 +107,9 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
 
     const ws = WaveSurfer.create({
       container: waveformRef.current,
-      waveColor: 'hsl(var(--primary))',
-      progressColor: 'hsl(var(--accent))',
-      cursorColor: 'hsl(var(--accent))',
+      waveColor: "hsl(var(--primary))",
+      progressColor: "hsl(var(--accent))",
+      cursorColor: "hsl(var(--accent))",
       barWidth: 2,
       barRadius: 3,
       cursorWidth: 2,
@@ -103,15 +119,15 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
 
     wavesurferRef.current = ws;
 
-    ws.on('ready', () => {
+    ws.on("ready", () => {
       setDuration(ws.getDuration());
     });
 
-    ws.on('audioprocess', () => {
+    ws.on("audioprocess", () => {
       setCurrentTime(ws.getCurrentTime());
     });
 
-    ws.on('finish', () => {
+    ws.on("finish", () => {
       if (loop) {
         ws.play();
       } else {
@@ -134,8 +150,12 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
         type: file.type,
         originalFile: file,
         originalUrl: URL.createObjectURL(file),
-        status: 'uploaded' as const,
-        fileType: file.name.split('.').pop()?.toLowerCase() as 'mp3' | 'wav' | 'flac' | 'unsupported',
+        status: "uploaded" as const,
+        fileType: file.name.split(".").pop()?.toLowerCase() as
+          | "mp3"
+          | "wav"
+          | "flac"
+          | "unsupported",
       }));
 
       if (onFilesAdded) {
@@ -150,7 +170,7 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'audio/*': ['.mp3', '.wav', '.flac', '.m4a', '.ogg'],
+      "audio/*": [".mp3", ".wav", ".flac", ".m4a", ".ogg"],
     },
     multiple: true,
   });
@@ -208,11 +228,11 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
       eqBands.forEach((band, index) => {
         const filter = audioContext.createBiquadFilter();
         if (index === 0) {
-          filter.type = 'lowshelf';
+          filter.type = "lowshelf";
         } else if (index === eqBands.length - 1) {
-          filter.type = 'highshelf';
+          filter.type = "highshelf";
         } else {
-          filter.type = 'peaking';
+          filter.type = "peaking";
         }
         filter.frequency.value = band.frequency;
         filter.gain.value = band.gain;
@@ -297,17 +317,17 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
                 currentNode.connect(audioContext.destination);
               }
 
-              console.log('✅ Advanced audio graph connected');
+              console.log("✅ Advanced audio graph connected");
             } catch (error) {
-              console.error('Error connecting audio graph:', error);
+              console.error("Error connecting audio graph:", error);
             }
           }
         }
 
         toast.success(`Loaded: ${currentFile.name}`);
       } catch (error) {
-        console.error('Failed to load audio:', error);
-        toast.error('Failed to load audio file');
+        console.error("Failed to load audio:", error);
+        toast.error("Failed to load audio file");
       }
     };
 
@@ -321,7 +341,10 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
 
     eqFiltersRef.current.forEach((filter, index) => {
       if (eqBands[index]) {
-        filter.gain.setValueAtTime(eqBands[index].gain, audioContext.currentTime);
+        filter.gain.setValueAtTime(
+          eqBands[index].gain,
+          audioContext.currentTime
+        );
       }
     });
   }, [eqBands]);
@@ -333,10 +356,22 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
     if (!audioContext) return;
 
     const comp = compressorNodeRef.current;
-    comp.threshold.setValueAtTime(compressorSettings.threshold, audioContext.currentTime);
-    comp.ratio.setValueAtTime(compressorSettings.ratio, audioContext.currentTime);
-    comp.attack.setValueAtTime(compressorSettings.attack, audioContext.currentTime);
-    comp.release.setValueAtTime(compressorSettings.release, audioContext.currentTime);
+    comp.threshold.setValueAtTime(
+      compressorSettings.threshold,
+      audioContext.currentTime
+    );
+    comp.ratio.setValueAtTime(
+      compressorSettings.ratio,
+      audioContext.currentTime
+    );
+    comp.attack.setValueAtTime(
+      compressorSettings.attack,
+      audioContext.currentTime
+    );
+    comp.release.setValueAtTime(
+      compressorSettings.release,
+      audioContext.currentTime
+    );
     comp.knee.setValueAtTime(0, audioContext.currentTime); // Always 0 - hard knee
   }, [compressorSettings]);
 
@@ -346,7 +381,10 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
     const audioContext = getAudioContext();
     if (!audioContext) return;
 
-    delayNodeRef.current.delayTime.setValueAtTime(delayTime, audioContext.currentTime);
+    delayNodeRef.current.delayTime.setValueAtTime(
+      delayTime,
+      audioContext.currentTime
+    );
   }, [delayTime]);
 
   // Update volume
@@ -382,7 +420,12 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
         setTruePeak(20 * Math.log10(peak || 0.0001));
 
         // Simplified loudness estimation (not true LUFS)
-        const rms = Math.sqrt(dataArray.reduce((acc, val) => acc + Math.pow((val - 128) / 128, 2), 0) / bufferLength);
+        const rms = Math.sqrt(
+          dataArray.reduce(
+            (acc, val) => acc + Math.pow((val - 128) / 128, 2),
+            0
+          ) / bufferLength
+        );
         setLufsMomentary(-23 + 20 * Math.log10(rms || 0.0001));
       }
     }, 100);
@@ -403,8 +446,8 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
         setIsPlaying(true);
       }
     } catch (error) {
-      console.error('Playback error:', error);
-      toast.error('Playback failed');
+      console.error("Playback error:", error);
+      toast.error("Playback failed");
     }
   };
 
@@ -440,13 +483,13 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
 
   const handleEQReset = () => {
     setEqBands(INITIAL_EQ_BANDS);
-    toast.success('EQ reset to flat');
+    toast.success("EQ reset to flat");
   };
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   return (
@@ -457,8 +500,8 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
           {...getRootProps()}
           className={`p-8 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
             isDragActive
-              ? 'border-primary bg-primary/10'
-              : 'border-muted-foreground/20 hover:border-primary/50 hover:bg-muted/50'
+              ? "border-primary bg-primary/10"
+              : "border-muted-foreground/20 hover:border-primary/50 hover:bg-muted/50"
           }`}
         >
           <input {...getInputProps()} />
@@ -466,9 +509,13 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
             <Upload className="h-12 w-12 text-primary" />
             <div>
               <p className="text-lg font-semibold mb-2 text-primary">
-                {isDragActive ? 'Drop files here...' : 'Drop audio files here or click to browse'}
+                {isDragActive
+                  ? "Drop files here..."
+                  : "Drop audio files here or click to browse"}
               </p>
-              <p className="text-sm text-muted-foreground">Supports MP3, WAV, FLAC, M4A, OGG</p>
+              <p className="text-sm text-muted-foreground">
+                Supports MP3, WAV, FLAC, M4A, OGG
+              </p>
             </div>
           </div>
         </div>
@@ -482,7 +529,7 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold flex items-center gap-2 text-primary">
                 <span className="text-2xl">🎵</span>
-                {currentFile ? currentFile.name : 'No track loaded'}
+                {currentFile ? currentFile.name : "No track loaded"}
               </h3>
               {currentFile && (
                 <Button
@@ -497,7 +544,10 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
             </div>
 
             {/* Waveform */}
-            <div ref={waveformRef} className="mb-6 rounded-lg overflow-hidden border border-border" />
+            <div
+              ref={waveformRef}
+              className="mb-6 rounded-lg overflow-hidden border border-border"
+            />
 
             {/* Timeline */}
             <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
@@ -523,7 +573,11 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
                 disabled={!currentFile}
                 className="h-14 w-14"
               >
-                {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6 ml-1" />}
+                {isPlaying ? (
+                  <Pause className="h-6 w-6" />
+                ) : (
+                  <Play className="h-6 w-6 ml-1" />
+                )}
               </Button>
 
               <Button
@@ -539,7 +593,7 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
                 variant="outline"
                 size="icon"
                 onClick={() => setLoop(!loop)}
-                className={loop ? 'bg-primary text-primary-foreground' : ''}
+                className={loop ? "bg-primary text-primary-foreground" : ""}
               >
                 <Repeat className="h-5 w-5" />
               </Button>
@@ -564,14 +618,19 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
 
           {/* Advanced Controls */}
           <Card className="bg-card border-border p-6">
-            <h3 className="text-lg font-bold mb-4 text-primary">Advanced Controls</h3>
+            <h3 className="text-lg font-bold mb-4 text-primary">
+              Advanced Controls
+            </h3>
 
             <div className="space-y-4">
               {/* Pitch Shift */}
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <Label>Pitch Shift</Label>
-                  <span className="text-sm text-muted-foreground">{pitchShift > 0 ? '+' : ''}{pitchShift} semitones</span>
+                  <span className="text-sm text-muted-foreground">
+                    {pitchShift > 0 ? "+" : ""}
+                    {pitchShift} semitones
+                  </span>
                 </div>
                 <Slider
                   value={[pitchShift]}
@@ -580,14 +639,18 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
                   step={1}
                   onValueChange={(v) => setPitchShift(v[0])}
                 />
-                <p className="text-xs text-muted-foreground mt-1">Note: Requires additional processing library</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Note: Requires additional processing library
+                </p>
               </div>
 
               {/* Tempo */}
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <Label>Tempo / Time-Stretch</Label>
-                  <span className="text-sm text-muted-foreground">{tempo}%</span>
+                  <span className="text-sm text-muted-foreground">
+                    {tempo}%
+                  </span>
                 </div>
                 <Slider
                   value={[tempo]}
@@ -596,14 +659,18 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
                   step={1}
                   onValueChange={(v) => setTempo(v[0])}
                 />
-                <p className="text-xs text-muted-foreground mt-1">Note: Requires additional processing library</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Note: Requires additional processing library
+                </p>
               </div>
 
               {/* Reverb Mix */}
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <Label>Reverb Mix</Label>
-                  <span className="text-sm text-muted-foreground">{reverbMix}%</span>
+                  <span className="text-sm text-muted-foreground">
+                    {reverbMix}%
+                  </span>
                 </div>
                 <Slider
                   value={[reverbMix]}
@@ -618,7 +685,9 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <Label>Delay Mix</Label>
-                  <span className="text-sm text-muted-foreground">{delayMix}%</span>
+                  <span className="text-sm text-muted-foreground">
+                    {delayMix}%
+                  </span>
                 </div>
                 <Slider
                   value={[delayMix]}
@@ -633,7 +702,9 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <Label>Delay Time</Label>
-                  <span className="text-sm text-muted-foreground">{delayTime.toFixed(2)}s</span>
+                  <span className="text-sm text-muted-foreground">
+                    {delayTime.toFixed(2)}s
+                  </span>
                 </div>
                 <Slider
                   value={[delayTime]}
@@ -651,9 +722,11 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
                   variant="outline"
                   size="sm"
                   onClick={() => setLimiterEnabled(!limiterEnabled)}
-                  className={limiterEnabled ? 'bg-primary text-primary-foreground' : ''}
+                  className={
+                    limiterEnabled ? "bg-primary text-primary-foreground" : ""
+                  }
                 >
-                  {limiterEnabled ? 'ON' : 'OFF'}
+                  {limiterEnabled ? "ON" : "OFF"}
                 </Button>
               </div>
             </div>
@@ -661,56 +734,83 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
 
           {/* Real-Time Meters */}
           <Card className="bg-card border-border p-6">
-            <h3 className="text-lg font-bold mb-4 text-primary">Real-Time Analysis</h3>
+            <h3 className="text-lg font-bold mb-4 text-primary">
+              Real-Time Analysis
+            </h3>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>LUFS Momentary</Label>
-                <div className="text-2xl font-bold text-primary">{lufsMomentary.toFixed(1)}</div>
+                <div className="text-2xl font-bold text-primary">
+                  {lufsMomentary.toFixed(1)}
+                </div>
               </div>
 
               <div className="space-y-2">
                 <Label>True Peak</Label>
-                <div className="text-2xl font-bold text-primary">{truePeak.toFixed(1)} dB</div>
+                <div className="text-2xl font-bold text-primary">
+                  {truePeak.toFixed(1)} dB
+                </div>
               </div>
 
               <div className="space-y-2">
                 <Label>Dynamic Range</Label>
-                <div className="text-2xl font-bold text-primary">{dynamicRange.toFixed(1)} LU</div>
+                <div className="text-2xl font-bold text-primary">
+                  {dynamicRange.toFixed(1)} LU
+                </div>
               </div>
 
               <div className="space-y-2">
                 <Label>Phase Correlation</Label>
-                <div className="text-2xl font-bold text-primary">{phaseCorrelation.toFixed(2)}</div>
+                <div className="text-2xl font-bold text-primary">
+                  {phaseCorrelation.toFixed(2)}
+                </div>
               </div>
             </div>
 
             <p className="text-xs text-muted-foreground mt-4">
-              Note: These are simplified estimates. For professional metering, use dedicated tools.
+              Note: These are simplified estimates. For professional metering,
+              use dedicated tools.
             </p>
           </Card>
 
           {/* EQ */}
-          <TenBandEqualizer bands={eqBands} onBandChange={handleEQBandChange} onReset={handleEQReset} />
+          <TenBandEqualizer
+            bands={eqBands}
+            onBandChange={handleEQBandChange}
+            onReset={handleEQReset}
+          />
 
           {/* Compressor */}
           <DynamicsCompressorControls
             settings={compressorSettings}
             gainReduction={gainReduction}
-            onSettingsChange={(settings) => setCompressorSettings({ ...compressorSettings, ...settings })}
+            onSettingsChange={(settings) =>
+              setCompressorSettings({ ...compressorSettings, ...settings })
+            }
           />
         </div>
 
         {/* Right Sidebar */}
         <div className="space-y-6">
           {/* Visualizer */}
-          <AudioVisualizer analyserNode={analyserNodeRef.current} isPlaying={isPlaying} />
+          <AudioVisualizer
+            analyserNode={analyserNodeRef.current}
+            isPlaying={isPlaying}
+          />
 
           {/* Playlist */}
-          <PlaylistPanel files={files} currentFileId={currentFile?.id || null} onFileSelect={setCurrentFile} />
+          <PlaylistPanel
+            files={files}
+            currentFileId={currentFile?.id || null}
+            onFileSelect={setCurrentFile}
+          />
 
           {/* Fun Spectrum Visualizer */}
-          <FunSpectrumVisualizer analyserNode={analyserNodeRef.current} isPlaying={isPlaying} />
+          <FunSpectrumVisualizer
+            analyserNode={analyserNodeRef.current}
+            isPlaying={isPlaying}
+          />
         </div>
       </div>
     </div>
