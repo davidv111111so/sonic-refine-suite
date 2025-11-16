@@ -180,11 +180,19 @@ export const AIMasteringSetupChecker = () => {
     // Detectar la URL del backend basada en el entorno
     let defaultBackendUrl: string;
     
-    if (import.meta.env.DEV) {
-      // En desarrollo, usar el mismo host que el frontend (soporta localhost y network IPs)
+    // Check if we're on local/network dev
+    const currentHost = window.location.hostname;
+    const isLocalDev = currentHost === 'localhost' || 
+                      currentHost === '127.0.0.1' || 
+                      currentHost.startsWith('192.168.') ||
+                      currentHost.startsWith('10.') ||
+                      currentHost.startsWith('172.');
+    
+    if (import.meta.env.DEV && isLocalDev) {
+      // Development mode with local/network access
       defaultBackendUrl = window.location.origin;
     } else {
-      // En producción, usar el backend desplegado en Cloud Run
+      // Production (Lovable) - use Cloud Run backend
       defaultBackendUrl = 'https://mastering-backend-azkp62xtaq-uc.a.run.app';
     }
     
