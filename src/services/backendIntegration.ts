@@ -174,28 +174,16 @@ export const getBackendConfig = (): BackendConfig => {
   // Use import.meta.env for Vite (not process.env)
   const isDev = import.meta.env.DEV;
   const backendUrl = import.meta.env.VITE_PYTHON_BACKEND_URL;
-  
-  // Check if we're on local/network dev
-  let isLocalDev = false;
-  if (typeof window !== 'undefined') {
-    const currentHost = window.location.hostname;
-    isLocalDev = currentHost === 'localhost' || 
-                currentHost === '127.0.0.1' || 
-                currentHost.startsWith('192.168.') ||
-                currentHost.startsWith('10.') ||
-                currentHost.startsWith('172.');
-  }
-  
-  if (isDev && isLocalDev) {
-    // Development mode with local/network access
-    const defaultUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8000';
+
+  // En desarrollo, usar siempre backend local
+  if (isDev) {
     return {
-      baseUrl: backendUrl || defaultUrl,
+      baseUrl: backendUrl || 'http://localhost:8000',
       timeout: 120000 // 2 minutes
     };
   }
-  
-  // Production (Lovable) - use Cloud Run backend
+
+  // Producción (Lovable) - usar siempre Cloud Run backend
   return {
     baseUrl: backendUrl || 'https://mastering-backend-azkp62xtaq-uc.a.run.app',
     timeout: 300000 // 5 minutes for large files

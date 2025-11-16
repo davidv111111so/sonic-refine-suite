@@ -197,29 +197,12 @@ export const useAIMastering = () => {
       });
 
       // Detectar la URL del backend basada en el entorno
-      let defaultBackendUrl: string;
-      
-      // Check if we're running in dev mode (Vite dev server)
-      const isDevMode = import.meta.env.DEV;
-      
-      // Check if we're on local/network dev (localhost or 192.168.x.x or 127.0.0.1)
-      const currentHost = window.location.hostname;
-      const isLocalDev = currentHost === 'localhost' || 
-                        currentHost === '127.0.0.1' || 
-                        currentHost.startsWith('192.168.') ||
-                        currentHost.startsWith('10.') ||
-                        currentHost.startsWith('172.');
-      
-      if (isDevMode && isLocalDev) {
-        // Development mode with local/network access: use same host as frontend
-        defaultBackendUrl = window.location.origin;
-        console.log('🔧 DEV mode detected (local/network), using current host:', defaultBackendUrl);
-      } else {
-        // Production (Lovable) or any non-local environment: use Cloud Run backend
-        defaultBackendUrl = 'https://mastering-backend-azkp62xtaq-uc.a.run.app';
-        console.log('🌐 Production mode, using Cloud Run backend:', defaultBackendUrl);
-      }
-      
+      // En desarrollo, usamos siempre el backend local en http://localhost:8000
+      // En producción (Lovable), usamos siempre el backend de Cloud Run
+      const defaultBackendUrl = import.meta.env.DEV
+        ? 'http://localhost:8000'
+        : 'https://mastering-backend-azkp62xtaq-uc.a.run.app';
+
       const backendUrl = import.meta.env.VITE_PYTHON_BACKEND_URL || defaultBackendUrl;
       
       console.log('🤖 Calling Python backend for AI mastering...');
