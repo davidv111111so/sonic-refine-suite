@@ -530,19 +530,24 @@ async def process_audio_files(
     output_wav_filename = f"mastered_{target.filename.rsplit('.', 1)[0]}.wav"
     output_wav_path = os.path.join(temp_dir, output_wav_filename)
 
-    # Determinar formato final
+    # Determinar formato final: MISMO que el archivo de entrada
+    output_final_filename = f"mastered_{target.filename}"
+    output_final_path = os.path.join(temp_dir, output_final_filename)
+    
+    # Convertir solo si el input era MP3
+    needs_mp3_conversion = (target_extension == "mp3")
+    
+    # Determinar media type según formato
     if target_extension == "mp3":
-        output_final_filename = f"mastered_{target.filename}"
-        output_final_path = os.path.join(temp_dir, output_final_filename)
-        needs_mp3_conversion = True
         media_type = "audio/mpeg"
-        print("→ Formato de salida: MP3")
-    else:
-        output_final_filename = output_wav_filename
-        output_final_path = output_wav_path
-        needs_mp3_conversion = False
+    elif target_extension == "flac":
+        media_type = "audio/flac"
+    elif target_extension == "wav":
         media_type = "audio/wav"
-        print("→ Formato de salida: WAV")
+    else:
+        media_type = "audio/mpeg"  # fallback
+    
+    print(f"→ Formato de salida: {target_extension.upper()} (mismo que entrada)")
 
     try:
         print("\n📥 Guardando archivos...")
@@ -590,14 +595,41 @@ async def process_audio_files(
         else:
             print(f"✅ Hash diferente - Procesamiento exitoso")
 
-        # Convertir a MP3 si es necesario
-        if needs_mp3_conversion:
+        # Convertir al formato de salida si es necesario
+        if target_extension == "mp3":
             print(f"\n🔄 Convirtiendo a MP3...")
             convert_wav_to_mp3(output_wav_path, output_final_path)
-            
             output_final_size = os.path.getsize(output_final_path)
             print(f"📊 MP3 final: {output_final_size:,} bytes")
-            
+            # Eliminar WAV temporal
+            if os.path.exists(output_wav_path):
+                os.remove(output_wav_path)
+        elif target_extension == "flac":
+            print(f"\n🔄 Convirtiendo a FLAC...")
+            subprocess.run([
+                "ffmpeg", "-i", output_wav_path,
+                "-codec:a", "flac", "-compression_level", "8",
+                "-y", output_final_path
+            ], check=True, capture_output=True)
+            output_final_size = os.path.getsize(output_final_path)
+            print(f"📊 FLAC final: {output_final_size:,} bytes")
+            # Eliminar WAV temporal
+            if os.path.exists(output_wav_path):
+                os.remove(output_wav_path)
+        elif target_extension == "wav":
+            # WAV ya está listo, solo renombrar
+            output_final_path = output_wav_path
+            output_final_size = os.path.getsize(output_final_path)
+            print(f"📊 WAV final: {output_final_size:,} bytes")
+        else:
+            # Para otros formatos, usar ffmpeg genérico
+            print(f"\n🔄 Convirtiendo a {target_extension.upper()}...")
+            subprocess.run([
+                "ffmpeg", "-i", output_wav_path,
+                "-y", output_final_path
+            ], check=True, capture_output=True)
+            output_final_size = os.path.getsize(output_final_path)
+            print(f"📊 {target_extension.upper()} final: {output_final_size:,} bytes")
             # Eliminar WAV temporal
             if os.path.exists(output_wav_path):
                 os.remove(output_wav_path)

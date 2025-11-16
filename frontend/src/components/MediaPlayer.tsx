@@ -30,10 +30,14 @@ export const MediaPlayer = () => {
   const audioContextRef = useRef<AudioContext | null>(null);
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
+  const compressorNodeRef = useRef<DynamicsCompressorNode | null>(null);
   const eqNodesRef = useRef<BiquadFilterNode[]>([]);
   const isConnectedRef = useRef(false);
 
   const { toast } = useToast();
+  // Simple compressor state (mirrors Level player lightly)
+  const [compressionEnabled, setCompressionEnabled] = useState(false);
+  const [compressionRatio, setCompressionRatio] = useState(3); // 1..10
 
   const eqFrequencies = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
 
@@ -96,6 +100,15 @@ export const MediaPlayer = () => {
       if (!gainNodeRef.current) {
         gainNodeRef.current = audioContextRef.current.createGain();
       }
+      if (!compressorNodeRef.current) {
+        const comp = audioContextRef.current.createDynamicsCompressor();
+        comp.threshold.value = -20;
+        comp.knee.value = 5;
+        comp.ratio.value = Math.max(1, compressionRatio);
+        comp.attack.value = 0.005;
+        comp.release.value = 0.1;
+        compressorNodeRef.current = comp;
+      }
 
       // Create EQ nodes if they don't exist
       if (eqNodesRef.current.length === 0) {
@@ -123,6 +136,11 @@ export const MediaPlayer = () => {
             currentNode.connect(filter);
             currentNode = filter;
           });
+        }
+
+        if (compressionEnabled && compressorNodeRef.current) {
+          currentNode.connect(compressorNodeRef.current);
+          currentNode = compressorNodeRef.current;
         }
 
         currentNode.connect(gainNodeRef.current);
@@ -157,7 +175,9 @@ export const MediaPlayer = () => {
     setAudioUrl(url);
 
     if (audioRef.current) {
+      audioRef.current.crossOrigin = "anonymous";
       audioRef.current.src = url;
+      audioRef.current.load();
       audioRef.current.addEventListener("loadedmetadata", setupAudioContext, {
         once: true,
       });
@@ -197,6 +217,12 @@ export const MediaPlayer = () => {
 
     setIsPlaying(!isPlaying);
   };
+
+  // React to compression changes live
+  useEffect(() => {
+    if (!audioContextRef.current || !compressorNodeRef.current) return;
+    compressorNodeRef.current.ratio.value = Math.max(1, compressionRatio);
+  }, [compressionRatio]);
 
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!audioRef.current || !duration) return;
@@ -383,6 +409,26 @@ export const MediaPlayer = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Compression */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-slate-300">Dynamic Compression</span>
+              <Switch checked={compressionEnabled} onCheckedChange={(v)=>{ setCompressionEnabled(v); setupAudioContext(); }} />
+            </div>
+            {compressionEnabled && (
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-slate-400">{compressionRatio}:1</span>
+                <Slider
+                  value={[compressionRatio]}
+                  onValueChange={([v]) => setCompressionRatio(v)}
+                  min={1}
+                  max={10}
+                  step={0.5}
+                  className="w-40"
+                />
+              </div>
+            )}
+          </div>
           <div className="flex items-center justify-between">
             <Switch checked={eqEnabled} onCheckedChange={setEqEnabled} />
             <Button
