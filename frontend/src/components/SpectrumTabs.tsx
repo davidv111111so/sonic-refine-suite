@@ -303,14 +303,21 @@ export const SpectrumTabs = ({
                       → {language === "ES" ? "Después" : "After"}:
                     </span>
                     <span className="px-2 py-1 bg-green-600/60 rounded-md text-sm font-bold border border-green-400/60 shadow-lg animate-pulse text-neutral-50">
-                      ~
-                      {Math.round(
-                        (audioFiles.reduce((acc, file) => acc + file.size, 0) *
-                          1.35) /
-                          1024 /
-                          1024,
-                      )}
-                      MB
+                      {(() => {
+                        const totalBytes = audioFiles.reduce(
+                          (acc, file) => acc + file.size,
+                          0,
+                        );
+                        // Heuristic multipliers when duration is unknown
+                        const format = processingSettings.outputFormat;
+                        const factor =
+                          format === "mp3" ? 0.35 : format === "flac" ? 0.6 : 1.6; // mp3 < flac < wav
+                        const estMB = Math.max(
+                          1,
+                          Math.round((totalBytes * factor) / 1024 / 1024),
+                        );
+                        return `~${estMB}MB ${format.toUpperCase()}`;
+                      })()}
                     </span>
                   </div>
                 </div>
