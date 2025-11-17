@@ -379,30 +379,60 @@ export const AIMasteringTab = () => {
     referenceInputRef.current?.click();
   };
   const handleMastering = async () => {
+    // Validate TARGET file
     if (!targetFile) {
       setError("Please select a target audio file.");
       toast.error("Please select a target audio file.");
       return;
     }
+    
+    // Validate REFERENCE file (preset or custom)
+    let referenceFileToUse: File | null = null;
+    
+    if (activeMode === "preset" && selectedPreset) {
+      // For presets, use the uploaded reference file if available
+      if (!referenceFile) {
+        setError(`Please upload a reference file for the ${selectedPreset} preset first.`);
+        toast.error("Reference track required for mastering");
+        return;
+      }
+      referenceFileToUse = referenceFile;
+    } else if (activeMode === "custom" && referenceFile) {
+      referenceFileToUse = referenceFile;
+    }
+    
+    if (!referenceFileToUse) {
+      setError("Please select a reference: Choose a genre preset or upload custom reference.");
+      toast.error("Reference track required for mastering");
+      return;
+    }
+    
     setError("");
+    
     try {
-      console.log("🚀 Starting AI Mastering with new hook...");
-
-      // Use the AI Mastering hook with settings from advanced panel
-      const masteringSettings = {
-        targetLoudness: -14,
-        // Can be customized from advancedSettings if needed
-        compressionRatio: 4,
-        eqProfile: "neutral" as const,
-        stereoWidth: 100,
-      };
-      const result = await masterAudio(targetFile, masteringSettings);
-
-      // Download the mastered file automatically
+      console.log("🚀 Starting Matchering AI Mastering...");
+      console.log("📂 Target:", targetFile.name);
+      console.log("📂 Reference:", referenceFileToUse.name);
+      
+      // Map advanced settings to Matchering parameters
+      const backendParams = mapSettingsToEnhancedBackend(advancedSettings);
+      const validationErrors = validateBackendParams(backendParams);
+      
+      if (validationErrors.length > 0) {
+        console.warn('⚠️ Settings validation warnings:', validationErrors);
+      }
+      
+      // Call hook with BOTH files
+      const result = await masterAudio(
+        targetFile, 
+        referenceFileToUse,
+        advancedSettings
+      );
+      
       downloadMasteredFile(result.blob, result.fileName);
-      toast.success("✅ Your track has been mastered successfully!");
-
-      // Clear files after successful mastering
+      toast.success("✅ Your track has been mastered with Matchering!");
+      
+      // Clear files after success
       setTargetFile(null);
       setTargetFileInfo(null);
       setReferenceFile(null);

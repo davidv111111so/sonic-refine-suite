@@ -1,19 +1,12 @@
 import { useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import type { MasteringSettings } from '@/components/ai-mastering/MasteringAdvancedSettings';
 
 // Constants
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // 1 second base delay
-
-// Types
-export interface MasteringSettings {
-  targetLoudness?: number; // LUFS, default: -14
-  compressionRatio?: number; // ratio, default: 4
-  eqProfile?: 'neutral' | 'bright' | 'warm' | 'bass-boost'; // default: 'neutral'
-  stereoWidth?: number; // percentage, default: 100
-}
 
 export interface MasteringResult {
   blob: Blob;
@@ -71,14 +64,6 @@ export const downloadMasteredFile = (blob: Blob, fileName: string) => {
   console.log("📥 File download triggered:", fileName);
 };
 
-// Default settings
-const DEFAULT_SETTINGS: Required<MasteringSettings> = {
-  targetLoudness: -14,
-  compressionRatio: 4,
-  eqProfile: 'neutral',
-  stereoWidth: 100,
-};
-
 export const useAIMastering = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -86,8 +71,9 @@ export const useAIMastering = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const masterAudio = async (
-    file: File,
-    settings: MasteringSettings = {}
+    targetFile: File,
+    referenceFile: File,
+    settings?: MasteringSettings
   ): Promise<MasteringResult> => {
     setIsProcessing(true);
     setProgress(0);
@@ -96,129 +82,149 @@ export const useAIMastering = () => {
     abortControllerRef.current = new AbortController();
 
     try {
-      console.log('🎵 Starting AI Mastering process for:', file.name);
+      console.log('🎵 Starting AI Mastering with Matchering');
+      console.log('📂 Target:', targetFile.name);
+      console.log('📂 Reference:', referenceFile.name);
       
-      // Validate file size
-      if (file.size > MAX_FILE_SIZE) {
+      // Validate file sizes
+      if (targetFile.size > MAX_FILE_SIZE) {
         throw new Error(
-          `File size (${formatFileSize(file.size)}) exceeds maximum allowed size (${formatFileSize(MAX_FILE_SIZE)})`
+          `Target file size (${formatFileSize(targetFile.size)}) exceeds maximum allowed size (${formatFileSize(MAX_FILE_SIZE)})`
+        );
+      }
+      if (referenceFile.size > MAX_FILE_SIZE) {
+        throw new Error(
+          `Reference file size (${formatFileSize(referenceFile.size)}) exceeds maximum allowed size (${formatFileSize(MAX_FILE_SIZE)})`
         );
       }
       
-      console.log('✅ File size validated:', formatFileSize(file.size));
+      console.log('✅ File sizes validated');
+      console.log('Target:', formatFileSize(targetFile.size));
+      console.log('Reference:', formatFileSize(referenceFile.size));
       
-      // Merge settings with defaults
-      const masteringSettings: Required<MasteringSettings> = {
-        ...DEFAULT_SETTINGS,
-        ...settings,
-      };
+      // Use provided Matchering settings if available
+      const masteringSettings = settings;
 
-      console.log('⚙️ Mastering settings:', masteringSettings);
+      console.log('⚙️ Matchering settings:', masteringSettings);
 
-      // Step 1: Get signed URLs from Edge Function (10%)
-      setProgress(10);
+      // Step 1: Get signed URLs for TARGET (5%)
+      setProgress(5);
       toast({
-        title: 'Preparing upload...',
-        description: 'Generating secure upload URLs',
+        title: 'Preparing uploads...',
+        description: 'Generating secure upload URLs for target and reference',
       });
 
-      console.log('📡 Calling generate-upload-url Edge Function...');
-      const { data: urlData, error: urlError } = await supabase.functions.invoke<UploadUrlResponse>(
+      console.log('📡 Getting upload URL for TARGET...');
+      const { data: targetUrlData, error: targetUrlError } = await supabase.functions.invoke<UploadUrlResponse>(
         'generate-upload-url',
         {
           body: {
-            fileName: file.name,
-            fileType: file.type,
-            fileSize: file.size,
+            fileName: targetFile.name,
+            fileType: targetFile.type,
+            fileSize: targetFile.size,
           },
         }
       );
 
-      if (urlError || !urlData) {
-        console.error('❌ Error getting upload URL:', urlError);
-        throw new Error(`Failed to get upload URL: ${urlError?.message || 'Unknown error'}`);
+      if (targetUrlError || !targetUrlData) {
+        console.error('❌ Error getting TARGET upload URL:', targetUrlError);
+        throw new Error(`Failed to get TARGET upload URL: ${targetUrlError?.message || 'Unknown error'}`);
       }
 
-      console.log('✅ Upload URLs generated:', {
-        fileName: urlData.fileName,
-        bucket: urlData.bucket,
-      });
+      console.log('✅ TARGET upload URL generated');
 
-      // Step 2: Upload file to GCS with retry and progress (30%)
-      setProgress(30);
+      // Step 2: Get signed URLs for REFERENCE (10%)
+      setProgress(10);
+      console.log('📡 Getting upload URL for REFERENCE...');
+      const { data: refUrlData, error: refUrlError } = await supabase.functions.invoke<UploadUrlResponse>(
+        'generate-upload-url',
+        {
+          body: {
+            fileName: referenceFile.name,
+            fileType: referenceFile.type,
+            fileSize: referenceFile.size,
+          },
+        }
+      );
+
+      if (refUrlError || !refUrlData) {
+        console.error('❌ Error getting REFERENCE upload URL:', refUrlError);
+        throw new Error(`Failed to get REFERENCE upload URL: ${refUrlError?.message || 'Unknown error'}`);
+      }
+
+      console.log('✅ REFERENCE upload URL generated');
+
+      // Step 3: Upload TARGET to GCS (15-30%)
+      setProgress(15);
       toast({
-        title: 'Uploading audio...',
-        description: `Uploading ${file.name} to cloud storage`,
+        title: 'Uploading target...',
+        description: `Uploading ${targetFile.name} to cloud storage`,
       });
 
-      console.log('☁️ Uploading file to Google Cloud Storage...');
+      console.log('☁️ Uploading TARGET to Google Cloud Storage...');
       
-      // Use XMLHttpRequest for better progress tracking
-      const uploadWithProgress = (): Promise<void> => {
-        return new Promise((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          
-          xhr.upload.addEventListener('progress', (e) => {
-            if (e.lengthComputable) {
-              const uploadPercent = (e.loaded / e.total) * 20; // 20% of total progress
-              setProgress(30 + Math.round(uploadPercent));
-            }
-          });
-          
-          xhr.addEventListener('load', () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              console.log('✅ Upload completed successfully:', xhr.status);
-              resolve();
-            } else {
-              console.error('❌ Upload failed with status:', xhr.status);
-              console.error('Response:', xhr.responseText);
-              reject(new Error(`Upload failed with status ${xhr.status}: ${xhr.statusText}`));
-            }
-          });
-          
-          xhr.addEventListener('error', (e) => {
-            console.error('❌ Network error during upload:', e);
-            console.error('XHR readyState:', xhr.readyState);
-            console.error('XHR status:', xhr.status);
-            reject(new Error('Network error: Unable to upload to cloud storage. This is likely due to CORS configuration. Please check GCS_CORS_SETUP.md'));
-          });
-          
-          xhr.addEventListener('abort', () => {
-            console.log('⚠️ Upload cancelled by user');
-            reject(new Error('Upload cancelled'));
-          });
-          
-          // Listen for abort signal
-          if (abortControllerRef.current) {
-            abortControllerRef.current.signal.addEventListener('abort', () => {
-              xhr.abort();
+      const createUploadWithProgress = (file: File, uploadUrl: string, progressStart: number, progressRange: number) => {
+        return (): Promise<void> => {
+          return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            
+            xhr.upload.addEventListener('progress', (e) => {
+              if (e.lengthComputable) {
+                const uploadPercent = (e.loaded / e.total) * progressRange;
+                setProgress(progressStart + Math.round(uploadPercent));
+              }
             });
-          }
-          
-          console.log('📤 Starting upload to GCS...');
-          console.log('URL:', urlData.uploadUrl.substring(0, 100) + '...');
-          console.log('File type:', file.type);
-          console.log('File size:', formatFileSize(file.size));
-          
-          xhr.open('PUT', urlData.uploadUrl);
-          
-          // Set headers for GCS upload
-          xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
-          
-          xhr.send(file);
-        });
+            
+            xhr.addEventListener('load', () => {
+              if (xhr.status >= 200 && xhr.status < 300) {
+                console.log('✅ Upload completed successfully:', xhr.status);
+                resolve();
+              } else {
+                console.error('❌ Upload failed with status:', xhr.status);
+                reject(new Error(`Upload failed with status ${xhr.status}: ${xhr.statusText}`));
+              }
+            });
+            
+            xhr.addEventListener('error', () => {
+              reject(new Error('Network error: Unable to upload to cloud storage'));
+            });
+            
+            xhr.addEventListener('abort', () => {
+              reject(new Error('Upload cancelled'));
+            });
+            
+            if (abortControllerRef.current) {
+              abortControllerRef.current.signal.addEventListener('abort', () => {
+                xhr.abort();
+              });
+            }
+            
+            xhr.open('PUT', uploadUrl);
+            xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+            xhr.send(file);
+          });
+        };
       };
       
-      // Retry logic for upload
-      await fetchWithRetry(uploadWithProgress, MAX_RETRIES, RETRY_DELAY);
+      await fetchWithRetry(createUploadWithProgress(targetFile, targetUrlData.uploadUrl, 15, 15), MAX_RETRIES, RETRY_DELAY);
+      console.log('✅ TARGET uploaded successfully');
 
-      console.log('✅ File uploaded successfully to GCS');
-
-      // Step 3: Call Python backend for mastering (50%)
-      setProgress(50);
+      // Step 4: Upload REFERENCE to GCS (30-45%)
+      setProgress(30);
       toast({
-        title: 'Processing audio...',
-        description: 'AI is analyzing and mastering your audio',
+        title: 'Uploading reference...',
+        description: `Uploading ${referenceFile.name} to cloud storage`,
+      });
+
+      console.log('☁️ Uploading REFERENCE to Google Cloud Storage...');
+      await fetchWithRetry(createUploadWithProgress(referenceFile, refUrlData.uploadUrl, 30, 15), MAX_RETRIES, RETRY_DELAY);
+      console.log('✅ REFERENCE uploaded successfully');
+
+      // Step 5: Call Python backend for Matchering (45-75%)
+      setProgress(45);
+      toast({
+        title: 'Processing with Matchering...',
+        description: 'Analyzing and matching your audio to reference',
       });
 
       // Detectar la URL del backend basada en el entorno
@@ -230,9 +236,10 @@ export const useAIMastering = () => {
 
       const backendUrl = import.meta.env.VITE_PYTHON_BACKEND_URL || defaultBackendUrl;
       
-      console.log('🤖 Calling Python backend for AI mastering...');
+      console.log('🤖 Calling Python backend for Matchering mastering...');
       console.log('Backend URL:', backendUrl);
-      console.log('Input file:', urlData.downloadUrl);
+      console.log('Target file:', targetUrlData.downloadUrl);
+      console.log('Reference file:', refUrlData.downloadUrl);
 
       let blob: Blob;
       let masteredUrl = '';
@@ -246,8 +253,9 @@ export const useAIMastering = () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            inputUrl: urlData.downloadUrl,
-            fileName: urlData.fileName,
+            targetUrl: targetUrlData.downloadUrl,
+            referenceUrl: refUrlData.downloadUrl,
+            fileName: targetUrlData.fileName,
             settings: masteringSettings,
           }),
           signal: abortControllerRef.current?.signal,
@@ -264,7 +272,7 @@ export const useAIMastering = () => {
             console.warn('⚠️ Backend returned error:', masteringData);
             shouldUseTestingMode = true;
           } else {
-            console.log('✅ AI mastering completed:', {
+            console.log('✅ Matchering mastering completed:', {
               masteredUrl: masteringData.masteredUrl,
               jobId: masteringData.jobId,
               processingTime: masteringData.processingTime,
@@ -272,8 +280,8 @@ export const useAIMastering = () => {
 
             masteredUrl = masteringData.masteredUrl;
 
-            // Step 4: Download mastered file (80%)
-            setProgress(80);
+            // Step 6: Download mastered file (75-95%)
+            setProgress(75);
             toast({
               title: 'Downloading result...',
               description: 'Fetching your mastered audio',
@@ -317,31 +325,13 @@ export const useAIMastering = () => {
 
       // TESTING MODE: Simulate processing and return original file
       if (shouldUseTestingMode) {
-        console.log('🧪 ===== TESTING MODE ACTIVATED =====');
-        console.log('🧪 Backend is not responding, using mock processing');
-        console.log('🧪 This will simulate mastering and return the original file');
-        
+        console.error('❌ Matchering backend not available');
         toast({
-          title: '⚠️ Testing Mode',
-          description: 'Backend unavailable. Simulating processing for UI testing.',
-          variant: 'default',
+          title: 'Backend Error',
+          description: 'Matchering backend is not responding. Please try again later.',
+          variant: 'destructive',
         });
-
-        // Simulate processing time (5 seconds)
-        for (let i = 50; i <= 80; i += 6) {
-          if (abortControllerRef.current?.signal.aborted) {
-            throw new Error('Processing cancelled');
-          }
-          setProgress(i);
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-
-        // Return the original file as the "mastered" version
-        blob = file;
-        masteredUrl = URL.createObjectURL(file);
-        
-        console.log('🧪 Testing mode completed - returning original file');
-        console.log('🧪 ===== END TESTING MODE =====');
+        throw new Error('Matchering backend unavailable');
       }
 
       console.log('✅ Mastered file downloaded:', {
@@ -349,17 +339,17 @@ export const useAIMastering = () => {
         type: blob.type,
       });
 
-      // Step 5: Complete (100%)
+      // Step 7: Complete (100%)
       setProgress(100);
       toast({
         title: 'Success!',
-        description: 'Your audio has been mastered successfully',
+        description: 'Your audio has been mastered with Matchering!',
       });
 
-      console.log('🎉 AI Mastering process completed successfully');
+      console.log('🎉 Matchering mastering process completed successfully');
 
       // Generate download filename
-      const masteredFileName = file.name.replace(/\.[^/.]+$/, '') + '_mastered.wav';
+      const masteredFileName = targetFile.name.replace(/\.[^/.]+$/, '') + '_mastered.wav';
 
       return {
         blob,
