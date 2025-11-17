@@ -5,6 +5,7 @@ import { Upload, Download, Loader2, Settings } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import { MasteringSettings, MasteringSettingsData } from "./MasteringSettings";
+import { masteringService } from "@/services/masteringService";
 
 const defaultSettings: MasteringSettingsData = {
   threshold: 0.998138,
@@ -46,6 +47,8 @@ export const CustomReferenceMastering = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settings, setSettings] =
     useState<MasteringSettingsData>(defaultSettings);
+  const [progressMessage, setProgressMessage] = useState<string>("");
+  const [progressPercent, setProgressPercent] = useState<number>(0);
 
   const targetInputRef = useRef<HTMLInputElement>(null);
   const referenceInputRef = useRef<HTMLInputElement>(null);
@@ -83,37 +86,47 @@ export const CustomReferenceMastering = () => {
     }
 
     setIsProcessing(true);
+    setProgressMessage("Initializing...");
+    setProgressPercent(0);
+    
     try {
-      const formData = new FormData();
-      formData.append("target", targetFile);
-      formData.append("reference", referenceFile);
-      formData.append("settings", JSON.stringify(settings));
+      console.log("🚀 Starting real Matchering mastering...");
+      console.log("📂 Target:", targetFile.name);
+      console.log("📂 Reference:", referenceFile.name);
+      
+      // Use the new mastering service with job-based flow
+      const resultBlob = await masteringService.masterAudio(
+        targetFile,
+        referenceFile,
+        settings,
+        (stage, percent) => {
+          setProgressMessage(stage);
+          setProgressPercent(percent);
+          console.log(`Progress: ${stage} - ${percent.toFixed(0)}%`);
+        }
+      );
 
-      const response = await fetch("/api/ai-mastering", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error("Mastering failed");
-      }
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
+      // Create download URL
+      const url = URL.createObjectURL(resultBlob);
       setMasteredUrl(url);
 
       toast({
         title: t("success"),
-        description: "Mastering complete!",
+        description: "✅ Your track has been mastered with real Matchering AI!",
       });
-    } catch (error) {
+      
+      console.log("✅ Mastering complete!");
+    } catch (error: any) {
+      console.error("❌ Mastering error:", error);
       toast({
         title: t("error"),
-        description: "Mastering failed. Please try again.",
+        description: error.message || "Mastering failed. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsProcessing(false);
+      setProgressMessage("");
+      setProgressPercent(0);
     }
   };
 
@@ -199,6 +212,22 @@ export const CustomReferenceMastering = () => {
           </div>
         </div>
 
+        {/* Progress Indicator */}
+        {isProcessing && (
+          <div className="mt-6 space-y-2">
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>{progressMessage}</span>
+              <span>{progressPercent.toFixed(0)}%</span>
+            </div>
+            <div className="w-full bg-slate-700 rounded-full h-2">
+              <div
+                className="bg-cyan-500 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-4 mt-8 justify-center">
           <Button
@@ -209,10 +238,10 @@ export const CustomReferenceMastering = () => {
             {isProcessing ? (
               <>
                 <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                Processing...
+                {progressMessage || "Processing..."}
               </>
             ) : (
-              "Process Audio"
+              "Master with AI"
             )}
           </Button>
 

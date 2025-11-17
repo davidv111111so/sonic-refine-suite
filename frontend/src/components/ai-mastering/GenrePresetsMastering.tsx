@@ -14,6 +14,8 @@ import {
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import { MasteringSettings, MasteringSettingsData } from "./MasteringSettings";
+import { masteringService } from "@/services/masteringService";
+import { loadPresetReferenceFile } from "@/utils/presetReferences";
 
 const defaultSettings: MasteringSettingsData = {
   threshold: 0.998138,
@@ -70,6 +72,8 @@ export const GenrePresetsMastering = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settings, setSettings] =
     useState<MasteringSettingsData>(defaultSettings);
+  const [progressMessage, setProgressMessage] = useState<string>("");
+  const [progressPercent, setProgressPercent] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDrop = (e: React.DragEvent) => {
@@ -94,37 +98,55 @@ export const GenrePresetsMastering = () => {
     }
 
     setIsProcessing(true);
+    setProgressMessage("Loading preset reference...");
+    setProgressPercent(0);
+    
     try {
-      const formData = new FormData();
-      formData.append("target", targetFile);
-      formData.append("preset_id", selectedPreset);
-      formData.append("settings", JSON.stringify(settings));
+      console.log("🚀 Starting preset-based mastering...");
+      console.log("📂 Target:", targetFile.name);
+      console.log("🎵 Preset:", selectedPreset);
+      
+      // Load the preset reference file
+      setProgressMessage(`Loading ${selectedPreset} reference...`);
+      const referenceFile = await loadPresetReferenceFile(selectedPreset);
+      console.log("📂 Reference loaded:", referenceFile.name);
+      
+      setProgressMessage("Starting mastering...");
+      setProgressPercent(10);
+      
+      // Use the mastering service with job-based flow
+      const resultBlob = await masteringService.masterAudio(
+        targetFile,
+        referenceFile,
+        settings,
+        (stage, percent) => {
+          setProgressMessage(stage);
+          setProgressPercent(10 + percent * 0.9); // Reserve first 10% for reference loading
+          console.log(`Progress: ${stage} - ${percent.toFixed(0)}%`);
+        }
+      );
 
-      const response = await fetch("/api/ai-mastering", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error("Mastering failed");
-      }
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
+      // Create download URL
+      const url = URL.createObjectURL(resultBlob);
       setMasteredUrl(url);
 
       toast({
         title: t("success"),
-        description: "Mastering complete!",
+        description: `✅ Your track has been mastered with ${selectedPreset} preset!`,
       });
-    } catch (error) {
+      
+      console.log("✅ Preset mastering complete!");
+    } catch (error: any) {
+      console.error("❌ Preset mastering error:", error);
       toast({
         title: t("error"),
-        description: "Mastering failed. Please try again.",
+        description: error.message || "Mastering failed. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsProcessing(false);
+      setProgressMessage("");
+      setProgressPercent(0);
     }
   };
 
@@ -203,6 +225,22 @@ export const GenrePresetsMastering = () => {
         </Card>
       </div>
 
+      {/* Progress Indicator */}
+      {isProcessing && (
+        <div className="mt-6 space-y-2">
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>{progressMessage}</span>
+            <span>{progressPercent.toFixed(0)}%</span>
+          </div>
+          <div className="w-full bg-slate-700 rounded-full h-2">
+            <div
+              className="bg-cyan-500 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Action Buttons */}
       <div className="flex flex-wrap gap-4 mt-6 justify-center">
         <Button
@@ -213,10 +251,10 @@ export const GenrePresetsMastering = () => {
           {isProcessing ? (
             <>
               <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-              Processing...
+              {progressMessage || "Processing..."}
             </>
           ) : (
-            "Process Audio"
+            "Master with AI Preset"
           )}
         </Button>
 

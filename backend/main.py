@@ -1,862 +1,267 @@
-"""
-Level Audio - Backend de Masterización con AI
-FastAPI + Matchering + Google Cloud Storage
-
-Endpoints:
-- POST /process/ai-mastering (upload directo de archivos)
-- POST /api/master-audio (desde GCS URLs)
-- GET /health (health check)
-- GET /supported-formats (formatos soportados)
-"""
-
-import matchering as mg
-from fastapi import FastAPI, UploadFile, File, HTTPException, Request
-from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import Optional, Dict
-import uvicorn
 import os
-import shutil
-import traceback
-import subprocess
-import hashlib
-import json
 import uuid
-import time
+import json
+import base64
+import datetime
 import tempfile
-import requests
-from google.cloud import storage
-from google.oauth2 import service_account
-from datetime import datetime
-from pathlib import Path
+from functools import wraps
+from fastapi import FastAPI, Request, Depends, HTTPException, BackgroundTasks
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.middleware.cors import CORSMiddleware
+from google.cloud import storage, firestore
+import jwt
+import matchering as mg
 
-# Configura matchering para que nos muestre mensajes en la consola
-mg.log(print)
+# --- CONFIGURACIÓN ---
+app = FastAPI(title="Spectrum Backend API (Real Mastering v2)")
 
-app = FastAPI(
-    title="Level Audio Mastering API",
-    description="Professional audio mastering with AI",
-    version="2.0.0"
-)
-
-# ===========================================
-# CONFIGURACIÓN DE GOOGLE CLOUD STORAGE
-# ===========================================
-
-PROJECT_ID = os.getenv("PROJECT_ID", "total-acumen-473702-j1")
-BUCKET_NAME = os.getenv("BUCKET_NAME", "spectrum-mastering-files-857351913435")
-
-
-def get_storage_client():
-    """Inicializa el cliente de Google Cloud Storage con credenciales desde variable de entorno"""
-    credentials_json = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_JSON")
-    
-    if not credentials_json:
-        print("⚠️  WARNING: GOOGLE_APPLICATION_CREDENTIALS_JSON no está configurada")
-        print("⚠️  El upload a GCS no funcionará")
-        return None
-    
-    try:
-        # Parsear el JSON
-        # json.loads() automáticamente convierte \n en el JSON a saltos de línea reales
-        credentials_dict = json.loads(credentials_json)
-        
-        # Verificar que tenemos los campos necesarios
-        required_fields = ['type', 'project_id', 'private_key', 'client_email']
-        missing_fields = [field for field in required_fields if field not in credentials_dict]
-        if missing_fields:
-            print(f"❌ Error: Faltan campos requeridos en las credenciales: {missing_fields}")
-            return None
-        
-        # Asegurarse de que la clave privada tenga el formato correcto
-        if 'private_key' in credentials_dict:
-            private_key = credentials_dict['private_key']
-            if isinstance(private_key, str):
-                # json.loads() ya debería haber convertido \n a saltos de línea reales
-                # Pero por si acaso, verificar y corregir si es necesario
-                if '\\n' in private_key and '\n' not in private_key:
-                    # Si todavía tiene \\n como string literal, reemplazarlo
-                    credentials_dict['private_key'] = private_key.replace('\\n', '\n')
-                
-                # Verificar que tenga el formato correcto de PEM
-                if not credentials_dict['private_key'].startswith('-----BEGIN'):
-                    print("⚠️  WARNING: La clave privada no tiene el formato PEM esperado")
-                    print(f"   Primeros 50 caracteres: {credentials_dict['private_key'][:50]}")
-        
-        # Crear las credenciales
-        credentials = service_account.Credentials.from_service_account_info(credentials_dict)
-        client = storage.Client(credentials=credentials, project=PROJECT_ID)
-        print(f"✅ Cliente de GCS inicializado para bucket: {BUCKET_NAME}")
-        return client
-    except json.JSONDecodeError as e:
-        print(f"❌ Error: GOOGLE_APPLICATION_CREDENTIALS_JSON no es un JSON válido: {e}")
-        print(f"   Primeros 200 caracteres: {credentials_json[:200] if credentials_json else 'None'}")
-        return None
-    except Exception as e:
-        print(f"❌ Error al inicializar credenciales de GCS: {str(e)}")
-        print(f"   Tipo de error: {type(e).__name__}")
-        import traceback
-        print(f"   Traceback: {traceback.format_exc()}")
-        return None
-
-
-# ===========================================
-# CONFIGURACIÓN DE CORS
-# ===========================================
-
-origins = [
-    # URLs locales para desarrollo
-    "http://localhost:8080",
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
-    "http://127.0.0.1:8080",
-    "http://127.0.0.1:5173",
-    # Tu red local
-    "http://192.168.1.164:8000",
-    "http://192.168.1.164:8080",
-    "http://192.168.1.164:5173",
-    # Lovable Cloud - lovableproject.com domains
-    "https://7d506715-84dc-4abb-95cb-4ef4492a151b.lovableproject.com",
-    # Lovable Cloud - lovable.app domains (NEW - Fix for CORS)
-    "https://7d506715-84dc-4abb-95cb-4ef4492a151b.lovable.app",
-    # Lovable dev
-    "https://lovable.dev",
-]
-
-# Usar allow_origin_regex para permitir cualquier subdominio de lovable.app
-from fastapi.middleware.cors import CORSMiddleware as _CORSMiddleware
-
+# 1. SOLUCIÓN AL ERROR DE CONEXIÓN DE TU COLABORADOR
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_origin_regex=r"https://.*\.lovable\.app",  # Permitir todos los subdominios de lovable.app
+    allow_origins=["*"],  # Permite que Lovable se conecte
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"],
 )
 
-# ===========================================
-# CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS
-# ===========================================
+# --- CLIENTES DE GOOGLE CLOUD ---
+PROJECT_ID = "total-acumen-473702-j1"
+# ⚠️ ¡ASEGÚRATE DE QUE ESTE SEA EL NOMBRE DE TU BUCKET!
+BUCKET_NAME = "level-audio-mastering" 
+# ⚠️ ¡ASEGÚRATE DE HABER CREADO UNA BASE DE DATOS FIRESTORE!
+db = firestore.Client()
+storage_client = storage.Client()
 
-# Obtener el directorio base del backend
-BASE_DIR = Path(__file__).parent
+SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET")
 
-# Directorio del frontend (LEVEL app)
-# Buscar en el directorio padre (sonic-refine-suite-project)
-PROJECT_ROOT = BASE_DIR.parent
-FRONTEND_DIST = PROJECT_ROOT / "sonic-refine-suite" / "dist"
+# --- LISTA BLANCA DE ADMINS ---
+# 2. SOLUCIÓN A TU REQUISITO DE SEGURIDAD
+ADMIN_EMAILS = [
+    "davidv111111@gmail.com",
+    "santiagov.t068@gmail.com"
+]
 
-# Montar archivos estáticos del frontend (assets, etc.)
-if FRONTEND_DIST.exists():
-    # Montar assets (JS, CSS, etc.)
-    if (FRONTEND_DIST / "assets").exists():
-        app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIST / "assets")), name="assets")
-    # Montar archivos estáticos de la raíz (favicon, robots.txt, etc.)
-    # Usamos un catch-all para archivos estáticos en la raíz
-    print(f"✅ Frontend dist encontrado en: {FRONTEND_DIST}")
-else:
-    print(f"⚠️  Frontend dist no encontrado en: {FRONTEND_DIST}")
-    print(f"   Buscando en directorio alternativo...")
-    # Intentar con el directorio frontend
-    FRONTEND_DIST = PROJECT_ROOT / "frontend" / "dist"
-    if FRONTEND_DIST.exists():
-        if (FRONTEND_DIST / "assets").exists():
-            app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIST / "assets")), name="assets")
-        print(f"✅ Frontend dist encontrado en: {FRONTEND_DIST}")
-    else:
-        print(f"❌ Frontend dist no encontrado. La aplicación web no estará disponible.")
+# --- SISTEMA DE SEGURIDAD (TOKEN Y LISTA BLANCA) ---
+auth_scheme = HTTPBearer()
 
-# ===========================================
-# MODELOS PYDANTIC
-# ===========================================
+def verify_admin(token: HTTPAuthorizationCredentials = Depends(auth_scheme)):
+    if not token:
+        raise HTTPException(status_code=401, detail="Token is missing!")
+    
+    if not SUPABASE_JWT_SECRET:
+        raise HTTPException(status_code=500, detail="Server misconfiguration: JWT Secret missing.")
 
-
-class MasteringSettings(BaseModel):
-    """Configuración de masterización"""
-    genre: Optional[str] = "Rock"
-    intensity: Optional[str] = "medium"
-    targetLoudness: Optional[float] = -14.0
-
-
-class MasteringRequest(BaseModel):
-    """Request para masterización desde GCS URL"""
-    inputUrl: str
-    fileName: str
-    settings: Optional[MasteringSettings] = MasteringSettings()
-
-
-class MasteringResponse(BaseModel):
-    """Response de masterización exitosa"""
-    success: bool
-    masteredUrl: str
-    jobId: str
-    processingTime: float
-    originalSize: Optional[int] = None
-    masteredSize: Optional[int] = None
-
-
-# ===========================================
-# FUNCIONES AUXILIARES
-# ===========================================
-
-
-def get_file_hash(filepath: str) -> str:
-    """Calcula MD5 hash del archivo para verificar si cambió"""
-    hash_md5 = hashlib.md5()
-    with open(filepath, "rb") as f:
-        for chunk in iter(lambda: f.read(4096), b""):
-            hash_md5.update(chunk)
-    return hash_md5.hexdigest()
-
-
-def get_audio_info(filepath: str) -> str:
-    """Obtiene información detallada del audio con ffprobe"""
     try:
-        cmd = [
-            "ffprobe",
-            "-v", "quiet",
-            "-print_format", "json",
-            "-show_format",
-            "-show_streams",
-            filepath,
-        ]
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        return result.stdout
+        data = jwt.decode(token.credentials, SUPABASE_JWT_SECRET, algorithms=["HS256"])
+        user_email = data.get('email')
+        if user_email not in ADMIN_EMAILS:
+             raise HTTPException(status_code=403, detail="Access denied: Not authorized admin.")
+        return data
     except Exception as e:
-        return f"Error getting info: {e}"
+        raise HTTPException(status_code=401, detail=f"Token is invalid! {e}")
 
+# ---
+# === SETTINGS MAPPER FOR MATCHERING ===
+# ---
 
-def convert_wav_to_mp3(wav_path: str, mp3_path: str) -> bool:
-    """Convierte WAV a MP3 usando ffmpeg con calidad 320kbps"""
-    try:
-        print(f"🔄 Convirtiendo WAV a MP3...")
-        command = [
-            "ffmpeg",
-            "-i", wav_path,
-            "-codec:a", "libmp3lame",
-            "-b:a", "320k",
-            "-y",  # Sobrescribir sin preguntar
-            mp3_path,
-        ]
-
-        result = subprocess.run(
-            command, 
-            stdout=subprocess.PIPE, 
-            stderr=subprocess.PIPE, 
-            text=True
-        )
-
-        if result.returncode != 0:
-            print(f"❌ Error en ffmpeg: {result.stderr}")
-            raise Exception(f"FFmpeg conversion failed: {result.stderr}")
-
-        print("✅ Conversión a MP3 completada")
-        return True
-    except FileNotFoundError:
-        raise Exception(
-            "FFmpeg no está instalado. "
-            "Instálalo con: apt-get install ffmpeg (Linux) o brew install ffmpeg (Mac)"
-        )
-
-
-def get_matchering_config(genre: str, intensity: str) -> mg.Config:
-    """Genera configuración de matchering basada en genre e intensity"""
-    # allow_equality=True es necesario para self-reference mastering
-    config = mg.Config(allow_equality=True)
-    
-    # Ajustar threshold según intensity
-    if intensity == "low":
-        config.threshold = (2**15 - 200) / 2**15  # Más conservador
-    elif intensity == "high":
-        config.threshold = (2**15 - 20) / 2**15  # Más agresivo
-    else:  # medium (default)
-        config.threshold = (2**15 - 61) / 2**15
-    
-    return config
-
-
-def download_file_from_url(url: str, local_path: str) -> int:
-    """Descarga un archivo desde una URL a un path local"""
-    try:
-        print(f"📥 Descargando archivo desde: {url[:80]}...")
-        response = requests.get(url, stream=True, timeout=300)
-        response.raise_for_status()
-        
-        with open(local_path, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
-        
-        file_size = os.path.getsize(local_path)
-        print(f"✅ Archivo descargado: {file_size:,} bytes")
-        return file_size
-    except requests.exceptions.RequestException as e:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Error al descargar archivo desde URL: {str(e)}"
-        )
-
-
-def upload_file_to_gcs(local_path: str, blob_name: str) -> str:
-    """Sube un archivo local a GCS y retorna la URL pública"""
-    client = get_storage_client()
-    
-    if not client:
-        raise HTTPException(
-            status_code=500,
-            detail="GCS no está configurado. Verifica GOOGLE_APPLICATION_CREDENTIALS_JSON"
-        )
+def map_settings_to_matchering_config(settings_data: dict):
+    """Maps frontend MasteringSettingsData to Matchering Config object"""
+    if not settings_data:
+        return None
     
     try:
-        print(f"📤 Subiendo archivo a GCS: {blob_name}")
-        bucket = client.bucket(BUCKET_NAME)
-        blob = bucket.blob(blob_name)
+        config = mg.Config()
         
-        # Detectar content type
-        content_type = "audio/mpeg" if blob_name.endswith(".mp3") else "audio/wav"
+        # Core settings
+        if 'threshold' in settings_data:
+            config.threshold = float(settings_data['threshold'])
+        if 'epsilon' in settings_data:
+            config.epsilon = float(settings_data['epsilon'])
+        if 'maxPieceLength' in settings_data:
+            config.max_piece_length = float(settings_data['maxPieceLength'])
         
-        blob.upload_from_filename(local_path, content_type=content_type)
+        # Tempo settings
+        if 'bpm' in settings_data and settings_data['bpm'] > 0:
+            config.bpm = float(settings_data['bpm'])
+        if 'timeSignatureNumerator' in settings_data:
+            config.time_signature_numerator = int(settings_data['timeSignatureNumerator'])
+        if 'timeSignatureDenominator' in settings_data:
+            config.time_signature_denominator = int(settings_data['timeSignatureDenominator'])
+        if 'pieceLengthBars' in settings_data:
+            config.piece_length_bars = float(settings_data['pieceLengthBars'])
         
-        # Hacer el blob público para obtener URL pública
-        blob.make_public()
+        # Spectrum settings
+        if 'fftSize' in settings_data:
+            config.fft_size = int(settings_data['fftSize'])
+        if 'spectrumBands' in settings_data:
+            config.spectrum_bands = int(settings_data['spectrumBands'])
+        if 'spectrumSmoothingWidth' in settings_data:
+            config.spectrum_smoothing_width = int(settings_data['spectrumSmoothingWidth'])
+        if 'smoothingSteps' in settings_data:
+            config.smoothing_steps = int(settings_data['smoothingSteps'])
+        if 'spectrumCorrectionHops' in settings_data:
+            config.spectrum_correction_hops = int(settings_data['spectrumCorrectionHops'])
         
-        # Obtener URL pública
-        public_url = blob.public_url
-        print(f"✅ Archivo subido: {public_url[:80]}...")
-        return public_url
+        # Loudness settings
+        if 'loudnessSteps' in settings_data:
+            config.loudness_steps = int(settings_data['loudnessSteps'])
+        
+        # Limiter settings
+        if 'limiterThreshold' in settings_data:
+            config.limiter_threshold = float(settings_data['limiterThreshold'])
+        
+        # Boolean flags
+        if 'analyzeFullSpectrum' in settings_data:
+            config.analyze_full_spectrum = bool(settings_data['analyzeFullSpectrum'])
+        if 'normalizeReference' in settings_data:
+            config.normalize_reference = bool(settings_data['normalizeReference'])
+        if 'normalize' in settings_data:
+            config.normalize = bool(settings_data['normalize'])
+        if 'loudnessCorrectionLimiting' in settings_data:
+            config.loudness_correction_limiting = bool(settings_data['loudnessCorrectionLimiting'])
+        if 'amplify' in settings_data:
+            config.amplify = bool(settings_data['amplify'])
+        if 'clipping' in settings_data:
+            config.clipping = bool(settings_data['clipping'])
+        
+        print(f"✅ Matchering config created with custom settings")
+        return config
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error al subir archivo a GCS: {str(e)}"
-        )
+        print(f"⚠️ Error creating Matchering config: {e}. Using defaults.")
+        return None
 
+# ---
+# === TAREA EN SEGUNDO PLANO (EL "CARTERO") ===
+# ---
 
-# ===========================================
-# ENDPOINTS
-# ===========================================
-
-# IMPORTANTE: Las rutas de API deben definirse ANTES del catch-all SPA
-# FastAPI evalúa las rutas en orden, así que las rutas específicas deben ir primero
-
-
-@app.get("/api/info")
-async def api_info():
-    """Endpoint de información de la API en formato JSON"""
-    return {
-        "service": "Level Audio Mastering API",
-        "version": "2.0.0",
-        "status": "online",
-        "endpoints": {
-            "health": "/health",
-            "mastering_direct": "POST /process/ai-mastering",
-            "mastering_gcs": "POST /api/master-audio",
-            "formats": "/supported-formats"
-        }
-    }
-
-
-@app.get("/health")
-async def health_check():
-    """Health check endpoint para monitoreo"""
-    gcs_status = "configured" if get_storage_client() else "not_configured"
-    
-    return JSONResponse(
-        status_code=200,
-        content={
-            "status": "healthy",
-            "timestamp": datetime.now().isoformat(),
-            "services": {
-                "matchering": "available",
-                "ffmpeg": "available",  # Asumimos que está instalado
-                "gcs": gcs_status
-            },
-            "config": {
-                "project_id": PROJECT_ID,
-                "bucket_name": BUCKET_NAME
-            }
-        }
-    )
-
-
-@app.get("/supported-formats")
-async def supported_formats():
-    """Retorna los formatos de audio soportados"""
-    return {
-        "input_formats": ["mp3", "wav", "flac", "m4a", "ogg"],
-        "output_formats": ["mp3", "wav"],
-        "recommended": {
-            "input": "wav or flac for best quality",
-            "output": "wav for archiving, mp3 for streaming"
-        }
-    }
-
-
-# Servir archivos estáticos de la raíz del frontend (favicon, robots.txt, etc.)
-@app.get("/favicon.ico")
-async def favicon():
-    """Sirve el favicon del frontend"""
-    favicon_path = FRONTEND_DIST / "favicon.ico"
-    if favicon_path.exists():
-        return FileResponse(path=str(favicon_path))
-    raise HTTPException(status_code=404)
-
-
-@app.get("/robots.txt")
-async def robots():
-    """Sirve robots.txt del frontend"""
-    robots_path = FRONTEND_DIST / "robots.txt"
-    if robots_path.exists():
-        return FileResponse(path=str(robots_path))
-    raise HTTPException(status_code=404)
-
-
-@app.get("/placeholder.svg")
-async def placeholder():
-    """Sirve placeholder.svg del frontend"""
-    placeholder_path = FRONTEND_DIST / "placeholder.svg"
-    if placeholder_path.exists():
-        return FileResponse(path=str(placeholder_path))
-    raise HTTPException(status_code=404)
-
-
-async def serve_frontend():
-    """Función auxiliar para servir el index.html del frontend"""
-    try:
-        index_path = FRONTEND_DIST / "index.html"
-        if index_path.exists():
-            with open(index_path, "r", encoding="utf-8") as f:
-                html_content = f.read()
-                return HTMLResponse(content=html_content)
-        else:
-            print(f"⚠️  index.html no encontrado en: {index_path}")
-            # Fallback si no existe index.html
-            return HTMLResponse(content="""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Level Audio - Backend API</title>
-                <style>
-                    body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; background: #1a1a1a; color: #fff; }
-                    h1 { color: #9333ea; }
-                    .endpoint { background: #2a2a2a; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 3px solid #9333ea; }
-                    .warning { background: #f59e0b; color: #000; padding: 15px; border-radius: 8px; margin: 20px 0; }
-                </style>
-            </head>
-            <body>
-                <h1>🎵 Level Audio - Backend API</h1>
-                <div class="warning">
-                    ⚠️ Frontend no encontrado. Por favor, construye el frontend ejecutando:<br>
-                    <code>cd sonic-refine-suite && npm run build</code>
-                </div>
-                <p>Version: 2.0.0</p>
-                <p>Status: Online</p>
-                <h2>Available API Endpoints:</h2>
-                <div class="endpoint"><strong>GET</strong> /health - Health check</div>
-                <div class="endpoint"><strong>POST</strong> /process/ai-mastering - Direct file upload mastering</div>
-                <div class="endpoint"><strong>POST</strong> /api/master-audio - GCS URL mastering</div>
-                <div class="endpoint"><strong>GET</strong> /supported-formats - Supported audio formats</div>
-                <div class="endpoint"><strong>GET</strong> /api/info - API information (JSON)</div>
-            </body>
-            </html>
-            """)
-    except Exception as e:
-        print(f"❌ Error al servir frontend: {e}")
-        raise HTTPException(status_code=500, detail=f"Error loading web interface: {str(e)}")
-
-
-# Rutas SPA - deben ir AL FINAL después de todas las rutas de API
-@app.get("/", response_class=HTMLResponse)
-async def root():
-    """Endpoint raíz - sirve la aplicación LEVEL"""
-    return await serve_frontend()
-
-
-@app.get("/{full_path:path}", response_class=HTMLResponse)
-async def serve_spa(full_path: str):
+def run_mastering_task(job_id: str, target_gcs_path: str, reference_gcs_path: str, settings: dict = None):
     """
-    SPA fallback - sirve index.html para todas las rutas que no sean API
-    Esto permite que React Router funcione correctamente
+    3. SOLUCIÓN AL MASTERING REAL (en 2do plano)
+    Esta es la función de "cocina" que hace el trabajo pesado.
     """
-    # Si es una ruta de API o archivo estático, no servir el frontend
-    # (aunque estas rutas ya deberían estar manejadas por rutas específicas arriba)
-    if full_path.startswith(("api/", "process/", "health", "supported-formats", "docs", "openapi.json")):
-        raise HTTPException(status_code=404, detail="Not found")
-    
-    return await serve_frontend()
+    print(f"Iniciando trabajo en 2do plano para job: {job_id}")
+    job_ref = db.collection('masteringJobs').document(job_id)
+    job_ref.set({'status': 'processing', 'worker_started_at': firestore.SERVER_TIMESTAMP}, merge=True)
 
+    with tempfile.TemporaryDirectory() as temp_dir:
+        target_temp_path = os.path.join(temp_dir, "target_file")
+        reference_temp_path = os.path.join(temp_dir, "reference_file")
+        output_temp_path = os.path.join(temp_dir, f"mastered-{job_id}.wav")
 
-@app.post("/process/ai-mastering")
-async def process_audio_files(
-    target: UploadFile = File(...), 
-    reference: UploadFile = File(...)
-):
-    """
-    Endpoint para masterización con upload directo de archivos
-    
-    Se suben dos archivos:
-    - target: Archivo a masterizar
-    - reference: Archivo de referencia para matchear el sonido
-    
-    Retorna: Archivo masterizado para descarga directa
-    """
-    print(f"\n{'='*70}")
-    print(f"=== MASTERIZACIÓN DIRECTA - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ===")
-    print(f"{'='*70}")
-    
-    # Validar que los archivos tengan nombre
-    if not target.filename or not reference.filename:
-        raise HTTPException(status_code=400, detail="Los archivos deben tener nombre válido")
-    
-    print(f"📁 Target: {target.filename}")
-    print(f"📁 Reference: {reference.filename}")
-    
-    # Crear directorio temporal
-    temp_dir = "temp_files"
-    os.makedirs(temp_dir, exist_ok=True)
-
-    target_path = os.path.join(temp_dir, target.filename)
-    reference_path = os.path.join(temp_dir, reference.filename)
-    
-    # Detectar formato del archivo target
-    target_extension = target.filename.lower().split('.')[-1]
-    print(f"🎵 Formato detectado: {target_extension.upper()}")
-    
-    # Paths de salida
-    output_wav_filename = f"mastered_{target.filename.rsplit('.', 1)[0]}.wav"
-    output_wav_path = os.path.join(temp_dir, output_wav_filename)
-
-    # Determinar formato final: MISMO que el archivo de entrada
-    output_final_filename = f"mastered_{target.filename}"
-    output_final_path = os.path.join(temp_dir, output_final_filename)
-    
-    # Convertir solo si el input era MP3
-    needs_mp3_conversion = (target_extension == "mp3")
-    
-    # Determinar media type según formato
-    if target_extension == "mp3":
-        media_type = "audio/mpeg"
-    elif target_extension == "flac":
-        media_type = "audio/flac"
-    elif target_extension == "wav":
-        media_type = "audio/wav"
-    else:
-        media_type = "audio/mpeg"  # fallback
-    
-    print(f"→ Formato de salida: {target_extension.upper()} (mismo que entrada)")
-
-    try:
-        print("\n📥 Guardando archivos...")
-
-        # Guardar target
-        with open(target_path, "wb") as buffer:
-            shutil.copyfileobj(target.file, buffer)
-        target_size = os.path.getsize(target_path)
-        target_hash = get_file_hash(target_path)
-        print(f"✅ Target guardado: {target_size:,} bytes (hash: {target_hash[:8]}...)")
-
-        # Guardar reference
-        with open(reference_path, "wb") as buffer:
-            shutil.copyfileobj(reference.file, buffer)
-        reference_size = os.path.getsize(reference_path)
-        reference_hash = get_file_hash(reference_path)
-        print(f"✅ Reference guardado: {reference_size:,} bytes (hash: {reference_hash[:8]}...)")
-
-        print(f"\n{'='*70}")
-        print("🎚️  PROCESANDO CON MATCHERING")
-        print(f"{'='*70}")
-
-        # Procesar con matchering
-        mg.process(
-            target=target_path,
-            reference=reference_path,
-            results=[mg.pcm24(output_wav_path)],
-        )
-
-        print(f"{'='*70}")
-        print("✅ MATCHERING COMPLETADO")
-        print(f"{'='*70}")
-
-        # Verificar archivo de salida
-        if not os.path.exists(output_wav_path):
-            raise Exception("El archivo WAV masterizado no se creó")
-        
-        output_wav_size = os.path.getsize(output_wav_path)
-        output_wav_hash = get_file_hash(output_wav_path)
-        print(f"\n📊 WAV masterizado: {output_wav_size:,} bytes")
-        
-        # Verificación de cambios
-        if output_wav_hash == target_hash:
-            print("⚠️  WARNING: Hash idéntico - Matchering pudo no procesar correctamente")
-        else:
-            print(f"✅ Hash diferente - Procesamiento exitoso")
-
-        # Convertir al formato de salida si es necesario
-        if target_extension == "mp3":
-            print(f"\n🔄 Convirtiendo a MP3...")
-            convert_wav_to_mp3(output_wav_path, output_final_path)
-            output_final_size = os.path.getsize(output_final_path)
-            print(f"📊 MP3 final: {output_final_size:,} bytes")
-            # Eliminar WAV temporal
-            if os.path.exists(output_wav_path):
-                os.remove(output_wav_path)
-        elif target_extension == "flac":
-            print(f"\n🔄 Convirtiendo a FLAC...")
-            subprocess.run([
-                "ffmpeg", "-i", output_wav_path,
-                "-codec:a", "flac", "-compression_level", "8",
-                "-y", output_final_path
-            ], check=True, capture_output=True)
-            output_final_size = os.path.getsize(output_final_path)
-            print(f"📊 FLAC final: {output_final_size:,} bytes")
-            # Eliminar WAV temporal
-            if os.path.exists(output_wav_path):
-                os.remove(output_wav_path)
-        elif target_extension == "wav":
-            # WAV ya está listo, solo renombrar
-            output_final_path = output_wav_path
-            output_final_size = os.path.getsize(output_final_path)
-            print(f"📊 WAV final: {output_final_size:,} bytes")
-        else:
-            # Para otros formatos, usar ffmpeg genérico
-            print(f"\n🔄 Convirtiendo a {target_extension.upper()}...")
-            subprocess.run([
-                "ffmpeg", "-i", output_wav_path,
-                "-y", output_final_path
-            ], check=True, capture_output=True)
-            output_final_size = os.path.getsize(output_final_path)
-            print(f"📊 {target_extension.upper()} final: {output_final_size:,} bytes")
-            # Eliminar WAV temporal
-            if os.path.exists(output_wav_path):
-                os.remove(output_wav_path)
-
-        # Verificar archivo final
-        if not os.path.exists(output_final_path):
-            raise Exception("El archivo final no se creó")
-        
-        final_size = os.path.getsize(output_final_path)
-        print(f"\n{'='*70}")
-        print(f"✅ MASTERIZACIÓN EXITOSA")
-        print(f"{'='*70}")
-        print(f"📁 Archivo: {output_final_filename}")
-        print(f"📊 Tamaño: {final_size:,} bytes")
-        print(f"📈 Diferencia: {final_size - target_size:+,} bytes")
-        print(f"{'='*70}\n")
-
-        return FileResponse(
-            path=output_final_path,
-            media_type=media_type,
-            filename=output_final_filename,
-        )
-
-    except Exception as e:
-        print(f"\n{'='*70}")
-        print("❌ ERROR EN PROCESAMIENTO")
-        print(f"{'='*70}")
-        print(f"Tipo: {type(e).__name__}")
-        print(f"Mensaje: {str(e)}")
-        traceback.print_exc()
-        print(f"{'='*70}\n")
-        raise HTTPException(status_code=500, detail=str(e))
-    
-    finally:
-        # Limpieza de archivos temporales
         try:
-            for filepath in [target_path, reference_path]:
-                if os.path.exists(filepath):
-                    os.remove(filepath)
-                    print(f"🗑️  Limpiado: {os.path.basename(filepath)}")
-        except Exception as cleanup_error:
-            print(f"⚠️  Error en limpieza: {cleanup_error}")
-
-
-@app.post("/api/master-audio", response_model=MasteringResponse)
-async def master_audio(request: MasteringRequest):
-    """
-    Endpoint para masterización desde Google Cloud Storage
-    
-    Input:
-    {
-      "inputUrl": "https://storage.googleapis.com/.../audio.mp3",
-      "fileName": "song.mp3",
-      "settings": {
-        "genre": "Rock",
-        "intensity": "medium",
-        "targetLoudness": -14.0
-      }
-    }
-    
-    Output:
-    {
-      "success": true,
-      "masteredUrl": "https://storage.googleapis.com/.../mastered.mp3",
-      "jobId": "uuid-xxx",
-      "processingTime": 45.3,
-      "originalSize": 5242880,
-      "masteredSize": 7864320
-    }
-    """
-    job_id = str(uuid.uuid4())
-    start_time = time.time()
-    
-    print(f"\n{'='*70}")
-    print(f"=== MASTERIZACIÓN GCS - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ===")
-    print(f"Job ID: {job_id}")
-    print(f"Input URL: {request.inputUrl[:80]}...")
-    print(f"File: {request.fileName}")
-    print(f"Genre: {request.settings.genre if request.settings else 'N/A'}")
-    print(f"Intensity: {request.settings.intensity if request.settings else 'N/A'}")
-    print(f"{'='*70}")
-    
-    # Validar que la URL sea válida (no una URL de prueba)
-    if 'test.url' in request.inputUrl or not request.inputUrl.startswith(('http://', 'https://')):
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid inputUrl. Must be a valid HTTP/HTTPS URL pointing to a file in Google Cloud Storage."
-        )
-    
-    # Validar que el fileName tenga extensión válida
-    valid_extensions = ['.mp3', '.wav', '.flac', '.m4a', '.ogg']
-    if not any(request.fileName.lower().endswith(ext) for ext in valid_extensions):
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid file format. Supported formats: {', '.join(valid_extensions)}"
-        )
-    
-    # Crear directorio temporal
-    temp_dir = tempfile.mkdtemp(prefix="mastering_")
-    
-    try:
-        # 1. Descargar archivo desde GCS
-        input_file_path = os.path.join(temp_dir, request.fileName)
-        original_size = download_file_from_url(request.inputUrl, input_file_path)
-        
-        # 2. Detectar formato y preparar paths
-        file_extension = request.fileName.lower().split('.')[-1]
-        base_name = request.fileName.rsplit('.', 1)[0]
-        
-        output_wav_path = os.path.join(temp_dir, f"mastered_{base_name}.wav")
-        output_final_path = os.path.join(temp_dir, f"mastered_{request.fileName}")
-        needs_mp3_conversion = (file_extension == "mp3")
-        
-        # 3. Procesar con matchering
-        print(f"\n🎚️  PROCESANDO CON MATCHERING")
-        
-        genre = request.settings.genre if request.settings and request.settings.genre else "Rock"
-        intensity = request.settings.intensity if request.settings and request.settings.intensity else "medium"
-        
-        print(f"Configuración: {genre} / {intensity}")
-        
-        config = get_matchering_config(genre, intensity)
-        
-        # Self-reference mastering con config personalizada
-        mg.process(
-            target=input_file_path,
-            reference=input_file_path,  # Self-reference
-            results=[mg.pcm24(output_wav_path)],
-            config=config,
-        )
-        
-        print(f"✅ MATCHERING COMPLETADO")
-        
-        # Verificar WAV
-        if not os.path.exists(output_wav_path):
-            raise Exception("El archivo WAV masterizado no se creó")
-        
-        # 4. Convertir a MP3 si es necesario
-        if needs_mp3_conversion:
-            print(f"🔄 Convirtiendo a MP3...")
-            convert_wav_to_mp3(output_wav_path, output_final_path)
+            bucket = storage_client.bucket(BUCKET_NAME)
             
-            # Eliminar WAV temporal
-            if os.path.exists(output_wav_path):
-                os.remove(output_wav_path)
-        else:
-            output_final_path = output_wav_path
+            bucket.blob(target_gcs_path).download_to_filename(target_temp_path)
+            bucket.blob(reference_gcs_path).download_to_filename(reference_temp_path)
+            
+            print(f"Archivos descargados. Iniciando Matchering para job: {job_id}")
+            
+            # Map settings to Matchering config
+            config = map_settings_to_matchering_config(settings) if settings else None
+            
+            # Run REAL Matchering processing
+            if config:
+                mg.process(
+                    target=target_temp_path,
+                    reference=reference_temp_path,
+                    results=[mg.pcm24(output_temp_path)],
+                    config=config
+                )
+            else:
+                mg.process(
+                    target=target_temp_path,
+                    reference=reference_temp_path,
+                    results=[mg.pcm24(output_temp_path)]
+                )
+            print(f"Matchering completado. Subiendo resultado para job: {job_id}")
+
+            output_filename = f"results/mastered-{job_id}.wav"
+            mastered_blob = bucket.blob(output_filename)
+            mastered_blob.upload_from_filename(output_temp_path)
+            
+            download_url = mastered_blob.generate_signed_url(
+                version="v4",
+                expiration=datetime.timedelta(hours=24),
+                method="GET"
+            )
+
+            job_ref.update({'status': 'completed', 'downloadUrl': download_url})
+            print(f"Job {job_id} completado con éxito.")
+
+        except Exception as e:
+            print(f"Error en el trabajo {job_id}: {e}")
+            job_ref.update({'status': 'failed', 'error': 'The mastering process failed.'})
+
+# ---
+# === ENDPOINTS DEL "RECEPCIONISTA" (Lo que llama tu app) ===
+# ---
+
+@app.get("/health", tags=["General"])
+def health_check():
+    """Verifica que el servicio esté vivo."""
+    return {"status": "OK", "service": "spectrum-backend"}
+
+@app.post("/api/generate-upload-url", tags=["Mastering"], dependencies=[Depends(verify_admin)])
+async def generate_upload_url(request: Request):
+    """Genera una URL segura para que el frontend suba un archivo directamente a GCS."""
+    try:
+        data = await request.json()
+        if not data or 'fileName' not in data or 'fileType' not in data:
+            raise HTTPException(status_code=400, detail="Missing fileName or fileType")
+
+        file_name = f"uploads/{uuid.uuid4()}-{data['fileName']}"
+        blob = storage_client.bucket(BUCKET_NAME).blob(file_name)
         
-        # 5. Obtener tamaño del archivo masterizado
-        mastered_size = os.path.getsize(output_final_path)
-        
-        # 6. Subir resultado a GCS
-        mastered_blob_name = f"mastered/{job_id}/{os.path.basename(output_final_path)}"
-        mastered_url = upload_file_to_gcs(output_final_path, mastered_blob_name)
-        
-        # 7. Calcular tiempo de procesamiento
-        processing_time = round(time.time() - start_time, 2)
-        
-        print(f"\n{'='*70}")
-        print(f"✅ MASTERIZACIÓN EXITOSA")
-        print(f"Job ID: {job_id}")
-        print(f"Tiempo: {processing_time}s")
-        print(f"Tamaño original: {original_size:,} bytes")
-        print(f"Tamaño masterizado: {mastered_size:,} bytes")
-        print(f"URL: {mastered_url[:80]}...")
-        print(f"{'='*70}\n")
-        
-        # 8. Retornar respuesta
-        return MasteringResponse(
-            success=True,
-            masteredUrl=mastered_url,
-            jobId=job_id,
-            processingTime=processing_time,
-            originalSize=original_size,
-            masteredSize=mastered_size
+        url = blob.generate_signed_url(
+            version="v4",
+            expiration=datetime.timedelta(minutes=15),
+            method="PUT",
+            content_type=data['fileType']
         )
-    
-    except HTTPException:
-        # Re-lanzar HTTPExceptions sin modificar
-        raise
+        return {"signedUrl": url, "gcsFileName": file_name}
     except Exception as e:
-        print(f"\n{'='*70}")
-        print(f"❌ ERROR EN PROCESAMIENTO")
-        print(f"{'='*70}")
-        print(f"Tipo: {type(e).__name__}")
-        print(f"Mensaje: {str(e)}")
-        traceback.print_exc()
-        print(f"{'='*70}\n")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/start-mastering-job", tags=["Mastering"], dependencies=[Depends(verify_admin)])
+async def start_mastering_job(request: Request, background_tasks: BackgroundTasks):
+    """Recibe el "ticket" y se lo da al "Asistente" (BackgroundTasks) para que lo procese."""
+    try:
+        data = await request.json()
+        if not data or 'targetGcsPath' not in data or 'referenceGcsPath' not in data:
+             raise HTTPException(status_code=400, detail="Missing targetGcsPath or referenceGcsPath")
+             
+        job_id = str(uuid.uuid4())
         
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error al procesar audio: {str(e)}"
+        # 1. Crea el ticket en Firestore
+        db.collection('masteringJobs').document(job_id).set({
+            'jobId': job_id,
+            'status': 'queued',
+            'createdAt': firestore.SERVER_TIMESTAMP,
+            'targetFile': data['targetGcsPath'],
+            'referenceFile': data['referenceGcsPath']
+        })
+        
+        # 2. Añade el trabajo pesado a la cola de segundo plano (con settings)
+        background_tasks.add_task(
+            run_mastering_task, 
+            job_id, 
+            data['targetGcsPath'], 
+            data['referenceGcsPath'],
+            data.get('settings', None)  # Pass settings to processing
         )
-    finally:
-        # Limpieza de directorio temporal
-        try:
-            if os.path.exists(temp_dir):
-                shutil.rmtree(temp_dir)
-                print(f"🗑️  Directorio temporal eliminado")
-        except Exception as cleanup_error:
-            print(f"⚠️  Error en limpieza: {cleanup_error}")
+        
+        # 3. Responde INMEDIATAMENTE con el número de ticket
+        return {"message": "Job accepted", "jobId": job_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-
-# ===========================================
-# PUNTO DE ENTRADA
-# ===========================================
-
-if __name__ == "__main__":
-    # Obtener puerto desde variable de entorno o usar 8000 por defecto
-    port = int(os.getenv("PORT", 8000))
-    host = os.getenv("HOST", "0.0.0.0")
-    
-    print("=" * 70)
-    print("LEVEL AUDIO - BACKEND DE MASTERIZACIÓN")
-    print("=" * 70)
-    print(f"🚀 Servidor iniciando...")
-    print(f"📍 Host: {host}")
-    print(f"🔌 Puerto: {port}")
-    print(f"🌐 URL local: http://127.0.0.1:{port}")
-    print(f"🌐 URL red: http://192.168.1.164:{port}")
-    print(f"📦 Project ID: {PROJECT_ID}")
-    print(f"🪣 Bucket: {BUCKET_NAME}")
-    print("=" * 70)
-    
-    uvicorn.run(
-        app, 
-        host=host, 
-        port=port,
-        log_level="info"
-    )
+@app.get("/api/get-job-status/{job_id}", tags=["Mastering"], dependencies=[Depends(verify_admin)])
+async def get_job_status(job_id: str):
+    """Consulta Firestore para ver el estado del "ticket"."""
+    try:
+        job_doc = db.collection('masteringJobs').document(job_id).get()
+        if not job_doc.exists:
+            return {"status": "pending", "message": "Job not yet started"}
+        return job_doc.to_dict()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
