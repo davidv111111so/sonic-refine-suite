@@ -23,7 +23,7 @@ import {
   MasteringAdvancedSettings,
   MasteringSettings,
 } from "./MasteringAdvancedSettings";
-import { AdminReferenceManager } from "./AdminReferenceManager";
+// AdminReferenceManager removed - use genre selector to upload references
 import {
   mapSettingsToEnhancedBackend,
   validateBackendParams,
@@ -836,8 +836,7 @@ export const AIMasteringTab = () => {
         </div>
       </div>
 
-      {/* Admin Reference Manager - Only visible to admins */}
-      <AdminReferenceManager />
+      {/* Admin Reference Manager removed - Use genre + button to upload references */}
     </div>
   );
 };

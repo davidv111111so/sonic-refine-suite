@@ -43,7 +43,7 @@ const FileEstimateRow: React.FC<{ file: any; settings: any }> = ({ file, setting
       <div>
         <span className="text-slate-400">After:</span>
         <span className="ml-2 text-cyan-400 font-semibold">
-          ~{formatFileSize(estimatedSize)}
+          {estimatedSize > 0 ? `~${formatFileSize(estimatedSize)}` : 'Calculating...'}
         </span>
       </div>
     </div>

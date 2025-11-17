@@ -98,13 +98,16 @@ def master_audio():
         if not data:
             return jsonify({"error": "No JSON data provided"}), 400
         
-        target_url = data.get('targetUrl')
+        target_url = data.get('targetUrl') or data.get('inputUrl')  # Support both field names
         reference_url = data.get('referenceUrl')
         file_name = data.get('fileName')
         settings = data.get('settings', {})
         
-        if not target_url or not reference_url or not file_name:
-            return jsonify({"error": "Missing required fields: targetUrl, referenceUrl, fileName"}), 400
+        if not target_url or not reference_url:
+            return jsonify({"error": "Missing required fields: targetUrl and referenceUrl"}), 400
+        
+        if not file_name:
+            return jsonify({"error": "Missing required field: fileName"}), 400
         
         # Generate job ID
         job_id = str(uuid.uuid4())
