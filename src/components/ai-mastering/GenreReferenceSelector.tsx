@@ -111,7 +111,7 @@ export const GenreReferenceSelector: React.FC<GenreReferenceSelectorProps> = ({
                 isSelected
                   ? 'border-2 border-cyan-500 bg-cyan-900/30 scale-105'
                   : hasTrack
-                  ? 'border border-slate-600 bg-slate-800/50 hover:border-cyan-400 hover:scale-102'
+                  ? 'border border-green-500/70 bg-gradient-to-br from-green-900/20 to-cyan-900/20 hover:border-green-400 hover:scale-102 animate-pulse'
                   : 'border border-slate-700 bg-slate-900/30 opacity-60'
               }`}
               onClick={() => hasTrack && handleGenreSelect(genre.id)}
