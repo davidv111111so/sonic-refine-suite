@@ -124,10 +124,10 @@ def map_settings_to_matchering_config(settings_data: dict):
         if 'clipping' in settings_data:
             config.clipping = bool(settings_data['clipping'])
         
-        print(f"✅ Matchering config created with custom settings")
+        print(f"[OK] Matchering config created with custom settings")
         return config
     except Exception as e:
-        print(f"⚠️ Error creating Matchering config: {e}. Using defaults.")
+        print(f"[WARN] Error creating Matchering config: {e}. Using defaults.")
         return None
 
 # ---
