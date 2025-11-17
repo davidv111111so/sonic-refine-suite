@@ -1,6 +1,6 @@
 """
 AI Mastering Backend
-Flask application for processing audio files with GCS integration
+Flask application for processing audio files with GCS integration and Matchering
 """
 import os
 import json
@@ -11,6 +11,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from google.cloud import storage
 import tempfile
+import matchering as mg
 
 app = Flask(__name__)
 
@@ -63,15 +64,17 @@ def health_check():
 @app.route('/api/master-audio', methods=['POST', 'OPTIONS'])
 def master_audio():
     """
-    Process audio file with AI mastering
+    Process audio file with Matchering mastering
     
     Request body:
     {
-        "inputUrl": "https://storage.googleapis.com/.../input.wav",
+        "targetUrl": "https://storage.googleapis.com/.../target.wav",
+        "referenceUrl": "https://storage.googleapis.com/.../reference.wav",
         "fileName": "input.wav",
         "settings": {
-            "target": "streaming",
-            "intensity": 0.5
+            "threshold": 0.998138,
+            "fft_size": 4096,
+            ...
         }
     }
     
@@ -95,12 +98,13 @@ def master_audio():
         if not data:
             return jsonify({"error": "No JSON data provided"}), 400
         
-        input_url = data.get('inputUrl')
+        target_url = data.get('targetUrl')
+        reference_url = data.get('referenceUrl')
         file_name = data.get('fileName')
         settings = data.get('settings', {})
         
-        if not input_url or not file_name:
-            return jsonify({"error": "Missing required fields: inputUrl, fileName"}), 400
+        if not target_url or not reference_url or not file_name:
+            return jsonify({"error": "Missing required fields: targetUrl, referenceUrl, fileName"}), 400
         
         # Generate job ID
         job_id = str(uuid.uuid4())
@@ -109,28 +113,63 @@ def master_audio():
         storage_client = get_storage_client()
         bucket = storage_client.bucket(BUCKET_NAME)
         
-        # Download input file from GCS
-        print(f"📥 Downloading file from: {input_url}")
-        input_blob_name = extract_blob_name_from_url(input_url)
-        input_blob = bucket.blob(input_blob_name)
+        # Download TARGET file from GCS
+        print(f"📥 Downloading TARGET from: {target_url}")
+        target_blob_name = extract_blob_name_from_url(target_url)
+        target_blob = bucket.blob(target_blob_name)
         
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_input:
-            input_blob.download_to_filename(temp_input.name)
-            temp_input_path = temp_input.name
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_target:
+            target_blob.download_to_filename(temp_target.name)
+            target_path = temp_target.name
         
-        print(f"✅ Downloaded to: {temp_input_path}")
+        print(f"✅ TARGET downloaded to: {target_path}")
         
-        # Process audio (SIMULATED - replace with actual Spectrum AI processing)
-        print(f"🎵 Processing audio with settings: {settings}")
-        time.sleep(2)  # Simulate processing time
+        # Download REFERENCE file from GCS
+        print(f"📥 Downloading REFERENCE from: {reference_url}")
+        reference_blob_name = extract_blob_name_from_url(reference_url)
+        reference_blob = bucket.blob(reference_blob_name)
         
-        # For now, just copy the input as output
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_reference:
+            reference_blob.download_to_filename(temp_reference.name)
+            reference_path = temp_reference.name
+        
+        print(f"✅ REFERENCE downloaded to: {reference_path}")
+        
+        # Create temp output file
         with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_output:
-            with open(temp_input_path, 'rb') as f_in:
-                temp_output.write(f_in.read())
-            temp_output_path = temp_output.name
+            output_path = temp_output.name
         
-        print(f"✅ Processing complete: {temp_output_path}")
+        # Process audio with REAL Matchering
+        print(f"🎵 Starting Matchering processing...")
+        print(f"Settings: {settings}")
+        
+        try:
+            # Configure Matchering output bit depth
+            output_bits = settings.get('output_bits', 16)
+            if output_bits == 16:
+                result_format = mg.pcm16(output_path)
+            elif output_bits == 24:
+                result_format = mg.pcm24(output_path)
+            else:
+                result_format = mg.pcm32(output_path)
+            
+            # Run Matchering with settings
+            mg.process(
+                target=target_path,
+                reference=reference_path,
+                results=[result_format],
+                # Matchering settings
+                threshold=settings.get('threshold', 0.998138),
+                max_iterations=settings.get('max_iterations', 50),
+                max_piece_size=settings.get('max_piece_length', 30.0),
+                internal_sample_rate=48000
+            )
+            
+            print(f"✅ Matchering processing complete!")
+            
+        except Exception as matchering_error:
+            print(f"❌ Matchering error: {str(matchering_error)}")
+            raise Exception(f"Matchering processing failed: {str(matchering_error)}")
         
         # Upload result to GCS
         output_file_name = f"mastered/{job_id}/{file_name}"
@@ -138,7 +177,7 @@ def master_audio():
         
         print(f"📤 Uploading to GCS: {output_file_name}")
         try:
-            output_blob.upload_from_filename(temp_output_path)
+            output_blob.upload_from_filename(output_path)
             print(f"✅ File uploaded to GCS successfully")
         except Exception as upload_error:
             print(f"❌ Error uploading to GCS: {str(upload_error)}")
@@ -159,10 +198,12 @@ def master_audio():
         
         # Cleanup temp files
         try:
-            if os.path.exists(temp_input_path):
-                os.unlink(temp_input_path)
-            if os.path.exists(temp_output_path):
-                os.unlink(temp_output_path)
+            if os.path.exists(target_path):
+                os.unlink(target_path)
+            if os.path.exists(reference_path):
+                os.unlink(reference_path)
+            if os.path.exists(output_path):
+                os.unlink(output_path)
         except Exception as cleanup_error:
             print(f"⚠️ Warning: Error cleaning up temp files: {str(cleanup_error)}")
         
