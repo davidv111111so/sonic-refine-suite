@@ -2,24 +2,21 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
-# Instalar dependencias del sistema para audio
+# Instala dependencias del sistema para audio (libsndfile y ffmpeg)
 RUN apt-get update && apt-get install -y \
     libsndfile1 \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar requirements primero para aprovechar cache de Docker
+# Copia y instala las dependencias de Python
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar el resto del código
+# Copia todo el código de tu backend
 COPY . .
 
-# Exponer el puerto esperado por Cloud Run
+# Expone el puerto que Google Cloud Run espera
 EXPOSE 8080
 
-# Cloud Run establece la variable PORT automáticamente
-# Usar uvicorn para FastAPI con workers para mejor rendimiento
-ENV PORT=8080
-CMD exec uvicorn main:app --host 0.0.0.0 --port ${PORT} --workers 1 --timeout-keep-alive 300
-
+# Comando para iniciar el servidor FastAPI con Gunicorn
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "main:app", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "--timeout", "300"]

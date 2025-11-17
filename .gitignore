@@ -1,0 +1,6 @@
+# Credenciales y secretos - NO SUBIR A GIT
+CREDENTIALS_JSON_COMPLETE.json
+ACTUALIZAR_SECRET_LOVABLE.txt
+PROMPT_FINAL_LOVABLE.txt
+*.json.backup
+*_SECRET_*.txt
