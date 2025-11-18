@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Music2, Upload, Play, Pause, Settings2, HelpCircle, ShieldCheck } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { MasteringSettingsModal } from './MasteringSettingsModal';
+import { MasteringAdvancedSettings, MasteringSettings } from './MasteringAdvancedSettings';
 const GENRE_PRESETS = [{
   name: 'Flat',
   icon: '⚡',
@@ -64,34 +64,34 @@ export const PremiumMasteringUI = () => {
   const [isPlayingReference, setIsPlayingReference] = useState(false);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [masteringSettings, setMasteringSettings] = useState({
+  const [masteringSettings, setMasteringSettings] = useState<MasteringSettings>({
     threshold: 0.998138,
     epsilon: 0.000001,
-    maxPieceLength: 30.0,
+    max_piece_length: 30.0,
     bpm: 0.0,
-    timeSignatureNumerator: 4,
-    timeSignatureDenominator: 4,
-    pieceLengthBars: 8.0,
-    resamplingMethod: 'FastSinc',
-    spectrumCompensation: 'Frequency-Domain (Gain Envelope)',
-    loudnessCompensation: 'LUFS (Whole Signal)',
-    analyzeFullSpectrum: false,
-    spectrumSmoothingWidth: 3,
-    smoothingSteps: 1,
-    spectrumCorrectionHops: 2,
-    loudnessSteps: 10,
-    spectrumBands: 32,
-    fftSize: 4096,
-    normalizeReference: false,
+    time_signature_numerator: 4,
+    time_signature_denominator: 4,
+    piece_length_bars: 8.0,
+    resampling_method: 'FastSinc',
+    spectrum_compensation: 'Frequency-Domain (Gain Envelope)',
+    loudness_compensation: 'LUFS (Whole Signal)',
+    analyze_full_spectrum: false,
+    spectrum_smoothing_width: 3,
+    smoothing_steps: 1,
+    spectrum_correction_hops: 2,
+    loudness_steps: 10,
+    spectrum_bands: 32,
+    fft_size: 4096,
+    normalize_reference: false,
     normalize: false,
-    limiterMethod: 'True Peak',
-    limiterThreshold: -1.0,
-    loudnessCorrectionLimiting: false,
+    limiter_method: 'True Peak',
+    limiter_threshold_db: -1.0,
+    loudness_correction_limiting: false,
     amplify: false,
     clipping: false,
-    outputBits: '32 (IEEE float)',
-    outputChannels: 2,
-    ditheringMethod: 'TPDF'
+    output_bits: '32 (IEEE float)',
+    output_channels: 2,
+    dithering_method: 'TPDF'
   });
   const targetInputRef = useRef<HTMLInputElement>(null);
   const referenceInputRef = useRef<HTMLInputElement>(null);
@@ -303,7 +303,7 @@ export const PremiumMasteringUI = () => {
       </div>
 
       {/* Settings Modal */}
-      <MasteringSettingsModal 
+      <MasteringAdvancedSettings 
         open={isSettingsOpen} 
         onOpenChange={setIsSettingsOpen}
         settings={masteringSettings}
