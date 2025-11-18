@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useMasteringHistory } from '@/hooks/useMasteringHistory';
 import type { MasteringSettings } from '@/components/ai-mastering/MasteringAdvancedSettings';
 
 // Constants
