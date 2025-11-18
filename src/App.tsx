@@ -43,7 +43,11 @@ const App = () => (
                     <Index />
                   </BetaGate>
                 } />
-                <Route path="*" element={<NotFound />} />
+                <Route path="*" element={
+                  <BetaGate>
+                    <NotFound />
+                  </BetaGate>
+                } />
               </Routes>
             </BrowserRouter>
           </TooltipProvider>
