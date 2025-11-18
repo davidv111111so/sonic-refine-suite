@@ -232,9 +232,9 @@ export const useAIMastering = () => {
       // En producción (Lovable), usamos siempre el backend de Cloud Run
       const defaultBackendUrl = import.meta.env.DEV
         ? 'http://localhost:8000'
-        : 'https://mastering-backend-azkp62xtaq-uc.a.run.app';
+        : 'https://mastering-backend-857351913435.us-central1.run.app';
 
-      const backendUrl = import.meta.env.VITE_PYTHON_BACKEND_URL || defaultBackendUrl;
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_PYTHON_BACKEND_URL || defaultBackendUrl;
       
       console.log('🤖 Calling Python backend for Matchering mastering...');
       console.log('Backend URL:', backendUrl);
