@@ -22,7 +22,7 @@ export class MasteringService {
   constructor() {
     // Use environment variable or fallback to Cloud Run URL
     this.backendUrl = import.meta.env.VITE_BACKEND_URL || 
-                     'https://spectrum-backend-857351913435.us-central1.run.app';
+                     'https://mastering-backend-857351913435.us-central1.run.app';
   }
 
   /**

@@ -29,9 +29,9 @@ import {
   validateBackendParams,
 } from "./AdvancedSettingsBackend";
 import { AIMasteringGuide } from "./AIMasteringGuide";
-import { useAIMastering, downloadMasteredFile } from "@/hooks/useAIMastering";
 import { AIMasteringSetupChecker } from "./AIMasteringSetupChecker";
 import { saveReferenceTrack } from "@/utils/referenceTrackStorage";
+import { masteringService } from "@/services/masteringService";
 export const AIMasteringTab = () => {
   const { t } = useLanguage();
   const { isPremium, isAdmin, loading } = useUserSubscription();
@@ -81,10 +81,53 @@ export const AIMasteringTab = () => {
   const [error, setError] = useState<string>("");
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [progress, setProgress] = useState(0);
 
-  // Use the AI Mastering hook
-  const { masterAudio, isProcessing, progress, cancelProcessing } =
-    useAIMastering();
+  // Helper function to trigger file download
+  const downloadMasteredFile = (blob: Blob, fileName: string) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // Helper function to convert MasteringSettings to MasteringSettingsData
+  const convertSettingsFormat = (settings: MasteringSettings): any => {
+    return {
+      threshold: settings.threshold,
+      epsilon: settings.epsilon,
+      maxPieceLength: settings.max_piece_length,
+      bpm: settings.bpm,
+      timeSignatureNumerator: settings.time_signature_numerator,
+      timeSignatureDenominator: settings.time_signature_denominator,
+      pieceLengthBars: settings.piece_length_bars,
+      resamplingMethod: settings.resampling_method,
+      spectrumCompensation: settings.spectrum_compensation,
+      loudnessCompensation: settings.loudness_compensation,
+      analyzeFullSpectrum: settings.analyze_full_spectrum,
+      spectrumSmoothingWidth: settings.spectrum_smoothing_width,
+      smoothingSteps: settings.smoothing_steps,
+      spectrumCorrectionHops: settings.spectrum_correction_hops,
+      loudnessSteps: settings.loudness_steps,
+      spectrumBands: settings.spectrum_bands,
+      fftSize: settings.fft_size,
+      normalizeReference: settings.normalize_reference,
+      normalize: settings.normalize,
+      limiterMethod: settings.limiter_method,
+      limiterThreshold: settings.limiter_threshold_db,
+      loudnessCorrectionLimiting: settings.loudness_correction_limiting,
+      amplify: settings.amplify,
+      clipping: settings.clipping,
+      outputBits: settings.output_bits,
+      outputChannels: settings.output_channels,
+      ditheringMethod: settings.dithering_method,
+    };
+  };
   const [advancedSettings, setAdvancedSettings] = useState<MasteringSettings>(
     () => {
       try {
@@ -408,6 +451,8 @@ export const AIMasteringTab = () => {
     }
     
     setError("");
+    setIsProcessing(true);
+    setProgress(0);
     
     try {
       console.log("🚀 Starting Matchering AI Mastering...");
@@ -422,14 +467,20 @@ export const AIMasteringTab = () => {
         console.warn('⚠️ Settings validation warnings:', validationErrors);
       }
       
-      // Call hook with BOTH files
-      const result = await masterAudio(
+      // Use masteringService with progress tracking
+      const convertedSettings = convertSettingsFormat(advancedSettings);
+      const resultBlob = await masteringService.masterAudio(
         targetFile, 
         referenceFileToUse,
-        advancedSettings
+        convertedSettings,
+        (stage, percent) => {
+          setProgress(percent);
+          console.log(`Progress: ${stage} - ${percent.toFixed(0)}%`);
+        }
       );
       
-      downloadMasteredFile(result.blob, result.fileName);
+      const fileName = `mastered_${targetFile.name}`;
+      downloadMasteredFile(resultBlob, fileName);
       toast.success("✅ Your track has been mastered with Matchering!");
       
       // Clear files after success
@@ -448,6 +499,10 @@ export const AIMasteringTab = () => {
       }
       console.error("Mastering error:", err);
       setError(errorMsg);
+      toast.error(errorMsg);
+    } finally {
+      setIsProcessing(false);
+      setProgress(0);
     }
   };
   if (loading) {
@@ -792,17 +847,6 @@ export const AIMasteringTab = () => {
                       <>✨ Master My Track</>
                     )}
                   </Button>
-
-                  {/* Cancel Button */}
-                  {isProcessing && (
-                    <Button
-                      onClick={cancelProcessing}
-                      variant="destructive"
-                      className="w-full"
-                    >
-                      Cancel Processing
-                    </Button>
-                  )}
 
                   {/* Progress Bar */}
                   {isProcessing && (
