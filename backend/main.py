@@ -26,8 +26,10 @@ app.add_middleware(
 
 # --- CLIENTES DE GOOGLE CLOUD ---
 PROJECT_ID = "total-acumen-473702-j1"
+
 # ⚠️ ¡ASEGÚRATE DE QUE ESTE SEA EL NOMBRE DE TU BUCKET!
-BUCKET_NAME = "level-audio-mastering" 
+BUCKET_NAME = os.environ.get("GOOGLE_CLOUD_BUCKET_NAME") or os.environ.get("BUCKET_NAME") or "spectrum-mastering-files-857351913435"
+print(f"[CONFIG] Using GCS bucket: {BUCKET_NAME}")
 # ⚠️ ¡ASEGÚRATE DE HABER CREADO UNA BASE DE DATOS FIRESTORE!
 db = firestore.Client()
 storage_client = storage.Client()

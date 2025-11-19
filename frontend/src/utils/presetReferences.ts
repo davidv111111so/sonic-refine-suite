@@ -5,7 +5,7 @@
  * from Google Cloud Storage.
  */
 
-const BUCKET_NAME = 'level-audio-mastering';
+const BUCKET_NAME = 'spectrum-mastering-files-857351913435';
 const REFERENCES_PATH = 'references';
 
 // Mapping of preset IDs to their reference file names
