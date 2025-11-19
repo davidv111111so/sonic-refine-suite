@@ -5,6 +5,9 @@ import { Upload, Music, Headphones, Mic, Radio, Download, Loader2, Settings } fr
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
 import { MasteringSettings, MasteringSettingsData } from './MasteringSettings';
+import { masteringService } from '@/services/masteringService';
+import { loadPresetReferenceFile } from '@/utils/presetReferences';
+import { Progress } from '@/components/ui/progress';
 
 const defaultSettings: MasteringSettingsData = {
   threshold: 0.998138,
@@ -60,6 +63,8 @@ export const GenrePresetsMastering = () => {
   const [masteredUrl, setMasteredUrl] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settings, setSettings] = useState<MasteringSettingsData>(defaultSettings);
+  const [progressMessage, setProgressMessage] = useState<string>('');
+  const [progressPercent, setProgressPercent] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDrop = (e: React.DragEvent) => {
@@ -81,37 +86,50 @@ export const GenrePresetsMastering = () => {
     }
 
     setIsProcessing(true);
+    setProgressMessage(`Loading ${selectedPreset} reference...`);
+    setProgressPercent(0);
+    
     try {
-      const formData = new FormData();
-      formData.append('target', targetFile);
-      formData.append('preset_id', selectedPreset);
-      formData.append('settings', JSON.stringify(settings));
+      console.log(`🚀 Starting preset mastering: ${selectedPreset}`);
+      
+      // Load the preset reference file
+      setProgressMessage(`Loading ${selectedPreset} reference...`);
+      const referenceFile = await loadPresetReferenceFile(selectedPreset);
+      
+      setProgressMessage('Starting mastering...');
+      setProgressPercent(10);
+      
+      // Use the mastering service with job-based flow
+      const resultBlob = await masteringService.masterAudio(
+        targetFile,
+        referenceFile,
+        settings,
+        (stage, percent) => {
+          setProgressMessage(stage);
+          setProgressPercent(10 + percent * 0.9); // Reserve first 10% for reference loading
+          console.log(`Progress: ${stage} - ${(10 + percent * 0.9).toFixed(0)}%`);
+        }
+      );
 
-      const response = await fetch('/api/ai-mastering', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error('Mastering failed');
-      }
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
+      // Create download URL
+      const url = URL.createObjectURL(resultBlob);
       setMasteredUrl(url);
       
       toast({
         title: t('success'),
-        description: 'Mastering complete!',
+        description: 'Mastering complete! Download your mastered track.',
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('❌ Mastering error:', error);
       toast({
         title: t('error'),
-        description: 'Mastering failed. Please try again.',
+        description: error.message || 'Mastering failed. Please try again.',
         variant: 'destructive',
       });
     } finally {
       setIsProcessing(false);
+      setProgressMessage('');
+      setProgressPercent(0);
     }
   };
 
@@ -179,29 +197,41 @@ export const GenrePresetsMastering = () => {
       </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-wrap gap-4 mt-6 justify-center">
-        <Button
-          onClick={handleMaster}
-          disabled={!targetFile || !selectedPreset || isProcessing}
-          className="bg-cyan-500 hover:bg-cyan-600 text-white px-8 py-6 text-lg font-semibold"
-        >
-          {isProcessing ? (
-            <>
-              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-              Processing...
-            </>
-          ) : (
-            'Process Audio'
-          )}
-        </Button>
+      <div className="space-y-4 mt-6">
+        <div className="flex flex-wrap gap-4 justify-center">
+          <Button
+            onClick={handleMaster}
+            disabled={!targetFile || !selectedPreset || isProcessing}
+            className="bg-cyan-500 hover:bg-cyan-600 text-white px-8 py-6 text-lg font-semibold"
+          >
+            {isProcessing ? (
+              <>
+                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              'Master with AI Preset'
+            )}
+          </Button>
 
-        <Button
-          onClick={() => setSettingsOpen(true)}
-          className="bg-cyan-500 hover:bg-cyan-600 text-white px-8 py-6 text-lg font-semibold"
-        >
-          <Settings className="h-5 w-5 mr-2" />
-          Settings
-        </Button>
+          <Button
+            onClick={() => setSettingsOpen(true)}
+            className="bg-cyan-500 hover:bg-cyan-600 text-white px-8 py-6 text-lg font-semibold"
+          >
+            <Settings className="h-5 w-5 mr-2" />
+            Settings
+          </Button>
+        </div>
+
+        {/* Progress Display */}
+        {isProcessing && (
+          <div className="space-y-2 max-w-md mx-auto">
+            <Progress value={progressPercent} className="w-full" />
+            <p className="text-sm text-muted-foreground text-center">
+              {progressMessage} ({progressPercent.toFixed(0)}%)
+            </p>
+          </div>
+        )}
 
         {masteredUrl && (
           <Button
