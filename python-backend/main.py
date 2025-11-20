@@ -10,6 +10,7 @@ import tempfile
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import matchering as mg
+from pydub import AudioSegment
 
 app = Flask(__name__)
 
@@ -32,6 +33,18 @@ CORS(app, resources={
 def health_check():
     """Health check endpoint"""
     return jsonify({"status": "OK", "service": "AI Mastering Backend"}), 200
+
+def convert_to_wav(input_path, output_path):
+    """Convert any audio format to WAV using pydub"""
+    try:
+        # Load audio file (supports MP3, FLAC, WAV, etc.)
+        audio = AudioSegment.from_file(input_path)
+        # Export as WAV
+        audio.export(output_path, format="wav")
+        return True
+    except Exception as e:
+        print(f"❌ Conversion error: {str(e)}")
+        return False
 
 @app.route('/api/master-audio', methods=['POST', 'OPTIONS'])
 def master_audio():
@@ -70,18 +83,37 @@ def master_audio():
                 "error": f"Unsupported file format. Supported: {', '.join(supported_formats)}"
             }), 400
         
-        # Save uploaded files to temp locations with correct extensions
-        temp_target = tempfile.NamedTemporaryFile(delete=False, suffix=target_ext)
-        target_file.save(temp_target.name)
-        temp_target.close()
-        target_path = temp_target.name
+        # Save uploaded files to temp locations
+        temp_target_upload = tempfile.NamedTemporaryFile(delete=False, suffix=target_ext)
+        target_file.save(temp_target_upload.name)
+        temp_target_upload.close()
+        temp_files.append(temp_target_upload.name)
+        
+        temp_reference_upload = tempfile.NamedTemporaryFile(delete=False, suffix=reference_ext)
+        reference_file.save(temp_reference_upload.name)
+        temp_reference_upload.close()
+        temp_files.append(temp_reference_upload.name)
+        
+        # Convert to WAV for Matchering (it only works reliably with WAV)
+        print(f"🔄 Converting files to WAV format...")
+        temp_target_wav = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
+        temp_target_wav.close()
+        target_path = temp_target_wav.name
         temp_files.append(target_path)
         
-        temp_reference = tempfile.NamedTemporaryFile(delete=False, suffix=reference_ext)
-        reference_file.save(temp_reference.name)
-        temp_reference.close()
-        reference_path = temp_reference.name
+        temp_reference_wav = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
+        temp_reference_wav.close()
+        reference_path = temp_reference_wav.name
         temp_files.append(reference_path)
+        
+        # Convert both files to WAV
+        if not convert_to_wav(temp_target_upload.name, target_path):
+            return jsonify({"error": "Failed to convert target file to WAV"}), 500
+        
+        if not convert_to_wav(temp_reference_upload.name, reference_path):
+            return jsonify({"error": "Failed to convert reference file to WAV"}), 500
+        
+        print(f"✅ Files converted to WAV successfully")
         
         # Output path - always WAV for Matchering
         temp_output = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
