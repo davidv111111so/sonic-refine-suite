@@ -23,8 +23,18 @@ export const useUserSubscription = (): UserSubscriptionData => {
     const fetchUserData = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        
+
         if (!session) {
+          // Check for dev bypass
+          if (localStorage.getItem("dev_bypass") === "true") {
+            console.log("Dev bypass active: Granting Premium/Admin access");
+            setSubscription("premium");
+            setRole("admin");
+            setIsAdminEmail(true);
+            setIsPremiumAccess(true);
+            setLoading(false);
+            return;
+          }
           setLoading(false);
           setIsAdminEmail(false);
           return;
@@ -63,7 +73,7 @@ export const useUserSubscription = (): UserSubscriptionData => {
         const { data: premiumData, error: premiumError } = await supabase.rpc('has_premium_access', {
           _user_id: session.user.id
         });
-        
+
         // Admin emails get permanent premium access
         const hasPremium = isAdminEmailCheck || (!premiumError && premiumData === true);
         setIsPremiumAccess(hasPremium);

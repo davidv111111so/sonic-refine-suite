@@ -81,49 +81,48 @@ export default function Auth() {
     };
   }, []);
   useEffect(() => {
+    // Admin email whitelist for local development
+    const ADMIN_EMAILS = ['davidv111111@gmail.com', 'santiagov.t068@gmail.com'];
+
     // Check if user is already logged in
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
-        // Check if user is in beta whitelist
-        const { data: isBetaUser, error } = await supabase.rpc("is_beta_user", {
-          _user_id: session.user.id,
-        });
-        if (error || !isBetaUser) {
-          // Not in beta whitelist - sign out
+        const userEmail = session.user.email?.toLowerCase();
+
+        // Check if user is in admin whitelist
+        if (userEmail && ADMIN_EMAILS.includes(userEmail)) {
+          console.log(`✅ Admin access granted for: ${userEmail}`);
+          navigate("/");
+        } else {
+          // Not an admin - sign out
           await supabase.auth.signOut();
           toast.error("Access Restricted", {
-            description:
-              "This app is currently in beta testing. Access is limited to authorized users only.",
+            description: "Access is limited to authorized admin users only.",
           });
-          return;
         }
-
-        // Beta user - allow access
-        navigate("/");
       }
     });
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
-        // Check if user is in beta whitelist
-        const { data: isBetaUser, error } = await supabase.rpc("is_beta_user", {
-          _user_id: session.user.id,
-        });
-        if (error || !isBetaUser) {
-          // Not in beta whitelist - sign out and show error
+        const userEmail = session.user.email?.toLowerCase();
+
+        // Check if user is in admin whitelist
+        if (userEmail && ADMIN_EMAILS.includes(userEmail)) {
+          console.log(`✅ Admin access granted for: ${userEmail}`);
+          navigate("/");
+        } else {
+          // Not an admin - sign out and show error
           await supabase.auth.signOut();
           toast.error("Access Restricted", {
-            description:
-              "This app is currently in beta testing. Access is limited to authorized users only.",
+            description: "Access is limited to authorized admin users only.",
           });
-          return;
         }
-
-        // Beta user - redirect to home page
-        navigate("/");
       }
     });
+
     return () => subscription.unsubscribe();
   }, [navigate]);
   const handleSignUp = async (e: React.FormEvent) => {
