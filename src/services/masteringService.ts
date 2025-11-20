@@ -17,13 +17,7 @@ interface JobStatus {
 }
 
 export class MasteringService {
-  private backendUrl: string;
-
-  constructor() {
-    // Use environment variable or fallback to Cloud Run URL
-    this.backendUrl = import.meta.env.VITE_BACKEND_URL || 
-                     'https://mastering-backend-857351913435.us-central1.run.app';
-  }
+  private backendUrl = "http://localhost:8000"; // Local python backend
 
   /**
    * Get auth token from Supabase session
@@ -33,7 +27,7 @@ export class MasteringService {
     if (!session?.access_token) {
       throw new Error('No authentication token available. Please log in.');
     }
-    
+
     return session.access_token;
   }
 
@@ -41,7 +35,7 @@ export class MasteringService {
    * Step 1: Upload file to Google Cloud Storage
    */
   async uploadFileToGCS(
-    file: File, 
+    file: File,
     onProgress?: (percent: number) => void
   ): Promise<UploadResult> {
     const authToken = await this.getAuthToken();
@@ -175,7 +169,7 @@ export class MasteringService {
   ): Promise<Blob> {
     try {
       console.log('🚀 Starting real Matchering mastering...');
-      
+
       // Stage 1: Upload target file (0-20%)
       if (onProgress) onProgress('Uploading target file...', 0);
       const targetUpload = await this.uploadFileToGCS(targetFile, (p) => {
@@ -202,8 +196,8 @@ export class MasteringService {
       if (onProgress) onProgress('Processing with Matchering AI...', 45);
       const downloadUrl = await this.pollJobStatus(jobId, (status, progress) => {
         if (onProgress) {
-          const statusText = status === 'processing' 
-            ? 'Mastering in progress...' 
+          const statusText = status === 'processing'
+            ? 'Mastering in progress...'
             : 'Waiting for processing...';
           onProgress(statusText, 40 + progress * 0.4);
         }

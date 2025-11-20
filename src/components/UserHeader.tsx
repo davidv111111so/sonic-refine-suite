@@ -27,6 +27,14 @@ export const UserHeader = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   useEffect(() => {
+    // Check for dev bypass
+    if (localStorage.getItem("dev_bypass") === "true") {
+      setUser({ email: "dev@local.test" });
+      setProfile({ full_name: "Dev User" });
+      setIsAdmin(true);
+      return;
+    }
+
     // Get current session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
@@ -39,12 +47,14 @@ export const UserHeader = () => {
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
         setUser(session.user);
         fetchProfile(session.user.id);
         checkAdmin(session.user.id);
-      } else {
+      } else if (localStorage.getItem("dev_bypass") !== "true") {
         navigate('/auth');
       }
     });
@@ -77,6 +87,9 @@ export const UserHeader = () => {
 
   const handleLogout = async () => {
     try {
+      // Clear dev bypass flag
+      localStorage.removeItem("dev_bypass");
+
       await supabase.auth.signOut();
       toast.success('Signed out successfully');
       navigate('/auth');
@@ -96,7 +109,7 @@ export const UserHeader = () => {
 
       toast.success('Account deletion request sent. Please check your email for confirmation.');
       setShowDeleteDialog(false);
-      
+
       // Sign out after requesting deletion
       await supabase.auth.signOut();
       navigate('/auth');
@@ -138,7 +151,7 @@ export const UserHeader = () => {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56 bg-slate-900 border-slate-700 z-[9999]">
-            <DropdownMenuItem 
+            <DropdownMenuItem
               onClick={() => setShowProfile(true)}
               className="text-white hover:bg-slate-800 cursor-pointer"
             >

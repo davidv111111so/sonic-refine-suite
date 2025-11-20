@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dev Bypass Setup</title>
+</head>
+<body>
+    <h1>Setting Dev Bypass...</h1>
+    <p>You will be redirected in 1 second...</p>
+    <script>
+        // Set the dev bypass flag
+        localStorage.setItem('dev_bypass', 'true');
+        console.log('Dev bypass flag set to:', localStorage.getItem('dev_bypass'));
+        
+        // Redirect to the app
+        setTimeout(() => {
+            window.location.href = 'http://localhost:8080/';
+        }, 1000);
+    </script>
+</body>
+</html>

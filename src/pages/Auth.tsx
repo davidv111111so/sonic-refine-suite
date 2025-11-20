@@ -81,9 +81,21 @@ export default function Auth() {
     };
   }, []);
   useEffect(() => {
+    // Check for dev bypass first
+    if (localStorage.getItem("dev_bypass") === "true") {
+      console.log("Dev bypass active: Skipping beta check");
+      navigate("/");
+      return;
+    }
+
+    // BETA CHECK DISABLED FOR LOCAL DEVELOPMENT
     // Check if user is already logged in
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
+        // Beta user - allow access (beta check disabled)
+        navigate("/");
+
+        /* ORIGINAL BETA CHECK - COMMENTED OUT FOR LOCAL DEV
         // Check if user is in beta whitelist
         const { data: isBetaUser, error } = await supabase.rpc("is_beta_user", {
           _user_id: session.user.id,
@@ -100,12 +112,17 @@ export default function Auth() {
 
         // Beta user - allow access
         navigate("/");
+        */
       }
     });
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
+        // Beta user - allow access (beta check disabled)
+        navigate("/");
+
+        /* ORIGINAL BETA CHECK - COMMENTED OUT FOR LOCAL DEV
         // Check if user is in beta whitelist
         const { data: isBetaUser, error } = await supabase.rpc("is_beta_user", {
           _user_id: session.user.id,
@@ -122,6 +139,7 @@ export default function Auth() {
 
         // Beta user - redirect to home page
         navigate("/");
+        */
       }
     });
     return () => subscription.unsubscribe();
