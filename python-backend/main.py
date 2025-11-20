@@ -10,7 +10,8 @@ import tempfile
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import matchering as mg
-from pydub import AudioSegment
+import soundfile as sf
+import librosa
 
 app = Flask(__name__)
 
@@ -35,15 +36,17 @@ def health_check():
     return jsonify({"status": "OK", "service": "AI Mastering Backend"}), 200
 
 def convert_to_wav(input_path, output_path):
-    """Convert any audio format to WAV using pydub"""
+    """Convert any audio format to WAV using librosa and soundfile"""
     try:
         # Load audio file (supports MP3, FLAC, WAV, etc.)
-        audio = AudioSegment.from_file(input_path)
+        audio, sample_rate = librosa.load(input_path, sr=None, mono=False)
         # Export as WAV
-        audio.export(output_path, format="wav")
+        sf.write(output_path, audio.T if len(audio.shape) > 1 else audio, sample_rate)
         return True
     except Exception as e:
         print(f"❌ Conversion error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return False
 
 @app.route('/api/master-audio', methods=['POST', 'OPTIONS'])
