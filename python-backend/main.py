@@ -105,14 +105,11 @@ def master_audio():
                 result_format = mg.pcm32(output_path)
             
             # Process with Matchering
+            # Note: Matchering only accepts target, reference, and results parameters
             mg.process(
                 target=target_path,
                 reference=reference_path,
-                results=[result_format],
-                threshold=settings.get('threshold', 0.998138),
-                max_iterations=settings.get('max_iterations', 15),
-                max_piece_size=settings.get('max_piece_size', 8388608),
-                internal_sample_rate=settings.get('internal_sample_rate', 48000)
+                results=[result_format]
             )
             
             print(f"✅ Matchering processing complete!")
