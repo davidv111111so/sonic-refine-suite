@@ -42,17 +42,17 @@ serve(async (req) => {
     }
 
     // Check premium status - CRITICAL SECURITY CHECK
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("subscription")
       .eq("id", user.id)
       .single();
 
-    const { data: userRole } = await supabase
+    const { data: userRole, error: roleError } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle(); // Use maybeSingle to handle cases where user has no role
 
     const isPremium =
       profile?.subscription === "premium" || userRole?.role === "admin";
@@ -69,56 +69,25 @@ serve(async (req) => {
       );
     }
 
-    const formData = await req.formData();
-    const targetFile = formData.get("target");
-    const referenceFile = formData.get("reference");
-    const presetId = formData.get("preset_id");
-
-    if (!targetFile) {
-      return new Response(
-        JSON.stringify({ error: "Target file is required" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    // Forward request to Matchering backend
-    const MATCHERING_API_URL =
-      Deno.env.get("MATCHERING_API_URL") ||
-      "https://mastering-backend-857351913435.us-central1.run.app";
-    const backendUrl = `${MATCHERING_API_URL}/api/ai-mastering`;
-
-    // Rebuild form data for proxying
-    const proxiedForm = new FormData();
-    if (targetFile && targetFile instanceof File)
-      proxiedForm.append("target", targetFile, (targetFile as File).name);
-    if (referenceFile && referenceFile instanceof File)
-      proxiedForm.append(
-        "reference",
-        referenceFile,
-        (referenceFile as File).name
-      );
-    if (presetId) proxiedForm.append("preset_id", String(presetId));
-
-    // Forward Authorization header so backend API key check can see it
-    const auth = req.headers.get("Authorization") || "";
-
-    const resp = await fetch(backendUrl, {
-      method: "POST",
-      headers: auth ? { Authorization: auth } : undefined,
-      body: proxiedForm,
-    });
-
-    const body = await resp.text();
-    return new Response(body, {
-      status: resp.status,
-      headers: {
-        ...corsHeaders,
-        "Content-Type": resp.headers.get("content-type") || "application/json",
-      },
-    });
+    // NOTE: This Edge Function is DEPRECATED.
+    // The backend now uses a job-based flow where:
+    // 1. Frontend uploads files directly to GCS using signed URLs
+    // 2. Frontend calls /api/start-mastering-job with GCS paths
+    // 3. Backend processes in background and updates Firestore
+    // 
+    // Use masteringService.ts in the frontend instead of this Edge Function.
+    
+    // For backward compatibility, return error indicating migration needed
+    return new Response(
+      JSON.stringify({
+        error: "This Edge Function is deprecated. Please use the masteringService.ts in the frontend which implements the job-based flow. The backend no longer accepts direct file uploads.",
+        migrationGuide: "Use masteringService.masterAudio() which handles upload to GCS and job management automatically."
+      }),
+      {
+        status: 410, // Gone - indicates resource is no longer available
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   } catch (error: any) {
     console.error("AI Mastering error:", error);
     return new Response(

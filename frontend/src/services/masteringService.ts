@@ -19,9 +19,9 @@ export class MasteringService {
   private backendUrl: string;
 
   constructor() {
-    // Use environment variable or fallback to Cloud Run URL
+    // Use environment variable or fallback to Localhost for testing
     this.backendUrl = import.meta.env.VITE_BACKEND_URL || 
-                     'https://mastering-backend-857351913435.us-central1.run.app';
+                     'http://localhost:8000';
   }
 
   /**
@@ -32,7 +32,7 @@ export class MasteringService {
     const { createClient } = await import('@supabase/supabase-js');
     const supabase = createClient(
       import.meta.env.VITE_SUPABASE_URL!,
-      import.meta.env.VITE_SUPABASE_ANON_KEY!
+      import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY!
     );
     
     const { data: { session } } = await supabase.auth.getSession();

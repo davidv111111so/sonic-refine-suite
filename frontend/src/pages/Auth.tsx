@@ -75,17 +75,68 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
 
+      if (!data.user) {
+        throw new Error("No user data returned");
+      }
+
+      // Admin emails list (fallback check)
+      const ADMIN_EMAILS = [
+        "davidv111111@gmail.com",
+        "santiagov.t068@gmail.com",
+      ];
+
+      // Check if user is admin
+      let isAdmin = false;
+
+      // Check by email first (quick check)
+      if (ADMIN_EMAILS.includes(data.user.email?.toLowerCase() || "")) {
+        console.log("User is admin by email:", data.user.email);
+        isAdmin = true;
+      } else {
+        // Check by role in database
+        const { data: userRole, error: roleError } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", data.user.id)
+          .eq("role", "admin")
+          .maybeSingle();
+
+        if (roleError) {
+          console.error("Role check error:", roleError);
+          // If error checking role but email is in admin list, allow access
+          if (ADMIN_EMAILS.includes(data.user.email?.toLowerCase() || "")) {
+            console.log("Allowing access based on admin email despite role check error");
+            isAdmin = true;
+          }
+        } else if (userRole) {
+          console.log("User is admin by role:", userRole);
+          isAdmin = true;
+        }
+      }
+
+      if (!isAdmin) {
+        console.warn("Access denied for non-admin user:", data.user.email);
+        await supabase.auth.signOut();
+        toast.error(
+          "Access denied: Only administrators can access this application. Please contact an administrator for access.",
+        );
+        setLoading(false);
+        return;
+      }
+
+      console.log("Admin user signed in successfully:", data.user.email);
       toast.success("Signed in successfully!");
       navigate("/");
     } catch (error: any) {
-      toast.error(error.message || "Error signing in");
+      console.error("Sign in error details:", error);
+      toast.error(error.message || "Error signing in. Please check your credentials.");
     } finally {
       setLoading(false);
     }
