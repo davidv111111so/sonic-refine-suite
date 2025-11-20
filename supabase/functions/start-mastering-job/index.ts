@@ -1,7 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const BACKEND_URL = 'https://spectrum-backend-857351913435.us-central1.run.app'
+const BACKEND_URL = 'https://mastering-backend-857351913435.us-central1.run.app'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -43,15 +43,25 @@ serve(async (req) => {
 
     // 4. Call backend with API token (not user JWT)
     const body = await req.json()
-    console.log('Starting mastering job...')
+    console.log('Starting mastering job with body:', JSON.stringify(body))
 
-    const response = await fetch(`${BACKEND_URL}/api/start-mastering-job`, {
+    // Map frontend params to backend expected params
+    const backendPayload = {
+      targetUrl: body.targetGcsPath,
+      referenceUrl: body.referenceGcsPath,
+      fileName: body.targetGcsPath?.split('/').pop() || 'output.wav',
+      settings: body.settings || {}
+    }
+
+    console.log('Calling backend /api/master-audio with:', JSON.stringify(backendPayload))
+
+    const response = await fetch(`${BACKEND_URL}/api/master-audio`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${BACKEND_API_TOKEN}`
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(backendPayload),
     })
 
     if (!response.ok) {
@@ -61,7 +71,17 @@ serve(async (req) => {
     }
 
     const data = await response.json()
-    return new Response(JSON.stringify(data), {
+    
+    // Map backend response to expected frontend format
+    const frontendResponse = {
+      jobId: data.jobId,
+      status: 'completed',
+      downloadUrl: data.masteredUrl
+    }
+    
+    console.log('Mastering complete, returning:', JSON.stringify(frontendResponse))
+    
+    return new Response(JSON.stringify(frontendResponse), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   } catch (error) {

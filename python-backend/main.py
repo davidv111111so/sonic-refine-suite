@@ -39,6 +39,22 @@ CORS(app, resources={
 # GCS Configuration
 PROJECT_ID = os.getenv('GOOGLE_CLOUD_PROJECT_ID')
 BUCKET_NAME = os.getenv('GOOGLE_CLOUD_BUCKET_NAME')
+BACKEND_API_TOKEN = os.getenv('SPECTRUM_BACKEND_API_TOKEN')
+
+def validate_api_token():
+    """Validate API token from Authorization header"""
+    if not BACKEND_API_TOKEN:
+        return True  # Skip validation if token not configured
+    
+    auth_header = request.headers.get('Authorization')
+    if not auth_header:
+        return False
+    
+    try:
+        token = auth_header.replace('Bearer ', '').strip()
+        return token == BACKEND_API_TOKEN
+    except:
+        return False
 
 # Initialize GCS client
 def get_storage_client():
@@ -89,6 +105,10 @@ def master_audio():
     # Handle CORS preflight
     if request.method == 'OPTIONS':
         return '', 204
+    
+    # Validate API token
+    if not validate_api_token():
+        return jsonify({"error": "Unauthorized: Invalid API token"}), 401
     
     start_time = time.time()
     

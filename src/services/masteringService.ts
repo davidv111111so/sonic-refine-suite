@@ -6,16 +6,6 @@ interface UploadResult {
   signedUrl: string;
 }
 
-interface JobResult {
-  jobId: string;
-}
-
-interface JobStatus {
-  status: 'queued' | 'processing' | 'completed' | 'failed';
-  downloadUrl?: string;
-  error?: string;
-}
-
 export class MasteringService {
   private backendUrl: string;
 
@@ -85,13 +75,13 @@ export class MasteringService {
   }
 
   /**
-   * Step 2: Start mastering job
+   * Step 2: Start mastering job (now returns immediately with result)
    */
   async startMasteringJob(
     targetGcsPath: string,
     referenceGcsPath: string,
     settings?: MasteringSettingsData
-  ): Promise<JobResult> {
+  ): Promise<{ jobId: string; downloadUrl: string }> {
     const { data, error } = await supabase.functions.invoke('start-mastering-job', {
       body: {
         targetGcsPath,
@@ -104,53 +94,10 @@ export class MasteringService {
       throw new Error(`Failed to start mastering job: ${error?.message || 'Unknown error'}`);
     }
 
-    return { jobId: data.jobId };
-  }
-
-  /**
-   * Step 3: Poll job status until complete
-   */
-  async pollJobStatus(
-    jobId: string,
-    onProgress?: (status: string, progress: number) => void
-  ): Promise<string> {
-    const maxAttempts = 120; // 10 minutes max (5 second intervals)
-    let attempts = 0;
-
-    while (attempts < maxAttempts) {
-      const { data, error } = await supabase.functions.invoke('get-job-status', {
-        body: { jobId }
-      });
-
-      if (error) {
-        throw new Error(`Failed to get job status: ${error.message}`);
-      }
-
-      const status: JobStatus = data;
-
-      if (status.status === 'completed' && status.downloadUrl) {
-        if (onProgress) {
-          onProgress('completed', 100);
-        }
-        return status.downloadUrl;
-      }
-
-      if (status.status === 'failed') {
-        throw new Error(status.error || 'Mastering job failed');
-      }
-
-      // Update progress based on status
-      if (onProgress) {
-        const progress = status.status === 'processing' ? 50 : 30;
-        onProgress(status.status, progress);
-      }
-
-      // Wait 5 seconds before next poll
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      attempts++;
-    }
-
-    throw new Error('Mastering job timed out');
+    return { 
+      jobId: data.jobId,
+      downloadUrl: data.downloadUrl
+    };
   }
 
   /**
@@ -188,28 +135,18 @@ export class MasteringService {
         if (onProgress) onProgress('Uploading reference file...', 20 + p * 0.2);
       });
 
-      // Stage 3: Start mastering job (40%)
-      if (onProgress) onProgress('Starting mastering process...', 40);
-      const { jobId } = await this.startMasteringJob(
+      // Stage 3: Start mastering job and process (40-80%)
+      if (onProgress) onProgress('Processing with Matchering AI...', 40);
+      const { jobId, downloadUrl } = await this.startMasteringJob(
         targetUpload.gcsPath,
         referenceUpload.gcsPath,
         settings
       );
 
-      console.log(`✅ Mastering job started: ${jobId}`);
+      console.log(`✅ Mastering job completed: ${jobId}`);
+      if (onProgress) onProgress('Processing complete!', 80);
 
-      // Stage 4: Poll job status (40-80%)
-      if (onProgress) onProgress('Processing with Matchering AI...', 45);
-      const downloadUrl = await this.pollJobStatus(jobId, (status, progress) => {
-        if (onProgress) {
-          const statusText = status === 'processing' 
-            ? 'Mastering in progress...' 
-            : 'Waiting for processing...';
-          onProgress(statusText, 40 + progress * 0.4);
-        }
-      });
-
-      // Stage 5: Download result (80-100%)
+      // Stage 4: Download result (80-100%)
       if (onProgress) onProgress('Downloading mastered file...', 80);
       const resultBlob = await this.downloadFile(downloadUrl);
       if (onProgress) onProgress('Complete!', 100);
