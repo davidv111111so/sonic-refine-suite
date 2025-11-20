@@ -19,6 +19,14 @@ export const UserHeader = () => {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    // Check for dev bypass
+    if (localStorage.getItem("dev_bypass") === "true") {
+      setUser({ email: "dev@local.test" });
+      setProfile({ full_name: "Dev User" });
+      setIsAdmin(true);
+      return;
+    }
+
     // Get current session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
@@ -38,7 +46,7 @@ export const UserHeader = () => {
         setUser(session.user);
         fetchProfile(session.user.id);
         checkAdmin(session.user.id);
-      } else {
+      } else if (localStorage.getItem("dev_bypass") !== "true") {
         navigate("/auth");
       }
     });
@@ -71,6 +79,7 @@ export const UserHeader = () => {
 
   const handleLogout = async () => {
     try {
+      localStorage.removeItem("dev_bypass");
       await supabase.auth.signOut();
       toast.success("Signed out successfully");
       navigate("/auth");
@@ -85,10 +94,10 @@ export const UserHeader = () => {
 
   const initials = profile?.full_name
     ? profile.full_name
-        .split(" ")
-        .map((n: string) => n[0])
-        .join("")
-        .toUpperCase()
+      .split(" ")
+      .map((n: string) => n[0])
+      .join("")
+      .toUpperCase()
     : user.email?.[0].toUpperCase() || "U";
 
   return (

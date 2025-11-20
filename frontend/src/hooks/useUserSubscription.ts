@@ -25,6 +25,14 @@ export const useUserSubscription = (): UserSubscriptionData => {
         } = await supabase.auth.getSession();
 
         if (!session) {
+          // Check for dev bypass
+          if (localStorage.getItem("dev_bypass") === "true") {
+            console.log("Dev bypass active: Granting Premium/Admin access");
+            setSubscription("premium");
+            setRole("admin");
+            setLoading(false);
+            return;
+          }
           setLoading(false);
           return;
         }
@@ -63,8 +71,14 @@ export const useUserSubscription = (): UserSubscriptionData => {
     // Listen for auth changes
     const {
       data: { subscription: authSubscription },
-    } = supabase.auth.onAuthStateChange(() => {
-      fetchUserData();
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session && localStorage.getItem("dev_bypass") === "true") {
+        // Maintain premium state if bypassed
+        setSubscription("premium");
+        setRole("admin");
+      } else {
+        fetchUserData();
+      }
     });
 
     return () => {

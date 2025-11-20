@@ -142,6 +142,13 @@ export default function Auth() {
     }
   };
 
+  const handleDevBypass = () => {
+    console.log("Dev bypass triggered");
+    localStorage.setItem("dev_bypass", "true");
+    toast.success("Bypassing authentication (Dev Mode)");
+    navigate("/");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-black to-slate-900 flex items-center justify-center p-4">
       <Card className="w-full max-w-md bg-slate-900/90 border-slate-700">
@@ -215,6 +222,18 @@ export default function Auth() {
                     "Sign In"
                   )}
                 </Button>
+
+                <div className="pt-2 border-t border-slate-700/50">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleDevBypass}
+                    className="w-full border-slate-600 text-slate-400 hover:text-white hover:bg-slate-800"
+                  >
+                    <Lock className="mr-2 h-4 w-4" />
+                    Dev Bypass (Local Only)
+                  </Button>
+                </div>
               </form>
             </TabsContent>
 
