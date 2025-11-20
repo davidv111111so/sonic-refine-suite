@@ -1,34 +1,24 @@
 """
 AI Mastering Backend
-Flask application for processing audio files with GCS integration and Matchering
+Flask application for processing audio files with Matchering
+Supports MP3, WAV, and FLAC input formats
 """
 import os
-import json
+import io
 import time
-import uuid
-from datetime import timedelta
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-from google.cloud import storage, firestore
 import tempfile
+from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS
 import matchering as mg
-import uvicorn
-import jwt
 
 app = Flask(__name__)
 
 # Configure CORS
-ALLOWED_ORIGINS_ENV = os.getenv('ALLOWED_ORIGINS', '*')
-if ALLOWED_ORIGINS_ENV == '*':
-    ALLOWED_ORIGINS = ['*']
-else:
-    ALLOWED_ORIGINS = ALLOWED_ORIGINS_ENV.split(',')
-
 CORS(app, resources={
     r"/api/*": {
-        "origins": ALLOWED_ORIGINS,
+        "origins": ["*"],
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
-        "allow_headers": ["Content-Type", "Authorization", "x-goog-resumable"],
+        "allow_headers": ["Content-Type", "Authorization"],
         "expose_headers": ["Content-Type", "Content-Length"],
         "supports_credentials": True
     },
@@ -38,24 +28,6 @@ CORS(app, resources={
     }
 })
 
-# GCS Configuration
-PROJECT_ID = os.getenv('GOOGLE_CLOUD_PROJECT_ID')
-BUCKET_NAME = os.getenv('GOOGLE_CLOUD_BUCKET_NAME')
-SUPABASE_JWT_SECRET = os.getenv('SUPABASE_JWT_SECRET')
-ADMIN_EMAILS = ["davidv111111@gmail.com", "santiagov.t068@gmail.com"]
-
-# Initialize Clients Lazily
-db = None
-storage_client = None
-
-try:
-    db = firestore.Client()
-    storage_client = storage.Client()
-    print("[CONFIG] Google Cloud Clients initialized successfully")
-except Exception as e:
-    print(f"[WARN] Could not initialize Google Cloud Clients: {e}")
-    print("[WARN] Backend will start but cloud features will fail until credentials are fixed.")
-
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
@@ -63,56 +35,65 @@ def health_check():
 
 @app.route('/api/master-audio', methods=['POST', 'OPTIONS'])
 def master_audio():
+    """Process audio files with Matchering - supports MP3, WAV, FLAC"""
     # Handle CORS preflight
     if request.method == 'OPTIONS':
         return '', 204
     
-    if not storage_client:
-         return jsonify({"error": "Service Unavailable: Cloud credentials missing"}), 503
-
     start_time = time.time()
+    temp_files = []
     
     try:
-        # Parse request
-        data = request.get_json()
-        if not data:
-            return jsonify({"error": "No JSON data provided"}), 400
+        # Check if files are in the request
+        if 'target' not in request.files or 'reference' not in request.files:
+            return jsonify({"error": "Missing target or reference audio files"}), 400
         
-        target_url = data.get('targetUrl') or data.get('inputUrl')
-        reference_url = data.get('referenceUrl')
-        file_name = data.get('fileName') or "output.wav"
-        settings = data.get('settings', {})
+        target_file = request.files['target']
+        reference_file = request.files['reference']
         
-        if not target_url or not reference_url:
-            return jsonify({"error": "Missing required fields"}), 400
-            
-        job_id = str(uuid.uuid4())
-        bucket = storage_client.bucket(BUCKET_NAME)
+        # Get settings if provided
+        settings = {}
+        if 'settings' in request.form:
+            import json
+            settings = json.loads(request.form['settings'])
         
-        # Download TARGET
-        print(f"📥 Downloading TARGET from: {target_url}")
-        target_blob_name = extract_blob_name_from_url(target_url)
-        target_blob = bucket.blob(target_blob_name)
+        print(f"📥 Received files: target={target_file.filename}, reference={reference_file.filename}")
         
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_target:
-            target_blob.download_to_filename(temp_target.name)
-            target_path = temp_target.name
-            
-        # Download REFERENCE
-        print(f"📥 Downloading REFERENCE from: {reference_url}")
-        reference_blob_name = extract_blob_name_from_url(reference_url)
-        reference_blob = bucket.blob(reference_blob_name)
+        # Determine file extensions
+        target_ext = os.path.splitext(target_file.filename)[1].lower()
+        reference_ext = os.path.splitext(reference_file.filename)[1].lower()
         
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_reference:
-            reference_blob.download_to_filename(temp_reference.name)
-            reference_path = temp_reference.name
-            
-        # Output path
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_output:
-            output_path = temp_output.name
-            
-        # Process
+        # Supported formats
+        supported_formats = ['.mp3', '.wav', '.flac']
+        if target_ext not in supported_formats or reference_ext not in supported_formats:
+            return jsonify({
+                "error": f"Unsupported file format. Supported: {', '.join(supported_formats)}"
+            }), 400
+        
+        # Save uploaded files to temp locations with correct extensions
+        temp_target = tempfile.NamedTemporaryFile(delete=False, suffix=target_ext)
+        target_file.save(temp_target.name)
+        temp_target.close()
+        target_path = temp_target.name
+        temp_files.append(target_path)
+        
+        temp_reference = tempfile.NamedTemporaryFile(delete=False, suffix=reference_ext)
+        reference_file.save(temp_reference.name)
+        temp_reference.close()
+        reference_path = temp_reference.name
+        temp_files.append(reference_path)
+        
+        # Output path - always WAV for Matchering
+        temp_output = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
+        temp_output.close()
+        output_path = temp_output.name
+        temp_files.append(output_path)
+        
+        # Process with Matchering
         print(f"🎵 Starting Matchering processing...")
+        print(f"   Target: {target_path} ({target_ext})")
+        print(f"   Reference: {reference_path} ({reference_ext})")
+        
         try:
             # Configure output bit depth
             output_bits = settings.get('output_bits', 16)
@@ -123,77 +104,79 @@ def master_audio():
             else:
                 result_format = mg.pcm32(output_path)
             
+            # Process with Matchering
             mg.process(
                 target=target_path,
                 reference=reference_path,
                 results=[result_format],
                 threshold=settings.get('threshold', 0.998138),
-                max_iterations=settings.get('max_iterations', 50),
-                max_piece_size=settings.get('max_piece_length', 30.0),
-                internal_sample_rate=48000
+                max_iterations=settings.get('max_iterations', 15),
+                max_piece_size=settings.get('max_piece_size', 8388608),
+                internal_sample_rate=settings.get('internal_sample_rate', 48000)
             )
-            print(f"✅ Matchering processing complete!")
-        except Exception as e:
-            raise Exception(f"Matchering failed: {e}")
             
-        # Upload
-        output_file_name = f"mastered/{job_id}/{file_name}"
-        output_blob = bucket.blob(output_file_name)
-        output_blob.upload_from_filename(output_path)
+            print(f"✅ Matchering processing complete!")
+            
+        except Exception as e:
+            print(f"❌ Matchering error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            # Cleanup temp files
+            for path in temp_files:
+                try:
+                    if os.path.exists(path):
+                        os.unlink(path)
+                except:
+                    pass
+            return jsonify({"error": f"Matchering processing failed: {str(e)}"}), 500
         
-        # Signed URL
-        mastered_url = output_blob.generate_signed_url(
-            version="v4",
-            expiration=timedelta(hours=1),
-            method="GET"
+        # Read the output file
+        try:
+            with open(output_path, 'rb') as f:
+                output_data = f.read()
+        except Exception as e:
+            print(f"❌ Error reading output file: {str(e)}")
+            return jsonify({"error": f"Failed to read output file: {str(e)}"}), 500
+        finally:
+            # Cleanup temp files
+            for path in temp_files:
+                try:
+                    if os.path.exists(path):
+                        os.unlink(path)
+                except:
+                    pass
+        
+        elapsed = time.time() - start_time
+        print(f"⏱️ Total processing time: {elapsed:.2f}s")
+        
+        # Generate output filename
+        base_name = os.path.splitext(target_file.filename)[0]
+        output_filename = f"mastered_{base_name}.wav"
+        
+        # Return the audio file
+        return send_file(
+            io.BytesIO(output_data),
+            mimetype='audio/wav',
+            as_attachment=True,
+            download_name=output_filename
         )
         
-        # Cleanup
-        try:
-            os.unlink(target_path)
-            os.unlink(reference_path)
-            os.unlink(output_path)
-        except:
-            pass
-            
-        processing_time = int((time.time() - start_time) * 1000)
-        
-        return jsonify({
-            "success": True,
-            "masteredUrl": mastered_url,
-            "jobId": job_id,
-            "processingTime": processing_time
-        }), 200
-        
     except Exception as e:
-        print(f"❌ Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
-
-def extract_blob_name_from_url(url):
-    if 'test.url' in url or 'example.com' in url:
-        return url.split('/')[-1]
-    if '?' in url:
-        url = url.split('?')[0]
-    if 'storage.googleapis.com' in url:
-        parts = url.split('storage.googleapis.com/')
-        if len(parts) > 1:
-            path_parts = parts[1].split('/', 1)
-            if len(path_parts) > 1:
-                return path_parts[1]
-            return path_parts[0]
-    if BUCKET_NAME and BUCKET_NAME in url:
-        bucket_index = url.find(BUCKET_NAME)
-        path = url[bucket_index + len(BUCKET_NAME):].lstrip('/')
-        return path.split('?')[0]
-    if 'googleapis.com' in url:
-        parts = url.split('googleapis.com/')
-        if len(parts) > 1:
-            path = parts[1].split('?')[0]
-            if '/' in path:
-                return '/'.join(path.split('/')[1:])
-            return path
-    return url.split('/')[-1] # Fallback
+        print(f"❌ Error in master_audio: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        # Cleanup any temp files
+        for path in temp_files:
+            try:
+                if os.path.exists(path):
+                    os.unlink(path)
+            except:
+                pass
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    port = int(os.environ.get("PORT", 8001))
+    print(f"🚀 Starting AI Mastering Backend on port {port}...")
+    print(f"📁 Supported formats: MP3, WAV, FLAC")
+    print(f"📤 Output format: WAV")
+    app.run(host="0.0.0.0", port=port, debug=True)

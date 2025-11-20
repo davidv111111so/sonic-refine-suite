@@ -1,23 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
 import { MasteringSettingsData } from '@/components/ai-mastering/MasteringSettings';
 
-interface UploadResult {
-  gcsPath: string;
-  signedUrl: string;
-}
-
-interface JobResult {
-  jobId: string;
-}
-
-interface JobStatus {
-  status: 'queued' | 'processing' | 'completed' | 'failed';
-  downloadUrl?: string;
-  error?: string;
-}
-
 export class MasteringService {
-  private backendUrl = "http://localhost:8000"; // Local python backend
+  private backendUrl = "http://localhost:8001"; // Local python backend
 
   /**
    * Get auth token from Supabase session
@@ -25,6 +10,10 @@ export class MasteringService {
   private async getAuthToken(): Promise<string> {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) {
+      // For dev bypass mode, return a dummy token
+      if (localStorage.getItem("dev_bypass") === "true") {
+        return "dev-bypass-token";
+      }
       throw new Error('No authentication token available. Please log in.');
     }
 
@@ -32,134 +21,7 @@ export class MasteringService {
   }
 
   /**
-   * Step 1: Upload file to Google Cloud Storage
-   */
-  async uploadFileToGCS(
-    file: File,
-    onProgress?: (percent: number) => void
-  ): Promise<UploadResult> {
-    const authToken = await this.getAuthToken();
-
-    // 1. Get signed upload URL from backend via edge function
-    const { data: urlData, error: urlError } = await supabase.functions.invoke('generate-upload-url', {
-      body: {
-        fileName: file.name,
-        fileType: file.type || 'audio/wav',
-        fileSize: file.size
-      }
-    });
-
-    if (urlError || !urlData) {
-      throw new Error(`Failed to get upload URL: ${urlError?.message || 'Unknown error'}`);
-    }
-
-    const { signedUrl, gcsFileName } = urlData;
-
-    // 2. Upload file directly to GCS using signed URL
-    const uploadResponse = await fetch(signedUrl, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': file.type || 'audio/wav',
-      },
-      body: file
-    });
-
-    if (!uploadResponse.ok) {
-      throw new Error(`Failed to upload file: ${uploadResponse.statusText}`);
-    }
-
-    if (onProgress) {
-      onProgress(100);
-    }
-
-    return {
-      gcsPath: gcsFileName,
-      signedUrl
-    };
-  }
-
-  /**
-   * Step 2: Start mastering job
-   */
-  async startMasteringJob(
-    targetGcsPath: string,
-    referenceGcsPath: string,
-    settings?: MasteringSettingsData
-  ): Promise<JobResult> {
-    const { data, error } = await supabase.functions.invoke('start-mastering-job', {
-      body: {
-        targetGcsPath,
-        referenceGcsPath,
-        settings: settings || {}
-      }
-    });
-
-    if (error || !data) {
-      throw new Error(`Failed to start mastering job: ${error?.message || 'Unknown error'}`);
-    }
-
-    return { jobId: data.jobId };
-  }
-
-  /**
-   * Step 3: Poll job status until complete
-   */
-  async pollJobStatus(
-    jobId: string,
-    onProgress?: (status: string, progress: number) => void
-  ): Promise<string> {
-    const maxAttempts = 120; // 10 minutes max (5 second intervals)
-    let attempts = 0;
-
-    while (attempts < maxAttempts) {
-      const { data, error } = await supabase.functions.invoke('get-job-status', {
-        body: { jobId }
-      });
-
-      if (error) {
-        throw new Error(`Failed to get job status: ${error.message}`);
-      }
-
-      const status: JobStatus = data;
-
-      if (status.status === 'completed' && status.downloadUrl) {
-        if (onProgress) {
-          onProgress('completed', 100);
-        }
-        return status.downloadUrl;
-      }
-
-      if (status.status === 'failed') {
-        throw new Error(status.error || 'Mastering job failed');
-      }
-
-      // Update progress based on status
-      if (onProgress) {
-        const progress = status.status === 'processing' ? 50 : 30;
-        onProgress(status.status, progress);
-      }
-
-      // Wait 5 seconds before next poll
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      attempts++;
-    }
-
-    throw new Error('Mastering job timed out');
-  }
-
-  /**
-   * Download file from URL
-   */
-  private async downloadFile(url: string): Promise<Blob> {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to download result: ${response.statusText}`);
-    }
-    return await response.blob();
-  }
-
-  /**
-   * Complete mastering flow: Upload -> Process -> Download
+   * Complete mastering flow: Send files directly to Python backend
    */
   async masterAudio(
     targetFile: File,
@@ -170,46 +32,43 @@ export class MasteringService {
     try {
       console.log('🚀 Starting real Matchering mastering...');
 
-      // Stage 1: Upload target file (0-20%)
-      if (onProgress) onProgress('Uploading target file...', 0);
-      const targetUpload = await this.uploadFileToGCS(targetFile, (p) => {
-        if (onProgress) onProgress('Uploading target file...', p * 0.2);
+      const authToken = await this.getAuthToken();
+
+      // Create FormData with both files
+      const formData = new FormData();
+      formData.append('target', targetFile);
+      formData.append('reference', referenceFile);
+
+      // Add settings if provided
+      if (settings) {
+        formData.append('settings', JSON.stringify(settings));
+      }
+
+      if (onProgress) onProgress('Uploading files to backend...', 10);
+
+      // Send to Python backend
+      const response = await fetch(`${this.backendUrl}/api/master-audio`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: formData
       });
 
-      // Stage 2: Upload reference file (20-40%)
-      if (onProgress) onProgress('Uploading reference file...', 20);
-      const referenceUpload = await this.uploadFileToGCS(referenceFile, (p) => {
-        if (onProgress) onProgress('Uploading reference file...', 20 + p * 0.2);
-      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Backend error (${response.status}): ${errorText}`);
+      }
 
-      // Stage 3: Start mastering job (40%)
-      if (onProgress) onProgress('Starting mastering process...', 40);
-      const { jobId } = await this.startMasteringJob(
-        targetUpload.gcsPath,
-        referenceUpload.gcsPath,
-        settings
-      );
+      if (onProgress) onProgress('Processing with Matchering AI...', 50);
 
-      console.log(`✅ Mastering job started: ${jobId}`);
+      // Get the mastered audio blob
+      const blob = await response.blob();
 
-      // Stage 4: Poll job status (40-80%)
-      if (onProgress) onProgress('Processing with Matchering AI...', 45);
-      const downloadUrl = await this.pollJobStatus(jobId, (status, progress) => {
-        if (onProgress) {
-          const statusText = status === 'processing'
-            ? 'Mastering in progress...'
-            : 'Waiting for processing...';
-          onProgress(statusText, 40 + progress * 0.4);
-        }
-      });
-
-      // Stage 5: Download result (80-100%)
-      if (onProgress) onProgress('Downloading mastered file...', 80);
-      const resultBlob = await this.downloadFile(downloadUrl);
       if (onProgress) onProgress('Complete!', 100);
 
       console.log('✅ Mastering complete!');
-      return resultBlob;
+      return blob;
     } catch (error) {
       console.error('❌ Mastering service error:', error);
       throw error;
