@@ -2,7 +2,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { MasteringSettingsData } from '@/components/ai-mastering/MasteringSettings';
 
 export class MasteringService {
-  private backendUrl = "http://localhost:8001"; // Local python backend
+  // Dynamic backend URL based on environment
+  private backendUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? "http://localhost:8001"
+    : "https://sonic-refine-backend-azkp62xtaq-uc.a.run.app";
 
   /**
    * Get auth token from Supabase session

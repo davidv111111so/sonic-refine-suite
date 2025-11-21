@@ -204,7 +204,7 @@ def master_audio():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
+    port = int(os.environ.get("PORT", 8001))
     print(f"🚀 Starting AI Mastering Backend on port {port}...")
     print(f"📁 Supported formats: MP3, WAV, FLAC")
     print(f"📤 Output format: WAV")

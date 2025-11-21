@@ -167,13 +167,18 @@ export default function Auth() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    const errorDiv = document.getElementById("login-error-debug");
+    if (errorDiv) errorDiv.innerText = "";
+
     try {
       const result = signInSchema.safeParse({
         email,
         password,
       });
       if (!result.success) {
-        toast.error(result.error.errors[0].message);
+        const msg = result.error.errors[0].message;
+        toast.error(msg);
+        if (errorDiv) errorDiv.innerText = msg;
         setLoading(false);
         return;
       }
@@ -188,6 +193,7 @@ export default function Auth() {
       const message =
         error instanceof Error ? error.message : "Error signing in";
       toast.error(message);
+      if (errorDiv) errorDiv.innerText = message;
     } finally {
       setLoading(false);
     }
@@ -435,6 +441,8 @@ export default function Auth() {
                           "Sign In"
                         )}
                       </Button>
+                      <div id="login-error-debug" className="text-red-500 text-sm mt-2"></div>
+
 
                       <div className="relative">
                         <div className="absolute inset-0 flex items-center">
@@ -599,6 +607,19 @@ export default function Auth() {
               </form>
             )}
           </CardContent>
+          <div className="p-4 text-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-slate-600 hover:text-slate-400 text-xs"
+              onClick={() => {
+                localStorage.setItem("dev_bypass", "true");
+                window.location.reload();
+              }}
+            >
+              Dev Bypass
+            </Button>
+          </div>
         </Card>
       </div>
     </>

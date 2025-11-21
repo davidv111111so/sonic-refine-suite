@@ -15,6 +15,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Check for dev bypass
+    if (localStorage.getItem("dev_bypass") === "true") {
+      console.log("🔓 Dev bypass active");
+      setUser({
+        id: "dev-user-id",
+        email: "davidv111111@gmail.com",
+        app_metadata: {},
+        user_metadata: {},
+        aud: "authenticated",
+        created_at: new Date().toISOString()
+      } as User);
+      setLoading(false);
+      return;
+    }
+
     // Fetch the initial session
     const getSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -27,6 +42,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Listen for changes in authentication state
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        if (localStorage.getItem("dev_bypass") === "true") return;
         setUser(session?.user ?? null);
         setLoading(false);
       }

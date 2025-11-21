@@ -31,6 +31,7 @@ import {
 import { AIMasteringGuide } from "./AIMasteringGuide";
 import { saveReferenceTrack } from "@/utils/referenceTrackStorage";
 import { masteringService } from "@/services/masteringService";
+import { AIMasteringSetupChecker } from "./AIMasteringSetupChecker";
 export const AIMasteringTab = () => {
   const { t } = useLanguage();
   const { isPremium, isAdmin, loading } = useUserSubscription();
@@ -583,6 +584,7 @@ export const AIMasteringTab = () => {
         </div>
 
         {/* Advanced Settings Modal */}
+        {/* Advanced Settings Modal */}
         <MasteringAdvancedSettings
           open={showAdvancedSettings}
           onOpenChange={setShowAdvancedSettings}
@@ -592,6 +594,9 @@ export const AIMasteringTab = () => {
 
         {/* Help Guide Modal */}
         <AIMasteringGuide open={showGuide} onOpenChange={setShowGuide} />
+
+        {/* Setup Checker - Temporary for debugging */}
+        <AIMasteringSetupChecker />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column: Target and Presets */}
@@ -654,7 +659,7 @@ export const AIMasteringTab = () => {
                   </div>
                 )}
               </CardContent>
-            </Card>
+            </Card >
 
             <Card className="bg-card border-border">
               <CardContent className="p-6">
@@ -718,9 +723,9 @@ export const AIMasteringTab = () => {
                         <button
                           onClick={() => handlePresetClick(preset.id)}
                           className={`relative w-full p-3 rounded-xl text-center font-bold transition-all duration-300 overflow-hidden ${selectedPreset === preset.id &&
-                              activeMode === "preset"
-                              ? `bg-gradient-to-br ${preset.gradient} text-white shadow-2xl scale-105 ring-4 ring-white/30`
-                              : `bg-gradient-to-br ${preset.gradient} opacity-70 hover:opacity-100 hover:scale-105 text-white shadow-lg`
+                            activeMode === "preset"
+                            ? `bg-gradient-to-br ${preset.gradient} text-white shadow-2xl scale-105 ring-4 ring-white/30`
+                            : `bg-gradient-to-br ${preset.gradient} opacity-70 hover:opacity-100 hover:scale-105 text-white shadow-lg`
                             }`}
                         >
                           <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-all duration-300" />
@@ -757,10 +762,10 @@ export const AIMasteringTab = () => {
                 </div>
               </CardContent>
             </Card>
-          </div>
+          </div >
 
           {/* Right Column: Custom Reference and Action */}
-          <div className="space-y-8">
+          < div className="space-y-8" >
             <Card className="bg-card border-border h-full flex flex-col">
               <CardContent className="p-6 flex flex-col flex-1 justify-between">
                 <div>
@@ -769,8 +774,8 @@ export const AIMasteringTab = () => {
                   </h2>
                   <div
                     className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${activeMode === "custom"
-                        ? "border-primary"
-                        : "border-border hover:border-primary"
+                      ? "border-primary"
+                      : "border-border hover:border-primary"
                       }`}
                     onClick={handleCustomReferenceClick}
                   >
@@ -871,11 +876,11 @@ export const AIMasteringTab = () => {
                 </div>
               </CardContent>
             </Card>
-          </div>
-        </div>
-      </div>
+          </div >
+        </div >
+      </div >
 
       {/* Admin Reference Manager removed - Use genre + button to upload references */}
-    </div>
+    </div >
   );
 };
