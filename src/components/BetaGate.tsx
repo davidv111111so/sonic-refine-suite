@@ -38,14 +38,28 @@ export const BetaGate: React.FC<BetaGateProps> = ({ children }) => {
         return;
       }
 
-      // Check if user is admin (bypass beta)
-      const userEmail = user.email?.toLowerCase();
-      const isAdminEmail = userEmail && BETA_CONFIG.ADMIN_EMAILS.includes(userEmail);
-      
-      if (isAdminEmail || isAdmin) {
-        setIsBetaUser(true);
-        setChecking(false);
-        return;
+      // Check if user is admin (bypass beta) via Database
+      try {
+        // @ts-ignore - is_admin RPC will be created by migration
+        const { data: isAdminDB } = await supabase.rpc('is_admin', {
+          check_user_id: user.id
+        });
+
+        if (isAdminDB || isAdmin) {
+          setIsBetaUser(true);
+          setChecking(false);
+          return;
+        }
+      } catch (error) {
+        console.error('Admin check failed:', error);
+        // Fallback to config if DB check fails (safety net)
+        const userEmail = user.email?.toLowerCase();
+        const isAdminEmail = userEmail && BETA_CONFIG.ADMIN_EMAILS.includes(userEmail);
+        if (isAdminEmail) {
+          setIsBetaUser(true);
+          setChecking(false);
+          return;
+        }
       }
 
       // Check if user is in beta whitelist via database
@@ -117,7 +131,7 @@ export const BetaGate: React.FC<BetaGateProps> = ({ children }) => {
               {BETA_CONFIG.BETA_MESSAGE.contact}
             </p>
           </div>
-          
+
           <div className="flex flex-col gap-2">
             <Button
               variant="outline"

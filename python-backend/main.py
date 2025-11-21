@@ -7,23 +7,45 @@ import os
 import io
 import time
 import tempfile
+import magic
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import matchering as mg
 import soundfile as sf
 import librosa
+from supabase import create_client, Client
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__)
 
-# Configure CORS
-# Configure CORS
+# Initialize Supabase Client
+url: str = os.environ.get("SUPABASE_URL")
+key: str = os.environ.get("SUPABASE_KEY")
+supabase: Client = create_client(url, key)
+
+# Configure CORS - Restrict to known domains
+ALLOWED_ORIGINS = [
+    "http://localhost:8080",
+    "http://localhost:8081",
+    "http://localhost:8085",
+    "http://127.0.0.1:8080",
+    "https://*.lovable.app",
+    "https://*.lovableproject.com"
+]
+
 CORS(app, resources={
-    r"/*": {
+    r"/api/*": {
+        "origins": ALLOWED_ORIGINS,
+        "methods": ["POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True
+    },
+    r"/health": {
         "origins": "*",
-        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
-        "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
-        "expose_headers": ["Content-Type", "Content-Length", "Content-Disposition"],
-        "supports_credentials": False  # Changed to False to allow '*' origin
+        "methods": ["GET"]
     }
 })
 
@@ -31,6 +53,26 @@ CORS(app, resources={
 def health_check():
     """Health check endpoint"""
     return jsonify({"status": "OK", "service": "AI Mastering Backend"}), 200
+
+def validate_file_type(file_path):
+    """Validate file type using python-magic"""
+    mime = magic.Magic(mime=True)
+    file_type = mime.from_file(file_path)
+    return file_type.startswith('audio/') or file_type == 'application/octet-stream'
+
+def verify_auth_token(request):
+    """Verify Supabase Auth Token"""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return None
+    
+    token = auth_header.split(' ')[1]
+    try:
+        user = supabase.auth.get_user(token)
+        return user
+    except Exception as e:
+        print(f"❌ Auth verification failed: {str(e)}")
+        return None
 
 def convert_to_wav(input_path, output_path):
     """Convert any audio format to WAV using librosa and soundfile"""
@@ -53,6 +95,11 @@ def master_audio():
     if request.method == 'OPTIONS':
         return '', 204
     
+    # 1. Verify Authentication
+    user = verify_auth_token(request)
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+
     start_time = time.time()
     temp_files = []
     
@@ -93,6 +140,13 @@ def master_audio():
         reference_file.save(temp_reference_upload.name)
         temp_reference_upload.close()
         temp_files.append(temp_reference_upload.name)
+
+        # 2. Validate File Types (Magic Numbers)
+        if not validate_file_type(temp_target_upload.name) or not validate_file_type(temp_reference_upload.name):
+             # Cleanup
+            for path in temp_files:
+                if os.path.exists(path): os.unlink(path)
+            return jsonify({"error": "Invalid file content detected"}), 400
         
         # Convert to WAV for Matchering (it only works reliably with WAV)
         print(f"🔄 Converting files to WAV format...")
