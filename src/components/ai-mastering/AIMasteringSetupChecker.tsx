@@ -16,10 +16,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  CheckCircle2, 
-  XCircle, 
-  Loader2, 
+import {
+  CheckCircle2,
+  XCircle,
+  Loader2,
   RefreshCw,
   ExternalLink,
   AlertTriangle
@@ -71,7 +71,7 @@ export const AIMasteringSetupChecker = () => {
 
     // Check optional backend URL
     const backendUrl = import.meta.env.VITE_PYTHON_BACKEND_URL;
-    
+
     if (!backendUrl) {
       return {
         status: 'warning',
@@ -92,7 +92,7 @@ export const AIMasteringSetupChecker = () => {
     try {
       // Check if user is authenticated first
       const { data: sessionData } = await supabase.auth.getSession();
-      
+
       if (!sessionData.session) {
         return {
           status: 'warning',
@@ -180,7 +180,7 @@ export const AIMasteringSetupChecker = () => {
     // En desarrollo, usamos siempre el backend local
     // En producción (Lovable), usamos siempre el backend de Cloud Run
     const defaultBackendUrl = import.meta.env.DEV
-      ? 'http://localhost:8000'
+      ? 'http://localhost:8001'
       : 'https://mastering-backend-azkp62xtaq-uc.a.run.app';
 
     const backendUrl = import.meta.env.VITE_PYTHON_BACKEND_URL || defaultBackendUrl;
@@ -196,11 +196,11 @@ export const AIMasteringSetupChecker = () => {
             'Content-Type': 'application/json',
           },
         });
-        
+
         if (healthResponse.ok) {
           healthCheck = true;
           const healthData = await healthResponse.json().catch(() => ({}));
-          healthDetails = healthData.status === 'healthy' 
+          healthDetails = healthData.status === 'healthy'
             ? `Health: ${healthData.status}, GCS: ${healthData.services?.gcs || 'unknown'}`
             : 'Health check responded';
         } else {
@@ -210,17 +210,16 @@ export const AIMasteringSetupChecker = () => {
         healthDetails = 'Health endpoint not available (this is OK if /api/master-audio works)';
       }
 
-      // Try mastering endpoint (will fail but we just want to see if it responds)
+      // Try mastering endpoint with FormData (as expected by the new backend)
+      const formData = new FormData();
+      // Create dummy blobs for testing
+      const dummyBlob = new Blob(['dummy content'], { type: 'audio/wav' });
+      formData.append('target', dummyBlob, 'test_target.wav');
+      formData.append('reference', dummyBlob, 'test_reference.wav');
+
       const response = await fetch(`${backendUrl}/api/master-audio`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          inputUrl: 'https://test.url/file.wav',
-          fileName: 'test.wav',
-          settings: {},
-        }),
+        body: formData,
       });
 
       // Backend should respond, even if with error (because test data is invalid)
@@ -236,7 +235,7 @@ export const AIMasteringSetupChecker = () => {
       // Check for CORS errors vs backend validation errors
       if (response.status === 0 || (response.status >= 500 && response.status < 600)) {
         const errorText = await response.text().catch(() => '');
-        
+
         // If we got a JSON error response with "error" or "success:false", backend is working!
         try {
           const errorJson = JSON.parse(errorText);
@@ -245,7 +244,7 @@ export const AIMasteringSetupChecker = () => {
             return {
               status: 'success',
               message: 'Backend is accessible',
-              details: healthCheck 
+              details: healthCheck
                 ? `${healthDetails}. Backend correctly rejected test data: "${errorJson.error?.substring(0, 80) || 'validation error'}"`
                 : `Backend responded with validation error (expected for test data): "${errorJson.error?.substring(0, 80) || 'error'}"`,
             };
@@ -253,7 +252,7 @@ export const AIMasteringSetupChecker = () => {
         } catch (parseError) {
           // Not JSON, likely a real server error
         }
-        
+
         // If we got here, it's a real error
         return {
           status: 'error',
@@ -268,7 +267,7 @@ export const AIMasteringSetupChecker = () => {
         return {
           status: 'success',
           message: 'Backend is accessible',
-          details: healthCheck 
+          details: healthCheck
             ? `${healthDetails}. Endpoint exists (validation error expected with test data)`
             : '/api/master-audio endpoint exists and responds (validation error expected)',
         };
@@ -307,7 +306,7 @@ export const AIMasteringSetupChecker = () => {
     try {
       // Check if user is authenticated first
       const { data: sessionData } = await supabase.auth.getSession();
-      
+
       if (!sessionData.session) {
         return {
           status: 'warning',
@@ -345,7 +344,7 @@ export const AIMasteringSetupChecker = () => {
             fix: '1. Deploy Edge Function in Lovable Cloud\n2. Check your internet connection',
           };
         }
-        
+
         return {
           status: 'error',
           message: 'GCS configuration error',
@@ -389,7 +388,7 @@ export const AIMasteringSetupChecker = () => {
         const headResponse = await fetch(data.uploadUrl, {
           method: 'HEAD',
         });
-        
+
         // 400, 403, or 405 means bucket exists but we can't access without proper request
         // This is actually expected for signed URLs (they require PUT with specific headers)
         if (headResponse.status === 400 || headResponse.status === 403 || headResponse.status === 405) {
@@ -454,10 +453,10 @@ export const AIMasteringSetupChecker = () => {
   // Individual check functions
   const runCheck = async (checkName: keyof CheckResults) => {
     setIsChecking(true);
-    
+
     try {
       let result: CheckResult;
-      
+
       switch (checkName) {
         case 'envVars':
           result = await checkEnvVars();
@@ -472,7 +471,7 @@ export const AIMasteringSetupChecker = () => {
           result = await checkGCS();
           break;
       }
-      
+
       setResults(prev => ({ ...prev, [checkName]: result }));
     } finally {
       setIsChecking(false);

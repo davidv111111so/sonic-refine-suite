@@ -16,17 +16,14 @@ import librosa
 app = Flask(__name__)
 
 # Configure CORS
+# Configure CORS
 CORS(app, resources={
-    r"/api/*": {
-        "origins": ["*"],
+    r"/*": {
+        "origins": "*",
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
-        "allow_headers": ["Content-Type", "Authorization"],
-        "expose_headers": ["Content-Type", "Content-Length"],
-        "supports_credentials": True
-    },
-    r"/health": {
-        "origins": ["*"],
-        "methods": ["GET", "OPTIONS"]
+        "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
+        "expose_headers": ["Content-Type", "Content-Length", "Content-Disposition"],
+        "supports_credentials": False  # Changed to False to allow '*' origin
     }
 })
 
@@ -207,7 +204,7 @@ def master_audio():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8001))
+    port = int(os.environ.get("PORT", 8080))
     print(f"🚀 Starting AI Mastering Backend on port {port}...")
     print(f"📁 Supported formats: MP3, WAV, FLAC")
     print(f"📤 Output format: WAV")

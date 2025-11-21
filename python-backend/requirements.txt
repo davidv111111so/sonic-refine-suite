@@ -1,5 +1,6 @@
 Flask==3.0.0
 flask-cors==4.0.0
-google-cloud-storage==2.14.0
-gunicorn==21.2.0
 matchering==2.0.6
+soundfile==0.12.1
+librosa==0.10.1
+gunicorn==21.2.0
