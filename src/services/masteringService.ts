@@ -31,7 +31,7 @@ export class MasteringService {
     referenceFile: File,
     settings?: MasteringSettingsData,
     onProgress?: (stage: string, percent: number) => void
-  ): Promise<Blob> {
+  ): Promise<{ blob: Blob; analysis: any | null }> {
     try {
       console.log('🚀 Starting real Matchering mastering...');
 
@@ -65,13 +65,25 @@ export class MasteringService {
 
       if (onProgress) onProgress('Processing with Matchering AI...', 50);
 
+      // Parse LUFS analysis from response header
+      let analysis = null;
+      const analysisHeader = response.headers.get('X-Audio-Analysis');
+      if (analysisHeader) {
+        try {
+          analysis = JSON.parse(analysisHeader);
+          console.log('📊 LUFS Analysis:', analysis);
+        } catch (e) {
+          console.warn('Failed to parse audio analysis:', e);
+        }
+      }
+
       // Get the mastered audio blob
       const blob = await response.blob();
 
       if (onProgress) onProgress('Complete!', 100);
 
       console.log('✅ Mastering complete!');
-      return blob;
+      return { blob, analysis };
     } catch (error) {
       console.error('❌ Mastering service error:', error);
       throw error;

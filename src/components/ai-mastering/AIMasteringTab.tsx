@@ -8,6 +8,7 @@ import {
   Settings,
   BookOpen,
   Plus,
+  Download,
 } from "lucide-react";
 import { useUserSubscription } from "@/hooks/useUserSubscription";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -29,9 +30,13 @@ import {
   validateBackendParams,
 } from "./AdvancedSettingsBackend";
 import { AIMasteringGuide } from "./AIMasteringGuide";
-import { saveReferenceTrack } from "@/utils/referenceTrackStorage";
+import { saveReferenceTrack, getReferenceTrack } from "@/utils/referenceTrackStorage";
 import { masteringService } from "@/services/masteringService";
+<<<<<<< HEAD
 import { AIMasteringSetupChecker } from "./AIMasteringSetupChecker";
+=======
+import { LUFSDisplay, AudioAnalysisData } from "./LUFSDisplay";
+>>>>>>> b3b74c0 (feat: Implement LUFS analysis, fix downloads, and automate genre references)
 export const AIMasteringTab = () => {
   const { t } = useLanguage();
   const { isPremium, isAdmin, loading } = useUserSubscription();
@@ -83,17 +88,27 @@ export const AIMasteringTab = () => {
   const [showGuide, setShowGuide] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [audioAnalysis, setAudioAnalysis] = useState<AudioAnalysisData | null>(null);
+  const [masteredBlob, setMasteredBlob] = useState<Blob | null>(null);
 
   // Helper function to trigger file download
   const downloadMasteredFile = (blob: Blob, fileName: string) => {
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    // Ensure blob is audio/wav
+    const wavBlob = new Blob([blob], { type: 'audio/wav' });
+
+    try {
+      saveAs(wavBlob, fileName);
+    } catch (e) {
+      console.warn("FileSaver failed, falling back to anchor tag", e);
+      const url = URL.createObjectURL(wavBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
   };
 
   // Helper function to convert MasteringSettings to MasteringSettingsData
@@ -410,11 +425,27 @@ export const AIMasteringTab = () => {
       e.target.value = "";
     }
   };
-  const handlePresetClick = (presetId: string) => {
+  const handlePresetClick = async (presetId: string) => {
     setSelectedPreset(presetId);
     setActiveMode("preset");
     setReferenceFile(null);
     setReferenceFileInfo(null);
+
+    try {
+      const track = await getReferenceTrack(presetId);
+      if (track) {
+        setReferenceFile(track.file);
+        setReferenceFileInfo({
+          name: track.name,
+          size: track.size
+        });
+        toast.success("Reference track loaded", {
+          description: `Using saved reference for ${presetId}`
+        });
+      }
+    } catch (e) {
+      console.error("Failed to load reference track:", e);
+    }
   };
   const handleCustomReferenceClick = () => {
     setActiveMode("custom");
@@ -469,7 +500,7 @@ export const AIMasteringTab = () => {
 
       // Use masteringService with progress tracking
       const convertedSettings = convertSettingsFormat(advancedSettings);
-      const resultBlob = await masteringService.masterAudio(
+      const result = await masteringService.masterAudio(
         targetFile,
         referenceFileToUse,
         convertedSettings,
@@ -479,7 +510,22 @@ export const AIMasteringTab = () => {
         }
       );
 
-      const fileName = `mastered_${targetFile.name}`;
+      // Extract blob and analysis from response
+      const { blob: resultBlob, analysis } = result;
+
+      // Store analysis for display
+      if (analysis) {
+        setAudioAnalysis(analysis);
+        console.log('📊 Audio Analysis received:', analysis);
+      }
+
+      const baseName = targetFile.name.substring(0, targetFile.name.lastIndexOf('.')) || targetFile.name;
+      const fileName = `mastered_${baseName}.wav`;
+
+      // Store blob for manual download
+      setMasteredBlob(resultBlob);
+
+      // Attempt auto-download
       downloadMasteredFile(resultBlob, fileName);
       toast.success("✅ Your track has been mastered with Matchering!");
 
@@ -850,7 +896,11 @@ export const AIMasteringTab = () => {
 
                   {/* Progress Bar */}
                   {isProcessing && (
-                    <div className="space-y-2">
+                    <div className="space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>Processing...</span>
+                        <span>{progress.toFixed(0)}%</span>
+                      </div>
                       <Progress value={progress} className="h-2" />
                       <p className="text-xs text-center text-muted-foreground">
                         {progress < 30 && "Uploading to cloud storage..."}
@@ -868,19 +918,49 @@ export const AIMasteringTab = () => {
                     </div>
                   )}
 
+                  {/* LUFS Analysis Display */}
+                  {audioAnalysis && !isProcessing && (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4">
+                      <LUFSDisplay analysis={audioAnalysis} />
+
+                      {masteredBlob && (
+                        <Button
+                          onClick={() => {
+                            const baseName = targetFile?.name ? (targetFile.name.substring(0, targetFile.name.lastIndexOf('.')) || targetFile.name) : 'track';
+                            const fileName = `mastered_${baseName}.wav`;
+                            downloadMasteredFile(masteredBlob, fileName);
+                          }}
+                          className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                          variant="default"
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          Download Mastered Track
+                        </Button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Error Message */}
                   {error && (
-                    <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-center text-red-400 text-sm">
+                    <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center animate-in fade-in slide-in-from-bottom-2">
                       {error}
                     </div>
                   )}
                 </div>
               </CardContent>
             </Card>
+<<<<<<< HEAD
           </div >
         </div >
       </div >
 
       {/* Admin Reference Manager removed - Use genre + button to upload references */}
     </div >
+=======
+          </div>
+        </div>
+      </div>
+    </div>
+>>>>>>> b3b74c0 (feat: Implement LUFS analysis, fix downloads, and automate genre references)
   );
 };

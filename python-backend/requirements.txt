@@ -1,8 +1,11 @@
 Flask==3.0.0
-flask-cors==4.0.0
+Flask-CORS==4.0.0
+python-magic==0.4.27
+python-dotenv==1.0.0
 matchering==2.0.6
 soundfile==0.12.1
 librosa==0.10.1
+pyloudnorm==0.1.1
 gunicorn==21.2.0
 supabase==2.0.3
 python-magic-bin==0.4.14

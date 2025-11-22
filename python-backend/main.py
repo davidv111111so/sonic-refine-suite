@@ -13,11 +13,15 @@ from flask_cors import CORS
 import matchering as mg
 import soundfile as sf
 import librosa
+<<<<<<< HEAD
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
+=======
+from audio_analysis import analyze_lufs, is_reference_suitable
+>>>>>>> b3b74c0 (feat: Implement LUFS analysis, fix downloads, and automate genre references)
 
 app = Flask(__name__)
 
@@ -45,7 +49,14 @@ CORS(app, resources={
     },
     r"/health": {
         "origins": "*",
+<<<<<<< HEAD
         "methods": ["GET"]
+=======
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
+        "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
+        "expose_headers": ["Content-Type", "Content-Length", "Content-Disposition", "X-Audio-Analysis"],
+        "supports_credentials": False  # Changed to False to allow '*' origin
+>>>>>>> b3b74c0 (feat: Implement LUFS analysis, fix downloads, and automate genre references)
     }
 })
 
@@ -169,6 +180,18 @@ def master_audio():
         
         print(f"✅ Files converted to WAV successfully")
         
+        # Analyze LUFS of both files
+        print(f"📊 Analyzing loudness...")
+        target_analysis = analyze_lufs(target_path)
+        reference_analysis = analyze_lufs(reference_path)
+        
+        # Check reference suitability
+        if reference_analysis['success']:
+            ref_lufs = reference_analysis['integrated_lufs']
+            suitability = is_reference_suitable(ref_lufs)
+            print(f"   Target LUFS: {target_analysis.get('integrated_lufs', 'N/A')} LUFS")
+            print(f"   Reference LUFS: {ref_lufs} LUFS - {suitability['message']}")
+        
         # Output path - always WAV for Matchering
         temp_output = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
         temp_output.close()
@@ -230,19 +253,38 @@ def master_audio():
                     pass
         
         elapsed = time.time() - start_time
+        
+        # Analyze mastered output
+        output_analysis = analyze_lufs(output_path)
+        
         print(f"⏱️ Total processing time: {elapsed:.2f}s")
+        print(f"📊 Results:")
+        if output_analysis['success']:
+            print(f"   Output LUFS: {output_analysis['integrated_lufs']} LUFS")
+            print(f"   True Peak: {output_analysis['true_peak_db']} dBTP")
         
         # Generate output filename
         base_name = os.path.splitext(target_file.filename)[0]
         output_filename = f"mastered_{base_name}.wav"
         
-        # Return the audio file
-        return send_file(
+        # Return the audio file with LUFS metadata in headers
+        response = send_file(
             io.BytesIO(output_data),
             mimetype='audio/wav',
             as_attachment=True,
             download_name=output_filename
         )
+        
+        # Add LUFS analysis data as custom headers (JSON string)
+        import json
+        response.headers['X-Audio-Analysis'] = json.dumps({
+            'target': target_analysis if target_analysis['success'] else None,
+            'reference': reference_analysis if reference_analysis['success'] else None,
+            'output': output_analysis if output_analysis['success'] else None,
+            'processing_time': round(elapsed, 2)
+        })
+        
+        return response
         
     except Exception as e:
         print(f"❌ Error in master_audio: {str(e)}")
