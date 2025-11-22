@@ -32,11 +32,7 @@ import {
 import { AIMasteringGuide } from "./AIMasteringGuide";
 import { saveReferenceTrack, getReferenceTrack } from "@/utils/referenceTrackStorage";
 import { masteringService } from "@/services/masteringService";
-<<<<<<< HEAD
-import { AIMasteringSetupChecker } from "./AIMasteringSetupChecker";
-=======
 import { LUFSDisplay, AudioAnalysisData } from "./LUFSDisplay";
->>>>>>> b3b74c0 (feat: Implement LUFS analysis, fix downloads, and automate genre references)
 export const AIMasteringTab = () => {
   const { t } = useLanguage();
   const { isPremium, isAdmin, loading } = useUserSubscription();
@@ -949,18 +945,9 @@ export const AIMasteringTab = () => {
                 </div>
               </CardContent>
             </Card>
-<<<<<<< HEAD
-          </div >
-        </div >
-      </div >
-
-      {/* Admin Reference Manager removed - Use genre + button to upload references */}
-    </div >
-=======
           </div>
         </div>
       </div>
     </div>
->>>>>>> b3b74c0 (feat: Implement LUFS analysis, fix downloads, and automate genre references)
   );
 };
