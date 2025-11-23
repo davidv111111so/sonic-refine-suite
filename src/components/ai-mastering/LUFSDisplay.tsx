@@ -198,17 +198,6 @@ export const LUFSDisplay: React.FC<LUFSDisplayProps> = ({
                         />
                     )}
 
-                    {output && showComparison && (
-                        <div className="pt-2 border-t">
-                            <StatCard
-                                title="✨ Mastered Output"
-                                lufs={output.integrated_lufs}
-                                truePeak={output.true_peak_db}
-                                dynamicRange={output.dynamic_range_db}
-                                showBadge
-                            />
-                        </div>
-                    )}
                 </div>
 
                 {/* Comparison */}
@@ -217,8 +206,8 @@ export const LUFSDisplay: React.FC<LUFSDisplayProps> = ({
                         <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground">Loudness Change:</span>
                             <span className={`font-bold ${(output.integrated_lufs ?? 0) > (target.integrated_lufs ?? 0)
-                                    ? 'text-green-500'
-                                    : 'text-blue-500'
+                                ? 'text-green-500'
+                                : 'text-blue-500'
                                 }`}>
                                 {target.integrated_lufs && output.integrated_lufs
                                     ? `${(output.integrated_lufs - target.integrated_lufs).toFixed(1)} dB`
