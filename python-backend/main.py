@@ -13,15 +13,12 @@ from flask_cors import CORS
 import matchering as mg
 import soundfile as sf
 import librosa
-<<<<<<< HEAD
 from supabase import create_client, Client
 from dotenv import load_dotenv
+from audio_analysis import analyze_lufs, is_reference_suitable
 
 # Load environment variables
 load_dotenv()
-=======
-from audio_analysis import analyze_lufs, is_reference_suitable
->>>>>>> b3b74c0 (feat: Implement LUFS analysis, fix downloads, and automate genre references)
 
 app = Flask(__name__)
 
@@ -45,18 +42,15 @@ CORS(app, resources={
         "origins": ALLOWED_ORIGINS,
         "methods": ["POST", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"],
+        "expose_headers": ["Content-Type", "Content-Length", "Content-Disposition", "X-Audio-Analysis"],
         "supports_credentials": True
     },
     r"/health": {
         "origins": "*",
-<<<<<<< HEAD
-        "methods": ["GET"]
-=======
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
         "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
         "expose_headers": ["Content-Type", "Content-Length", "Content-Disposition", "X-Audio-Analysis"],
         "supports_credentials": False  # Changed to False to allow '*' origin
->>>>>>> b3b74c0 (feat: Implement LUFS analysis, fix downloads, and automate genre references)
     }
 })
 
@@ -238,10 +232,13 @@ def master_audio():
         
         # Read the output file
         try:
+            # Analyze mastered output BEFORE cleanup
+            output_analysis = analyze_lufs(output_path)
+            
             with open(output_path, 'rb') as f:
                 output_data = f.read()
         except Exception as e:
-            print(f"❌ Error reading output file: {str(e)}")
+            print(f"❌ Error reading/analyzing output file: {str(e)}")
             return jsonify({"error": f"Failed to read output file: {str(e)}"}), 500
         finally:
             # Cleanup temp files
@@ -253,9 +250,6 @@ def master_audio():
                     pass
         
         elapsed = time.time() - start_time
-        
-        # Analyze mastered output
-        output_analysis = analyze_lufs(output_path)
         
         print(f"⏱️ Total processing time: {elapsed:.2f}s")
         print(f"📊 Results:")
@@ -298,6 +292,47 @@ def master_audio():
             except:
                 pass
         return jsonify({"error": str(e)}), 500
+
+@app.route('/api/analyze-audio', methods=['POST', 'OPTIONS'])
+def analyze_audio_endpoint():
+    """Analyze a single audio file for LUFS, True Peak, etc."""
+    if request.method == 'OPTIONS':
+        return '', 204
+    
+    # Verify Authentication
+    user = verify_auth_token(request)
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    if 'file' not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+    
+    file = request.files['file']
+    temp_path = None
+    
+    try:
+        # Save to temp file
+        ext = os.path.splitext(file.filename)[1].lower()
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
+        file.save(temp_file.name)
+        temp_file.close()
+        temp_path = temp_file.name
+        
+        # Analyze
+        analysis = analyze_lufs(temp_path)
+        
+        return jsonify(analysis)
+        
+    except Exception as e:
+        print(f"❌ Analysis error: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        # Cleanup
+        if temp_path and os.path.exists(temp_path):
+            try:
+                os.unlink(temp_path)
+            except:
+                pass
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8001))

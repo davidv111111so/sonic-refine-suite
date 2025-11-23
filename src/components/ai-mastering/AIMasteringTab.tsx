@@ -9,6 +9,9 @@ import {
   BookOpen,
   Plus,
   Download,
+  TrendingUp,
+  Sparkles,
+  X,
 } from "lucide-react";
 import { useUserSubscription } from "@/hooks/useUserSubscription";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -64,6 +67,27 @@ export const AIMasteringTab = () => {
       return null;
     }
   });
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  const handleAnalyze = async (type: 'target' | 'reference') => {
+    const file = type === 'target' ? targetFile : referenceFile;
+    if (!file) return;
+
+    setIsAnalyzing(true);
+    try {
+      const analysis = await masteringService.analyzeAudio(file);
+      setAudioAnalysis(prev => ({
+        ...prev,
+        [type]: analysis
+      } as AudioAnalysisData));
+      toast.success(`${type === 'target' ? 'Target' : 'Reference'} analyzed successfully`);
+    } catch (error) {
+      console.error("Analysis failed:", error);
+      toast.error("Analysis failed");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
   const [selectedPreset, setSelectedPreset] = useState<string | null>(() => {
     try {
       const saved = sessionStorage.getItem("aiMastering_selectedPreset");
@@ -87,25 +111,27 @@ export const AIMasteringTab = () => {
   const [progress, setProgress] = useState(0);
   const [audioAnalysis, setAudioAnalysis] = useState<AudioAnalysisData | null>(null);
   const [masteredBlob, setMasteredBlob] = useState<Blob | null>(null);
+  const [masteredFileName, setMasteredFileName] = useState<string>("mastered_track.wav");
 
   // Helper function to trigger file download
+  // Helper function to trigger file download
   const downloadMasteredFile = (blob: Blob, fileName: string) => {
-    // Ensure blob is audio/wav
-    const wavBlob = new Blob([blob], { type: 'audio/wav' });
+    console.log(`⬇️ Downloading file: ${fileName}, size: ${blob.size}, type: ${blob.type}`);
 
-    try {
-      saveAs(wavBlob, fileName);
-    } catch (e) {
-      console.warn("FileSaver failed, falling back to anchor tag", e);
-      const url = URL.createObjectURL(wavBlob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    }
+    // Force audio/wav type if missing or incorrect
+    const wavBlob = blob.type === 'audio/wav' ? blob : new Blob([blob], { type: 'audio/wav' });
+
+    // Use native anchor tag method which is more reliable for blob downloads
+    const url = URL.createObjectURL(wavBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Clean up after a small delay to ensure download starts
+    setTimeout(() => URL.revokeObjectURL(url), 100);
   };
 
   // Helper function to convert MasteringSettings to MasteringSettingsData
@@ -518,6 +544,7 @@ export const AIMasteringTab = () => {
 
       const baseName = targetFile.name.substring(0, targetFile.name.lastIndexOf('.')) || targetFile.name;
       const fileName = `mastered_${baseName}.wav`;
+      setMasteredFileName(fileName);
 
       // Store blob for manual download
       setMasteredBlob(resultBlob);
@@ -663,8 +690,16 @@ export const AIMasteringTab = () => {
                   />
                 </div>
                 {targetFileInfo && !targetFile && (
-                  <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-md">
-                    <p className="text-sm text-blue-400 mb-2">
+                  <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-md relative">
+                    <Button
+                      onClick={() => setTargetFileInfo(null)}
+                      variant="ghost"
+                      size="sm"
+                      className="absolute top-2 right-2 h-6 w-6 p-0 text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 rounded-full"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                    <p className="text-sm text-blue-400 mb-2 font-medium">
                       Previous session detected:
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -682,20 +717,40 @@ export const AIMasteringTab = () => {
                       <Music className="h-6 w-6 mr-2 text-muted-foreground flex-shrink-0" />
                       <span className="truncate">{targetFile.name}</span>
                     </div>
-                    <Button
-                      onClick={() => {
-                        setTargetFile(null);
-                        setTargetFileInfo(null);
-                        if (targetInputRef.current) {
-                          targetInputRef.current.value = "";
-                        }
-                      }}
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-400 hover:text-red-300 ml-2"
-                    >
-                      ✕
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAnalyze('target');
+                        }}
+                        size="sm"
+                        disabled={isAnalyzing}
+                        className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white border-0 hover:opacity-90 transition-all shadow-md hover:shadow-lg hover:scale-105"
+                      >
+                        {isAnalyzing ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <>
+                            <Sparkles className="h-3 w-3 mr-1.5" />
+                            Analyze
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setTargetFile(null);
+                          setTargetFileInfo(null);
+                          if (targetInputRef.current) {
+                            targetInputRef.current.value = "";
+                          }
+                        }}
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-400 hover:text-red-300 ml-2"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -834,8 +889,16 @@ export const AIMasteringTab = () => {
                   {referenceFileInfo &&
                     !referenceFile &&
                     activeMode === "custom" && (
-                      <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-md">
-                        <p className="text-sm text-blue-400 mb-2">
+                      <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-md relative">
+                        <Button
+                          onClick={() => setReferenceFileInfo(null)}
+                          variant="ghost"
+                          size="sm"
+                          className="absolute top-2 right-2 h-6 w-6 p-0 text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 rounded-full"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                        <p className="text-sm text-blue-400 mb-2 font-medium">
                           Previous reference detected:
                         </p>
                         <p className="text-xs text-muted-foreground">
@@ -854,20 +917,40 @@ export const AIMasteringTab = () => {
                         <Music className="h-6 w-6 mr-2 text-muted-foreground flex-shrink-0" />
                         <span className="truncate">{referenceFile.name}</span>
                       </div>
-                      <Button
-                        onClick={() => {
-                          setReferenceFile(null);
-                          setReferenceFileInfo(null);
-                          if (referenceInputRef.current) {
-                            referenceInputRef.current.value = "";
-                          }
-                        }}
-                        variant="ghost"
-                        size="sm"
-                        className="text-red-400 hover:text-red-300 ml-2"
-                      >
-                        ✕
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAnalyze('reference');
+                          }}
+                          size="sm"
+                          disabled={isAnalyzing}
+                          className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white border-0 hover:opacity-90 transition-all shadow-md hover:shadow-lg hover:scale-105"
+                        >
+                          {isAnalyzing ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <>
+                              <Sparkles className="h-3 w-3 mr-1.5" />
+                              Analyze
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setReferenceFile(null);
+                            setReferenceFileInfo(null);
+                            if (referenceInputRef.current) {
+                              referenceInputRef.current.value = "";
+                            }
+                          }}
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-400 hover:text-red-300 ml-2"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -912,17 +995,28 @@ export const AIMasteringTab = () => {
                     </div>
                   )}
 
-                  {/* LUFS Analysis Display */}
-                  {audioAnalysis && !isProcessing && (
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4">
-                      <LUFSDisplay analysis={audioAnalysis} />
+                  {/* LUFS Analysis Display - Always visible if data exists or files selected */}
+                  {(audioAnalysis || targetFile || referenceFile) && (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4 p-4 bg-card/50 rounded-lg border border-border/50">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-lg font-semibold flex items-center gap-2">
+                          <TrendingUp className="h-5 w-5 text-primary" />
+                          Loudness Analysis
+                        </h3>
+                      </div>
+
+                      {!audioAnalysis?.target && !audioAnalysis?.reference && (
+                        <p className="text-sm text-muted-foreground text-center py-4 bg-muted/30 rounded-md border border-dashed border-border">
+                          Upload files and click "Analyze" to check loudness levels before mastering.
+                        </p>
+                      )}
+
+                      <LUFSDisplay analysis={audioAnalysis || { target: null, reference: null, output: null }} />
 
                       {masteredBlob && (
                         <Button
                           onClick={() => {
-                            const baseName = targetFile?.name ? (targetFile.name.substring(0, targetFile.name.lastIndexOf('.')) || targetFile.name) : 'track';
-                            const fileName = `mastered_${baseName}.wav`;
-                            downloadMasteredFile(masteredBlob, fileName);
+                            downloadMasteredFile(masteredBlob, masteredFileName);
                           }}
                           className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                           variant="default"

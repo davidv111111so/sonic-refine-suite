@@ -89,6 +89,26 @@ export class MasteringService {
       throw error;
     }
   }
+
+  async analyzeAudio(file: File): Promise<any> {
+    const token = await this.getAuthToken();
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${this.backendUrl}/api/analyze-audio`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Analysis failed: ${response.statusText}`);
+    }
+
+    return await response.json();
+  }
 }
 
 // Export singleton instance
