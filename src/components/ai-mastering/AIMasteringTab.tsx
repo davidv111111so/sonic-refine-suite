@@ -638,9 +638,6 @@ export const AIMasteringTab = () => {
         {/* Help Guide Modal */}
         <AIMasteringGuide open={showGuide} onOpenChange={setShowGuide} />
 
-        {/* Setup Checker - Temporary for debugging */}
-        <AIMasteringSetupChecker />
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column: Target and Presets */}
           <div className="space-y-8">
