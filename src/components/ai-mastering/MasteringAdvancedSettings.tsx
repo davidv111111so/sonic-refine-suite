@@ -125,7 +125,7 @@ export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps>
           <span>AI Mastering - Advanced Settings</span>
         </div>
       }
-      maxWidth="max-w-4xl"
+      maxWidth="max-w-7xl"
     >
       <div className="space-y-1 mb-6">
         <p className="text-slate-400 text-sm">

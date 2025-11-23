@@ -637,7 +637,7 @@ export const AIMasteringTab = () => {
               className="flex items-center gap-2 text-stone-300"
             >
               <BookOpen className="h-4 w-4" />
-              Help Guide
+              Mastering Guide
             </Button>
             <Button
               variant="outline"
@@ -787,9 +787,9 @@ export const AIMasteringTab = () => {
                         return;
                       }
 
-                      if (file.size > 100 * 1024 * 1024) {
+                      if (file.size > 150 * 1024 * 1024) {
                         toast.error("File too large", {
-                          description: "Maximum file size is 100MB",
+                          description: "Maximum file size is 150MB",
                         });
                         return;
                       }
