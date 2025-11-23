@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
+import { SimpleModal } from '@/components/ui/SimpleModal';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { HelpCircle, Upload, Settings, Sparkles, Sliders, Save, Zap, Volume2, Headphones, Keyboard, Archive, Palette, Download, Music, Cpu } from 'lucide-react';
+import { HelpCircle, Upload, Settings, Sparkles, Sliders, Save, Zap, Volume2, Headphones, Keyboard, Archive, Palette, Download, Music, Cpu, BookOpen, Music2, Shield, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export const Guide = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  
+  const [open, setOpen] = useState(false);
+
   const features = [{
     name: "JSZip - Batch ZIP Downloads",
     description: "Download multiple enhanced files as a single ZIP archive for easy sharing",
@@ -66,7 +69,7 @@ export const Guide = () => {
     howItWorks: "Global keyboard event handling for common actions. Shortcuts work from any tab and provide quick access to frequently used features.",
     howToUse: "Ctrl+U (Upload files), Ctrl+E (Start enhancement), Space (Play/Pause audio), Ctrl+S (Save current EQ settings), Ctrl+R (Reset EQ to flat response)"
   }];
-  
+
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'Essential':
@@ -81,25 +84,36 @@ export const Guide = () => {
         return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
     }
   };
-  
+
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="bg-stone-500 hover:bg-stone-400">
-          <HelpCircle className="h-4 w-4 mr-2" />
-          Guide
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-6xl max-h-[90vh] !bg-slate-900 text-white border-slate-700 overflow-y-auto before:!opacity-0 [&>div]:!bg-transparent">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-white">
-            Level Audio - Complete User Guide
-          </DialogTitle>
-          <DialogDescription className="text-slate-400">
-            Learn how to use Level Audio's powerful features for professional audio enhancement.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="overflow-y-auto max-h-[calc(90vh-120px)] pr-4 bg-slate-900">
+    <>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="text-slate-300 hover:text-white hover:bg-slate-800"
+        onClick={() => setOpen(true)}
+      >
+        <BookOpen className="h-4 w-4 mr-2" />
+        Guide
+      </Button>
+
+      <SimpleModal
+        isOpen={open}
+        onClose={() => setOpen(false)}
+        title={
+          <div className="flex items-center gap-2">
+            <BookOpen className="h-6 w-6 text-primary" />
+            <span>Level Audio - Complete User Guide</span>
+          </div>
+        }
+        maxWidth="max-w-6xl"
+      >
+        <div className="space-y-4">
+          <p className="text-slate-300">
+            Complete guide to professional AI-powered audio mastering
+          </p>
+        </div>
+        <ScrollArea className="overflow-y-auto max-h-[calc(90vh-120px)] pr-4 bg-slate-900">
           <div className="space-y-8 py-2">
             {/* Quick Start Guide */}
             <Card className="bg-slate-800 border-slate-700">
@@ -130,9 +144,9 @@ export const Guide = () => {
                     <p className="text-xs text-slate-400 dark:text-slate-400 light:text-gray-500">Batch download as ZIP available</p>
                   </div>
                 </div>
-                
+
                 <Separator className="bg-slate-700 dark:bg-slate-700 light:bg-gray-200" />
-                
+
                 <div className="space-y-4">
                   <h4 className="font-bold text-lg text-blue-400 dark:text-blue-400 light:text-blue-600">Key Features & Workflow:</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -234,13 +248,13 @@ export const Guide = () => {
                           </Badge>
                         </div>
                         <p className="text-sm text-slate-300 dark:text-slate-300 light:text-gray-600 mb-4">{feature.description}</p>
-                        
+
                         <div className="space-y-3">
                           <div>
                             <h5 className="font-semibold text-blue-400 dark:text-blue-400 light:text-blue-600 text-sm mb-2">How It Works:</h5>
                             <p className="text-xs text-slate-400 dark:text-slate-400 light:text-gray-500">{feature.howItWorks}</p>
                           </div>
-                          
+
                           <div>
                             <h5 className="font-semibold text-green-400 dark:text-green-400 light:text-green-600 text-sm mb-2">How to Use:</h5>
                             <p className="text-xs text-slate-400 dark:text-slate-400 light:text-gray-500">{feature.howToUse}</p>
@@ -313,9 +327,9 @@ export const Guide = () => {
                     </ul>
                   </div>
                 </div>
-                
+
                 <Separator className="bg-slate-700 dark:bg-slate-700 light:bg-gray-200" />
-                
+
                 <div className="bg-blue-900/30 dark:bg-blue-900/30 light:bg-blue-50 p-4 rounded border border-blue-600/50 dark:border-blue-600/50 light:border-blue-200">
                   <h5 className="font-bold text-blue-400 dark:text-blue-400 light:text-blue-600 mb-2">Privacy & Security:</h5>
                   <p className="text-slate-300 dark:text-slate-300 light:text-gray-600 text-sm">All processing happens locally in your browser. Files never leave your device. No servers, no cloud processing. Your audio files remain 100% private.</p>
@@ -323,8 +337,8 @@ export const Guide = () => {
               </CardContent>
             </Card>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </ScrollArea>
+      </SimpleModal>
+    </>
   );
 };

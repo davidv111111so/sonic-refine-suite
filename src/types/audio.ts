@@ -20,6 +20,13 @@ export interface AudioFile {
   fileType?: 'mp3' | 'wav' | 'flac' | 'unsupported';
   harmonicKey?: string; // Camelot notation for harmonic mixing (e.g., "8A")
   bpm?: number; // Beats per minute (detected automatically)
+  metadata?: {
+    format?: string;
+    channels?: number;
+    sampleRate?: number;
+    bitDepth?: number;
+  };
+  lastModified?: number;
 }
 
 export interface AudioStats {
