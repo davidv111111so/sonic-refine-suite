@@ -88,9 +88,9 @@ export const Guide = () => {
   return (
     <>
       <Button
-        variant="ghost"
+        variant="default"
         size="sm"
-        className="text-slate-300 hover:text-white hover:bg-slate-800"
+        className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg hover:shadow-cyan-500/20 transition-all duration-300 font-bold"
         onClick={() => setOpen(true)}
       >
         <BookOpen className="h-4 w-4 mr-2" />

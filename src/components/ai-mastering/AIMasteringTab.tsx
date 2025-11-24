@@ -118,20 +118,26 @@ export const AIMasteringTab = () => {
   const downloadMasteredFile = (blob: Blob, fileName: string) => {
     console.log(`⬇️ Downloading file: ${fileName}, size: ${blob.size}, type: ${blob.type}`);
 
-    // Force audio/wav type if missing or incorrect
+    // Force audio/wav type if missing or incorrect to ensure media players recognize it
     const wavBlob = blob.type === 'audio/wav' ? blob : new Blob([blob], { type: 'audio/wav' });
 
-    // Use native anchor tag method which is more reliable for blob downloads
-    const url = URL.createObjectURL(wavBlob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Use FileSaver.js for robust cross-browser download support
+    try {
+      saveAs(wavBlob, fileName);
+      console.log("✅ FileSaver.js saveAs triggered successfully");
+    } catch (error) {
+      console.error("❌ FileSaver.js failed, falling back to anchor tag:", error);
 
-    // Clean up after a small delay to ensure download starts
-    setTimeout(() => URL.revokeObjectURL(url), 100);
+      // Fallback to native anchor tag method if FileSaver fails
+      const url = URL.createObjectURL(wavBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+    }
   };
 
   // Helper function to convert MasteringSettings to MasteringSettingsData

@@ -24,61 +24,61 @@ const EQ_PRESETS = [
     name: "Modern Punch",
     nameES: "Modern Punch",
     icon: Volume2,
-    values: [3.0, 1.5, -2.0, 0.5, 2.5], // Powerful sub-bass, scooped mids, bright top
+    values: [1.5, 1.0, -2.0, 0.5, 2.0],
   },
   {
     name: "Vocal Presence",
     nameES: "Presencia Vocal",
     icon: Mic,
-    values: [-4.0, -1.5, 2.5, 2.0, -1.0], // Cut low rumble, boost presence
+    values: [-1.5, -2.0, 1.5, 2.0, 0.5],
   },
   {
     name: "Bass Foundation",
     nameES: "Fundamento de Graves",
     icon: Music,
-    values: [2.5, 0.5, -1.5, 1.0, 2.0], // Warm bass, clean mids, smooth highs
+    values: [2.0, 1.0, -1.0, 0.0, -0.5],
   },
   {
     name: "Clarity & Air",
     nameES: "Claridad y Aire",
     icon: Waves,
-    values: [1.5, -0.5, 0.5, 2.0, 3.0], // Balanced low, open highs for pads
+    values: [-0.5, 0.0, -1.0, 1.5, 2.5],
   },
   {
     name: "De-Box / Clean Mid",
     nameES: "De-Box / Medio Limpio",
     icon: Disc3,
-    values: [4.0, 2.0, -1.0, 1.5, 2.5], // Massive sub-bass, punch, crisp
+    values: [-1.0, -1.5, -2.5, 1.0, 0.5],
   },
   {
     name: "Warmth & Body",
     nameES: "Calidez y Cuerpo",
     icon: Music2,
-    values: [3.5, 1.0, -2.0, 0.5, 1.5], // Heavy bass, scooped mids, smooth top
+    values: [0.5, 1.5, 1.0, -1.0, -1.5],
   },
   {
     name: "Live Energy (Subtle V)",
     nameES: "Energía en Vivo (V Sutil)",
     icon: Guitar,
-    values: [2.0, 1.5, 2.0, 1.5, 0.5], // Tight bass, aggressive mids, controlled high
+    values: [1.0, 0.5, -1.5, 0.5, 1.5],
   },
   {
     name: "Acoustic / Orchestral",
     nameES: "Acústica / Orquestal",
     icon: Headphones,
-    values: [0.5, 0.0, 0.5, 1.0, 1.5], // Natural, slight air boost
+    values: [0.5, -1.0, 0.0, 0.5, 1.0],
   },
   {
     name: "Digital De-Harsh",
     nameES: "Digital De-Harsh",
     icon: Lightbulb,
-    values: [1.5, 0.5, -0.5, 2.0, 2.5], // Balanced with bright top
+    values: [0.0, 0.0, 0.5, -1.5, -1.0],
   },
   {
     name: "Voiceover / Podcast",
     nameES: "Locución / Podcast",
     icon: MessageSquare,
-    values: [4.0, 2.0, -1.5, 0.0, 0.5], // Maximum low-end enhancement
+    values: [-6.0, -2.5, 2.0, 2.5, -1.5],
   },
 ];
 
@@ -93,50 +93,35 @@ export const AdvancedEQPresetsWithCompensation = memo(
 
     const applyPreset = useCallback(
       (preset: (typeof EQ_PRESETS)[0]) => {
-        // Interpolate 5 preset values to 8 bands for smooth application
-        const interpolatedValues: number[] = [];
+        // Map 5 preset values to the 8-band array directly
+        // Visual bands: 0, 1, 3, 5, 7
+        // Preset values: [v0, v1, v2, v3, v4]
 
-        // Map each of the 8 bands to the closest preset value
-        BAND_INDICES.forEach((bandIndex) => {
-          // Find the closest visual band index
-          let closestVisualIndex = 0;
-          let minDistance = Infinity;
+        const values = preset.values;
 
-          VISUAL_BAND_INDICES.forEach((visualIndex, idx) => {
-            // Map visual indices to approximate band positions
-            const visualBandPositions = [0, 1.5, 3.5, 5.5, 7]; // Approximate positions in 8-band array
-            const distance = Math.abs(bandIndex - visualBandPositions[idx]);
-            if (distance < minDistance) {
-              minDistance = distance;
-              closestVisualIndex = idx;
-            }
-          });
+        // Band 0 (Low) -> Value 0
+        onEQBandChange(0, values[0]);
 
-          // Interpolate between adjacent values for smoother transitions
-          const visualPos =
-            (bandIndex / (BAND_INDICES.length - 1)) *
-            (VISUAL_BAND_INDICES.length - 1);
-          const lowerIdx = Math.floor(visualPos);
-          const upperIdx = Math.ceil(visualPos);
-          const t = visualPos - lowerIdx;
+        // Band 1 (Mid Low) -> Value 1
+        onEQBandChange(1, values[1]);
 
-          let value: number;
-          if (lowerIdx === upperIdx || upperIdx >= preset.values.length) {
-            value = preset.values[Math.min(lowerIdx, preset.values.length - 1)];
-          } else {
-            value =
-              preset.values[lowerIdx] * (1 - t) + preset.values[upperIdx] * t;
-          }
+        // Band 2 (Gap) -> Average of Value 1 and 2
+        onEQBandChange(2, (values[1] + values[2]) / 2);
 
-          interpolatedValues.push(value);
-        });
+        // Band 3 (Mid) -> Value 2
+        onEQBandChange(3, values[2]);
 
-        // Apply all 8 band values with staggered animation for smooth visual effect
-        interpolatedValues.forEach((value, index) => {
-          setTimeout(() => {
-            onEQBandChange(index, value);
-          }, index * 30); // 30ms delay between each band for smooth animation
-        });
+        // Band 4 (Gap) -> Average of Value 2 and 3
+        onEQBandChange(4, (values[2] + values[3]) / 2);
+
+        // Band 5 (Mid High) -> Value 3
+        onEQBandChange(5, values[3]);
+
+        // Band 6 (Gap) -> Average of Value 3 and 4
+        onEQBandChange(6, (values[3] + values[4]) / 2);
+
+        // Band 7 (High) -> Value 4
+        onEQBandChange(7, values[4]);
       },
       [onEQBandChange]
     );

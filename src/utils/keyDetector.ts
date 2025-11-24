@@ -25,7 +25,7 @@ const CAMELOT_MAP: Record<string, string> = {
   "G major": "9B", "G# major": "4B", "Ab major": "4B",
   "A major": "11B", "A# major": "6B", "Bb major": "6B",
   "B major": "1B",
-  
+
   // Minor keys (A)
   "C minor": "5A", "C# minor": "12A", "Db minor": "12A",
   "D minor": "7A", "D# minor": "2A", "Eb minor": "2A",
@@ -44,24 +44,24 @@ function calculateChromagram(audioBuffer: Float32Array, sampleRate: number): Flo
   const chromagram = new Float32Array(12);
   const fftSize = 16384; // Even larger FFT (16384) for better frequency resolution
   const hopSize = 8192; // Larger hop for more overlap
-  
+
   // Reference frequency for pitch calculation
   const A4 = 440;
   const C0 = A4 * Math.pow(2, -4.75); // C0 frequency ≈ 16.35 Hz
-  
+
   // Process the audio in overlapping windows with randomization
   const numWindows = Math.floor((audioBuffer.length - fftSize) / hopSize);
   const analyzeEveryN = Math.max(1, Math.floor(numWindows / 10)); // Analyze 10 random windows max
-  
+
   for (let windowIdx = 0; windowIdx < numWindows; windowIdx += analyzeEveryN) {
     // Add randomization: pick a random offset within the hop range
     const randomOffset = Math.floor(Math.random() * hopSize * 0.5);
     const i = windowIdx * hopSize + randomOffset;
-    
+
     if (i + fftSize > audioBuffer.length) break;
-    
+
     const segment = audioBuffer.slice(i, i + fftSize);
-    
+
     // Apply Blackman-Harris window (better than Hamming for musical signals)
     const windowed = new Float32Array(fftSize);
     for (let j = 0; j < fftSize; j++) {
@@ -70,21 +70,21 @@ function calculateChromagram(audioBuffer: Float32Array, sampleRate: number): Flo
       const a2 = 0.14128;
       const a3 = 0.01168;
       const w = a0 - a1 * Math.cos(2 * Math.PI * j / (fftSize - 1))
-                  + a2 * Math.cos(4 * Math.PI * j / (fftSize - 1))
-                  - a3 * Math.cos(6 * Math.PI * j / (fftSize - 1));
+        + a2 * Math.cos(4 * Math.PI * j / (fftSize - 1))
+        - a3 * Math.cos(6 * Math.PI * j / (fftSize - 1));
       windowed[j] = segment[j] * w;
     }
-    
+
     // Simple DFT for magnitude spectrum (real audio input)
     for (let bin = 1; bin < fftSize / 2; bin++) {
       const freq = (bin * sampleRate) / fftSize;
-      
+
       // Focus on accurate musical range (60Hz to 5kHz) with emphasis on fundamentals
       if (freq < 60 || freq > 5000) continue;
-      
+
       // Weight lower frequencies more (fundamentals are stronger predictors)
       const freqWeight = freq < 500 ? 2.0 : (freq < 2000 ? 1.5 : 1.0);
-      
+
       // Calculate magnitude from time-domain samples
       let real = 0, imag = 0;
       for (let n = 0; n < fftSize; n++) {
@@ -93,18 +93,18 @@ function calculateChromagram(audioBuffer: Float32Array, sampleRate: number): Flo
         imag += windowed[n] * Math.sin(angle);
       }
       const magnitude = Math.sqrt(real * real + imag * imag) * freqWeight;
-      
+
       // Convert frequency to semitones from C0
       const semitone = 12 * Math.log2(freq / C0);
       const pitchClass = Math.round(semitone) % 12;
-      
+
       // Accumulate weighted energy in the corresponding pitch class
       if (pitchClass >= 0 && pitchClass < 12) {
         chromagram[pitchClass] += magnitude;
       }
     }
   }
-  
+
   // Normalize chromagram
   const maxValue = Math.max(...chromagram);
   if (maxValue > 0) {
@@ -112,15 +112,16 @@ function calculateChromagram(audioBuffer: Float32Array, sampleRate: number): Flo
       chromagram[i] /= maxValue;
     }
   }
-  
+
   return chromagram;
 }
 
 /**
  * Major and minor key profiles (Krumhansl-Kessler)
+ * Normalized to sum to 1 to avoid bias towards minor keys (which originally had higher sum)
  */
-const MAJOR_PROFILE = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88];
-const MINOR_PROFILE = [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17];
+const MAJOR_PROFILE = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88].map(x => x / 41.79);
+const MINOR_PROFILE = [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17].map(x => x / 44.51);
 
 /**
  * Calculate correlation between chromagram and key profile
@@ -214,17 +215,17 @@ export async function detectKeyFromBuffer(
  */
 export async function detectKeyFromFile(file: File): Promise<KeyAnalysis> {
   console.log(`🎼 Detecting key for file: ${file.name}`);
-  
+
   try {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     console.log('✅ AudioContext created');
-    
+
     const arrayBuffer = await file.arrayBuffer();
     console.log(`✅ File loaded: ${arrayBuffer.byteLength} bytes`);
-    
+
     const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
     console.log(`✅ Audio decoded: ${audioBuffer.numberOfChannels} channels, ${audioBuffer.duration.toFixed(2)}s`);
-    
+
     // Convert to mono Float32Array
     let channelData: Float32Array;
     if (audioBuffer.numberOfChannels === 1) {
@@ -241,17 +242,17 @@ export async function detectKeyFromFile(file: File): Promise<KeyAnalysis> {
       }
       console.log('✅ Stereo mixed to mono');
     }
-    
+
     // Use only first 30 seconds for faster analysis
     const sampleRate = audioBuffer.sampleRate;
     const maxSamples = Math.min(channelData.length, sampleRate * 30);
     const analysisBuffer = channelData.slice(0, maxSamples);
-    
+
     console.log(`📊 Sample rate: ${sampleRate}Hz`);
-    
+
     const result = await detectKeyFromBuffer(analysisBuffer, sampleRate);
     console.log(`✅ Key detection complete for ${file.name}: ${result.camelot}`);
-    
+
     return result;
   } catch (error) {
     console.error(`❌ Error analyzing file ${file.name}:`, error);

@@ -62,19 +62,19 @@ export const FiveBandEqualizer = memo(
     const bandLabels =
       language === "ES"
         ? [
-            "Graves / Sub",
-            "Medio-Grave / Punch",
-            "Medio",
-            "Medio-Agudo / Presencia",
-            "Agudos / Air",
-          ]
+          "Graves / Sub",
+          "Medio-Grave / Punch",
+          "Medio",
+          "Medio-Agudo / Presencia",
+          "Agudos / Air",
+        ]
         : [
-            "Low / Sub",
-            "Mid Low / Punch",
-            "Mid",
-            "Mid High / Presence",
-            "High / Air",
-          ];
+          "Low / Sub",
+          "Mid Low / Punch",
+          "Mid",
+          "Mid High / Presence",
+          "High / Air",
+        ];
     const getEQColor = (index: number) => {
       const colors = [
         "#ff1744",
@@ -117,16 +117,14 @@ export const FiveBandEqualizer = memo(
                 variant="outline"
                 size="sm"
                 onClick={() => onEnabledChange(!enabled)}
-                className={`w-8 h-8 p-0 transition-all duration-300 ${
-                  enabled
+                className={`w-8 h-8 p-0 transition-all duration-300 ${enabled
                     ? "bg-gradient-to-r from-blue-500 to-purple-500 border-blue-400 shadow-lg shadow-blue-500/50"
                     : "bg-slate-700 border-slate-600 hover:bg-slate-600"
-                }`}
+                  }`}
               >
                 <div
-                  className={`w-3 h-3 rounded ${
-                    enabled ? "bg-white" : "bg-slate-400"
-                  }`}
+                  className={`w-3 h-3 rounded ${enabled ? "bg-white" : "bg-slate-400"
+                    }`}
                 ></div>
               </Button>
               <CardTitle className="text-base text-teal-100 mx-[4px] my-[6px] py-0 px-px">
@@ -216,9 +214,7 @@ export const FiveBandEqualizer = memo(
                 </div>
 
                 {/* EQ Branding with Glow */}
-                <div className="absolute bottom-3 right-4 text-xs text-cyan-300 font-mono font-bold drop-shadow-lg mx-0 py-[6px] my-[6px]">
-                  SPECTRUM 5-BAND EQ ✨
-                </div>
+                {/* EQ Branding with Glow - Removed */}
               </div>
             </div>
           ) : (

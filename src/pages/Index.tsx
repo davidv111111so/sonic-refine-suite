@@ -32,13 +32,6 @@ const Index = () => {
     setShowIntro(false);
   };
 
-  // Authentication guard - redirect to login if not authenticated
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate('/auth');
-    }
-  }, [user, loading, navigate]);
-
   console.log('Level app render started');
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [eqBands, setEqBands] = useState([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]); // 10-band EQ (5 bands mapped to specific indices)
@@ -63,6 +56,14 @@ const Index = () => {
   const {
     addToHistory
   } = useEnhancementHistory();
+
+  // Authentication guard - redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !user) {
+      setAudioFiles([]); // Clear files on logout
+      navigate('/auth');
+    }
+  }, [user, loading, navigate, setAudioFiles]);
 
   // Stop audio when page unloads or user leaves tab
   useEffect(() => {
@@ -212,14 +213,19 @@ const Index = () => {
       });
     }
   }, [audioFiles, notificationsEnabled, toast, processAudioFile, addToHistory, setIsProcessing, setAudioFiles, eqBands, eqEnabled]);
+
   const handleEQBandChange = (bandIndex: number, value: number) => {
-    const newEqBands = [...eqBands];
-    newEqBands[bandIndex] = value;
-    setEqBands(newEqBands);
+    setEqBands(prev => {
+      const newEqBands = [...prev];
+      newEqBands[bandIndex] = value;
+      return newEqBands;
+    });
   };
+
   const resetEQ = () => {
     setEqBands([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
   };
+
   const handleDownloadEnhanced = (file: AudioFile) => {
     if (file.enhancedUrl) {
       const a = document.createElement('a');
@@ -230,6 +236,7 @@ const Index = () => {
       document.body.removeChild(a);
     }
   };
+
   const handleConvertFile = async (file: AudioFile, targetFormat: 'mp3' | 'wav') => {
     toast({
       title: "Conversion Started",
@@ -337,7 +344,7 @@ const Index = () => {
       description: `${downloadedFiles.length} downloaded files have been cleared.`
     });
   }, [enhancedHistory, toast]);
-  
+
   // Show loading state while checking authentication
   if (loading) {
     return (
@@ -353,79 +360,79 @@ const Index = () => {
   if (showIntro) {
     return <IntroAnimation onComplete={handleIntroComplete} />;
   }
-  
+
   return <div className="min-h-screen transition-colors duration-300 bg-blue-950">
-      <div className="container mx-auto px-4 py-6 max-w-6xl">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <AnimatedTitle />
-          <div className="flex items-center gap-3">
-            <UserHeader />
-            <LanguageToggle />
-            <Guide />
-            <ThemeToggle />
-          </div>
-        </div>
-
-        {/* Stats */}
-        {stats.total > 0 && <div className="grid grid-cols-4 gap-4 mb-6">
-            <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600 shadow-lg">
-              <CardContent className="p-4 text-center bg-gray-500">
-                <div className="text-2xl font-bold text-white bg-gray-500">{stats.total}</div>
-                <div className="text-sm text-slate-300 bg-gray-500">Total Files</div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-br from-blue-900 to-blue-800 border-blue-600 shadow-lg">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-white">{stats.uploaded}</div>
-                <div className="text-sm text-blue-100">Queue</div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-br from-orange-900 to-orange-800 border-orange-600 shadow-lg">
-              <CardContent className="p-4 text-center bg-red-700">
-                <div className="text-2xl font-bold text-white">{stats.processing}</div>
-                <div className="text-sm text-orange-100">Processing</div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-br from-green-900 to-green-800 border-green-600 shadow-lg">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-white">{stats.enhanced}</div>
-                <div className="text-sm text-green-100">Completed</div>
-              </CardContent>
-            </Card>
-          </div>}
-
-        {/* Processing Progress */}
-        {processingFiles.length > 0 && <Card className="bg-gradient-to-r from-slate-800 to-slate-900 border-slate-600 mb-6 shadow-lg">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-white text-lg flex items-center gap-3">
-                <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
-                Level Processing Status
-                {processingQueue.length > 0 && <span className="text-sm text-blue-300">({processingQueue.length} in queue)</span>}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              {processingFiles.map(file => <div key={file.id} className="mb-4 last:mb-0">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm text-white truncate font-medium">{file.name}</span>
-                    <span className="text-sm text-blue-300 font-bold">{file.progress}%</span>
-                  </div>
-                  <Progress value={file.progress} className="h-3 mb-2" />
-                  <div className="text-sm text-slate-300">{file.processingStage}</div>
-                </div>)}
-            </CardContent>
-          </Card>}
-
-        {/* Main Tabs */}
-        <LevelTabs audioFiles={audioFiles} enhancedHistory={enhancedHistory} onFilesUploaded={handleFilesUploaded} onDownload={handleDownloadEnhanced} onConvert={handleConvertFile} onDownloadAll={handleDownloadAll} onClearDownloaded={handleClearDownloaded} onClearAll={handleClearAll} onEnhanceFiles={handleEnhanceFiles} eqBands={eqBands} onEQBandChange={handleEQBandChange} onResetEQ={resetEQ} eqEnabled={eqEnabled} setEqEnabled={setEqEnabled} />
-
-        {/* Copyright Notice at Bottom */}
-        <div className="mt-8">
-          <CopyrightNotice />
+    <div className="container mx-auto px-4 py-6 max-w-6xl">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <AnimatedTitle />
+        <div className="flex items-center gap-3">
+          <UserHeader />
+          <LanguageToggle />
+          <Guide />
+          <ThemeToggle />
         </div>
       </div>
-      
-      <Footer />
-    </div>;
+
+      {/* Stats */}
+      {stats.total > 0 && <div className="grid grid-cols-4 gap-4 mb-6">
+        <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600 shadow-lg">
+          <CardContent className="p-4 text-center bg-gray-500">
+            <div className="text-2xl font-bold text-white bg-gray-500">{stats.total}</div>
+            <div className="text-sm text-slate-300 bg-gray-500">Total Files</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-blue-900 to-blue-800 border-blue-600 shadow-lg">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-white">{stats.uploaded}</div>
+            <div className="text-sm text-blue-100">Queue</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-orange-900 to-orange-800 border-orange-600 shadow-lg">
+          <CardContent className="p-4 text-center bg-red-700">
+            <div className="text-2xl font-bold text-white">{stats.processing}</div>
+            <div className="text-sm text-orange-100">Processing</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-green-900 to-green-800 border-green-600 shadow-lg">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-white">{stats.enhanced}</div>
+            <div className="text-sm text-green-100">Completed</div>
+          </CardContent>
+        </Card>
+      </div>}
+
+      {/* Processing Progress */}
+      {processingFiles.length > 0 && <Card className="bg-gradient-to-r from-slate-800 to-slate-900 border-slate-600 mb-6 shadow-lg">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-white text-lg flex items-center gap-3">
+            <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
+            Level Processing Status
+            {processingQueue.length > 0 && <span className="text-sm text-blue-300">({processingQueue.length} in queue)</span>}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          {processingFiles.map(file => <div key={file.id} className="mb-4 last:mb-0">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm text-white truncate font-medium">{file.name}</span>
+              <span className="text-sm text-blue-300 font-bold">{file.progress}%</span>
+            </div>
+            <Progress value={file.progress} className="h-3 mb-2" />
+            <div className="text-sm text-slate-300">{file.processingStage}</div>
+          </div>)}
+        </CardContent>
+      </Card>}
+
+      {/* Main Tabs */}
+      <LevelTabs audioFiles={audioFiles} enhancedHistory={enhancedHistory} onFilesUploaded={handleFilesUploaded} onDownload={handleDownloadEnhanced} onConvert={handleConvertFile} onDownloadAll={handleDownloadAll} onClearDownloaded={handleClearDownloaded} onClearAll={handleClearAll} onEnhanceFiles={handleEnhanceFiles} eqBands={eqBands} onEQBandChange={handleEQBandChange} onResetEQ={resetEQ} eqEnabled={eqEnabled} setEqEnabled={setEqEnabled} />
+
+      {/* Copyright Notice at Bottom */}
+      <div className="mt-8">
+        <CopyrightNotice />
+      </div>
+    </div>
+
+    <Footer />
+  </div>;
 };
 export default Index;
