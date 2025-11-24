@@ -93,7 +93,7 @@ export const MediaPlayerUpload: React.FC<MediaPlayerUploadProps> = ({ onFilesAdd
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setErrorMessage(null);
-    
+
     // Always require consent - don't bypass terms and conditions
     if (!hasConsented) {
       setPendingFiles(acceptedFiles);
@@ -107,7 +107,7 @@ export const MediaPlayerUpload: React.FC<MediaPlayerUploadProps> = ({ onFilesAdd
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'audio/*': ['.mp3', '.wav', '.flac', '.m4a', '.ogg']
+      'audio/*': ['.mp3', '.wav', '.flac']
     },
     multiple: true,
   });
@@ -115,7 +115,7 @@ export const MediaPlayerUpload: React.FC<MediaPlayerUploadProps> = ({ onFilesAdd
   const handleConsentChange = (checked: boolean) => {
     setHasConsented(checked);
     setErrorMessage(null);
-    
+
     if (checked && pendingFiles.length > 0) {
       processFiles(pendingFiles);
     }
@@ -125,25 +125,24 @@ export const MediaPlayerUpload: React.FC<MediaPlayerUploadProps> = ({ onFilesAdd
     <Card className="bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700">
       <div
         {...getRootProps()}
-        className={`p-8 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
-          isDragActive
+        className={`p-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isDragActive
             ? 'border-cyan-500 bg-cyan-500/10'
             : 'border-slate-600 hover:border-cyan-500/50 hover:bg-slate-800/50'
-        }`}
+          }`}
       >
         <input {...getInputProps()} disabled={!hasConsented} />
-        <div className="flex flex-col items-center justify-center gap-4 text-center">
-          <Upload className="h-12 w-12 text-cyan-400" />
+        <div className="flex flex-col items-center justify-center gap-2 text-center">
+          <Upload className="h-8 w-8 text-cyan-400" />
           <div>
-            <p className="text-lg font-semibold mb-2 text-cyan-300">
+            <p className="text-sm font-semibold mb-1 text-cyan-300">
               {isDragActive
                 ? 'Drop files here...'
                 : hasConsented
-                ? 'Drop audio files here or click to browse'
-                : 'Accept Terms and Conditions to upload'}
+                  ? 'Drop audio files here or click to browse'
+                  : 'Accept Terms and Conditions to upload'}
             </p>
-            <p className="text-sm text-slate-400">
-              Supports MP3, WAV, FLAC, M4A, OGG
+            <p className="text-xs text-slate-400">
+              Supports MP3, WAV, FLAC
             </p>
           </div>
         </div>

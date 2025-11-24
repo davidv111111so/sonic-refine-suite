@@ -439,9 +439,9 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
           />
         </div>
 
-        {/* Right Column: Compressor, Playlist, Visualizer Selector */}
+        {/* Right Column: Compressor & Playlist */}
         <div className="space-y-6">
-          {/* Compressor (Moved from Left) */}
+          {/* Compressor */}
           <DynamicsCompressorControls
             settings={compressorSettings}
             gainReduction={gainReduction}
@@ -449,28 +449,6 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
               setCompressorSettings({ ...compressorSettings, ...settings })
             }
           />
-
-          {/* Visualizer Selector */}
-          <Card className="bg-slate-900/90 border-slate-700 p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-sm font-bold text-cyan-400 flex items-center gap-2">
-                <Activity className="h-4 w-4" />
-                Visualizer Style
-              </h4>
-              <Select value={visualizerMode} onValueChange={(v) => setVisualizerMode(v as VisualizerMode)}>
-                <SelectTrigger className="w-[140px] h-8 text-xs bg-slate-800 border-slate-600">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="bars">Bars</SelectItem>
-                  <SelectItem value="wave">Wave</SelectItem>
-                  <SelectItem value="circular">Circular</SelectItem>
-                  <SelectItem value="particles">Particles</SelectItem>
-                  <SelectItem value="spectrogram">Spectrogram</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </Card>
 
           {/* Playlist */}
           <PlaylistPanel
@@ -488,6 +466,7 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
           analyserNode={analyserNodeRef.current}
           isPlaying={isPlaying}
           mode={visualizerMode}
+          onModeChange={setVisualizerMode}
         />
       </div>
     </div>

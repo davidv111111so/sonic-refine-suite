@@ -1,5 +1,8 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Maximize, Minimize, Activity } from 'lucide-react';
 
 export type VisualizerMode = 'bars' | 'wave' | 'circular' | 'particles' | 'spectrogram';
 
@@ -7,16 +10,41 @@ interface VisualizerDisplayProps {
     analyserNode: AnalyserNode | null;
     isPlaying: boolean;
     mode: VisualizerMode;
+    onModeChange?: (mode: VisualizerMode) => void;
 }
 
 export const VisualizerDisplay: React.FC<VisualizerDisplayProps> = ({
     analyserNode,
     isPlaying,
-    mode
+    mode,
+    onModeChange
 }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
     const animationRef = useRef<number>();
     const particlesRef = useRef<any[]>([]);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+
+    // Handle fullscreen changes
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
+
+    const toggleFullscreen = () => {
+        if (!containerRef.current) return;
+
+        if (!document.fullscreenElement) {
+            containerRef.current.requestFullscreen().catch(err => {
+                console.error(`Error attempting to enable fullscreen: ${err.message}`);
+            });
+        } else {
+            document.exitFullscreen();
+        }
+    };
 
     useEffect(() => {
         if (!canvasRef.current || !analyserNode) return;
@@ -195,14 +223,47 @@ export const VisualizerDisplay: React.FC<VisualizerDisplayProps> = ({
     }, [analyserNode, isPlaying, mode]);
 
     return (
-        <Card className="bg-black/90 border-slate-800 p-4 h-64 w-full overflow-hidden relative">
+        <Card
+            ref={containerRef}
+            className={`bg-black/90 border-slate-800 p-0 overflow-hidden relative group ${isFullscreen ? 'rounded-none border-0' : 'h-64 w-full'}`}
+        >
             <canvas
                 ref={canvasRef}
                 className="w-full h-full block"
                 style={{ width: '100%', height: '100%' }}
             />
-            <div className="absolute top-2 right-2 text-xs text-slate-500 font-mono uppercase">
-                {mode} Visualizer
+
+            {/* Overlay Controls */}
+            <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-start opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-b from-black/50 to-transparent">
+                {/* Visualizer Selector */}
+                {onModeChange && (
+                    <div className="flex items-center gap-2 bg-black/60 px-3 py-2 rounded-lg backdrop-blur-sm border border-cyan-500/30">
+                        <Activity className="h-4 w-4 text-cyan-400" />
+                        <Select value={mode} onValueChange={(v) => onModeChange(v as VisualizerMode)}>
+                            <SelectTrigger className="w-[130px] h-7 text-xs bg-slate-800/80 border-purple-500/30 text-slate-300 shadow-lg">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="bars">Bars</SelectItem>
+                                <SelectItem value="wave">Wave</SelectItem>
+                                <SelectItem value="circular">Circular</SelectItem>
+                                <SelectItem value="particles">Particles</SelectItem>
+                                <SelectItem value="spectrogram">Spectrogram</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                )}
+
+                {/* Fullscreen Button */}
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={toggleFullscreen}
+                    className="text-white hover:bg-white/20 bg-black/40 h-8 w-8 backdrop-blur-sm border border-white/10"
+                    title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                >
+                    {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+                </Button>
             </div>
         </Card>
     );
