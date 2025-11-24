@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Play,
   Pause,
@@ -11,6 +12,7 @@ import {
   Repeat,
   Upload,
   Trash2,
+  Activity,
 } from "lucide-react";
 import WaveSurfer from "wavesurfer.js";
 import {
@@ -23,11 +25,11 @@ import {
   DynamicsCompressorControls,
   CompressorSettings,
 } from "./DynamicsCompressorControls";
-import { AudioVisualizer } from "./AudioVisualizer";
-import { FunSpectrumVisualizer } from "./FunSpectrumVisualizer";
+import { VisualizerDisplay, VisualizerMode } from "./VisualizerDisplay";
 import { PlaylistPanel } from "./PlaylistPanel";
 import { MediaPlayerUpload } from "./MediaPlayerUpload";
 import { toast } from "sonner";
+
 interface LevelMediaPlayerProps {
   files: AudioFile[];
   onFilesAdded?: (files: AudioFile[]) => void;
@@ -35,46 +37,25 @@ interface LevelMediaPlayerProps {
   autoPlayFile?: AudioFile | null;
   onAutoPlayComplete?: () => void;
 }
+
 const INITIAL_EQ_BANDS: EQBand[] = [
-  {
-    frequency: 64,
-    gain: 0,
-  },
-  {
-    frequency: 125,
-    gain: 0,
-  },
-  {
-    frequency: 250,
-    gain: 0,
-  },
-  {
-    frequency: 500,
-    gain: 0,
-  },
-  {
-    frequency: 1000,
-    gain: 0,
-  },
-  {
-    frequency: 2000,
-    gain: 0,
-  },
-  {
-    frequency: 4000,
-    gain: 0,
-  },
-  {
-    frequency: 8000,
-    gain: 0,
-  },
-]; // Removed 32Hz and 16000Hz as they don't affect audio
+  { frequency: 64, gain: 0 },
+  { frequency: 125, gain: 0 },
+  { frequency: 250, gain: 0 },
+  { frequency: 500, gain: 0 },
+  { frequency: 1000, gain: 0 },
+  { frequency: 2000, gain: 0 },
+  { frequency: 4000, gain: 0 },
+  { frequency: 8000, gain: 0 },
+];
+
 const INITIAL_COMPRESSOR: CompressorSettings = {
-  threshold: -1.5, // Within 0 to -3dB range
-  ratio: 2.5, // Within 1 to 4:1 range
-  attack: 0.001, // 1ms - within 0.1ms to 3ms range
-  release: 0.0015, // 1.5ms - within 0ms to 3ms range
+  threshold: -1.5,
+  ratio: 2.5,
+  attack: 0.001,
+  release: 0.0015,
 };
+
 export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
   files,
   onFilesAdded,
@@ -89,9 +70,10 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
   const [volume, setVolume] = useState(0.8);
   const [loop, setLoop] = useState(false);
   const [eqBands, setEqBands] = useState<EQBand[]>(INITIAL_EQ_BANDS);
-  const [compressorSettings, setCompressorSettings] =
-    useState<CompressorSettings>(INITIAL_COMPRESSOR);
+  const [compressorSettings, setCompressorSettings] = useState<CompressorSettings>(INITIAL_COMPRESSOR);
   const [gainReduction, setGainReduction] = useState(0);
+  const [visualizerMode, setVisualizerMode] = useState<VisualizerMode>('bars');
+
   const waveformRef = useRef<HTMLDivElement>(null);
   const wavesurferRef = useRef<WaveSurfer | null>(null);
   const eqFiltersRef = useRef<BiquadFilterNode[]>([]);
@@ -133,7 +115,7 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
     };
   }, [loop]);
 
-  // File upload handler with proper analysis
+  // File upload handler
   const handleFilesAdded = useCallback(
     (newFiles: AudioFile[]) => {
       if (onFilesAdded) {
@@ -149,32 +131,28 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
     const audioContext = getAudioContext();
     if (!audioContext) return;
 
-    // Create analyser
     if (!analyserNodeRef.current) {
       const analyser = audioContext.createAnalyser();
       analyser.fftSize = 2048;
       analyserNodeRef.current = analyser;
     }
 
-    // Create gain node
     if (!gainNodeRef.current) {
       const gain = audioContext.createGain();
       gain.gain.value = volume;
       gainNodeRef.current = gain;
     }
 
-    // Create compressor with DRC constraints
     if (!compressorNodeRef.current) {
       const compressor = audioContext.createDynamicsCompressor();
       compressor.threshold.value = compressorSettings.threshold;
       compressor.ratio.value = compressorSettings.ratio;
       compressor.attack.value = compressorSettings.attack;
       compressor.release.value = compressorSettings.release;
-      compressor.knee.value = 0; // Knee removed - hard knee compression
+      compressor.knee.value = 0;
       compressorNodeRef.current = compressor;
     }
 
-    // Create EQ filters
     if (eqFiltersRef.current.length === 0) {
       eqBands.forEach((band, index) => {
         const filter = audioContext.createBiquadFilter();
@@ -193,7 +171,7 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
     }
   }, []);
 
-  // Auto-play file when passed from track list
+  // Auto-play file
   useEffect(() => {
     if (autoPlayFile && autoPlayFile.id !== currentFile?.id) {
       console.log("Auto-playing file from track list:", autoPlayFile.name);
@@ -218,17 +196,14 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
           await wavesurferRef.current!.load(url);
         }
 
-        // Connect Web Audio API nodes
         const audioContext = getAudioContext();
         if (audioContext && wavesurferRef.current) {
           const backend = wavesurferRef.current.getMediaElement();
           if (backend && !audioSourceRef.current) {
-            // Create source only once per element
             try {
               const source = audioContext.createMediaElementSource(backend);
               audioSourceRef.current = source;
 
-              // Connect: source -> EQ filters -> compressor -> gain -> analyser -> destination
               let currentNode: AudioNode = source;
               eqFiltersRef.current.forEach((filter) => {
                 currentNode.connect(filter);
@@ -261,43 +236,28 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
     loadAudio();
   }, [currentFile]);
 
-  // Update EQ in real-time
+  // Update EQ
   useEffect(() => {
     const audioContext = getAudioContext();
     if (!audioContext) return;
     eqFiltersRef.current.forEach((filter, index) => {
       if (eqBands[index]) {
-        filter.gain.setValueAtTime(
-          eqBands[index].gain,
-          audioContext.currentTime
-        );
+        filter.gain.setValueAtTime(eqBands[index].gain, audioContext.currentTime);
       }
     });
   }, [eqBands]);
 
-  // Update compressor in real-time with DRC constraints
+  // Update compressor
   useEffect(() => {
     if (!compressorNodeRef.current) return;
     const audioContext = getAudioContext();
     if (!audioContext) return;
     const comp = compressorNodeRef.current;
-    comp.threshold.setValueAtTime(
-      compressorSettings.threshold,
-      audioContext.currentTime
-    );
-    comp.ratio.setValueAtTime(
-      compressorSettings.ratio,
-      audioContext.currentTime
-    );
-    comp.attack.setValueAtTime(
-      compressorSettings.attack,
-      audioContext.currentTime
-    );
-    comp.release.setValueAtTime(
-      compressorSettings.release,
-      audioContext.currentTime
-    );
-    comp.knee.setValueAtTime(0, audioContext.currentTime); // Always 0 - hard knee
+    comp.threshold.setValueAtTime(compressorSettings.threshold, audioContext.currentTime);
+    comp.ratio.setValueAtTime(compressorSettings.ratio, audioContext.currentTime);
+    comp.attack.setValueAtTime(compressorSettings.attack, audioContext.currentTime);
+    comp.release.setValueAtTime(compressorSettings.release, audioContext.currentTime);
+    comp.knee.setValueAtTime(0, audioContext.currentTime);
   }, [compressorSettings]);
 
   // Update volume
@@ -318,6 +278,7 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
     }, 100);
     return () => clearInterval(interval);
   }, [isPlaying]);
+
   const handlePlayPause = async () => {
     if (!wavesurferRef.current) return;
     try {
@@ -334,6 +295,7 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
       toast.error("Playback failed");
     }
   };
+
   const handleDeleteFile = () => {
     if (!currentFile) return;
     if (onFileDelete) {
@@ -343,42 +305,45 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
     setIsPlaying(false);
     toast.success(`Deleted: ${currentFile.name}`);
   };
+
   const handleSkipBackward = () => {
     if (wavesurferRef.current) {
       const newTime = Math.max(0, currentTime - 10);
       wavesurferRef.current.seekTo(newTime / duration);
     }
   };
+
   const handleSkipForward = () => {
     if (wavesurferRef.current) {
       const newTime = Math.min(duration, currentTime + 10);
       wavesurferRef.current.seekTo(newTime / duration);
     }
   };
+
   const handleEQBandChange = (index: number, gain: number) => {
     const newBands = [...eqBands];
-    newBands[index] = {
-      ...newBands[index],
-      gain,
-    };
+    newBands[index] = { ...newBands[index], gain };
     setEqBands(newBands);
   };
+
   const handleEQReset = () => {
     setEqBands(INITIAL_EQ_BANDS);
     toast.success("EQ reset to flat");
   };
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
+
   return (
     <div className="space-y-6 p-6">
-      {/* Upload Zone with Terms & Conditions */}
+      {/* Upload Zone */}
       <MediaPlayerUpload onFilesAdded={handleFilesAdded} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Player Section */}
+        {/* Left Column: Waveform & EQ */}
         <div className="lg:col-span-2 space-y-6">
           {/* Waveform Player */}
           <Card className="bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 p-6">
@@ -399,19 +364,16 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
               )}
             </div>
 
-            {/* Waveform */}
             <div
               ref={waveformRef}
               className="mb-6 rounded-lg overflow-hidden border border-slate-700"
             />
 
-            {/* Timeline */}
             <div className="flex items-center justify-between text-sm text-slate-400 mb-4">
               <span className="font-mono">{formatTime(currentTime)}</span>
               <span className="font-mono">{formatTime(duration)}</span>
             </div>
 
-            {/* Playback Controls */}
             <div className="flex items-center justify-center gap-4 mb-6">
               <Button
                 variant="outline"
@@ -430,11 +392,7 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
                 disabled={!currentFile}
                 className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 h-14 w-14"
               >
-                {isPlaying ? (
-                  <Pause className="h-6 w-6" />
-                ) : (
-                  <Play className="h-6 w-6 ml-1" />
-                )}
+                {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6 ml-1" />}
               </Button>
 
               <Button
@@ -451,15 +409,12 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
                 variant="outline"
                 size="icon"
                 onClick={() => setLoop(!loop)}
-                className={`${
-                  loop ? "bg-cyan-500 text-white" : "bg-slate-800 text-white"
-                } border-slate-600 hover:bg-slate-700`}
+                className={`${loop ? "bg-cyan-500 text-white" : "bg-slate-800 text-white"} border-slate-600 hover:bg-slate-700`}
               >
                 <Repeat className="h-5 w-5" />
               </Button>
             </div>
 
-            {/* Volume Control */}
             <div className="flex items-center gap-4">
               <Volume2 className="h-5 w-5 text-cyan-400" />
               <Slider
@@ -482,27 +437,40 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
             onBandChange={handleEQBandChange}
             onReset={handleEQReset}
           />
+        </div>
 
-          {/* Compressor */}
+        {/* Right Column: Compressor, Playlist, Visualizer Selector */}
+        <div className="space-y-6">
+          {/* Compressor (Moved from Left) */}
           <DynamicsCompressorControls
             settings={compressorSettings}
             gainReduction={gainReduction}
             onSettingsChange={(settings) =>
-              setCompressorSettings({
-                ...compressorSettings,
-                ...settings,
-              })
+              setCompressorSettings({ ...compressorSettings, ...settings })
             }
           />
-        </div>
 
-        {/* Right Sidebar */}
-        <div className="space-y-6">
-          {/* Visualizer */}
-          <AudioVisualizer
-            analyserNode={analyserNodeRef.current}
-            isPlaying={isPlaying}
-          />
+          {/* Visualizer Selector */}
+          <Card className="bg-slate-900/90 border-slate-700 p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-sm font-bold text-cyan-400 flex items-center gap-2">
+                <Activity className="h-4 w-4" />
+                Visualizer Style
+              </h4>
+              <Select value={visualizerMode} onValueChange={(v) => setVisualizerMode(v as VisualizerMode)}>
+                <SelectTrigger className="w-[140px] h-8 text-xs bg-slate-800 border-slate-600">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bars">Bars</SelectItem>
+                  <SelectItem value="wave">Wave</SelectItem>
+                  <SelectItem value="circular">Circular</SelectItem>
+                  <SelectItem value="particles">Particles</SelectItem>
+                  <SelectItem value="spectrogram">Spectrogram</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </Card>
 
           {/* Playlist */}
           <PlaylistPanel
@@ -511,13 +479,16 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
             onFileSelect={setCurrentFile}
             onFileDelete={onFileDelete}
           />
-
-          {/* Fun Spectrum Visualizer */}
-          <FunSpectrumVisualizer
-            analyserNode={analyserNodeRef.current}
-            isPlaying={isPlaying}
-          />
         </div>
+      </div>
+
+      {/* Bottom Full-Width Visualizer */}
+      <div className="mt-6">
+        <VisualizerDisplay
+          analyserNode={analyserNodeRef.current}
+          isPlaying={isPlaying}
+          mode={visualizerMode}
+        />
       </div>
     </div>
   );

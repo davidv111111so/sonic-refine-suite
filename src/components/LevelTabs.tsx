@@ -108,6 +108,16 @@ export const LevelTabs = ({
     if (filesToCalculate.length === 0) return 0;
 
     const totalDuration = filesToCalculate.reduce((acc, file) => acc + (file.duration || 0), 0);
+    const totalOriginalSize = filesToCalculate.reduce((acc, file) => acc + file.size, 0);
+
+    // If we don't have duration, we can't accurately calculate WAV size, so we use ratios based on original size
+    if (totalDuration === 0) {
+      const format = processingSettings.outputFormat.toLowerCase();
+      if (format === 'wav') return totalOriginalSize * 10; // MP3 to WAV is roughly 10x
+      if (format === 'flac') return totalOriginalSize * 6; // MP3 to FLAC is roughly 6x
+      return totalOriginalSize; // MP3 to MP3
+    }
+
     const channels = 2;
     const format = processingSettings.outputFormat.toLowerCase();
 
@@ -133,7 +143,7 @@ export const LevelTabs = ({
       }
       default:
         // Unknown format: use original size
-        estimated = filesToCalculate.reduce((acc, file) => acc + file.size, 0);
+        estimated = totalOriginalSize;
     }
 
     // Add small overhead for headers/metadata
@@ -173,6 +183,7 @@ export const LevelTabs = ({
       batchMode: false
     }));
   };
+
   const handleLoadProcessingSettings = (settings: ProcessingSettings) => {
     setProcessingSettings(settings);
     if (settings.eqBands) {
@@ -182,6 +193,7 @@ export const LevelTabs = ({
     }
     setEqEnabled(settings.enableEQ);
   };
+
   const handleFilesUploaded = async (files: AudioFile[]) => {
     // Limit to 5 files at a time for optimal performance
     if (files.length > 5) {

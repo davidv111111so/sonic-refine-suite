@@ -36,6 +36,7 @@ export const IndividualModeQueue = ({
           </CardTitle>
           {selectedFiles.length > 0 && (
             <button
+              type="button"
               onClick={onClearAll}
               className="text-xs text-red-400 hover:text-red-300 font-bold hover:underline transition-colors"
             >
