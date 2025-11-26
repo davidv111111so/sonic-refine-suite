@@ -12,6 +12,7 @@ import {
   TrendingUp,
   Sparkles,
   X,
+  CheckCircle,
 } from "lucide-react";
 import { useUserSubscription } from "@/hooks/useUserSubscription";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -830,6 +831,11 @@ export const AIMasteringTab = () => {
                             }`}
                         >
                           <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-all duration-300" />
+                          {selectedPreset === preset.id && activeMode === "preset" && (
+                            <div className="absolute top-2 right-2 z-20 bg-white/20 backdrop-blur-sm rounded-full p-1">
+                              <CheckCircle className="h-4 w-4 text-white" />
+                            </div>
+                          )}
                           <div className="relative z-10 flex flex-col items-center gap-1.5">
                             <span className="text-2xl">{preset.icon}</span>
                             <span className="text-xs drop-shadow-lg leading-tight">

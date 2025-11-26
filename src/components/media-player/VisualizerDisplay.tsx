@@ -1,10 +1,22 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, Suspense } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Maximize, Minimize, Activity } from 'lucide-react';
 
-export type VisualizerMode = 'bars' | 'wave' | 'circular' | 'particles' | 'spectrogram';
+// Lazy load the 3D visualizer to avoid bundle bloat and potential crashes affecting the main thread
+const Visualizer3D = React.lazy(() => import('../visualizer-3d/Visualizer3D'));
+
+export type VisualizerMode =
+    | 'bars'
+    | 'wave'
+    | 'circular'
+    | 'particles'
+    | 'spectrogram'
+    | 'terrain3d'
+    | 'particles3d'
+    | 'tunnel3d'
+    | 'sphere3d';
 
 interface VisualizerDisplayProps {
     analyserNode: AnalyserNode | null;
@@ -24,6 +36,8 @@ export const VisualizerDisplay: React.FC<VisualizerDisplayProps> = ({
     const animationRef = useRef<number>();
     const particlesRef = useRef<any[]>([]);
     const [isFullscreen, setIsFullscreen] = useState(false);
+
+    const is3DMode = mode.endsWith('3d');
 
     // Handle fullscreen changes
     useEffect(() => {
@@ -46,8 +60,9 @@ export const VisualizerDisplay: React.FC<VisualizerDisplayProps> = ({
         }
     };
 
+    // 2D Canvas Logic
     useEffect(() => {
-        if (!canvasRef.current || !analyserNode) return;
+        if (is3DMode || !canvasRef.current || !analyserNode) return;
 
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
@@ -191,11 +206,8 @@ export const VisualizerDisplay: React.FC<VisualizerDisplayProps> = ({
                     ctx.globalAlpha = 1;
                 });
             } else if (mode === 'spectrogram') {
-                // Simple spectrogram effect (scrolling bars)
-                // For simplicity in this canvas implementation, we'll just do a mirrored spectrum
                 analyserNode.getByteFrequencyData(dataArray);
                 const barWidth = (width / bufferLength) * 2;
-                let x = width / 2;
 
                 for (let i = 0; i < bufferLength; i++) {
                     const barHeight = (dataArray[i] / 255) * (height / 2);
@@ -220,24 +232,33 @@ export const VisualizerDisplay: React.FC<VisualizerDisplayProps> = ({
                 cancelAnimationFrame(animationRef.current);
             }
         };
-    }, [analyserNode, isPlaying, mode]);
+    }, [analyserNode, isPlaying, mode, is3DMode]);
 
     return (
         <Card
             ref={containerRef}
             className={`bg-black/90 border-slate-800 p-0 overflow-hidden relative group ${isFullscreen ? 'rounded-none border-0' : 'h-64 w-full'}`}
         >
-            <canvas
-                ref={canvasRef}
-                className="w-full h-full block"
-                style={{ width: '100%', height: '100%' }}
-            />
+            {is3DMode ? (
+                <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-cyan-500">Loading 3D Engine...</div>}>
+                    <Visualizer3D
+                        mode={mode.replace('3d', '') as any}
+                        analyser={analyserNode}
+                    />
+                </Suspense>
+            ) : (
+                <canvas
+                    ref={canvasRef}
+                    className="w-full h-full block"
+                    style={{ width: '100%', height: '100%' }}
+                />
+            )}
 
             {/* Overlay Controls */}
-            <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-start opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-b from-black/50 to-transparent">
+            <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-start opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-b from-black/50 to-transparent pointer-events-none">
                 {/* Visualizer Selector */}
                 {onModeChange && (
-                    <div className="flex items-center gap-2 bg-black/60 px-3 py-2 rounded-lg backdrop-blur-sm border border-cyan-500/30">
+                    <div className="flex items-center gap-2 bg-black/60 px-3 py-2 rounded-lg backdrop-blur-sm border border-cyan-500/30 pointer-events-auto">
                         <Activity className="h-4 w-4 text-cyan-400" />
                         <Select value={mode} onValueChange={(v) => onModeChange(v as VisualizerMode)}>
                             <SelectTrigger className="w-[130px] h-7 text-xs bg-slate-800/80 border-purple-500/30 text-slate-300 shadow-lg">
@@ -249,6 +270,10 @@ export const VisualizerDisplay: React.FC<VisualizerDisplayProps> = ({
                                 <SelectItem value="circular">Circular</SelectItem>
                                 <SelectItem value="particles">Particles</SelectItem>
                                 <SelectItem value="spectrogram">Spectrogram</SelectItem>
+                                <SelectItem value="terrain3d">3D Terrain</SelectItem>
+                                <SelectItem value="particles3d">3D Particles</SelectItem>
+                                <SelectItem value="tunnel3d">3D Tunnel</SelectItem>
+                                <SelectItem value="sphere3d">3D Sphere</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -259,7 +284,7 @@ export const VisualizerDisplay: React.FC<VisualizerDisplayProps> = ({
                     variant="ghost"
                     size="icon"
                     onClick={toggleFullscreen}
-                    className="text-white hover:bg-white/20 bg-black/40 h-8 w-8 backdrop-blur-sm border border-white/10"
+                    className="text-white hover:bg-white/20 bg-black/40 h-8 w-8 backdrop-blur-sm border border-white/10 pointer-events-auto"
                     title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
                 >
                     {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}

@@ -8,7 +8,6 @@ import { EnhancedTrackManagement } from '@/components/enhancement/EnhancedTrackM
 import { DynamicOutputSettings } from '@/components/enhancement/DynamicOutputSettings';
 import { InteractiveProcessingOptions } from '@/components/enhancement/InteractiveProcessingOptions';
 import { FiveBandEqualizer } from '@/components/enhancement/FiveBandEqualizer';
-import { AdvancedEQPresetsWithCompensation } from '@/components/enhancement/AdvancedEQPresetsWithCompensation';
 import { FileInfoModal } from '@/components/FileInfoModal';
 import { AudioFile } from '@/types/audio';
 import { ProcessingSettings } from '@/utils/audioProcessor';
@@ -328,6 +327,10 @@ export const LevelTabs = ({
 
     console.log("🚀 Enhancing files with settings:", finalSettings);
     onEnhanceFiles(finalSettings);
+
+    // Reset selection after enhancement starts
+    setSelectedFilesForIndividual([]);
+
     setActiveTab('level');
     toast.success(language === 'ES' ? 'Procesamiento iniciado' : 'Processing started');
   };
@@ -529,6 +532,7 @@ export const LevelTabs = ({
             }}
             autoPlayFile={autoPlayFile}
             onAutoPlayComplete={() => setAutoPlayFile(null)}
+            onClearAll={onClearAll}
           />
         </TabsContent>
       </Tabs>

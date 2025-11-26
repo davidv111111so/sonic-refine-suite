@@ -36,6 +36,7 @@ interface LevelMediaPlayerProps {
   onFileDelete?: (fileId: string) => void;
   autoPlayFile?: AudioFile | null;
   onAutoPlayComplete?: () => void;
+  onClearAll?: () => void;
 }
 
 const INITIAL_EQ_BANDS: EQBand[] = [
@@ -62,6 +63,7 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
   onFileDelete,
   autoPlayFile,
   onAutoPlayComplete,
+  onClearAll,
 }) => {
   const [currentFile, setCurrentFile] = useState<AudioFile | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -456,6 +458,7 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
             currentFileId={currentFile?.id || null}
             onFileSelect={setCurrentFile}
             onFileDelete={onFileDelete}
+            onClearAll={onClearAll}
           />
         </div>
       </div>

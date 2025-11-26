@@ -46,7 +46,8 @@ const Index = () => {
     setAudioFiles,
     handleFilesUploaded,
     handleRemoveFile,
-    handleUpdateFile
+    handleUpdateFile,
+    handleClearAllFiles
   } = useFileManagement();
   const {
     processAudioFile,
@@ -89,6 +90,7 @@ const Index = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
+
   useEffect(() => {
     if ('Notification' in window) {
       Notification.requestPermission().then(permission => {
@@ -96,6 +98,7 @@ const Index = () => {
       });
     }
   }, []);
+
   const handleEnhanceFiles = useCallback(async (settings: any) => {
     setIsProcessing(true);
     // Filter based on fileIdsToProcess if provided, otherwise process all uploaded files
@@ -298,6 +301,7 @@ const Index = () => {
       });
     }
   };
+
   const stats: AudioStats = {
     total: audioFiles.length + enhancedHistory.length,
     uploaded: audioFiles.filter(f => f.status === 'uploaded').length,
@@ -317,13 +321,9 @@ const Index = () => {
       return;
     }
     if (window.confirm(`Are you sure you want to remove ALL ${audioFiles.length} files from the list?`)) {
-      setAudioFiles([]);
-      toast({
-        title: "All files cleared",
-        description: `${audioFiles.length} files have been removed from the list.`
-      });
+      handleClearAllFiles();
     }
-  }, [audioFiles, toast, setAudioFiles]);
+  }, [audioFiles, toast, handleClearAllFiles]);
 
   // Clear downloaded files functionality
   const handleClearDownloaded = useCallback(() => {
