@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Music,
   Upload,
@@ -13,22 +13,22 @@ import {
   Sparkles,
   X,
   CheckCircle,
+  Zap,
+  FileAudio
 } from "lucide-react";
 import { useUserSubscription } from "@/hooks/useUserSubscription";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { saveAs } from "file-saver";
 import { supabase } from "@/integrations/supabase/client";
 import {
   MasteringAdvancedSettings,
   MasteringSettings,
 } from "./MasteringAdvancedSettings";
-// AdminReferenceManager removed - use genre selector to upload references
 import {
   mapSettingsToEnhancedBackend,
   validateBackendParams,
@@ -69,6 +69,7 @@ export const AIMasteringTab = () => {
     }
   });
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [audioAnalysis, setAudioAnalysis] = useState<AudioAnalysisData | null>(null);
 
   const handleAnalyze = async (type: 'target' | 'reference') => {
     const file = type === 'target' ? targetFile : referenceFile;
@@ -89,6 +90,7 @@ export const AIMasteringTab = () => {
       setIsAnalyzing(false);
     }
   };
+
   const [selectedPreset, setSelectedPreset] = useState<string | null>(() => {
     try {
       const saved = sessionStorage.getItem("aiMastering_selectedPreset");
@@ -110,35 +112,75 @@ export const AIMasteringTab = () => {
   const [showGuide, setShowGuide] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [audioAnalysis, setAudioAnalysis] = useState<AudioAnalysisData | null>(null);
   const [masteredBlob, setMasteredBlob] = useState<Blob | null>(null);
   const [masteredFileName, setMasteredFileName] = useState<string>("mastered_track.wav");
 
-  // Helper function to trigger file download
-  // Helper function to trigger file download
+  // Admin state
+  const [presetStatuses, setPresetStatuses] = useState<Record<string, boolean>>({});
+  const adminInputRef = useRef<HTMLInputElement>(null);
+  const [adminTargetPreset, setAdminTargetPreset] = useState<string | null>(null);
+
+  const checkPresetStatuses = async () => {
+    const statuses: Record<string, boolean> = {};
+    for (const preset of MASTERING_PRESETS) {
+      const track = await getReferenceTrack(preset.id);
+      statuses[preset.id] = !!track;
+    }
+    setPresetStatuses(statuses);
+  };
+
+  useEffect(() => {
+    checkPresetStatuses();
+  }, []);
+
+  const handleAdminUploadClick = (e: React.MouseEvent, presetId: string) => {
+    e.stopPropagation();
+    setAdminTargetPreset(presetId);
+    adminInputRef.current?.click();
+  };
+
+  const handleAdminFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && adminTargetPreset) {
+      try {
+        await saveReferenceTrack(adminTargetPreset, file);
+        toast.success(`Reference saved for ${adminTargetPreset}`);
+        checkPresetStatuses();
+      } catch (error) {
+        console.error("Failed to save reference:", error);
+        toast.error("Failed to save reference track");
+      }
+    }
+    if (e.target) e.target.value = "";
+    setAdminTargetPreset(null);
+  };
+
+  // Helper function to trigger file download using native anchor tag
   const downloadMasteredFile = (blob: Blob, fileName: string) => {
     console.log(`⬇️ Downloading file: ${fileName}, size: ${blob.size}, type: ${blob.type}`);
 
-    // Force audio/wav type if missing or incorrect to ensure media players recognize it
+    // Force audio/wav type if missing or incorrect
     const wavBlob = blob.type === 'audio/wav' ? blob : new Blob([blob], { type: 'audio/wav' });
 
-    // Use FileSaver.js for robust cross-browser download support
-    try {
-      saveAs(wavBlob, fileName);
-      console.log("✅ FileSaver.js saveAs triggered successfully");
-    } catch (error) {
-      console.error("❌ FileSaver.js failed, falling back to anchor tag:", error);
+    // Create a URL for the blob
+    const url = URL.createObjectURL(wavBlob);
 
-      // Fallback to native anchor tag method if FileSaver fails
-      const url = URL.createObjectURL(wavBlob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
+    // Create a temporary anchor element
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName; // This attribute forces download
+    link.style.display = "none";
+
+    // Append to body, click, and remove
+    document.body.appendChild(link);
+    link.click();
+
+    // Cleanup
+    setTimeout(() => {
       document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(url), 100);
-    }
+      URL.revokeObjectURL(url);
+      console.log("✅ Download triggered and cleanup complete");
+    }, 100);
   };
 
   // Helper function to convert MasteringSettings to MasteringSettingsData
@@ -173,6 +215,7 @@ export const AIMasteringTab = () => {
       ditheringMethod: settings.dithering_method,
     };
   };
+
   const [advancedSettings, setAdvancedSettings] = useState<MasteringSettings>(
     () => {
       try {
@@ -237,200 +280,80 @@ export const AIMasteringTab = () => {
           output_bits: "32 (IEEE float)",
           output_channels: 2,
           dithering_method: "TPDF",
+          output_format: "wav"
         };
       }
     }
   );
   const targetInputRef = useRef<HTMLInputElement>(null);
   const referenceInputRef = useRef<HTMLInputElement>(null);
-  const BACKEND_URL =
-    "https://spectrum-backend-857351913435.us-central1.run.app";
 
   // Save state to sessionStorage whenever it changes
-  React.useEffect(() => {
+  useEffect(() => {
     try {
       if (targetFileInfo) {
-        sessionStorage.setItem(
-          "aiMastering_targetFile",
-          JSON.stringify(targetFileInfo)
-        );
+        sessionStorage.setItem("aiMastering_targetFile", JSON.stringify(targetFileInfo));
       } else {
         sessionStorage.removeItem("aiMastering_targetFile");
       }
-    } catch (e) {
-      console.error("Failed to save target file info:", e);
-    }
+    } catch (e) { console.error(e); }
   }, [targetFileInfo]);
-  React.useEffect(() => {
+
+  useEffect(() => {
     try {
       if (referenceFileInfo) {
-        sessionStorage.setItem(
-          "aiMastering_referenceFile",
-          JSON.stringify(referenceFileInfo)
-        );
+        sessionStorage.setItem("aiMastering_referenceFile", JSON.stringify(referenceFileInfo));
       } else {
         sessionStorage.removeItem("aiMastering_referenceFile");
       }
-    } catch (e) {
-      console.error("Failed to save reference file info:", e);
-    }
+    } catch (e) { console.error(e); }
   }, [referenceFileInfo]);
-  React.useEffect(() => {
+
+  useEffect(() => {
     try {
       if (selectedPreset) {
-        sessionStorage.setItem(
-          "aiMastering_selectedPreset",
-          JSON.stringify(selectedPreset)
-        );
+        sessionStorage.setItem("aiMastering_selectedPreset", JSON.stringify(selectedPreset));
       } else {
         sessionStorage.removeItem("aiMastering_selectedPreset");
       }
-    } catch (e) {
-      console.error("Failed to save preset:", e);
-    }
+    } catch (e) { console.error(e); }
   }, [selectedPreset]);
-  React.useEffect(() => {
+
+  useEffect(() => {
     try {
-      sessionStorage.setItem(
-        "aiMastering_activeMode",
-        JSON.stringify(activeMode)
-      );
-    } catch (e) {
-      console.error("Failed to save mode:", e);
-    }
+      sessionStorage.setItem("aiMastering_activeMode", JSON.stringify(activeMode));
+    } catch (e) { console.error(e); }
   }, [activeMode]);
-  React.useEffect(() => {
+
+  useEffect(() => {
     try {
-      sessionStorage.setItem(
-        "aiMastering_advancedSettings",
-        JSON.stringify(advancedSettings)
-      );
-    } catch (e) {
-      console.error("Failed to save settings:", e);
-    }
+      sessionStorage.setItem("aiMastering_advancedSettings", JSON.stringify(advancedSettings));
+    } catch (e) { console.error(e); }
   }, [advancedSettings]);
+
   const MASTERING_PRESETS = [
-    {
-      id: "rock",
-      displayName: "Rock",
-      icon: "🎸",
-      gradient: "from-red-500 to-orange-600",
-    },
-    {
-      id: "indie-rock",
-      displayName: "Indie Rock",
-      icon: "🎸",
-      gradient: "from-orange-500 to-red-500",
-    },
-    {
-      id: "punk-rock",
-      displayName: "Punk Rock",
-      icon: "🤘",
-      gradient: "from-red-600 to-black",
-    },
-    {
-      id: "metal",
-      displayName: "Metal",
-      icon: "⚡",
-      gradient: "from-gray-600 to-black",
-    },
-    {
-      id: "dance-pop",
-      displayName: "Dance Pop",
-      icon: "💃",
-      gradient: "from-pink-500 to-purple-500",
-    },
-    {
-      id: "drum-bass",
-      displayName: "Drum & Bass",
-      icon: "🥁",
-      gradient: "from-blue-600 to-purple-600",
-    },
-    {
-      id: "dubstep",
-      displayName: "Dubstep",
-      icon: "🔊",
-      gradient: "from-green-600 to-blue-600",
-    },
-    {
-      id: "edm",
-      displayName: "EDM",
-      icon: "🎛️",
-      gradient: "from-cyan-500 to-blue-600",
-    },
-    {
-      id: "house",
-      displayName: "House",
-      icon: "🏠",
-      gradient: "from-purple-500 to-pink-500",
-    },
-    {
-      id: "techno",
-      displayName: "Techno",
-      icon: "🤖",
-      gradient: "from-gray-500 to-blue-600",
-    },
-    {
-      id: "hip-hop",
-      displayName: "Hip-Hop",
-      icon: "🎤",
-      gradient: "from-yellow-600 to-red-600",
-    },
-    {
-      id: "reggae",
-      displayName: "Reggae",
-      icon: "🌴",
-      gradient: "from-green-500 to-yellow-500",
-    },
-    {
-      id: "reggaeton",
-      displayName: "Reggaeton",
-      icon: "🔥",
-      gradient: "from-red-500 to-yellow-500",
-    },
-    {
-      id: "rnb-soul",
-      displayName: "Rnb/Soul",
-      icon: "💜",
-      gradient: "from-purple-600 to-pink-600",
-    },
-    {
-      id: "trap",
-      displayName: "Trap",
-      icon: "💎",
-      gradient: "from-black to-red-600",
-    },
-    {
-      id: "pop",
-      displayName: "Pop",
-      icon: "🎵",
-      gradient: "from-pink-400 to-purple-400",
-    },
-    {
-      id: "kpop-jpop",
-      displayName: "K-pop/J-pop",
-      icon: "🌸",
-      gradient: "from-pink-300 to-blue-300",
-    },
-    {
-      id: "latin-pop",
-      displayName: "Latin Pop",
-      icon: "💃",
-      gradient: "from-yellow-500 to-red-600",
-    },
-    {
-      id: "country",
-      displayName: "Country",
-      icon: "🤠",
-      gradient: "from-amber-600 to-yellow-500",
-    },
-    {
-      id: "jazz",
-      displayName: "Jazz",
-      icon: "🎷",
-      gradient: "from-purple-500 to-indigo-600",
-    },
+    { id: "rock", displayName: "Rock", icon: "🎸", gradient: "from-red-500 to-orange-600" },
+    { id: "indie-rock", displayName: "Indie Rock", icon: "🎸", gradient: "from-orange-500 to-red-500" },
+    { id: "punk-rock", displayName: "Punk Rock", icon: "🤘", gradient: "from-red-600 to-black" },
+    { id: "metal", displayName: "Metal", icon: "⚡", gradient: "from-gray-600 to-black" },
+    { id: "dance-pop", displayName: "Dance Pop", icon: "💃", gradient: "from-pink-500 to-purple-500" },
+    { id: "drum-bass", displayName: "Drum & Bass", icon: "🥁", gradient: "from-blue-600 to-purple-600" },
+    { id: "dubstep", displayName: "Dubstep", icon: "🔊", gradient: "from-green-600 to-blue-600" },
+    { id: "edm", displayName: "EDM", icon: "🎛️", gradient: "from-cyan-500 to-blue-600" },
+    { id: "house", displayName: "House", icon: "🏠", gradient: "from-purple-500 to-pink-500" },
+    { id: "techno", displayName: "Techno", icon: "🤖", gradient: "from-gray-500 to-blue-600" },
+    { id: "hip-hop", displayName: "Hip-Hop", icon: "🎤", gradient: "from-yellow-600 to-red-600" },
+    { id: "reggae", displayName: "Reggae", icon: "🌴", gradient: "from-green-500 to-yellow-500" },
+    { id: "reggaeton", displayName: "Reggaeton", icon: "🔥", gradient: "from-red-500 to-yellow-500" },
+    { id: "rnb-soul", displayName: "Rnb/Soul", icon: "💜", gradient: "from-purple-600 to-pink-600" },
+    { id: "trap", displayName: "Trap", icon: "💎", gradient: "from-black to-red-600" },
+    { id: "pop", displayName: "Pop", icon: "🎵", gradient: "from-pink-400 to-purple-400" },
+    { id: "kpop-jpop", displayName: "K-pop/J-pop", icon: "🌸", gradient: "from-pink-300 to-blue-300" },
+    { id: "latin-pop", displayName: "Latin Pop", icon: "💃", gradient: "from-yellow-500 to-red-600" },
+    { id: "country", displayName: "Country", icon: "🤠", gradient: "from-amber-600 to-yellow-500" },
+    { id: "jazz", displayName: "Jazz", icon: "🎷", gradient: "from-purple-500 to-indigo-600" },
   ] as const;
+
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
     type: "target" | "reference"
@@ -439,22 +362,15 @@ export const AIMasteringTab = () => {
     if (file) {
       if (type === "target") {
         setTargetFile(file);
-        setTargetFileInfo({
-          name: file.name,
-          size: file.size,
-        });
+        setTargetFileInfo({ name: file.name, size: file.size });
       } else {
         setReferenceFile(file);
-        setReferenceFileInfo({
-          name: file.name,
-          size: file.size,
-        });
+        setReferenceFileInfo({ name: file.name, size: file.size });
       }
     }
-    if (e.target) {
-      e.target.value = "";
-    }
+    if (e.target) e.target.value = "";
   };
+
   const handlePresetClick = async (presetId: string) => {
     setSelectedPreset(presetId);
     setActiveMode("preset");
@@ -465,36 +381,30 @@ export const AIMasteringTab = () => {
       const track = await getReferenceTrack(presetId);
       if (track) {
         setReferenceFile(track.file);
-        setReferenceFileInfo({
-          name: track.name,
-          size: track.size
-        });
-        toast.success("Reference track loaded", {
-          description: `Using saved reference for ${presetId}`
-        });
+        setReferenceFileInfo({ name: track.name, size: track.size });
+        toast.success("Reference track loaded", { description: `Using saved reference for ${presetId}` });
       }
     } catch (e) {
       console.error("Failed to load reference track:", e);
     }
   };
+
   const handleCustomReferenceClick = () => {
     setActiveMode("custom");
     setSelectedPreset(null);
     referenceInputRef.current?.click();
   };
+
   const handleMastering = async () => {
-    // Validate TARGET file
     if (!targetFile) {
       setError("Please select a target audio file.");
       toast.error("Please select a target audio file.");
       return;
     }
 
-    // Validate REFERENCE file (preset or custom)
     let referenceFileToUse: File | null = null;
 
     if (activeMode === "preset" && selectedPreset) {
-      // For presets, use the uploaded reference file if available
       if (!referenceFile) {
         setError(`Please upload a reference file for the ${selectedPreset} preset first.`);
         toast.error("Reference track required for mastering");
@@ -517,18 +427,10 @@ export const AIMasteringTab = () => {
 
     try {
       console.log("🚀 Starting Matchering AI Mastering...");
-      console.log("📂 Target:", targetFile.name);
-      console.log("📂 Reference:", referenceFileToUse.name);
-
-      // Map advanced settings to Matchering parameters
       const backendParams = mapSettingsToEnhancedBackend(advancedSettings);
       const validationErrors = validateBackendParams(backendParams);
+      if (validationErrors.length > 0) console.warn('⚠️ Settings validation warnings:', validationErrors);
 
-      if (validationErrors.length > 0) {
-        console.warn('⚠️ Settings validation warnings:', validationErrors);
-      }
-
-      // Use masteringService with progress tracking
       const convertedSettings = convertSettingsFormat(advancedSettings);
       const result = await masteringService.masterAudio(
         targetFile,
@@ -540,27 +442,20 @@ export const AIMasteringTab = () => {
         }
       );
 
-      // Extract blob and analysis from response
       const { blob: resultBlob, analysis } = result;
+      if (analysis) setAudioAnalysis(analysis);
 
-      // Store analysis for display
-      if (analysis) {
-        setAudioAnalysis(analysis);
-        console.log('📊 Audio Analysis received:', analysis);
-      }
+      // Sanitize filename: ensure .wav extension
+      const originalName = targetFile.name;
+      const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf('.')) || originalName;
+      const fileName = `mastered_${nameWithoutExt}.wav`;
 
-      const baseName = targetFile.name.substring(0, targetFile.name.lastIndexOf('.')) || targetFile.name;
-      const fileName = `mastered_${baseName}.wav`;
       setMasteredFileName(fileName);
-
-      // Store blob for manual download
       setMasteredBlob(resultBlob);
 
-      // Attempt auto-download
       downloadMasteredFile(resultBlob, fileName);
       toast.success("✅ Your track has been mastered with Matchering!");
 
-      // Clear files after success
       setTargetFile(null);
       setTargetFileInfo(null);
       setReferenceFile(null);
@@ -569,11 +464,8 @@ export const AIMasteringTab = () => {
       sessionStorage.removeItem("aiMastering_referenceFile");
     } catch (err) {
       let errorMsg = "An error occurred during mastering";
-      if (err instanceof Error) {
-        errorMsg = err.message;
-      } else if (typeof err === "string") {
-        errorMsg = err;
-      }
+      if (err instanceof Error) errorMsg = err.message;
+      else if (typeof err === "string") errorMsg = err;
       console.error("Mastering error:", err);
       setError(errorMsg);
       toast.error(errorMsg);
@@ -582,19 +474,21 @@ export const AIMasteringTab = () => {
       setProgress(0);
     }
   };
+
   if (loading) {
     return (
-      <Card className="bg-background/90 border-border">
+      <Card className="bg-slate-950 border-slate-800">
         <CardContent className="p-12 text-center">
-          <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">{t("status.loading")}...</p>
+          <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-cyan-500" />
+          <p className="text-slate-400">{t("status.loading")}...</p>
         </CardContent>
       </Card>
     );
   }
+
   if (!isPremium) {
     return (
-      <Card className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 border-purple-400/40 shadow-xl">
+      <Card className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 border-purple-500/30 shadow-2xl backdrop-blur-sm">
         <CardContent className="p-12 text-center space-y-6">
           <div className="flex justify-center">
             <div className="relative">
@@ -602,19 +496,15 @@ export const AIMasteringTab = () => {
               <Crown className="h-12 w-12 text-yellow-400 absolute -top-2 -right-2 animate-bounce" />
             </div>
           </div>
-
           <div className="space-y-2">
             <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-200 via-pink-200 to-blue-200 bg-clip-text text-transparent">
               {t("aiMastering.premiumFeature")}
             </h2>
-            <p className="text-slate-300 text-lg">
-              {t("aiMastering.unlockMessage")}
-            </p>
+            <p className="text-slate-300 text-lg">{t("aiMastering.unlockMessage")}</p>
           </div>
-
           <Button
             onClick={() => navigate("/auth")}
-            className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 text-white font-bold py-6 px-12 rounded-xl shadow-2xl shadow-purple-500/50 text-lg"
+            className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 text-white font-bold py-6 px-12 rounded-xl shadow-[0_0_30px_rgba(168,85,247,0.5)] text-lg transition-all hover:scale-105"
             size="lg"
           >
             <Crown className="h-6 w-6 mr-2" />
@@ -624,70 +514,116 @@ export const AIMasteringTab = () => {
       </Card>
     );
   }
+
   return (
-    <div className="min-h-screen p-4 sm:p-6 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex justify-between items-start">
+    <div className="min-h-screen p-4 sm:p-6 md:p-8 bg-transparent text-slate-200">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold mb-2 text-primary">
+            <h1 className="text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 drop-shadow-[0_0_10px_rgba(6,182,212,0.5)]">
               AI Audio Mastering
             </h1>
-            <p className="text-muted-foreground">
-              Upload your track and choose a reference to master your audio with
-              AI.
+            <p className="text-slate-400 mt-1 font-light tracking-wide">
+              Professional mastering powered by neural networks
             </p>
           </div>
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
               onClick={() => setShowGuide(true)}
-              className="flex items-center gap-2 text-stone-300"
+              className="border-slate-700 hover:border-cyan-500/50 text-slate-400 hover:text-cyan-400 hover:bg-cyan-950/30 transition-all"
             >
-              <BookOpen className="h-4 w-4" />
-              Mastering Guide
+              <BookOpen className="h-4 w-4 mr-2" />
+              Guide
             </Button>
             <Button
               variant="outline"
               onClick={() => setShowAdvancedSettings(true)}
-              className="flex items-center gap-2 text-sky-500"
+              className="border-slate-700 hover:border-purple-500/50 text-slate-400 hover:text-purple-400 hover:bg-purple-950/30 transition-all"
             >
-              <Settings className="h-4 w-4" />
-              Advanced Settings
+              <Settings className="h-4 w-4 mr-2" />
+              Settings
             </Button>
-            <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs h-7 flex items-center px-3">
-              ✨ Premium
+            <Badge className="bg-gradient-to-r from-amber-500 to-orange-600 text-white border-0 shadow-[0_0_15px_rgba(245,158,11,0.4)] px-3 py-1">
+              ✨ PRO
             </Badge>
           </div>
         </div>
 
-        {/* Advanced Settings Modal */}
-        {/* Advanced Settings Modal */}
         <MasteringAdvancedSettings
           open={showAdvancedSettings}
           onOpenChange={setShowAdvancedSettings}
           settings={advancedSettings}
           onSettingsChange={setAdvancedSettings}
         />
-
-        {/* Help Guide Modal */}
         <AIMasteringGuide open={showGuide} onOpenChange={setShowGuide} />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Column: Target and Presets */}
+          {/* Left Column: Target & Presets */}
           <div className="space-y-8">
-            <Card className="bg-card border-border">
-              <CardContent className="p-6">
-                <h2 className="text-xl font-semibold mb-4">
-                  1. Upload Your Track (Target)
-                </h2>
+            {/* Target Upload Card */}
+            <Card className="bg-slate-900/80 border-slate-800 shadow-xl backdrop-blur-sm overflow-hidden group">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 to-blue-600 opacity-50 group-hover:opacity-100 transition-opacity" />
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-xl text-slate-100">
+                  <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400">
+                    <Music className="h-5 w-5" />
+                  </div>
+                  1. Upload Target Track
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div
-                  className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
+                  className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all duration-300 ${targetFile
+                    ? "border-cyan-500/50 bg-cyan-500/5"
+                    : "border-slate-700 hover:border-cyan-500/50 hover:bg-slate-800/50"
+                    }`}
                   onClick={() => targetInputRef.current?.click()}
                 >
-                  <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-muted-foreground">
-                    Drag and drop or click to select
-                  </p>
+                  {targetFile ? (
+                    <div className="space-y-4">
+                      <div className="mx-auto w-16 h-16 rounded-full bg-cyan-500/20 flex items-center justify-center animate-pulse">
+                        <FileAudio className="h-8 w-8 text-cyan-400" />
+                      </div>
+                      <div>
+                        <p className="text-lg font-medium text-cyan-100">{targetFile.name}</p>
+                        <p className="text-sm text-cyan-400/60">{(targetFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                      </div>
+                      <div className="flex justify-center gap-3 pt-2">
+                        <Button
+                          size="sm"
+                          onClick={(e) => { e.stopPropagation(); handleAnalyze('target'); }}
+                          disabled={isAnalyzing}
+                          className="bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/30"
+                        >
+                          {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                          Analyze
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTargetFile(null);
+                            setTargetFileInfo(null);
+                            if (targetInputRef.current) targetInputRef.current.value = "";
+                          }}
+                          className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mx-auto w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                        <Upload className="h-8 w-8 text-slate-400 group-hover:text-cyan-400 transition-colors" />
+                      </div>
+                      <p className="text-slate-300 font-medium text-lg">Drop your mix here</p>
+                      <p className="text-slate-500 text-sm mt-1">WAV, MP3, FLAC (Max 150MB)</p>
+                    </>
+                  )}
                   <input
                     type="file"
                     ref={targetInputRef}
@@ -696,362 +632,241 @@ export const AIMasteringTab = () => {
                     accept=".wav,.mp3,.flac"
                   />
                 </div>
-                {targetFileInfo && !targetFile && (
-                  <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-md relative">
-                    <Button
-                      onClick={() => setTargetFileInfo(null)}
-                      variant="ghost"
-                      size="sm"
-                      className="absolute top-2 right-2 h-6 w-6 p-0 text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 rounded-full"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                    <p className="text-sm text-blue-400 mb-2 font-medium">
-                      Previous session detected:
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {targetFileInfo.name} (
-                      {(targetFileInfo.size / 1024 / 1024).toFixed(2)} MB)
-                    </p>
-                    <p className="text-xs text-yellow-400 mt-2">
-                      ⚠️ Please re-upload to process
-                    </p>
-                  </div>
-                )}
-                {targetFile && (
-                  <div className="mt-4 flex items-center justify-between bg-muted p-3 rounded-md">
-                    <div className="flex items-center flex-1 min-w-0">
-                      <Music className="h-6 w-6 mr-2 text-muted-foreground flex-shrink-0" />
-                      <span className="truncate">{targetFile.name}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAnalyze('target');
-                        }}
-                        size="sm"
-                        disabled={isAnalyzing}
-                        className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white border-0 hover:opacity-90 transition-all shadow-md hover:shadow-lg hover:scale-105"
-                      >
-                        {isAnalyzing ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <>
-                            <Sparkles className="h-3 w-3 mr-1.5" />
-                            Analyze
-                          </>
-                        )}
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          setTargetFile(null);
-                          setTargetFileInfo(null);
-                          if (targetInputRef.current) {
-                            targetInputRef.current.value = "";
-                          }
-                        }}
-                        variant="ghost"
-                        size="sm"
-                        className="text-red-400 hover:text-red-300 ml-2"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
               </CardContent>
-            </Card >
+            </Card>
 
-            <Card className="bg-card border-border">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold">
-                    2. Choose a Genre Reference (Preset)
-                  </h2>
-                  {isAdmin && (
-                    <Badge
-                      variant="outline"
-                      className="bg-purple-500/20 text-purple-300 border-purple-400"
-                    >
-                      Admin Mode
-                    </Badge>
-                  )}
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            {/* Presets Grid */}
+            <Card className="bg-slate-900/80 border-slate-800 shadow-xl backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-xl text-slate-100">
+                  <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
+                    <Zap className="h-5 w-5" />
+                  </div>
+                  2. Choose Style
+                </CardTitle>
+                {isAdmin && <Badge variant="outline" className="border-purple-500/30 text-purple-400">Admin</Badge>}
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                   {MASTERING_PRESETS.map((preset) => {
-                    const handlePresetUpload = async (
-                      e: React.ChangeEvent<HTMLInputElement>
-                    ) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-
-                      if (!file.type.startsWith("audio/")) {
-                        toast.error("Invalid file", {
-                          description:
-                            "Please upload an audio file (WAV recommended)",
-                        });
-                        return;
-                      }
-
-                      if (file.size > 150 * 1024 * 1024) {
-                        toast.error("File too large", {
-                          description: "Maximum file size is 150MB",
-                        });
-                        return;
-                      }
-
-                      try {
-                        await saveReferenceTrack(preset.id, file);
-                        toast.success("Reference uploaded", {
-                          description: `${preset.displayName} reference track saved successfully`,
-                        });
-                      } catch (error) {
-                        console.error("Upload failed:", error);
-                        toast.error("Upload failed", {
-                          description: "Failed to save reference track",
-                        });
-                      }
-
-                      if (e.target) {
-                        e.target.value = "";
-                      }
-                    };
-
-                    const inputId = `preset-upload-${preset.id}`;
-
+                    const isSelected = selectedPreset === preset.id && activeMode === "preset";
                     return (
-                      <div key={preset.id} className="relative group">
-                        <button
-                          onClick={() => handlePresetClick(preset.id)}
-                          className={`relative w-full p-3 rounded-xl text-center font-bold transition-all duration-300 overflow-hidden ${selectedPreset === preset.id &&
-                            activeMode === "preset"
-                            ? `bg-gradient-to-br ${preset.gradient} text-white shadow-2xl scale-105 ring-4 ring-white/30`
-                            : `bg-gradient-to-br ${preset.gradient} opacity-70 hover:opacity-100 hover:scale-105 text-white shadow-lg`
-                            }`}
-                        >
-                          <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-all duration-300" />
-                          {selectedPreset === preset.id && activeMode === "preset" && (
-                            <div className="absolute top-2 right-2 z-20 bg-white/20 backdrop-blur-sm rounded-full p-1">
-                              <CheckCircle className="h-4 w-4 text-white" />
-                            </div>
-                          )}
-                          <div className="relative z-10 flex flex-col items-center gap-1.5">
-                            <span className="text-2xl">{preset.icon}</span>
-                            <span className="text-xs drop-shadow-lg leading-tight">
-                              {preset.displayName}
-                            </span>
+                      <button
+                        key={preset.id}
+                        onClick={() => handlePresetClick(preset.id)}
+                        className={`relative group p-4 rounded-xl transition-all duration-300 border ${isSelected
+                          ? "bg-slate-800 border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.3)] scale-105"
+                          : "bg-slate-950/50 border-slate-800 hover:border-slate-600 hover:bg-slate-900"
+                          }`}
+                      >
+                        <div className={`absolute inset-0 rounded-xl bg-gradient-to-br ${preset.gradient} opacity-0 group-hover:opacity-10 transition-opacity`} />
+                        <div className="text-2xl mb-2 transform group-hover:scale-110 transition-transform">{preset.icon}</div>
+                        <div className={`text-sm font-medium ${isSelected ? "text-purple-300" : "text-slate-400 group-hover:text-slate-200"}`}>
+                          {preset.displayName}
+                        </div>
+                        {isSelected && (
+                          <div className="absolute top-2 right-2">
+                            <CheckCircle className="h-4 w-4 text-purple-500" />
                           </div>
-                        </button>
-                        {isAdmin && (
-                          <>
-                            <button
-                              onClick={() =>
-                                document.getElementById(inputId)?.click()
-                              }
-                              className="absolute -top-2 -right-2 z-20 p-1.5 bg-purple-600 hover:bg-purple-700 rounded-full shadow-lg border-2 border-white/50 transition-all hover:scale-110"
-                              title={`Upload reference for ${preset.displayName}`}
-                            >
-                              <Plus className="h-3 w-3 text-white" />
-                            </button>
-                            <input
-                              id={inputId}
-                              type="file"
-                              accept="audio/*"
-                              onChange={handlePresetUpload}
-                              className="hidden"
-                            />
-                          </>
                         )}
-                      </div>
+                        {isAdmin && (
+                          <div className="absolute top-2 right-2 z-20 flex gap-1">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6 rounded-full bg-slate-900/50 hover:bg-purple-500 hover:text-white"
+                              onClick={(e) => handleAdminUploadClick(e, preset.id)}
+                            >
+                              <Upload className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )}
+                        {presetStatuses[preset.id] && (
+                          <div className={`absolute ${isAdmin ? 'top-2 left-2' : 'top-2 right-2'} z-10`}>
+                            <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]" />
+                          </div>
+                        )}
+                      </button>
                     );
                   })}
                 </div>
               </CardContent>
             </Card>
-          </div >
+          </div>
 
-          {/* Right Column: Custom Reference and Action */}
-          < div className="space-y-8" >
-            <Card className="bg-card border-border h-full flex flex-col">
-              <CardContent className="p-6 flex flex-col flex-1 justify-between">
-                <div>
-                  <h2 className="text-xl font-semibold mb-4">
-                    ... Or Use Your Own Reference
-                  </h2>
-                  <div
-                    className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${activeMode === "custom"
-                      ? "border-primary"
-                      : "border-border hover:border-primary"
-                      }`}
-                    onClick={handleCustomReferenceClick}
-                  >
-                    <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                    <p className="text-muted-foreground">
-                      Select a custom reference file
-                    </p>
-                    <input
-                      type="file"
-                      ref={referenceInputRef}
-                      onChange={(e) => handleFileChange(e, "reference")}
-                      className="hidden"
-                      accept=".wav,.mp3,.flac"
-                    />
+          {/* Right Column: Reference & Actions */}
+          <div className="space-y-8">
+            {/* Custom Reference Card */}
+            <Card className="bg-slate-900/80 border-slate-800 shadow-xl backdrop-blur-sm relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-1 h-full bg-gradient-to-b from-purple-500 to-pink-600 opacity-50" />
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-xl text-slate-100">
+                  <div className="p-2 rounded-lg bg-pink-500/10 text-pink-400">
+                    <Upload className="h-5 w-5" />
                   </div>
-                  {referenceFileInfo &&
-                    !referenceFile &&
-                    activeMode === "custom" && (
-                      <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-md relative">
+                  ...Or Custom Reference
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div
+                  className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all duration-300 ${activeMode === "custom" && referenceFile
+                    ? "border-pink-500/50 bg-pink-500/5"
+                    : "border-slate-700 hover:border-pink-500/50 hover:bg-slate-800/50"
+                    }`}
+                  onClick={handleCustomReferenceClick}
+                >
+                  {activeMode === "custom" && referenceFile ? (
+                    <div className="space-y-4">
+                      <div className="mx-auto w-16 h-16 rounded-full bg-pink-500/20 flex items-center justify-center animate-pulse">
+                        <Music className="h-8 w-8 text-pink-400" />
+                      </div>
+                      <div>
+                        <p className="text-lg font-medium text-pink-100">{referenceFile.name}</p>
+                        <p className="text-sm text-pink-400/60">{(referenceFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                      </div>
+                      <div className="flex justify-center gap-3 pt-2">
                         <Button
-                          onClick={() => setReferenceFileInfo(null)}
-                          variant="ghost"
                           size="sm"
-                          className="absolute top-2 right-2 h-6 w-6 p-0 text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 rounded-full"
+                          onClick={(e) => { e.stopPropagation(); handleAnalyze('reference'); }}
+                          disabled={isAnalyzing}
+                          className="bg-pink-500/20 hover:bg-pink-500/30 text-pink-300 border border-pink-500/30"
                         >
-                          <X className="h-4 w-4" />
+                          {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                          Analyze
                         </Button>
-                        <p className="text-sm text-blue-400 mb-2 font-medium">
-                          Previous reference detected:
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {referenceFileInfo.name} (
-                          {(referenceFileInfo.size / 1024 / 1024).toFixed(2)}{" "}
-                          MB)
-                        </p>
-                        <p className="text-xs text-yellow-400 mt-2">
-                          ⚠️ Please re-upload to process
-                        </p>
-                      </div>
-                    )}
-                  {referenceFile && activeMode === "custom" && (
-                    <div className="mt-4 flex items-center justify-between bg-muted p-3 rounded-md">
-                      <div className="flex items-center flex-1 min-w-0">
-                        <Music className="h-6 w-6 mr-2 text-muted-foreground flex-shrink-0" />
-                        <span className="truncate">{referenceFile.name}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
                         <Button
+                          size="sm"
+                          variant="ghost"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleAnalyze('reference');
-                          }}
-                          size="sm"
-                          disabled={isAnalyzing}
-                          className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white border-0 hover:opacity-90 transition-all shadow-md hover:shadow-lg hover:scale-105"
-                        >
-                          {isAnalyzing ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <>
-                              <Sparkles className="h-3 w-3 mr-1.5" />
-                              Analyze
-                            </>
-                          )}
-                        </Button>
-                        <Button
-                          onClick={() => {
                             setReferenceFile(null);
                             setReferenceFileInfo(null);
-                            if (referenceInputRef.current) {
-                              referenceInputRef.current.value = "";
-                            }
+                            if (referenceInputRef.current) referenceInputRef.current.value = "";
                           }}
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-400 hover:text-red-300 ml-2"
+                          className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
                         >
-                          <X className="h-4 w-4" />
+                          Remove
                         </Button>
                       </div>
                     </div>
-                  )}
-                </div>
-
-                <div className="mt-8 space-y-4">
-                  <Button
-                    onClick={handleMastering}
-                    disabled={isProcessing || !targetFile}
-                    className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-6 rounded-lg text-lg transition-all disabled:bg-slate-500 disabled:cursor-not-allowed"
-                  >
-                    {isProcessing ? (
-                      <>
-                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                        Processing... {progress}%
-                      </>
-                    ) : (
-                      <>✨ Master My Track</>
-                    )}
-                  </Button>
-
-                  {/* Progress Bar */}
-                  {isProcessing && (
-                    <div className="space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                      <div className="flex justify-between text-sm text-muted-foreground">
-                        <span>Processing...</span>
-                        <span>{progress.toFixed(0)}%</span>
-                      </div>
-                      <Progress value={progress} className="h-2" />
-                      <p className="text-xs text-center text-muted-foreground">
-                        {progress < 30 && "Uploading to cloud storage..."}
-                        {progress >= 30 &&
-                          progress < 50 &&
-                          "File uploaded, starting AI processing..."}
-                        {progress >= 50 &&
-                          progress < 80 &&
-                          "AI is mastering your audio..."}
-                        {progress >= 80 &&
-                          progress < 100 &&
-                          "Downloading mastered file..."}
-                        {progress === 100 && "Complete!"}
-                      </p>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 py-2">
+                      <Upload className="h-8 w-8 text-slate-500" />
+                      <p className="text-slate-400 font-medium">Upload Reference Track</p>
                     </div>
                   )}
-
-                  {/* LUFS Analysis Display - Always visible if data exists or files selected */}
-                  {(audioAnalysis || targetFile || referenceFile) && (
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4 p-4 bg-card/50 rounded-lg border border-border/50">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-lg font-semibold flex items-center gap-2">
-                          <TrendingUp className="h-5 w-5 text-primary" />
-                          Loudness Analysis
-                        </h3>
-                      </div>
-
-                      {!audioAnalysis?.target && !audioAnalysis?.reference && (
-                        <p className="text-sm text-muted-foreground text-center py-4 bg-muted/30 rounded-md border border-dashed border-border">
-                          Upload files and click "Analyze" to check loudness levels before mastering.
-                        </p>
-                      )}
-
-                      <LUFSDisplay analysis={audioAnalysis || { target: null, reference: null, output: null }} />
-
-                      {masteredBlob && (
-                        <Button
-                          onClick={() => {
-                            downloadMasteredFile(masteredBlob, masteredFileName);
-                          }}
-                          className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                          variant="default"
-                        >
-                          <Download className="mr-2 h-4 w-4" />
-                          Download Mastered Track
-                        </Button>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Error Message */}
-                  {error && (
-                    <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center animate-in fade-in slide-in-from-bottom-2">
-                      {error}
-                    </div>
-                  )}
+                  <input
+                    type="file"
+                    ref={referenceInputRef}
+                    onChange={(e) => handleFileChange(e, "reference")}
+                    className="hidden"
+                    accept=".wav,.mp3,.flac"
+                  />
+                  <input
+                    type="file"
+                    ref={adminInputRef}
+                    onChange={handleAdminFileSelect}
+                    className="hidden"
+                    accept=".wav,.mp3,.flac"
+                  />
                 </div>
               </CardContent>
             </Card>
+
+            {/* Action Area */}
+            <div className="space-y-6">
+              <Button
+                onClick={handleMastering}
+                disabled={isProcessing || !targetFile || (!selectedPreset && !referenceFile)}
+                className="w-full h-24 text-2xl font-black tracking-widest uppercase bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 hover:from-cyan-500 hover:via-blue-500 hover:to-purple-500 shadow-[0_0_30px_rgba(6,182,212,0.4)] hover:shadow-[0_0_50px_rgba(6,182,212,0.6)] transition-all duration-300 rounded-2xl border-2 border-white/10 relative overflow-hidden group"
+              >
+                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                <span className="relative z-10 flex items-center justify-center gap-4 group-hover:scale-105 transition-transform">
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-8 w-8 fill-yellow-300 text-yellow-300 animate-pulse" />
+                      Master My Track
+                    </>
+                  )}
+                </span>
+              </Button>
+
+              {/* Progress & Status */}
+              {isProcessing && (
+                <Card className="bg-slate-900/90 border-slate-800 animate-in fade-in slide-in-from-bottom-4">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex justify-between text-sm font-medium text-cyan-400">
+                      <span>Processing...</span>
+                      <span>{progress.toFixed(0)}%</span>
+                    </div>
+                    <Progress value={progress} className="h-3 bg-slate-800" indicatorClassName="bg-gradient-to-r from-cyan-500 to-purple-500" />
+                    <p className="text-xs text-center text-slate-500 font-mono">
+                      {progress < 30 && "Uploading to secure cloud..."}
+                      {progress >= 30 && progress < 50 && "Analyzing audio spectrum..."}
+                      {progress >= 50 && progress < 80 && "Applying AI mastering chain..."}
+                      {progress >= 80 && "Finalizing and downloading..."}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Analysis & Results */}
+              {(audioAnalysis || masteredBlob) && (
+                <Card className="bg-slate-900/90 border-slate-800">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg text-slate-200">
+                      <ActivityIcon className="h-5 w-5 text-emerald-400" />
+                      Analysis Results
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <LUFSDisplay analysis={audioAnalysis || { target: null, reference: null, output: null }} />
+
+                    {masteredBlob && (
+                      <Button
+                        onClick={() => downloadMasteredFile(masteredBlob, masteredFileName)}
+                        className="w-full bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                        size="lg"
+                      >
+                        <Download className="mr-2 h-5 w-5" />
+                        Download Mastered Track Again
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {error && (
+                <div className="p-4 bg-red-950/30 border border-red-500/30 rounded-xl text-red-400 text-sm text-center animate-in fade-in">
+                  {error}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
 };
+
+// Helper component for icon
+const ActivityIcon = ({ className }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+  </svg>
+);

@@ -109,8 +109,8 @@ export const FiveBandEqualizer = memo(
     // Map 5 bands to the 8-band array (after removing 32Hz and 16000Hz)
     const bandIndices = [0, 1, 3, 5, 7]; // 64Hz, 125Hz, 500Hz, 2kHz, 8kHz
     return (
-      <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600">
-        <CardHeader className="pb-3 bg-zinc-950">
+      <Card className="bg-slate-900/90 border-slate-800">
+        <CardHeader className="pb-3 bg-slate-950/50">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Button
@@ -118,25 +118,25 @@ export const FiveBandEqualizer = memo(
                 size="sm"
                 onClick={() => onEnabledChange(!enabled)}
                 className={`w-8 h-8 p-0 transition-all duration-300 ${enabled
-                    ? "bg-gradient-to-r from-blue-500 to-purple-500 border-blue-400 shadow-lg shadow-blue-500/50"
-                    : "bg-slate-700 border-slate-600 hover:bg-slate-600"
+                  ? "bg-gradient-to-r from-cyan-500 to-blue-500 border-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.5)]"
+                  : "bg-slate-800 border-slate-700 hover:bg-slate-700"
                   }`}
               >
                 <div
-                  className={`w-3 h-3 rounded ${enabled ? "bg-white" : "bg-slate-400"
+                  className={`w-3 h-3 rounded-full ${enabled ? "bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]" : "bg-slate-500"
                     }`}
                 ></div>
               </Button>
-              <CardTitle className="text-base text-teal-100 mx-[4px] my-[6px] py-0 px-px">
+              <CardTitle className="text-base text-slate-200 mx-[4px] my-[6px] py-0 px-px font-bold">
                 {language === "ES" ? "Ecualizador" : "Equalizer"}
               </CardTitle>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="h-4 w-4 text-slate-400 hover:text-cyan-400 cursor-help transition-colors" />
+                    <Info className="h-4 w-4 text-slate-500 hover:text-cyan-400 cursor-help transition-colors" />
                   </TooltipTrigger>
-                  <TooltipContent className="max-w-sm bg-slate-800 border-slate-600 text-slate-200 p-4">
-                    <p className="text-sm text-slate-950">
+                  <TooltipContent className="max-w-sm bg-slate-900 border-slate-700 text-slate-300 p-4 shadow-xl">
+                    <p className="text-sm">
                       {language === "ES"
                         ? "El rango predeterminado ha seleccionado frecuencias que son psicoacústicamente agradables para el oído humano, resaltando naturalmente los tonos más embellecedores en el audio."
                         : "The default range has selected frequencies that are psychoacoustically pleasing to the human ear, naturally highlighting the most embellishing tones in the audio."}
@@ -150,7 +150,7 @@ export const FiveBandEqualizer = memo(
                 variant="outline"
                 size="sm"
                 onClick={handleReset}
-                className="h-8 text-xs bg-slate-800 dark:bg-black border-slate-700 dark:border-slate-800 hover:bg-slate-700 dark:hover:bg-slate-900 text-white"
+                className="h-7 text-xs bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-300 hover:text-white"
               >
                 <RotateCcw className="h-3 w-3 mr-1" />
                 Reset
@@ -158,7 +158,7 @@ export const FiveBandEqualizer = memo(
             </div>
           </div>
         </CardHeader>
-        <CardContent className="pt-0 bg-zinc-950">
+        <CardContent className="pt-4 bg-slate-950/30">
           {enabled ? (
             <div className="relative space-y-4">
               {/* Professional Presets Section */}
@@ -169,23 +169,19 @@ export const FiveBandEqualizer = memo(
               </div>
 
               {/* 5-Band EQ - Professional & Colorful */}
-              <div className="relative bg-gradient-to-br from-slate-900 via-purple-950 to-blue-950 rounded-2xl p-6 border-3 border-purple-400/40 shadow-2xl shadow-purple-500/30 backdrop-blur-sm overflow-hidden">
-                {/* Animated Background */}
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/10 to-pink-500/5 animate-pulse mx-0 py-0 my-0 px-0"></div>
-
+              <div className="relative bg-slate-900 rounded-xl p-4 border border-slate-800 shadow-inner">
                 {/* EQ Background Grid */}
-                <div className="absolute left-6 right-6 top-6 bottom-6 bg-black/40 rounded-xl border-2 border-cyan-500/20 shadow-inner">
+                <div className="absolute left-6 right-6 top-6 bottom-6 bg-slate-950/50 rounded-lg border border-slate-800/50">
                   {/* Horizontal grid lines with glow */}
                   {getTickMarks().map((mark) => (
                     <div
                       key={mark}
-                      className="absolute left-0 right-0 border-t border-cyan-400/20"
+                      className="absolute left-0 right-0 border-t border-slate-800"
                       style={{
                         top: `${((12 - mark) / 24) * 100}%`,
-                        boxShadow: "0 0 10px rgba(34, 211, 238, 0.1)",
                       }}
                     >
-                      <span className="absolute left-2 -top-2.5 bg-gradient-to-r from-cyan-200 to-blue-200 bg-clip-text text-transparent font-mono drop-shadow-lg text-right text-xs font-thin">
+                      <span className="absolute left-2 -top-2.5 text-slate-600 text-[10px] font-mono">
                         {mark > 0 ? "+" : ""}
                         {mark}dB
                       </span>
@@ -193,7 +189,7 @@ export const FiveBandEqualizer = memo(
                   ))}
                 </div>
 
-                <div className="flex justify-center items-end gap-7 py-4 relative z-10">
+                <div className="flex justify-center items-end gap-4 sm:gap-6 py-4 relative z-10">
                   {bandIndices.map((bandIndex, visualIndex) => (
                     <AdjustableFrequencyBand
                       key={bandIndex}
@@ -212,15 +208,12 @@ export const FiveBandEqualizer = memo(
                     />
                   ))}
                 </div>
-
-                {/* EQ Branding with Glow */}
-                {/* EQ Branding with Glow - Removed */}
               </div>
             </div>
           ) : (
-            <div className="text-center py-8 bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg border border-slate-600">
-              <div className="text-4xl mb-3">🎚️</div>
-              <p className="bg-gradient-to-r from-blue-200 via-purple-200 to-pink-200 bg-clip-text text-transparent text-base font-bold animate-pulse">
+            <div className="text-center py-12 bg-slate-900/50 rounded-xl border border-slate-800 border-dashed">
+              <div className="text-4xl mb-3 opacity-50 grayscale">🎚️</div>
+              <p className="text-slate-500 text-sm font-medium">
                 Enable Audio EQ to access the equalizer
               </p>
             </div>

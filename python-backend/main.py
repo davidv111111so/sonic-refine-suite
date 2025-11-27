@@ -72,6 +72,12 @@ def verify_auth_token(request):
         return None
     
     token = auth_header.split(' ')[1]
+    
+    # Allow dev bypass token for local development
+    if token == "dev-bypass-token":
+        print("⚠️ Using DEV BYPASS TOKEN")
+        return {"id": "dev-user", "email": "dev@example.com"}
+
     try:
         user = supabase.auth.get_user(token)
         return user

@@ -17,6 +17,7 @@ import { AudioFile, AudioStats } from '@/types/audio';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { AnimatedTitle } from '@/components/AnimatedTitle';
+import Orb from '@/components/ui/Orb';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -99,7 +100,7 @@ const Index = () => {
     }
   }, []);
 
-  const handleEnhanceFiles = useCallback(async (settings: any) => {
+  const handleEnhanceFiles = useCallback(async (settings: Record<string, any>) => {
     setIsProcessing(true);
     // Filter based on fileIdsToProcess if provided, otherwise process all uploaded files
     let filesToProcess = audioFiles.filter(file => file.status === 'uploaded');
@@ -240,12 +241,64 @@ const Index = () => {
     }
   };
 
-  const handleConvertFile = async (file: AudioFile, targetFormat: 'mp3' | 'wav') => {
+  const handleConvertFile = async (file: AudioFile, targetFormat: 'mp3' | 'wav' | 'flac') => {
+    // Check if format is supported client-side
+    if (targetFormat !== 'wav') {
+      toast({
+        title: "Format Limitation",
+        description: `Client-side conversion to ${targetFormat.toUpperCase()} is not currently supported. Converting to WAV instead.`,
+        variant: "default"
+      });
+    }
+
     toast({
       title: "Conversion Started",
-      description: `Converting ${file.name} to ${targetFormat.toUpperCase()}...`
+      description: `Converting ${file.name} to WAV...`
     });
-    console.log(`Converting ${file.name} to ${targetFormat}`);
+
+    try {
+      setIsProcessing(true);
+
+      // Create settings for conversion (neutral settings)
+      const conversionSettings = {
+        outputFormat: 'wav', // Force WAV for now
+        sampleRate: 44100,
+        bitDepth: 16,
+        noiseReduction: false,
+        normalization: false,
+        compression: false,
+        enableEQ: false,
+        stereoWidening: false,
+        bassBoost: 0,
+        trebleEnhancement: 0
+      };
+
+      const convertedBlob = await processAudioFile(file, conversionSettings);
+      const convertedUrl = URL.createObjectURL(convertedBlob);
+
+      // Trigger download
+      const a = document.createElement('a');
+      a.href = convertedUrl;
+      a.download = `${file.name.replace(/\.[^.]+$/, '')}_converted.wav`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      toast({
+        title: "Conversion Complete",
+        description: `${file.name} converted successfully.`
+      });
+
+    } catch (error) {
+      console.error('Conversion error:', error);
+      toast({
+        title: "Conversion Failed",
+        description: `Failed to convert ${file.name}.`,
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   // Persistent bulk download with confirmation dialog
@@ -302,17 +355,23 @@ const Index = () => {
     }
   };
 
-  const stats: AudioStats = {
-    total: audioFiles.length + enhancedHistory.length,
-    uploaded: audioFiles.filter(f => f.status === 'uploaded').length,
-    processing: audioFiles.filter(f => f.status === 'processing').length,
-    enhanced: enhancedHistory.length
-  };
-  const processingFiles = audioFiles.filter(f => f.status === 'processing');
+  // Handle file deletion (from both queues)
+  const handleDeleteFile = useCallback((fileId: string) => {
+    // Remove from upload/processing queue
+    handleRemoveFile(fileId);
+
+    // Remove from enhanced history
+    setEnhancedHistory(prev => prev.filter(f => f.id !== fileId));
+
+    toast({
+      title: "File removed",
+      description: "File has been removed from the list."
+    });
+  }, [handleRemoveFile, toast]);
 
   // Clear all files functionality
   const handleClearAll = useCallback(() => {
-    if (audioFiles.length === 0) {
+    if (audioFiles.length === 0 && enhancedHistory.length === 0) {
       toast({
         title: "No files to clear",
         description: "No files found.",
@@ -320,10 +379,15 @@ const Index = () => {
       });
       return;
     }
-    if (window.confirm(`Are you sure you want to remove ALL ${audioFiles.length} files from the list?`)) {
+    if (window.confirm(`Are you sure you want to remove ALL ${audioFiles.length + enhancedHistory.length} files from the list?`)) {
       handleClearAllFiles();
+      setEnhancedHistory([]);
+      toast({
+        title: "All files cleared",
+        description: "All files have been removed from the list."
+      });
     }
-  }, [audioFiles, toast, handleClearAllFiles]);
+  }, [audioFiles, enhancedHistory, toast, handleClearAllFiles]);
 
   // Clear downloaded files functionality
   const handleClearDownloaded = useCallback(() => {
@@ -345,6 +409,14 @@ const Index = () => {
     });
   }, [enhancedHistory, toast]);
 
+  const stats: AudioStats = {
+    total: audioFiles.length + enhancedHistory.length,
+    uploaded: audioFiles.filter(f => f.status === 'uploaded').length,
+    processing: audioFiles.filter(f => f.status === 'processing').length,
+    enhanced: enhancedHistory.length
+  };
+  const processingFiles = audioFiles.filter(f => f.status === 'processing');
+
   // Show loading state while checking authentication
   if (loading) {
     return (
@@ -361,78 +433,110 @@ const Index = () => {
     return <IntroAnimation onComplete={handleIntroComplete} />;
   }
 
-  return <div className="min-h-screen transition-colors duration-300 bg-blue-950">
-    <div className="container mx-auto px-4 py-6 max-w-6xl">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <AnimatedTitle />
-        <div className="flex items-center gap-3">
-          <UserHeader />
-          <LanguageToggle />
-          <Guide />
-          <ThemeToggle />
+  return (
+    <div className="min-h-screen transition-colors duration-300 bg-slate-950 relative overflow-hidden">
+      {/* Background Orb */}
+      <div className="fixed inset-0 z-0">
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/80 via-slate-950/50 to-slate-950/80 z-10 pointer-events-none" />
+        <Orb
+          hue={260}
+          hoverIntensity={0.5}
+          rotateOnHover={true}
+          forceHoverState={false}
+        />
+      </div>
+
+      <div className="relative z-10 container mx-auto px-4 py-6 max-w-6xl">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <AnimatedTitle />
+          <div className="flex items-center gap-3">
+            <UserHeader />
+            <LanguageToggle />
+            <Guide />
+            <ThemeToggle />
+          </div>
+        </div>
+
+        {/* Stats */}
+        {stats.total > 0 && <div className="grid grid-cols-4 gap-4 mb-6">
+          <Card className="bg-slate-900/50 border-slate-800 shadow-lg backdrop-blur-sm">
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-white">{stats.total}</div>
+              <div className="text-sm text-slate-400">Total Files</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-blue-950/30 border-blue-900/50 shadow-lg backdrop-blur-sm">
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-white">{stats.uploaded}</div>
+              <div className="text-sm text-blue-200">Queue</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-orange-950/30 border-orange-900/50 shadow-lg backdrop-blur-sm">
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-white">{stats.processing}</div>
+              <div className="text-sm text-orange-200">Processing</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-emerald-950/30 border-emerald-900/50 shadow-lg backdrop-blur-sm">
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-white">{stats.enhanced}</div>
+              <div className="text-sm text-emerald-200">Completed</div>
+            </CardContent>
+          </Card>
+        </div>}
+
+        {/* Processing Progress */}
+        {processingFiles.length > 0 && <Card className="bg-slate-900/80 border-slate-800 mb-6 shadow-lg backdrop-blur-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-white text-lg flex items-center gap-3">
+              <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
+              Level Processing Status
+              {processingQueue.length > 0 && <span className="text-sm text-blue-300">({processingQueue.length} in queue)</span>}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {processingFiles.map(file => <div key={file.id} className="mb-4 last:mb-0">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm text-white truncate font-medium">{file.name}</span>
+                <span className="text-sm text-blue-300 font-bold">{file.progress}%</span>
+              </div>
+              <Progress value={file.progress} className="h-3 mb-2" />
+              <div className="text-sm text-slate-300">{file.processingStage}</div>
+            </div>)}
+          </CardContent>
+        </Card>}
+
+        {/* Main Tabs */}
+        <LevelTabs
+          audioFiles={audioFiles}
+          enhancedHistory={enhancedHistory}
+          onFilesUploaded={handleFilesUploaded}
+          onDownload={handleDownloadEnhanced}
+          onConvert={handleConvertFile}
+          onDownloadAll={handleDownloadAll}
+          onClearDownloaded={handleClearDownloaded}
+          onClearAll={handleClearAll}
+          onDelete={handleDeleteFile}
+          onEnhanceFiles={handleEnhanceFiles}
+          eqBands={eqBands}
+          onEQBandChange={handleEQBandChange}
+          onResetEQ={resetEQ}
+          eqEnabled={eqEnabled}
+          setEqEnabled={setEqEnabled}
+        />
+
+        {/* Copyright Notice at Bottom */}
+        <div className="mt-8">
+          <CopyrightNotice />
         </div>
       </div>
 
-      {/* Stats */}
-      {stats.total > 0 && <div className="grid grid-cols-4 gap-4 mb-6">
-        <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-600 shadow-lg">
-          <CardContent className="p-4 text-center bg-gray-500">
-            <div className="text-2xl font-bold text-white bg-gray-500">{stats.total}</div>
-            <div className="text-sm text-slate-300 bg-gray-500">Total Files</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-blue-900 to-blue-800 border-blue-600 shadow-lg">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-white">{stats.uploaded}</div>
-            <div className="text-sm text-blue-100">Queue</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-orange-900 to-orange-800 border-orange-600 shadow-lg">
-          <CardContent className="p-4 text-center bg-red-700">
-            <div className="text-2xl font-bold text-white">{stats.processing}</div>
-            <div className="text-sm text-orange-100">Processing</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-green-900 to-green-800 border-green-600 shadow-lg">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-white">{stats.enhanced}</div>
-            <div className="text-sm text-green-100">Completed</div>
-          </CardContent>
-        </Card>
-      </div>}
-
-      {/* Processing Progress */}
-      {processingFiles.length > 0 && <Card className="bg-gradient-to-r from-slate-800 to-slate-900 border-slate-600 mb-6 shadow-lg">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-white text-lg flex items-center gap-3">
-            <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
-            Level Processing Status
-            {processingQueue.length > 0 && <span className="text-sm text-blue-300">({processingQueue.length} in queue)</span>}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          {processingFiles.map(file => <div key={file.id} className="mb-4 last:mb-0">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm text-white truncate font-medium">{file.name}</span>
-              <span className="text-sm text-blue-300 font-bold">{file.progress}%</span>
-            </div>
-            <Progress value={file.progress} className="h-3 mb-2" />
-            <div className="text-sm text-slate-300">{file.processingStage}</div>
-          </div>)}
-        </CardContent>
-      </Card>}
-
-      {/* Main Tabs */}
-      <LevelTabs audioFiles={audioFiles} enhancedHistory={enhancedHistory} onFilesUploaded={handleFilesUploaded} onDownload={handleDownloadEnhanced} onConvert={handleConvertFile} onDownloadAll={handleDownloadAll} onClearDownloaded={handleClearDownloaded} onClearAll={handleClearAll} onEnhanceFiles={handleEnhanceFiles} eqBands={eqBands} onEQBandChange={handleEQBandChange} onResetEQ={resetEQ} eqEnabled={eqEnabled} setEqEnabled={setEqEnabled} />
-
-      {/* Copyright Notice at Bottom */}
-      <div className="mt-8">
-        <CopyrightNotice />
+      <div className="relative z-10">
+        <Footer />
       </div>
     </div>
-
-    <Footer />
-  </div>;
+  );
 };
+
 export default Index;
