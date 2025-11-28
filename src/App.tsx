@@ -8,6 +8,8 @@ import { ThemeProvider } from "next-themes";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { BetaGate } from "@/components/BetaGate";
+import { PlayerProvider } from "@/contexts/PlayerContext";
+import { FloatingMiniPlayer } from "@/components/FloatingMiniPlayer";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import { TermsAndConditions } from "./pages/TermsAndConditions";
@@ -35,27 +37,30 @@ const App = () => (
             <AudioContextInitializer />
             <Toaster />
             <Sonner />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/terms" element={<TermsAndConditions />} />
-                <Route path="/admin" element={
-                  <BetaGate>
-                    <Admin />
-                  </BetaGate>
-                } />
-                <Route path="/" element={
-                  <BetaGate>
-                    <Index />
-                  </BetaGate>
-                } />
-                <Route path="*" element={
-                  <BetaGate>
-                    <NotFound />
-                  </BetaGate>
-                } />
-              </Routes>
-            </BrowserRouter>
+            <PlayerProvider>
+              <BrowserRouter>
+                <FloatingMiniPlayer />
+                <Routes>
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/terms" element={<TermsAndConditions />} />
+                  <Route path="/admin" element={
+                    <BetaGate>
+                      <Admin />
+                    </BetaGate>
+                  } />
+                  <Route path="/" element={
+                    <BetaGate>
+                      <Index />
+                    </BetaGate>
+                  } />
+                  <Route path="*" element={
+                    <BetaGate>
+                      <NotFound />
+                    </BetaGate>
+                  } />
+                </Routes>
+              </BrowserRouter>
+            </PlayerProvider>
           </TooltipProvider>
         </LanguageProvider>
       </AuthProvider>
