@@ -8,61 +8,62 @@
 
 @layer base {
   :root {
-    /* Deep Blue / Neon Theme */
-    --background: 237 50% 8%;
-    /* #0a0b1e */
-    --foreground: 210 40% 98%;
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
 
-    --card: 236 43% 12%;
-    /* #11132b */
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
 
-    --popover: 236 43% 12%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 184 100% 50%;
-    /* #00f0ff (Neon Cyan) */
-    --primary-foreground: 237 50% 8%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
 
-    --secondary: 283 99% 54%;
-    /* #bc13fe (Neon Purple) */
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
 
-    --muted: 235 30% 20%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 235 30% 20%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 235 30% 20%;
-    --input: 235 30% 20%;
-    --ring: 184 100% 50%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
 
-    --radius: 0.75rem;
-
-    --font-sans: 'Outfit', 'Inter', sans-serif;
+    --radius: 0.5rem;
   }
 
   .dark {
-    --background: 237 50% 8%;
+    --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
-    --card: 236 43% 12%;
+
+    --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
-    --popover: 236 43% 12%;
+
+    --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
+
     --primary: 184 100% 50%;
     --primary-foreground: 237 50% 8%;
+
     --secondary: 283 99% 54%;
     --secondary-foreground: 210 40% 98%;
+
     --muted: 235 30% 20%;
     --muted-foreground: 215 20% 65%;
+
     --accent: 235 30% 20%;
     --accent-foreground: 210 40% 98%;
+
     --destructive: 0 62% 30%;
     --destructive-foreground: 210 40% 98%;
+
     --border: 235 30% 20%;
     --input: 235 30% 20%;
     --ring: 184 100% 50%;

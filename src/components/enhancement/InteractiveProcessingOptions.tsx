@@ -3,7 +3,7 @@ import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, RotateCcw, AlertTriangle, Users } from 'lucide-react';
+import { Settings, RotateCcw, AlertTriangle, Users, Layers } from 'lucide-react';
 import { AudioSettingsTooltip } from '@/components/AudioSettingsTooltip';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useUserSubscription } from '@/hooks/useUserSubscription';
@@ -74,13 +74,27 @@ export const InteractiveProcessingOptions = ({
             <CardTitle className="text-lg font-bold text-slate-200">Processing Options</CardTitle>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400 font-medium">Individual Mode</span>
-              <Switch
-                checked={!batchMode}
-                onCheckedChange={(checked) => onBatchModeChange(!checked)}
-                className="scale-75 data-[state=checked]:bg-purple-500"
-              />
+            <div className="flex items-center bg-slate-950 p-1 rounded-lg border border-slate-800">
+              <button
+                onClick={() => onBatchModeChange(false)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all duration-300 ${!batchMode
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/20'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                  }`}
+              >
+                <Users className="w-3.5 h-3.5" />
+                Individual
+              </button>
+              <button
+                onClick={() => onBatchModeChange(true)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all duration-300 ${batchMode
+                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/20'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                  }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                Batch
+              </button>
             </div>
             <Button
               variant="outline"

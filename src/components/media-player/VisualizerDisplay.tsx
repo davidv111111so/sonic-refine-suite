@@ -237,7 +237,7 @@ export const VisualizerDisplay: React.FC<VisualizerDisplayProps> = ({
     return (
         <Card
             ref={containerRef}
-            className={`bg-black/90 border-slate-800 p-0 overflow-hidden relative group ${isFullscreen ? 'rounded-none border-0' : 'h-64 w-full'}`}
+            className={`bg-black/90 border-slate-800 p-0 overflow-hidden relative group ${isFullscreen ? 'rounded-none border-0' : 'aspect-square w-full'}`}
         >
             {is3DMode ? (
                 <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-cyan-500">Loading 3D Engine...</div>}>

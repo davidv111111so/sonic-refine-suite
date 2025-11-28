@@ -6,6 +6,7 @@ interface AuthContextType {
   user: User | null;
   getToken: () => Promise<string | null>;
   loading: boolean;
+  signOut: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -60,10 +61,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return session?.access_token || null;
   };
 
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+  };
+
   const value = {
     user,
     getToken,
     loading,
+    signOut,
   };
 
   return (

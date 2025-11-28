@@ -1,11 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Card } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Upload, AlertCircle, ExternalLink } from 'lucide-react';
 import { AudioFile } from '@/types/audio';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface MediaPlayerUploadProps {
   onFilesAdded: (files: AudioFile[]) => void;
@@ -14,7 +13,7 @@ interface MediaPlayerUploadProps {
 export const MediaPlayerUpload: React.FC<MediaPlayerUploadProps> = ({ onFilesAdded }) => {
   const [hasConsented, setHasConsented] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isDragActiveState, setIsDragActiveState] = useState(false);
 
   const processFiles = useCallback(async (files: File[]) => {
     const toastId = toast.loading(`Analyzing ${files.length} file${files.length > 1 ? 's' : ''}...`, {
@@ -92,29 +91,32 @@ export const MediaPlayerUpload: React.FC<MediaPlayerUploadProps> = ({ onFilesAdd
   }, [onFilesAdded]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    setErrorMessage(null);
+    setIsDragActiveState(false);
 
     // Always require consent - don't bypass terms and conditions
     if (!hasConsented) {
       setPendingFiles(acceptedFiles);
-      setErrorMessage('Please accept the Terms and Conditions before uploading files.');
+      toast.error('Please accept the Terms and Conditions before uploading files.');
       return;
     }
 
     processFiles(acceptedFiles);
   }, [hasConsented, processFiles]);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps, getInputProps, isDragReject, isDragActive } = useDropzone({
     onDrop,
+    onDragEnter: () => setIsDragActiveState(true),
+    onDragLeave: () => setIsDragActiveState(false),
     accept: {
       'audio/*': ['.mp3', '.wav', '.flac']
     },
     multiple: true,
+    disabled: !hasConsented
   });
 
-  const handleConsentChange = (checked: boolean) => {
+  const handleConsentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
     setHasConsented(checked);
-    setErrorMessage(null);
 
     if (checked && pendingFiles.length > 0) {
       processFiles(pendingFiles);
@@ -122,77 +124,82 @@ export const MediaPlayerUpload: React.FC<MediaPlayerUploadProps> = ({ onFilesAdd
   };
 
   return (
-    <Card className="bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700">
+    <div className="w-full">
       <div
         {...getRootProps()}
-        className={`p-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isDragActive
-            ? 'border-cyan-500 bg-cyan-500/10'
-            : 'border-slate-600 hover:border-cyan-500/50 hover:bg-slate-800/50'
-          }`}
+        className={cn(
+          "relative group cursor-pointer transition-all duration-500 ease-out",
+          "border-2 border-dashed rounded-2xl p-6", // Removed mt-8 to fit better in media player
+          "flex flex-row items-center justify-center gap-6",
+          "bg-slate-900/40 backdrop-blur-sm",
+          !hasConsented && "opacity-50 cursor-not-allowed",
+          (isDragActive || isDragActiveState)
+            ? "border-cyan-400 bg-cyan-950/30 scale-[1.01] shadow-[0_0_20px_rgba(34,211,238,0.15)]"
+            : "border-slate-700 hover:border-cyan-500/50 hover:bg-slate-800/50",
+          isDragReject && "border-red-500 bg-red-950/30"
+        )}
       >
         <input {...getInputProps()} disabled={!hasConsented} />
-        <div className="flex flex-col items-center justify-center gap-2 text-center">
-          <Upload className="h-8 w-8 text-cyan-400" />
-          <div>
-            <p className="text-sm font-semibold mb-1 text-cyan-300">
-              {isDragActive
-                ? 'Drop files here...'
-                : hasConsented
-                  ? 'Drop audio files here or click to browse'
-                  : 'Accept Terms and Conditions to upload'}
-            </p>
-            <p className="text-xs text-slate-400">
-              Supports MP3, WAV, FLAC
-            </p>
-          </div>
+
+        {/* Animated Icon Container - Smaller */}
+        <div className={cn(
+          "relative w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500",
+          "bg-gradient-to-br from-cyan-500/20 to-blue-600/20",
+          "border border-cyan-500/30",
+          (isDragActive || isDragActiveState) ? "scale-110 shadow-[0_0_20px_rgba(34,211,238,0.3)]" : "group-hover:scale-105"
+        )}>
+          <div className="absolute inset-0 rounded-full bg-cyan-400/10 animate-pulse-slow" />
+          <Upload className={cn(
+            "w-5 h-5 text-cyan-400 transition-all duration-500",
+            (isDragActive || isDragActiveState) ? "scale-110 text-cyan-300" : "group-hover:scale-110"
+          )} />
+        </div>
+
+        {/* Text Content - Compact */}
+        <div className="text-left space-y-1">
+          <h3 className={cn(
+            "text-lg font-bold tracking-tight transition-colors duration-300",
+            (isDragActive || isDragActiveState) ? "text-cyan-300" : "text-white group-hover:text-cyan-100"
+          )}>
+            {(isDragActive || isDragActiveState) ? "Drop files here" : "Drag & Drop or Click to Upload"}
+          </h3>
+          <p className="text-slate-400 text-xs font-medium">
+            MP3, WAV, FLAC
+          </p>
         </div>
       </div>
 
-      {/* Terms and Conditions Consent */}
-      <div className="mt-6 pt-4 border-t border-slate-600">
-        <div className="flex items-start gap-3">
-          <Checkbox
-            id="media-player-consent"
-            checked={hasConsented}
-            onCheckedChange={handleConsentChange}
-            className="mt-1"
-          />
-          <div className="flex-1">
-            <label
-              htmlFor="media-player-consent"
-              className="text-sm cursor-pointer leading-relaxed text-cyan-200 font-semibold"
-            >
-              I agree to the{' '}
-              <Link
-                to="/terms"
-                className="text-cyan-400 hover:text-cyan-300 underline inline-flex items-center gap-1"
-                target="_blank"
-              >
-                Terms and Conditions
-                <ExternalLink className="h-3 w-3" />
-              </Link>
-              {' '}and acknowledge the Copyright Disclaimer. I confirm that I own or have proper authorization
-              for all audio files I upload and process.
-            </label>
-          </div>
-        </div>
+      {/* Consent Checkbox */}
+      <div className="mt-4 flex items-start justify-center gap-3 px-4">
+        <input
+          type="checkbox"
+          id="media-player-consent"
+          checked={hasConsented}
+          onChange={handleConsentChange}
+          className="mt-1 w-4 h-4 rounded border-slate-600 bg-slate-800 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-slate-900"
+        />
+        <label htmlFor="media-player-consent" className="text-xs text-slate-400 leading-relaxed max-w-2xl">
+          I agree to the{' '}
+          <Link
+            to="/terms"
+            className="text-cyan-400 hover:text-cyan-300 underline inline-flex items-center gap-1"
+            target="_blank"
+          >
+            Terms and Conditions
+            <ExternalLink className="h-3 w-3" />
+          </Link>
+          {' '}and acknowledge the Copyright Disclaimer. I confirm that I own or have proper authorization
+          for all audio files I upload and process.
+        </label>
       </div>
 
-      {/* Error Message */}
-      {errorMessage && (
-        <div className="mt-4 p-3 rounded-md bg-red-900/50 border border-red-600/50 text-red-200 flex items-center text-sm">
-          <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" />
-          {errorMessage}
-        </div>
-      )}
-
-      {/* Upload Status */}
+      {/* Warning if not consented */}
       {!hasConsented && (
-        <div className="mt-4 p-3 rounded-md bg-yellow-900/50 border border-yellow-600/50 text-yellow-200 flex items-center text-sm">
-          <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" />
+        <div className="mt-4 p-3 rounded-md bg-yellow-900/20 border border-yellow-600/30 text-yellow-200/80 flex items-center justify-center text-xs">
+          <AlertCircle className="h-3 w-3 mr-2 flex-shrink-0" />
           Please accept the Terms and Conditions to enable file uploads.
         </div>
       )}
-    </Card>
+    </div>
   );
 };

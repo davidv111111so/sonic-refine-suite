@@ -28,6 +28,7 @@ import {
 import { VisualizerDisplay, VisualizerMode } from "./VisualizerDisplay";
 import { PlaylistPanel } from "./PlaylistPanel";
 import { MediaPlayerUpload } from "./MediaPlayerUpload";
+import { AudioEffectsControls, AudioEffectsSettings } from "./AudioEffectsControls";
 import { toast } from "sonner";
 
 interface LevelMediaPlayerProps {
@@ -51,10 +52,19 @@ const INITIAL_EQ_BANDS: EQBand[] = [
 ];
 
 const INITIAL_COMPRESSOR: CompressorSettings = {
-  threshold: -1.5,
-  ratio: 2.5,
-  attack: 0.001,
-  release: 0.0015,
+  threshold: -24,
+  ratio: 12,
+  attack: 0.003,
+  release: 0.25,
+};
+
+const INITIAL_EFFECTS: AudioEffectsSettings = {
+  reverbMix: 0,
+  delayTime: 0.25,
+  delayFeedback: 0.3,
+  delayMix: 0,
+  pitch: 1,
+  preservesPitch: true,
 };
 
 export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
@@ -73,6 +83,7 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
   const [loop, setLoop] = useState(false);
   const [eqBands, setEqBands] = useState<EQBand[]>(INITIAL_EQ_BANDS);
   const [compressorSettings, setCompressorSettings] = useState<CompressorSettings>(INITIAL_COMPRESSOR);
+  const [effectsSettings, setEffectsSettings] = useState<AudioEffectsSettings>(INITIAL_EFFECTS);
   const [gainReduction, setGainReduction] = useState(0);
   const [visualizerMode, setVisualizerMode] = useState<VisualizerMode>('bars');
 
@@ -84,20 +95,42 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
   const gainNodeRef = useRef<GainNode | null>(null);
   const audioSourceRef = useRef<MediaElementAudioSourceNode | null>(null);
 
+  // Effects Nodes
+  const delayNodeRef = useRef<DelayNode | null>(null);
+  const delayFeedbackNodeRef = useRef<GainNode | null>(null);
+  const delayDryNodeRef = useRef<GainNode | null>(null);
+  const delayWetNodeRef = useRef<GainNode | null>(null);
+
+  const reverbNodeRef = useRef<ConvolverNode | null>(null);
+  const reverbDryNodeRef = useRef<GainNode | null>(null);
+  const reverbWetNodeRef = useRef<GainNode | null>(null);
+
   // Initialize WaveSurfer
   useEffect(() => {
     if (!waveformRef.current) return;
     const ws = WaveSurfer.create({
       container: waveformRef.current,
-      waveColor: "#3b82f6",
-      progressColor: "#06b6d4",
-      cursorColor: "#06b6d4",
-      barWidth: 2,
+      waveColor: "#4b5563", // Darker base for unplayed part
+      progressColor: "#06b6d4", // Cyan for progress
+      cursorColor: "#22d3ee", // Brighter cyan for cursor
+      barWidth: 3,
       barRadius: 3,
       cursorWidth: 2,
-      height: 100,
-      barGap: 2,
+      height: 80, // Smaller height
+      barGap: 3,
+      normalize: true,
+      // Use a gradient for the progress color if supported, otherwise fallback to solid
     });
+
+    // Create a gradient for the progress wave
+    const ctx = document.createElement('canvas').getContext('2d');
+    if (ctx) {
+      const gradient = ctx.createLinearGradient(0, 0, 0, 100);
+      gradient.addColorStop(0, "rgb(34, 211, 238)"); // Cyan-400
+      gradient.addColorStop(0.5, "rgb(168, 85, 247)"); // Purple-500
+      gradient.addColorStop(1, "rgb(236, 72, 153)"); // Pink-500
+      ws.setOptions({ progressColor: gradient as any });
+    }
     wavesurferRef.current = ws;
     ws.on("ready", () => {
       setDuration(ws.getDuration());
@@ -171,6 +204,57 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
         eqFiltersRef.current.push(filter);
       });
     }
+
+    // Initialize Delay Nodes
+    if (!delayNodeRef.current) {
+      const delay = audioContext.createDelay(5.0);
+      const feedback = audioContext.createGain();
+      const dry = audioContext.createGain();
+      const wet = audioContext.createGain();
+
+      delay.delayTime.value = effectsSettings.delayTime;
+      feedback.gain.value = effectsSettings.delayFeedback;
+      dry.gain.value = 1 - effectsSettings.delayMix;
+      wet.gain.value = effectsSettings.delayMix;
+
+      delay.connect(feedback);
+      feedback.connect(delay);
+
+      delayNodeRef.current = delay;
+      delayFeedbackNodeRef.current = feedback;
+      delayDryNodeRef.current = dry;
+      delayWetNodeRef.current = wet;
+    }
+
+    // Initialize Reverb Nodes
+    if (!reverbNodeRef.current) {
+      const convolver = audioContext.createConvolver();
+      const dry = audioContext.createGain();
+      const wet = audioContext.createGain();
+
+      // Create simple impulse response
+      const rate = audioContext.sampleRate;
+      const length = rate * 2; // 2 seconds
+      const decay = 2.0;
+      const impulse = audioContext.createBuffer(2, length, rate);
+      const left = impulse.getChannelData(0);
+      const right = impulse.getChannelData(1);
+
+      for (let i = 0; i < length; i++) {
+        const n = i / length;
+        // Simple noise with exponential decay
+        left[i] = (Math.random() * 2 - 1) * Math.pow(1 - n, decay);
+        right[i] = (Math.random() * 2 - 1) * Math.pow(1 - n, decay);
+      }
+      convolver.buffer = impulse;
+
+      dry.gain.value = 1 - effectsSettings.reverbMix;
+      wet.gain.value = effectsSettings.reverbMix;
+
+      reverbNodeRef.current = convolver;
+      reverbDryNodeRef.current = dry;
+      reverbWetNodeRef.current = wet;
+    }
   }, []);
 
   // Auto-play file
@@ -207,18 +291,66 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
               audioSourceRef.current = source;
 
               let currentNode: AudioNode = source;
+
+              // 1. EQ
               eqFiltersRef.current.forEach((filter) => {
                 currentNode.connect(filter);
                 currentNode = filter;
               });
+
+              // 2. Compressor
               if (compressorNodeRef.current) {
                 currentNode.connect(compressorNodeRef.current);
                 currentNode = compressorNodeRef.current;
               }
+
+              // 3. Delay
+              if (delayNodeRef.current && delayDryNodeRef.current && delayWetNodeRef.current) {
+                const delayInput = audioContext.createGain(); // Splitter
+                currentNode.connect(delayInput);
+
+                // Dry path
+                delayInput.connect(delayDryNodeRef.current);
+
+                // Wet path
+                delayInput.connect(delayNodeRef.current);
+                delayNodeRef.current.connect(delayWetNodeRef.current);
+
+                // Re-merge
+                const delayOutput = audioContext.createGain();
+                delayDryNodeRef.current.connect(delayOutput);
+                delayWetNodeRef.current.connect(delayOutput);
+
+                currentNode = delayOutput;
+              }
+
+              // 4. Reverb
+              if (reverbNodeRef.current && reverbDryNodeRef.current && reverbWetNodeRef.current) {
+                const reverbInput = audioContext.createGain(); // Splitter
+                currentNode.connect(reverbInput);
+
+                // Dry path
+                reverbInput.connect(reverbDryNodeRef.current);
+
+                // Wet path
+                reverbInput.connect(reverbNodeRef.current);
+                reverbNodeRef.current.connect(reverbWetNodeRef.current);
+
+                // Re-merge
+                const reverbOutput = audioContext.createGain();
+                reverbDryNodeRef.current.connect(reverbOutput);
+                reverbWetNodeRef.current.connect(reverbOutput);
+
+                currentNode = reverbOutput;
+              }
+
+              // 5. Master Gain
               if (gainNodeRef.current) {
                 currentNode.connect(gainNodeRef.current);
                 currentNode = gainNodeRef.current;
               }
+
+              // 6. Analyser -> Destination
               if (analyserNodeRef.current) {
                 gainNodeRef.current!.connect(analyserNodeRef.current);
                 analyserNodeRef.current.connect(audioContext.destination);
@@ -269,6 +401,38 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
     if (!audioContext) return;
     gainNodeRef.current.gain.setValueAtTime(volume, audioContext.currentTime);
   }, [volume]);
+
+  // Update Effects with Pitch Sync
+  useEffect(() => {
+    const audioContext = getAudioContext();
+    if (!audioContext) return;
+
+    // Delay
+    if (delayNodeRef.current && delayFeedbackNodeRef.current && delayDryNodeRef.current && delayWetNodeRef.current) {
+      const now = audioContext.currentTime;
+
+      // Sync Delay to Pitch
+      const adjustedDelayTime = effectsSettings.delayTime / effectsSettings.pitch;
+
+      delayNodeRef.current.delayTime.setValueAtTime(adjustedDelayTime, now);
+      delayFeedbackNodeRef.current.gain.setValueAtTime(effectsSettings.delayFeedback, now);
+      delayDryNodeRef.current.gain.setValueAtTime(1 - effectsSettings.delayMix, now);
+      delayWetNodeRef.current.gain.setValueAtTime(effectsSettings.delayMix, now);
+    }
+
+    // Reverb
+    if (reverbDryNodeRef.current && reverbWetNodeRef.current) {
+      const now = audioContext.currentTime;
+      reverbDryNodeRef.current.gain.setValueAtTime(1 - effectsSettings.reverbMix, now);
+      reverbWetNodeRef.current.gain.setValueAtTime(effectsSettings.reverbMix, now);
+    }
+
+    // Pitch
+    if (wavesurferRef.current) {
+      wavesurferRef.current.setPlaybackRate(effectsSettings.pitch, effectsSettings.preservesPitch);
+    }
+
+  }, [effectsSettings]);
 
   // Monitor gain reduction
   useEffect(() => {
@@ -368,8 +532,13 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
 
             <div
               ref={waveformRef}
-              className="mb-6 rounded-lg overflow-hidden border border-slate-700"
-            />
+              className="mb-6 rounded-lg overflow-hidden border border-slate-700/50 bg-slate-950/50 shadow-[0_0_15px_rgba(6,182,212,0.15)] relative"
+            >
+              {/* Futuristic Grid Overlay */}
+              <div className="absolute inset-0 bg-[linear-gradient(rgba(6,182,212,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(6,182,212,0.05)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none z-0"></div>
+              {/* Glow effect at the bottom */}
+              <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-cyan-500/10 to-transparent pointer-events-none z-0"></div>
+            </div>
 
             <div className="flex items-center justify-between text-sm text-slate-400 mb-4">
               <span className="font-mono">{formatTime(currentTime)}</span>
@@ -439,9 +608,17 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
             onBandChange={handleEQBandChange}
             onReset={handleEQReset}
           />
+
+          {/* Visualizer */}
+          <VisualizerDisplay
+            analyserNode={analyserNodeRef.current}
+            isPlaying={isPlaying}
+            mode={visualizerMode}
+            onModeChange={setVisualizerMode}
+          />
         </div>
 
-        {/* Right Column: Compressor & Playlist */}
+        {/* Right Column: Compressor, Effects & Playlist */}
         <div className="space-y-6">
           {/* Compressor */}
           <DynamicsCompressorControls
@@ -450,6 +627,12 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
             onSettingsChange={(settings) =>
               setCompressorSettings({ ...compressorSettings, ...settings })
             }
+          />
+
+          {/* Audio Effects - Placed here to fit screen */}
+          <AudioEffectsControls
+            settings={effectsSettings}
+            onSettingsChange={(settings) => setEffectsSettings(prev => ({ ...prev, ...settings }))}
           />
 
           {/* Playlist */}
@@ -463,15 +646,7 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
         </div>
       </div>
 
-      {/* Bottom Full-Width Visualizer */}
-      <div className="mt-6">
-        <VisualizerDisplay
-          analyserNode={analyserNodeRef.current}
-          isPlaying={isPlaying}
-          mode={visualizerMode}
-          onModeChange={setVisualizerMode}
-        />
-      </div>
+
     </div>
   );
 };

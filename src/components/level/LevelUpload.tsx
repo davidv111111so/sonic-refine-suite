@@ -21,7 +21,22 @@ export const LevelUpload = ({
     const [hasConsented, setHasConsented] = useState(false);
     const [isDragActive, setIsDragActive] = useState(false);
 
-    const onDrop = useCallback((acceptedFiles: File[]) => {
+    const getAudioDuration = (file: File): Promise<number> => {
+        return new Promise((resolve) => {
+            const objectUrl = URL.createObjectURL(file);
+            const audio = new Audio(objectUrl);
+            audio.onloadedmetadata = () => {
+                URL.revokeObjectURL(objectUrl);
+                resolve(audio.duration);
+            };
+            audio.onerror = () => {
+                URL.revokeObjectURL(objectUrl);
+                resolve(0);
+            };
+        });
+    };
+
+    const onDrop = useCallback(async (acceptedFiles: File[]) => {
         setIsDragActive(false);
 
         if (!hasConsented) {
@@ -36,17 +51,21 @@ export const LevelUpload = ({
             return;
         }
 
-        const newAudioFiles: AudioFile[] = acceptedFiles.map(file => ({
-            id: crypto.randomUUID(),
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            originalFile: file,
-            originalUrl: URL.createObjectURL(file),
-            status: 'uploaded',
-            progress: 0,
-            createdAt: new Date(),
-            processingStage: 'Ready for enhancement'
+        const newAudioFiles = await Promise.all(acceptedFiles.map(async (file) => {
+            const duration = await getAudioDuration(file);
+            return {
+                id: crypto.randomUUID(),
+                name: file.name,
+                size: file.size,
+                type: file.type,
+                duration: duration,
+                originalFile: file,
+                originalUrl: URL.createObjectURL(file),
+                status: 'uploaded' as const,
+                progress: 0,
+                createdAt: new Date(),
+                processingStage: 'Ready for enhancement'
+            };
         }));
 
         onFilesUploaded(newAudioFiles);

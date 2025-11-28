@@ -434,10 +434,10 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen transition-colors duration-300 bg-slate-950 relative overflow-hidden">
+    <div className="min-h-screen transition-colors duration-300 bg-background relative overflow-hidden">
       {/* Background Orb */}
       <div className="fixed inset-0 z-0">
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/80 via-slate-950/50 to-slate-950/80 z-10 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/50 to-background/80 z-10 pointer-events-none" />
         <Orb
           hue={260}
           hoverIntensity={0.5}

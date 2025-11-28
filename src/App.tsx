@@ -12,6 +12,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import { TermsAndConditions } from "./pages/TermsAndConditions";
 import NotFound from "./pages/NotFound";
+import Admin from "./pages/Admin";
 import { initAudioContextOnInteraction } from "@/utils/audioContextManager";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,11 @@ const App = () => (
               <Routes>
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/terms" element={<TermsAndConditions />} />
+                <Route path="/admin" element={
+                  <BetaGate>
+                    <Admin />
+                  </BetaGate>
+                } />
                 <Route path="/" element={
                   <BetaGate>
                     <Index />
