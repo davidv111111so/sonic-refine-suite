@@ -17,7 +17,9 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { IndividualModeQueue } from '@/components/enhancement/IndividualModeQueue';
 import { AIMasteringTab } from '@/components/ai-mastering/AIMasteringTab';
 import { LevelMediaPlayer } from '@/components/media-player/LevelMediaPlayer';
+import { StemsTab } from '@/components/stems/StemsTab';
 import { toast } from 'sonner';
+import { Progress } from '@/components/ui/progress';
 
 interface LevelTabsProps {
   audioFiles: AudioFile[];
@@ -65,6 +67,10 @@ export const LevelTabs = ({
     isOpen: false,
     file: null
   });
+
+  // Analysis progress state
+  const [analysisProgress, setAnalysisProgress] = useState(0);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Processing settings state
   const [processingSettings, setProcessingSettings] = useState<ProcessingSettings>({
@@ -175,50 +181,80 @@ export const LevelTabs = ({
       return;
     }
 
+    setIsAnalyzing(true);
+    setAnalysisProgress(0);
+
+    // Start simulated progress
+    const progressInterval = setInterval(() => {
+      setAnalysisProgress(prev => {
+        if (prev >= 90) return prev; // Cap at 90% until actually done
+        // Slow down as we get closer to 90%
+        const increment = prev < 50 ? 2 : prev < 80 ? 1 : 0.5;
+        return Math.min(prev + increment, 90);
+      });
+    }, 100);
+
     const toastId = toast.loading(`Analyzing ${files.length} file${files.length > 1 ? 's' : ''}...`, {
       description: 'Detecting BPM and key signatures',
     });
 
-    const { detectKeyFromFile } = await import('@/utils/keyDetector');
-    const { detectBPMFromFile } = await import('@/utils/bpmDetector');
+    try {
+      const { detectKeyFromFile } = await import('@/utils/keyDetector');
+      const { detectBPMFromFile } = await import('@/utils/bpmDetector');
 
-    const filesWithAnalysis = await Promise.all(
-      files.map(async (file, idx) => {
-        let harmonicKey = 'N/A';
-        let bpm: number | undefined = undefined;
+      const filesWithAnalysis = await Promise.all(
+        files.map(async (file, idx) => {
+          let harmonicKey = 'N/A';
+          let bpm: number | undefined = undefined;
 
-        const [keyResult, bpmResult] = await Promise.allSettled([
-          Promise.race([
-            detectKeyFromFile(file.originalFile),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Key timeout')), 5000))
-          ]),
-          Promise.race([
-            detectBPMFromFile(file.originalFile),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('BPM timeout')), 5000))
-          ])
-        ]);
+          const [keyResult, bpmResult] = await Promise.allSettled([
+            Promise.race([
+              detectKeyFromFile(file.originalFile),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('Key timeout')), 5000))
+            ]),
+            Promise.race([
+              detectBPMFromFile(file.originalFile),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('BPM timeout')), 5000))
+            ])
+          ]);
 
-        if (keyResult.status === 'fulfilled') {
-          harmonicKey = (keyResult.value as any).camelot;
-        }
-        if (bpmResult.status === 'fulfilled') {
-          bpm = (bpmResult.value as any).bpm;
-        }
+          if (keyResult.status === 'fulfilled') {
+            harmonicKey = (keyResult.value as any).camelot;
+          }
+          if (bpmResult.status === 'fulfilled') {
+            bpm = (bpmResult.value as any).bpm;
+          }
 
-        return { ...file, harmonicKey, bpm };
-      })
-    );
+          return { ...file, harmonicKey, bpm };
+        })
+      );
 
-    const detectedBPM = filesWithAnalysis.filter(f => f.bpm).length;
-    const detectedKey = filesWithAnalysis.filter(f => f.harmonicKey && f.harmonicKey !== 'N/A').length;
+      clearInterval(progressInterval);
+      setAnalysisProgress(100);
 
-    if (detectedKey === 0 && detectedBPM === 0) {
-      toast.error('Analysis failed', { id: toastId, description: 'Could not detect BPM or Key.' });
-    } else {
-      toast.success('Analysis complete!', { id: toastId, description: `BPM: ${detectedBPM}/${files.length} • Key: ${detectedKey}/${files.length}` });
+      const detectedBPM = filesWithAnalysis.filter(f => f.bpm).length;
+      const detectedKey = filesWithAnalysis.filter(f => f.harmonicKey && f.harmonicKey !== 'N/A').length;
+
+      if (detectedKey === 0 && detectedBPM === 0) {
+        toast.error('Analysis failed', { id: toastId, description: 'Could not detect BPM or Key.' });
+      } else {
+        toast.success('Analysis complete!', { id: toastId, description: `BPM: ${detectedBPM}/${files.length} • Key: ${detectedKey}/${files.length}` });
+      }
+
+      // Small delay to let user see 100%
+      setTimeout(() => {
+        setIsAnalyzing(false);
+        setAnalysisProgress(0);
+        onFilesUploaded(filesWithAnalysis);
+      }, 500);
+
+    } catch (error) {
+      clearInterval(progressInterval);
+      setIsAnalyzing(false);
+      setAnalysisProgress(0);
+      toast.error('Analysis error', { id: toastId, description: 'An unexpected error occurred.' });
+      console.error(error);
     }
-
-    onFilesUploaded(filesWithAnalysis);
   };
 
   const handleToggleFileForIndividual = (fileId: string) => {
@@ -255,7 +291,7 @@ export const LevelTabs = ({
   return (
     <>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full relative z-30">
-        <TabsList className="grid w-full grid-cols-4 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-black dark:via-slate-900 dark:to-black border-2 border-slate-600 dark:border-slate-700 p-1 rounded-xl shadow-xl relative z-50">
+        <TabsList className="grid w-full grid-cols-5 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-black dark:via-slate-900 dark:to-black border-2 border-slate-600 dark:border-slate-700 p-1 rounded-xl shadow-xl relative z-50">
           <TabsTrigger value="level" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:via-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-cyan-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl cursor-pointer">
             <BarChart3 className="h-5 w-5" />
             <span className="text-lg text-blue-50">Level</span>
@@ -263,6 +299,10 @@ export const LevelTabs = ({
           <TabsTrigger value="enhance" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:via-pink-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl cursor-pointer">
             <Settings className="h-5 w-5" />
             <span className="text-lg text-cyan-50">{t('button.enhance')}</span>
+          </TabsTrigger>
+          <TabsTrigger value="stems" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:via-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl cursor-pointer">
+            <Package className="h-5 w-5" />
+            <span className="text-lg text-indigo-50">Stems</span>
           </TabsTrigger>
           <TabsTrigger value="ai-mastering" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:via-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl cursor-pointer">
             <Zap className="h-5 w-5" />
@@ -276,8 +316,17 @@ export const LevelTabs = ({
 
         <TabsContent value="level" className={`space-y-8 ${activeTab !== 'level' ? 'hidden' : ''}`}>
           <div className="flex flex-col items-center justify-center min-h-[400px] w-full max-w-5xl mx-auto">
-            <div className="w-full mb-8">
+            <div className="w-full mb-8 space-y-4">
               <LevelUpload onFilesUploaded={handleFilesUploaded} />
+              {isAnalyzing && (
+                <div className="w-full max-w-md mx-auto space-y-2 animate-in fade-in slide-in-from-top-2">
+                  <div className="flex justify-between text-xs text-slate-400">
+                    <span>Analyzing audio...</span>
+                    <span>{analysisProgress}%</span>
+                  </div>
+                  <Progress value={analysisProgress} className="h-2" />
+                </div>
+              )}
             </div>
             <div className="w-full">
               <LevelTrackList
@@ -371,6 +420,10 @@ export const LevelTabs = ({
               </div>
             </div>
           </div>
+        </TabsContent>
+
+        <TabsContent value="stems" className={`space-y-6 ${activeTab !== 'stems' ? 'hidden' : ''}`}>
+          <StemsTab audioFiles={audioFiles} onFilesUploaded={onFilesUploaded} />
         </TabsContent>
 
         <TabsContent value="ai-mastering" className={`space-y-6 ${activeTab !== 'ai-mastering' ? 'hidden' : ''}`}>

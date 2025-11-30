@@ -356,6 +356,164 @@ def analyze_audio_endpoint():
             except:
                 pass
 
+from stems_separation import separate_audio, estimate_processing_time
+import shutil
+
+@app.route('/api/estimate-time', methods=['POST', 'OPTIONS'])
+def estimate_time_endpoint():
+    """Estimate processing time for stems separation"""
+    if request.method == 'OPTIONS':
+        return '', 204
+        
+    try:
+        data = request.get_json()
+        duration = data.get('duration', 0)
+        library = data.get('library', 'demucs')
+        
+        # Simple hardware detection (can be improved)
+        import torch
+        hardware_type = 'gpu' if torch.cuda.is_available() else 'cpu'
+        
+        estimated_seconds = estimate_processing_time(duration, library, hardware_type)
+        
+        return jsonify({
+            "estimated_seconds": estimated_seconds,
+            "hardware_type": hardware_type
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# Task management
+import threading
+import uuid
+import concurrent.futures
+
+# Global task store (in-memory for simplicity)
+TASKS = {}
+executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)
+
+def update_task_progress(task_id, progress):
+    if task_id in TASKS:
+        TASKS[task_id]['progress'] = progress
+
+def background_separation(task_id, file_path, output_dir, library, model_name, shifts):
+    try:
+        TASKS[task_id]['status'] = 'processing'
+        
+        def progress_callback(p):
+            update_task_progress(task_id, p)
+            
+        result = separate_audio(
+            file_path, 
+            output_dir, 
+            library=library, 
+            model_name=model_name,
+            shifts=shifts,
+            progress_callback=progress_callback
+        )
+        
+        if not result['success']:
+            TASKS[task_id]['status'] = 'failed'
+            TASKS[task_id]['error'] = result.get('error', 'Unknown error')
+            return
+            
+        # Zip the output
+        shutil.make_archive(os.path.join(os.path.dirname(output_dir), 'stems'), 'zip', result['output_path'])
+        zip_path = os.path.join(os.path.dirname(output_dir), 'stems.zip')
+        
+        TASKS[task_id]['status'] = 'completed'
+        TASKS[task_id]['progress'] = 100
+        TASKS[task_id]['result_path'] = zip_path
+        
+    except Exception as e:
+        print(f"❌ Background task error: {str(e)}")
+        TASKS[task_id]['status'] = 'failed'
+        TASKS[task_id]['error'] = str(e)
+
+@app.route('/api/task-status/<task_id>', methods=['GET'])
+def get_task_status(task_id):
+    """Get status of a background task"""
+    task = TASKS.get(task_id)
+    if not task:
+        return jsonify({"error": "Task not found"}), 404
+    
+    return jsonify({
+        "id": task_id,
+        "status": task['status'],
+        "progress": task.get('progress', 0),
+        "error": task.get('error')
+    })
+
+@app.route('/api/task-result/<task_id>', methods=['GET'])
+def get_task_result(task_id):
+    """Download result of a completed task"""
+    task = TASKS.get(task_id)
+    if not task or task['status'] != 'completed':
+        return jsonify({"error": "Result not ready"}), 404
+        
+    return send_file(
+        task['result_path'],
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name=f"stems_{task_id}.zip"
+    )
+
+@app.route('/api/separate-audio', methods=['POST', 'OPTIONS'])
+def separate_audio_endpoint():
+    """Start audio separation task"""
+    if request.method == 'OPTIONS':
+        return '', 204
+        
+    # Verify Authentication
+    user = verify_auth_token(request)
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+        
+    if 'file' not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+        
+    file = request.files['file']
+    library = request.form.get('library', 'demucs')
+    model_name = request.form.get('model_name', 'htdemucs')
+    shifts = int(request.form.get('shifts', 1))
+    
+    # Create task
+    task_id = str(uuid.uuid4())
+    temp_dir = tempfile.mkdtemp()
+    input_path = os.path.join(temp_dir, file.filename)
+    output_dir = os.path.join(temp_dir, 'output')
+    
+    try:
+        file.save(input_path)
+        
+        TASKS[task_id] = {
+            'id': task_id,
+            'status': 'queued',
+            'progress': 0,
+            'created_at': time.time()
+        }
+        
+        # Submit to background thread
+        executor.submit(
+            background_separation,
+            task_id,
+            input_path,
+            output_dir,
+            library,
+            model_name,
+            shifts
+        )
+        
+        return jsonify({
+            "task_id": task_id,
+            "status": "queued",
+            "message": "Separation started"
+        })
+        
+    except Exception as e:
+        print(f"❌ Separation endpoint error: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8001))
     print(f"🚀 Starting AI Mastering Backend on port {port}...")
