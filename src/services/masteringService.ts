@@ -91,23 +91,34 @@ export class MasteringService {
   }
 
   async analyzeAudio(file: File): Promise<any> {
-    const token = await this.getAuthToken();
-    const formData = new FormData();
-    formData.append('file', file);
+    try {
+      const token = await this.getAuthToken();
+      const formData = new FormData();
+      formData.append('file', file);
 
-    const response = await fetch(`${this.backendUrl}/api/analyze-audio`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-      body: formData,
-    });
+      console.log(`🔍 Analyzing audio: ${file.name} (${file.type}, ${file.size} bytes)`);
 
-    if (!response.ok) {
-      throw new Error(`Analysis failed: ${response.statusText}`);
+      const response = await fetch(`${this.backendUrl}/api/analyze-audio`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ Analysis failed (${response.status}): ${errorText}`);
+        throw new Error(`Analysis failed: ${response.statusText} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log("✅ Analysis complete:", data);
+      return data;
+    } catch (error) {
+      console.error("❌ analyzeAudio error:", error);
+      throw error;
     }
-
-    return await response.json();
   }
 }
 

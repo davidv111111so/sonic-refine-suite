@@ -50,16 +50,16 @@ export const AdvancedAudioEnhancement = ({
                     onClick={onEnhance}
                     disabled={audioFiles.length === 0 || isProcessing}
                     className={cn(
-                        "relative group overflow-hidden rounded-xl px-8 py-4 min-w-[160px] transition-all duration-300",
+                        "relative group overflow-hidden rounded-lg px-6 py-2 min-w-[120px] transition-all duration-300",
                         "bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600",
-                        "hover:shadow-[0_0_30px_rgba(168,85,247,0.5)] hover:scale-105",
+                        "hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:scale-105",
                         "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none"
                     )}
                 >
                     <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
-                    <div className="relative z-10 flex items-center justify-center gap-2 font-black tracking-widest text-white text-xl uppercase">
-                        <Zap className={cn("w-5 h-5 fill-white", isProcessing && "animate-pulse")} />
-                        Level
+                    <div className="relative z-10 flex items-center justify-center gap-2 font-bold tracking-wider text-white text-sm uppercase">
+                        <Zap className={cn("w-4 h-4 fill-white", isProcessing && "animate-pulse")} />
+                        {audioFiles.length > 1 ? `Level (${audioFiles.length})` : 'Level'}
                     </div>
                 </button>
 

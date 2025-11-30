@@ -239,10 +239,6 @@ export const LevelTabs = ({
       return;
     }
 
-    if (filesToProcess.length >= 2) {
-      if (!window.confirm(language === 'ES' ? `¿Procesar ${filesToProcess.length} archivos?` : `Process ${filesToProcess.length} files?`)) return;
-    }
-
     const finalSettings = {
       ...processingSettings,
       eqBands: eqBands,
@@ -258,21 +254,21 @@ export const LevelTabs = ({
 
   return (
     <>
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-black dark:via-slate-900 dark:to-black border-2 border-slate-600 dark:border-slate-700 p-1 rounded-xl shadow-xl">
-          <TabsTrigger value="level" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:via-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-cyan-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full relative z-30">
+        <TabsList className="grid w-full grid-cols-4 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-black dark:via-slate-900 dark:to-black border-2 border-slate-600 dark:border-slate-700 p-1 rounded-xl shadow-xl relative z-50">
+          <TabsTrigger value="level" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:via-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-cyan-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl cursor-pointer">
             <BarChart3 className="h-5 w-5" />
             <span className="text-lg text-blue-50">Level</span>
           </TabsTrigger>
-          <TabsTrigger value="enhance" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:via-pink-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl">
+          <TabsTrigger value="enhance" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:via-pink-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl cursor-pointer">
             <Settings className="h-5 w-5" />
             <span className="text-lg text-cyan-50">{t('button.enhance')}</span>
           </TabsTrigger>
-          <TabsTrigger value="ai-mastering" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:via-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl">
+          <TabsTrigger value="ai-mastering" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:via-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl cursor-pointer">
             <Zap className="h-5 w-5" />
             <span className="text-lg text-cyan-50">AI Mastering</span>
           </TabsTrigger>
-          <TabsTrigger value="media-player" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:via-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-green-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl">
+          <TabsTrigger value="media-player" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:via-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-green-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl cursor-pointer">
             <Music className="h-5 w-5" />
             <span className="text-lg text-green-50">Media Player</span>
           </TabsTrigger>
@@ -295,11 +291,11 @@ export const LevelTabs = ({
             </div>
           </div>
         </TabsContent>
+
         <TabsContent value="enhance" className={`space-y-6 ${activeTab !== 'enhance' ? 'hidden' : ''}`}>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
             {/* Left Column: Main Controls */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Advanced Audio Enhancement Section */}
               <AdvancedAudioEnhancement
                 audioFiles={processingSettings.batchMode ? audioFiles : audioFiles.filter(f => selectedFilesForIndividual.includes(f.id))}
                 processingSettings={processingSettings}
@@ -308,7 +304,6 @@ export const LevelTabs = ({
                 isProcessing={false}
               />
 
-              {/* File List / Individual Queue */}
               {!processingSettings.batchMode && audioFiles.length > 0 && (
                 <IndividualModeQueue
                   files={audioFiles}
@@ -318,7 +313,6 @@ export const LevelTabs = ({
                 />
               )}
 
-              {/* EQ Section */}
               <FiveBandEqualizer
                 eqBands={eqBands}
                 onEQBandChange={onEQBandChange}

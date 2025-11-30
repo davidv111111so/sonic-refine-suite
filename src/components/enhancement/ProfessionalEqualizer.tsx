@@ -31,18 +31,18 @@ const EQ_PRESETS = [
   { name: 'Voiceover / Podcast', nameES: 'Voz en Off / Podcast', icon: MessageSquare, values: [-6.0, -4.0, -2.5, +2.0, +2.5, +2.0, +1.0, -1.5, -2.0, -1.0], compensation: -1.5 },
 ];
 
-export const ProfessionalEqualizer = ({ 
-  eqBands, 
-  onEQBandChange, 
+export const ProfessionalEqualizer = ({
+  eqBands,
+  onEQBandChange,
   onResetEQ,
   enabled,
   onEnabledChange
 }: ProfessionalEqualizerProps) => {
   const { t, language } = useLanguage();
-  
+
   // Default 10 band EQ frequencies
   const defaultFrequencies = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
-  
+
   // Frequency ranges for each band (min, max)
   const frequencyRanges = [
     [20, 50],      // Band 0: Sub Bass
@@ -56,25 +56,25 @@ export const ProfessionalEqualizer = ({
     [6000, 12000], // Band 8: Air
     [12000, 20000] // Band 9: Ultra High
   ];
-  
+
   // State for custom frequencies
   const [eqFrequencies, setEqFrequencies] = useState<number[]>(defaultFrequencies);
   const [editingBand, setEditingBand] = useState<number | null>(null);
   const [tempFreqValue, setTempFreqValue] = useState<string>('');
-  
+
   const handleFrequencyClick = useCallback((index: number) => {
     setEditingBand(index);
     setTempFreqValue(eqFrequencies[index].toString());
   }, [eqFrequencies]);
-  
+
   const handleFrequencyChange = useCallback((value: string) => {
     setTempFreqValue(value);
   }, []);
-  
+
   const handleFrequencySubmit = useCallback((index: number) => {
     const newFreq = parseInt(tempFreqValue);
     const [min, max] = frequencyRanges[index];
-    
+
     if (!isNaN(newFreq) && newFreq >= min && newFreq <= max) {
       const newFrequencies = [...eqFrequencies];
       newFrequencies[index] = newFreq;
@@ -82,16 +82,16 @@ export const ProfessionalEqualizer = ({
     }
     setEditingBand(null);
   }, [tempFreqValue, eqFrequencies, frequencyRanges]);
-  
+
   const handleFrequencyBlur = useCallback((index: number) => {
     handleFrequencySubmit(index);
   }, [handleFrequencySubmit]);
-  
+
   const handleResetWithFrequencies = useCallback(() => {
     setEqFrequencies(defaultFrequencies);
     onResetEQ();
   }, [onResetEQ]);
-  
+
   const applyPreset = useCallback((values: number[], compensation: number) => {
     // Apply EQ values to all 10 bands in real-time
     // This ensures ALL sliders move when a preset is selected
@@ -101,15 +101,15 @@ export const ProfessionalEqualizer = ({
         onEQBandChange(index, value);
       }
     });
-    
+
     // Apply automatic gain compensation
     console.log(`✅ Applied preset with ${compensation} dB gain compensation for equal loudness`);
-    
+
     toast.success('Preset Applied', {
       description: `EQ preset applied with ${compensation >= 0 ? '+' : ''}${compensation} dB compensation`,
     });
   }, [onEQBandChange]);
-  
+
   const getEQColor = (index: number) => {
     const colors = [
       '#ff1744', // Red for Bass
@@ -176,11 +176,11 @@ export const ProfessionalEqualizer = ({
                       variant="outline"
                       size="sm"
                       onClick={() => applyPreset(preset.values, preset.compensation)}
-                      className="bg-slate-800/90 dark:bg-black/80 border-slate-600 dark:border-slate-700 hover:bg-gradient-to-br hover:from-purple-600 hover:to-blue-600 hover:border-purple-500 text-white h-auto py-1.5 px-1.5 flex flex-col items-center gap-0.5 transition-all duration-300"
+                      className="bg-slate-900/50 border-slate-800 hover:bg-cyan-950/30 hover:border-cyan-500/50 text-slate-300 hover:text-cyan-400 h-auto py-2 px-1 flex flex-col items-center gap-1.5 transition-all duration-200 group"
                       title={`${displayName} (Gain: ${preset.compensation > 0 ? '+' : ''}${preset.compensation} dB)`}
                     >
-                      <Icon className="h-3.5 w-3.5" />
-                      <span className="text-[8px] leading-tight text-center">
+                      <Icon className="h-3 w-3 text-slate-500 group-hover:text-cyan-400 transition-colors" />
+                      <span className="text-[9px] font-medium leading-none text-center opacity-70 group-hover:opacity-100">
                         {displayName}
                       </span>
                     </Button>
@@ -191,7 +191,7 @@ export const ProfessionalEqualizer = ({
 
             {/* Professional EQ with DJ Grid Background */}
             <div className="relative bg-gradient-to-br from-slate-950 via-black to-slate-900 rounded-xl p-6 border-2 border-cyan-500/30 shadow-2xl overflow-hidden">
-              
+
               {/* Animated DJ Grid Background */}
               <div className="absolute inset-0 opacity-30">
                 <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
@@ -204,14 +204,14 @@ export const ProfessionalEqualizer = ({
                       <stop offset="100%" stopColor="#ef4444" stopOpacity="0.6" />
                     </linearGradient>
                   </defs>
-                  
+
                   {/* Frequency Zone Labels */}
                   <text x="5%" y="15%" fill="#06b6d4" fontSize="10" opacity="0.5" fontWeight="bold">SUB</text>
                   <text x="5%" y="35%" fill="#3b82f6" fontSize="10" opacity="0.5" fontWeight="bold">BASS</text>
                   <text x="5%" y="55%" fill="#8b5cf6" fontSize="10" opacity="0.5" fontWeight="bold">MID</text>
                   <text x="5%" y="75%" fill="#ec4899" fontSize="10" opacity="0.5" fontWeight="bold">HIGH</text>
                   <text x="5%" y="95%" fill="#ef4444" fontSize="10" opacity="0.5" fontWeight="bold">AIR</text>
-                  
+
                   {/* Horizontal grid lines */}
                   {[...Array(13)].map((_, i) => (
                     <line
@@ -225,7 +225,7 @@ export const ProfessionalEqualizer = ({
                       opacity="0.3"
                     />
                   ))}
-                  
+
                   {/* Vertical grid lines */}
                   {[...Array(11)].map((_, i) => (
                     <line
@@ -241,11 +241,11 @@ export const ProfessionalEqualizer = ({
                   ))}
                 </svg>
               </div>
-              
+
               {/* dB Scale */}
               <div className="absolute left-2 top-6 bottom-6 flex flex-col justify-between">
                 {getTickMarks().map((mark) => (
-                  <span 
+                  <span
                     key={mark}
                     className="text-[10px] text-cyan-400/70 font-mono"
                   >
@@ -264,10 +264,10 @@ export const ProfessionalEqualizer = ({
                     if (index <= 8) return 'from-pink-400 to-pink-600'; // HIGH
                     return 'from-red-400 to-red-600'; // AIR
                   };
-                  
+
                   return (
                     <div key={index} className="flex flex-col items-center group">
-                      
+
                       {/* Frequency Label - Editable */}
                       {editingBand === index ? (
                         <Input
@@ -283,20 +283,20 @@ export const ProfessionalEqualizer = ({
                           autoFocus
                         />
                       ) : (
-                        <div 
+                        <div
                           className={`text-[10px] text-center mb-2 font-mono bg-gradient-to-r ${getFreqColor()} bg-clip-text text-transparent font-bold cursor-pointer hover:opacity-80`}
                           onClick={() => handleFrequencyClick(index)}
                           title={`Click to edit (Range: ${frequencyRanges[index][0]}-${frequencyRanges[index][1]} Hz)`}
                         >
-                          {eqFrequencies[index] < 1000 ? `${eqFrequencies[index]}Hz` : `${(eqFrequencies[index]/1000).toFixed(1)}k`}
+                          {eqFrequencies[index] < 1000 ? `${eqFrequencies[index]}Hz` : `${(eqFrequencies[index] / 1000).toFixed(1)}k`}
                         </div>
                       )}
 
                       {/* Professional Fader with Rails */}
                       <div className="relative h-32 w-6 mb-2">
-                        
+
                         {/* Fader Rail Background with Gradient */}
-                        <div 
+                        <div
                           className={`absolute inset-x-1 inset-y-2 rounded-full border-2 shadow-inner bg-gradient-to-b ${getFreqColor()} opacity-20`}
                           style={{
                             boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.6)'

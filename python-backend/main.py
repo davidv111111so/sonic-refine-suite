@@ -204,21 +204,37 @@ def master_audio():
         print(f"   Reference: {reference_path} ({reference_ext})")
         
         try:
+            # Configure Matchering
+            config = mg.Config()
+            
+            # Map supported settings
+            if 'threshold' in settings:
+                config.threshold = float(settings['threshold'])
+            if 'epsilon' in settings:
+                config.min_value = float(settings['epsilon'])
+            if 'fft_size' in settings:
+                config.fft_size = int(settings['fft_size'])
+            if 'max_piece_length' in settings:
+                # Convert seconds to samples (assuming 44100 Hz default)
+                config.max_piece_size = int(float(settings['max_piece_length']) * 44100)
+            
             # Configure output bit depth
-            output_bits = settings.get('output_bits', 16)
-            if output_bits == 16:
-                result_format = mg.pcm16(output_path)
-            elif output_bits == 24:
+            output_bits = settings.get('output_bits', '16') # Default to 16 string if missing
+            
+            # Handle "32 (IEEE float)" and other string variations
+            if str(output_bits).startswith('32'):
+                result_format = mg.pcm32(output_path)
+            elif str(output_bits) == '24':
                 result_format = mg.pcm24(output_path)
             else:
-                result_format = mg.pcm32(output_path)
+                result_format = mg.pcm16(output_path)
             
             # Process with Matchering
-            # Note: Matchering only accepts target, reference, and results parameters
             mg.process(
                 target=target_path,
                 reference=reference_path,
-                results=[result_format]
+                results=[result_format],
+                config=config
             )
             
             print(f"✅ Matchering processing complete!")

@@ -49,10 +49,11 @@ const INITIAL_EQ_BANDS: EQBand[] = [
 ];
 
 const INITIAL_COMPRESSOR: CompressorSettings = {
-  threshold: -24,
-  ratio: 12,
+  threshold: -10,
+  ratio: 3,
   attack: 0.003,
   release: 0.25,
+  enabled: false,
 };
 
 const INITIAL_EFFECTS: AudioEffectsSettings = {
@@ -62,6 +63,12 @@ const INITIAL_EFFECTS: AudioEffectsSettings = {
   delayMix: 0,
   pitch: 1,
   preservesPitch: true,
+  distortionAmount: 0,
+  filterType: 'none',
+  filterFreq: 20000,
+  filterQ: 1,
+  pan: 0,
+  enabled: false,
 };
 
 export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
@@ -116,6 +123,26 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
   const reverbDryNodeRef = useRef<GainNode | null>(null);
   const reverbWetNodeRef = useRef<GainNode | null>(null);
 
+  // New Effects Nodes
+  const distortionNodeRef = useRef<WaveShaperNode | null>(null);
+  const filterNodeRef = useRef<BiquadFilterNode | null>(null);
+  const pannerNodeRef = useRef<StereoPannerNode | null>(null);
+
+  // Make distortion curve (Softer)
+  const makeDistortionCurve = (amount: number) => {
+    // Map 0-100 to a smaller range for softer distortion (e.g., 0-20)
+    const k = (amount / 100) * 20;
+    const n_samples = 44100;
+    const curve = new Float32Array(n_samples);
+    const deg = Math.PI / 180;
+    for (let i = 0; i < n_samples; ++i) {
+      const x = (i * 2) / n_samples - 1;
+      // Standard sigmoid function for smoother saturation
+      curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
+    }
+    return curve;
+  };
+
   // Initialize WaveSurfer with shared Audio Element
   useEffect(() => {
     if (!waveformRef.current || !audioElement) return;
@@ -131,12 +158,20 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
       waveColor: "#4b5563",
       progressColor: "#06b6d4",
       cursorColor: "#22d3ee",
-      barWidth: 3,
+      barWidth: 2,
       barRadius: 3,
-      cursorWidth: 2,
-      height: 80,
-      barGap: 3,
+      cursorWidth: 1,
+      height: 100,
+      barGap: 2,
       normalize: true,
+      minPxPerSec: 50,
+      fillParent: true,
+      interact: true,
+      dragToSeek: true,
+      audioRate: 1,
+      autoScroll: true,
+      autoCenter: true,
+      sampleRate: 8000,
     });
 
     // Create a gradient for the progress wave
@@ -151,10 +186,6 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
 
     wavesurferRef.current = ws;
 
-    // We don't need to listen to 'ready', 'audioprocess', 'finish' here for state updates
-    // because PlayerContext handles that via the Audio Element events.
-    // But we might want to handle loop logic here or in context.
-
     ws.on("finish", () => {
       if (loop) {
         ws.play();
@@ -164,7 +195,7 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
     return () => {
       ws.destroy();
     };
-  }, [audioElement, loop]); // Re-init if audio element changes (shouldn't happen often)
+  }, [audioElement, loop]);
 
   // Handle File Uploads
   const handleFilesAdded = useCallback(
@@ -195,12 +226,11 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
 
     if (!gainNodeRef.current) {
       gainNodeRef.current = audioContext.createGain();
-      gainNodeRef.current.gain.value = volume;
+      gainNodeRef.current.gain.value = 1.0; // Unity gain, volume handled by audio element
     }
 
     if (!compressorNodeRef.current) {
       compressorNodeRef.current = audioContext.createDynamicsCompressor();
-      // Set initial values
       const c = compressorNodeRef.current;
       c.threshold.value = compressorSettings.threshold;
       c.ratio.value = compressorSettings.ratio;
@@ -220,34 +250,200 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
       });
     }
 
-    // Initialize Delay/Reverb (simplified for brevity, same logic as before)
-    // ... (Use existing logic for creating delay/reverb nodes)
+    // Initialize Delay
+    if (!delayNodeRef.current) {
+      const delay = audioContext.createDelay(5.0);
+      const feedback = audioContext.createGain();
+      const dry = audioContext.createGain();
+      const wet = audioContext.createGain();
 
-    // Connect the Graph
-    // Disconnect default destination first to avoid double audio
-    try {
-      mediaSourceNode.disconnect();
-    } catch (e) {
-      // Ignore if already disconnected
+      delay.delayTime.value = effectsSettings.delayTime;
+      feedback.gain.value = effectsSettings.delayFeedback;
+      dry.gain.value = 1 - effectsSettings.delayMix;
+      wet.gain.value = effectsSettings.delayMix;
+
+      delay.connect(feedback);
+      feedback.connect(delay);
+
+      delayNodeRef.current = delay;
+      delayFeedbackNodeRef.current = feedback;
+      delayDryNodeRef.current = dry;
+      delayWetNodeRef.current = wet;
     }
 
+    // Initialize Reverb
+    if (!reverbNodeRef.current) {
+      const convolver = audioContext.createConvolver();
+      const dry = audioContext.createGain();
+      const wet = audioContext.createGain();
+
+      // Load impulse response (placeholder or generated)
+      // For now, simple noise burst for reverb tail
+      const rate = audioContext.sampleRate;
+      const length = rate * 2; // 2 seconds
+      const decay = 2.0;
+      const impulse = audioContext.createBuffer(2, length, rate);
+      const impulseL = impulse.getChannelData(0);
+      const impulseR = impulse.getChannelData(1);
+      for (let i = 0; i < length; i++) {
+        const n = length - i;
+        impulseL[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+        impulseR[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+      }
+      convolver.buffer = impulse;
+
+      dry.gain.value = 1 - effectsSettings.reverbMix;
+      wet.gain.value = effectsSettings.reverbMix;
+
+      reverbNodeRef.current = convolver;
+      reverbDryNodeRef.current = dry;
+      reverbWetNodeRef.current = wet;
+    }
+
+    // Initialize Distortion
+    if (!distortionNodeRef.current) {
+      const dist = audioContext.createWaveShaper();
+      dist.curve = makeDistortionCurve(0);
+      dist.oversample = '4x';
+      distortionNodeRef.current = dist;
+    }
+
+    // Initialize Filter
+    if (!filterNodeRef.current) {
+      const filter = audioContext.createBiquadFilter();
+      filter.type = 'lowpass'; // Default
+      filter.frequency.value = 20000;
+      filter.Q.value = 1;
+      filterNodeRef.current = filter;
+    }
+
+    // Initialize Panner
+    if (!pannerNodeRef.current) {
+      const panner = audioContext.createStereoPanner();
+      panner.pan.value = 0;
+      pannerNodeRef.current = panner;
+    }
+
+    // Connect the Graph
+
+    // Helper to safely disconnect a node
+    const safeDisconnect = (node: AudioNode | null) => {
+      if (node) {
+        try {
+          node.disconnect();
+        } catch (e) {
+          // Ignore errors if node wasn't connected
+        }
+      }
+    };
+
+    // Disconnect everything first to prevent double connections
+    safeDisconnect(mediaSourceNode);
+    eqFiltersRef.current.forEach(f => safeDisconnect(f));
+    safeDisconnect(compressorNodeRef.current);
+    safeDisconnect(distortionNodeRef.current);
+    safeDisconnect(filterNodeRef.current);
+    safeDisconnect(delayNodeRef.current); // Wet path
+    safeDisconnect(delayDryNodeRef.current); // Dry path
+    safeDisconnect(reverbNodeRef.current);
+    safeDisconnect(reverbDryNodeRef.current);
+    safeDisconnect(pannerNodeRef.current);
+    safeDisconnect(gainNodeRef.current);
+    safeDisconnect(analyserNodeRef.current);
+
+    // Rebuild the chain
     let currentNode: AudioNode = mediaSourceNode;
 
-    // 1. EQ
+    // 1. EQ (Always in chain, flat by default)
     eqFiltersRef.current.forEach(filter => {
       currentNode.connect(filter);
       currentNode = filter;
     });
 
-    // 2. Compressor
-    if (compressorNodeRef.current) {
+    // 2. Compressor (If enabled)
+    if (compressorSettings.enabled && compressorNodeRef.current) {
       currentNode.connect(compressorNodeRef.current);
       currentNode = compressorNodeRef.current;
     }
 
-    // 3. Effects (Placeholder for Delay/Reverb connection logic)
-    // For now, skip complex routing to ensure basic playback works, or implement fully if needed.
-    // Let's connect directly to Gain for now to verify context switch, then add effects back.
+    // 3. Audio Effects Chain (Distortion -> Filter -> Delay -> Reverb -> Panner)
+    if (effectsSettings.enabled) {
+      // Distortion
+      if (distortionNodeRef.current) {
+        currentNode.connect(distortionNodeRef.current);
+        currentNode = distortionNodeRef.current;
+      }
+
+      // Filter
+      if (filterNodeRef.current) {
+        currentNode.connect(filterNodeRef.current);
+        currentNode = filterNodeRef.current;
+      }
+
+      // Delay (Parallel)
+      if (delayNodeRef.current && delayDryNodeRef.current && delayWetNodeRef.current) {
+        const delayInput = audioContext.createGain();
+        const delayOutput = audioContext.createGain();
+
+        // We need to manage these temp nodes or just connect directly
+        // Connecting directly is cleaner for React useEffect re-runs
+        // But parallel paths need a split. 
+        // Let's use the existing nodes but be careful.
+        // Actually, creating new Gain nodes inside useEffect is bad if we don't clean them up.
+        // For simplicity and robustness, let's just chain them if possible, or use the refs if they exist.
+        // If we created temp gains in previous runs, they are garbage collected if disconnected.
+
+        // Better approach for parallel:
+        // source -> dry -> output
+        // source -> wet -> output
+
+        currentNode.connect(delayDryNodeRef.current);
+        currentNode.connect(delayNodeRef.current);
+
+        delayNodeRef.current.connect(delayWetNodeRef.current);
+
+        // We need a merge point. 
+        // We can connect both dry and wet to the NEXT node in the chain.
+        // But we need a single node to represent the "output" of this stage to continue the chain.
+        // So we DO need a merge node.
+        // Let's use a persistent merge node if possible, or just connect both to the next stage.
+        // Connecting both to the next stage works!
+
+        // But wait, if we have Reverb next, we need to connect BOTH delayDry and delayWet to Reverb.
+        // This gets complicated. 
+        // EASIER FIX: Just use the GainNode we created in init? 
+        // We didn't create a merge node in init.
+
+        // Let's create a temporary merge gain for this render cycle.
+        const delayMerge = audioContext.createGain();
+        delayDryNodeRef.current.connect(delayMerge);
+        delayWetNodeRef.current.connect(delayMerge);
+
+        currentNode = delayMerge;
+      }
+
+      // Reverb Chain
+      if (reverbNodeRef.current && reverbDryNodeRef.current && reverbWetNodeRef.current) {
+        // Similar parallel logic
+        const reverbMerge = audioContext.createGain();
+
+        currentNode.connect(reverbDryNodeRef.current);
+        currentNode.connect(reverbNodeRef.current);
+
+        reverbNodeRef.current.connect(reverbWetNodeRef.current);
+
+        reverbDryNodeRef.current.connect(reverbMerge);
+        reverbWetNodeRef.current.connect(reverbMerge);
+
+        currentNode = reverbMerge;
+      }
+
+      // Panner
+      if (pannerNodeRef.current) {
+        currentNode.connect(pannerNodeRef.current);
+        currentNode = pannerNodeRef.current;
+      }
+    }
 
     // 4. Master Gain
     if (gainNodeRef.current) {
@@ -263,19 +459,25 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
       currentNode.connect(audioContext.destination);
     }
 
-    console.log("🎛️ Audio Graph Connected via Context Source");
+    console.log("🎛️ Audio Graph Connected");
 
-    // Cleanup: Reconnect source to destination directly when unmounting
     return () => {
-      try {
-        mediaSourceNode.disconnect();
-        mediaSourceNode.connect(audioContext.destination);
-        console.log("🔌 Audio Graph Disconnected (Reverted to Default)");
-      } catch (e) {
-        console.error("Error cleaning up audio graph:", e);
-      }
+      // Cleanup: Disconnect everything we might have connected
+      safeDisconnect(mediaSourceNode);
+      eqFiltersRef.current.forEach(f => safeDisconnect(f));
+      safeDisconnect(compressorNodeRef.current);
+      safeDisconnect(distortionNodeRef.current);
+      safeDisconnect(filterNodeRef.current);
+      safeDisconnect(delayNodeRef.current);
+      safeDisconnect(delayDryNodeRef.current);
+      safeDisconnect(reverbNodeRef.current);
+      safeDisconnect(reverbDryNodeRef.current);
+      safeDisconnect(pannerNodeRef.current);
+      safeDisconnect(gainNodeRef.current);
+      safeDisconnect(analyserNodeRef.current);
+      console.log("🔌 Audio Graph Disconnected");
     };
-  }, [mediaSourceNode, volume]); // Re-run if source node changes
+  }, [mediaSourceNode, effectsSettings.enabled, compressorSettings.enabled]);
 
   // Auto-play file logic
   useEffect(() => {
@@ -288,8 +490,75 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
     }
   }, [autoPlayFile, currentTrack, onAutoPlayComplete, loadTrack]);
 
-  // Update EQ/Compressor/Volume Effects (Same as before)
-  // ...
+  // Update Effects Parameters
+  useEffect(() => {
+    const audioContext = getAudioContext();
+    if (!audioContext) return;
+
+    // EQ
+    eqFiltersRef.current.forEach((filter, index) => {
+      if (index < eqBands.length) {
+        filter.gain.setTargetAtTime(eqBands[index].gain, audioContext.currentTime, 0.1);
+      }
+    });
+
+    // Compressor
+    if (compressorNodeRef.current) {
+      const c = compressorNodeRef.current;
+      c.threshold.setTargetAtTime(compressorSettings.threshold, audioContext.currentTime, 0.1);
+      c.ratio.setTargetAtTime(compressorSettings.ratio, audioContext.currentTime, 0.1);
+      c.attack.setTargetAtTime(compressorSettings.attack, audioContext.currentTime, 0.1);
+      c.release.setTargetAtTime(compressorSettings.release, audioContext.currentTime, 0.1);
+    }
+
+    // Delay
+    if (delayNodeRef.current && delayFeedbackNodeRef.current && delayDryNodeRef.current && delayWetNodeRef.current) {
+      delayNodeRef.current.delayTime.setTargetAtTime(effectsSettings.delayTime, audioContext.currentTime, 0.1);
+      delayFeedbackNodeRef.current.gain.setTargetAtTime(effectsSettings.delayFeedback, audioContext.currentTime, 0.1);
+      delayDryNodeRef.current.gain.setTargetAtTime(1 - effectsSettings.delayMix, audioContext.currentTime, 0.1);
+      delayWetNodeRef.current.gain.setTargetAtTime(effectsSettings.delayMix, audioContext.currentTime, 0.1);
+    }
+
+    // Reverb
+    if (reverbDryNodeRef.current && reverbWetNodeRef.current) {
+      reverbDryNodeRef.current.gain.setTargetAtTime(1 - effectsSettings.reverbMix, audioContext.currentTime, 0.1);
+      reverbWetNodeRef.current.gain.setTargetAtTime(effectsSettings.reverbMix, audioContext.currentTime, 0.1);
+    }
+
+    // Distortion
+    if (distortionNodeRef.current) {
+      if (effectsSettings.distortionAmount === 0) {
+        distortionNodeRef.current.curve = null;
+      } else {
+        distortionNodeRef.current.curve = makeDistortionCurve(effectsSettings.distortionAmount);
+      }
+    }
+
+    // Filter
+    if (filterNodeRef.current) {
+      if (effectsSettings.filterType === 'none') {
+        // Bypass filter effectively by setting frequency to limits or using allpass
+        // Allpass is safest to keep signal flow without attenuation
+        filterNodeRef.current.type = 'allpass';
+      } else {
+        filterNodeRef.current.type = effectsSettings.filterType;
+        filterNodeRef.current.frequency.setTargetAtTime(effectsSettings.filterFreq, audioContext.currentTime, 0.1);
+        filterNodeRef.current.Q.setTargetAtTime(effectsSettings.filterQ, audioContext.currentTime, 0.1);
+      }
+    }
+
+    // Panner
+    if (pannerNodeRef.current) {
+      pannerNodeRef.current.pan.setTargetAtTime(effectsSettings.pan, audioContext.currentTime, 0.1);
+    }
+
+    // Pitch (Playback Rate)
+    if (audioElement) {
+      audioElement.playbackRate = effectsSettings.pitch;
+      audioElement.preservesPitch = effectsSettings.preservesPitch;
+    }
+
+  }, [eqBands, compressorSettings, effectsSettings, audioElement]);
 
   const handleSkipBackward = () => {
     seekTo(Math.max(0, currentTime - 10));
@@ -304,7 +573,6 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
     if (onFileDelete) {
       onFileDelete(currentTrack.id);
     }
-    // Context handles playlist removal logic
     toast.success(`Deleted: ${currentTrack.name}`);
   };
 
@@ -427,32 +695,6 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
             }}
           />
 
-          {/* Visualizer */}
-          <VisualizerDisplay
-            analyserNode={analyserNodeRef.current}
-            isPlaying={isPlaying}
-            mode={visualizerMode}
-            onModeChange={setVisualizerMode}
-          />
-        </div>
-
-        {/* Right Column: Compressor, Effects & Playlist */}
-        <div className="space-y-6">
-          {/* Compressor */}
-          <DynamicsCompressorControls
-            settings={compressorSettings}
-            gainReduction={gainReduction}
-            onSettingsChange={(settings) =>
-              setCompressorSettings({ ...compressorSettings, ...settings })
-            }
-          />
-
-          {/* Audio Effects - Placed here to fit screen */}
-          <AudioEffectsControls
-            settings={effectsSettings}
-            onSettingsChange={(settings) => setEffectsSettings(prev => ({ ...prev, ...settings }))}
-          />
-
           {/* Playlist */}
           <PlaylistPanel
             files={files}
@@ -462,7 +704,36 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
             onClearAll={onClearAll}
           />
         </div>
+
+        {/* Right Column: Compressor, Effects & Visualizer */}
+        <div className="space-y-6 flex flex-col">
+          {/* Compressor */}
+          <DynamicsCompressorControls
+            settings={compressorSettings}
+            gainReduction={gainReduction}
+            onSettingsChange={(settings) =>
+              setCompressorSettings({ ...compressorSettings, ...settings })
+            }
+          />
+
+          {/* Audio Effects */}
+          <AudioEffectsControls
+            settings={effectsSettings}
+            onSettingsChange={(settings) => setEffectsSettings(prev => ({ ...prev, ...settings }))}
+          />
+
+          {/* Visualizer - Now in right column, filling remaining height if needed or fixed height */}
+          <div className="flex-1 min-h-[200px]">
+            <VisualizerDisplay
+              analyserNode={analyserNodeRef.current}
+              isPlaying={isPlaying}
+              mode={visualizerMode}
+              onModeChange={setVisualizerMode}
+            />
+          </div>
+        </div>
       </div>
+
     </div>
   );
 };

@@ -6,16 +6,16 @@ export const useAdvancedAudioProcessing = () => {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const processAudioFile = useCallback(async (
-    file: AudioFile, 
+    file: AudioFile,
     settings: any,
     onProgressUpdate?: (progress: number, stage: string) => void
   ): Promise<Blob> => {
     return new Promise(async (resolve, reject) => {
       let audioContext: AudioContext | null = null;
-      
+
       try {
         console.log('Starting audio processing for:', file.name);
-        
+
         if (onProgressUpdate) {
           onProgressUpdate(5, 'Initializing audio context...');
         }
@@ -23,7 +23,7 @@ export const useAdvancedAudioProcessing = () => {
         // Create audio context with original sample rate to maintain BPM
         const arrayBuffer = await file.originalFile.arrayBuffer();
         audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-        
+
         if (onProgressUpdate) {
           onProgressUpdate(15, 'Decoding audio data...');
         }
@@ -31,27 +31,24 @@ export const useAdvancedAudioProcessing = () => {
         // Decode the audio with proper error handling
         let audioBuffer;
         try {
+          // Clone the buffer first if we might need it again, but for now we just handle the error
+          // Note: decodeAudioData detaches the arrayBuffer in some implementations
           audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-        } catch (decodeError) {
+        } catch (decodeError: any) {
           console.error('Audio decoding error:', decodeError);
-          
-          // Try to handle common audio format issues
-          if (decodeError.name === 'EncodingError' || decodeError.message.includes('Unable to decode')) {
-            // Try creating a copy of the array buffer
-            const clonedBuffer = arrayBuffer.slice(0);
-            try {
-              audioBuffer = await audioContext.decodeAudioData(clonedBuffer);
-            } catch (secondError) {
-              console.error('Second decode attempt failed:', secondError);
-              throw new Error(`Audio processing failed: ${decodeError.message || 'Unable to decode audio data'}`);
-            }
+
+          // Check for WMA or other unsupported formats
+          if (file.name.toLowerCase().endsWith('.wma') ||
+            decodeError.name === 'EncodingError' ||
+            decodeError.message?.includes('Unable to decode')) {
+            throw new Error(`Format not supported. Please convert ${file.name} to MP3 or WAV.`);
           } else {
-            throw new Error(`Audio processing failed: ${decodeError.message || 'Unable to decode audio data'}`);
+            throw new Error(`Audio decoding failed: ${decodeError.message || 'Unknown error'}`);
           }
         }
-        
+
         const originalSampleRate = audioBuffer.sampleRate;
-        
+
         if (onProgressUpdate) {
           onProgressUpdate(30, 'Applying Perfect Audio enhancements...');
         }
@@ -76,7 +73,7 @@ export const useAdvancedAudioProcessing = () => {
           // 5-band EQ mapped to specific indices
           const bandIndices = [0, 2, 4, 7, 9];
           const eqFrequencies = [60, 250, 1000, 4000, 12000];
-          
+
           let eqNode = currentNode;
           bandIndices.forEach((bandIndex, visualIndex) => {
             const gain = settings.eqBands[bandIndex] || 0;
@@ -86,7 +83,7 @@ export const useAdvancedAudioProcessing = () => {
               filter.frequency.value = eqFrequencies[visualIndex];
               filter.Q.value = 1.0;
               filter.gain.value = gain;
-              
+
               eqNode.connect(filter);
               eqNode = filter;
             }
@@ -113,7 +110,7 @@ export const useAdvancedAudioProcessing = () => {
         // Fix: Use trebleEnhancement instead of trebleBoost and add validation
         const bassBoostValue = settings.bassBoost || 0;
         const trebleBoostValue = settings.trebleEnhancement || settings.trebleBoost || 0;
-        
+
         if (bassBoostValue !== 0 && isFinite(bassBoostValue)) {
           currentNode = applyBassBoost(offlineContext, currentNode, bassBoostValue);
         }
@@ -132,14 +129,14 @@ export const useAdvancedAudioProcessing = () => {
 
         // Render the audio
         const renderedBuffer = await offlineContext.startRendering();
-        
+
         if (onProgressUpdate) {
           onProgressUpdate(90, 'Encoding output...');
         }
 
         // Convert to blob with chunked processing to prevent crashes
         const blob = await audioBufferToBlob(renderedBuffer, settings.outputFormat || 'wav');
-        
+
         if (onProgressUpdate) {
           onProgressUpdate(100, 'Enhancement complete!');
         }
@@ -150,10 +147,10 @@ export const useAdvancedAudioProcessing = () => {
         }
 
         resolve(blob);
-        
+
       } catch (error) {
         console.error('Audio processing error:', error);
-        
+
         // Clean up on error
         if (audioContext && audioContext.state !== 'closed') {
           try {
@@ -162,11 +159,11 @@ export const useAdvancedAudioProcessing = () => {
             console.warn('Error closing audio context:', closeError);
           }
         }
-        
+
         if (onProgressUpdate) {
           onProgressUpdate(100, 'Enhancement failed');
         }
-        
+
         reject(new Error(`Audio processing failed: ${error.message}`));
       }
     });
@@ -185,7 +182,7 @@ const applyEqualizer = async (context: OfflineAudioContext, input: AudioNode, eq
     const bandValue = eqBands[i];
     if (bandValue !== undefined && isFinite(bandValue) && bandValue !== 0) {
       const filter = context.createBiquadFilter();
-      
+
       if (i === 0) {
         filter.type = 'lowshelf';
       } else if (i === frequencies.length - 1) {
@@ -194,10 +191,10 @@ const applyEqualizer = async (context: OfflineAudioContext, input: AudioNode, eq
         filter.type = 'peaking';
         filter.Q.value = 1.0;
       }
-      
+
       filter.frequency.value = frequencies[i];
       filter.gain.value = bandValue;
-      
+
       currentNode.connect(filter);
       currentNode = filter;
     }
@@ -211,7 +208,7 @@ const applyNoiseReduction = (context: OfflineAudioContext, input: AudioNode, lev
   filter.type = 'highpass';
   filter.frequency.value = Math.min(200, level * 2);
   filter.Q.value = 0.7;
-  
+
   input.connect(filter);
   return filter;
 };
@@ -223,7 +220,7 @@ const applyCompression = (context: OfflineAudioContext, input: AudioNode, ratio:
   compressor.ratio.value = Math.max(1, ratio / 10);
   compressor.attack.value = 0.005;
   compressor.release.value = 0.1;
-  
+
   input.connect(compressor);
   return compressor;
 };
@@ -231,12 +228,12 @@ const applyCompression = (context: OfflineAudioContext, input: AudioNode, ratio:
 const applyBassBoost = (context: OfflineAudioContext, input: AudioNode, boost: number): AudioNode => {
   // Validate boost value to prevent non-finite errors
   const safeBoost = isFinite(boost) ? Math.max(-40, Math.min(40, boost)) : 0;
-  
+
   const filter = context.createBiquadFilter();
   filter.type = 'lowshelf';
   filter.frequency.value = 200;
   filter.gain.value = safeBoost;
-  
+
   input.connect(filter);
   return filter;
 };
@@ -244,12 +241,12 @@ const applyBassBoost = (context: OfflineAudioContext, input: AudioNode, boost: n
 const applyTrebleBoost = (context: OfflineAudioContext, input: AudioNode, boost: number): AudioNode => {
   // Validate boost value to prevent non-finite errors
   const safeBoost = isFinite(boost) ? Math.max(-40, Math.min(40, boost)) : 0;
-  
+
   const filter = context.createBiquadFilter();
   filter.type = 'highshelf';
   filter.frequency.value = 3000;
   filter.gain.value = safeBoost;
-  
+
   input.connect(filter);
   return filter;
 };
@@ -261,7 +258,7 @@ const applyNormalization = (context: OfflineAudioContext, input: AudioNode, targ
   // Convert dB to linear gain: gain = 10^(dB/20)
   const linearGain = Math.pow(10, targetLevel / 20);
   gainNode.gain.value = linearGain;
-  
+
   input.connect(gainNode);
   return gainNode;
 };
@@ -270,24 +267,24 @@ const applyStereoWidening = (context: OfflineAudioContext, input: AudioNode, amo
   // Stereo widening using mid-side processing
   // amount is 0-100, we convert to 0-1 range
   const widthFactor = Math.max(0, Math.min(100, amount)) / 100;
-  
+
   // Create a stereo panner for width enhancement
   const splitter = context.createChannelSplitter(2);
   const merger = context.createChannelMerger(2);
   const gainL = context.createGain();
   const gainR = context.createGain();
-  
+
   // Apply stereo width: > 1 = wider, < 1 = narrower
   const width = 1 + (widthFactor * 0.5); // Max 1.5x width
   gainL.gain.value = width;
   gainR.gain.value = width;
-  
+
   input.connect(splitter);
   splitter.connect(gainL, 0);
   splitter.connect(gainR, 1);
   gainL.connect(merger, 0, 0);
   gainR.connect(merger, 0, 1);
-  
+
   return merger;
 };
 
@@ -296,19 +293,19 @@ const audioBufferToBlob = async (audioBuffer: AudioBuffer, format: string): Prom
   const numberOfChannels = audioBuffer.numberOfChannels;
   const sampleRate = audioBuffer.sampleRate;
   const length = audioBuffer.length;
-  
+
   // Use 16-bit for compatibility and smaller file size
   const bytesPerSample = 2;
   const blockAlign = numberOfChannels * bytesPerSample;
   const byteRate = sampleRate * blockAlign;
-  
+
   const headerLength = 44;
   const dataLength = length * blockAlign;
   const fileLength = headerLength + dataLength;
-  
+
   const arrayBuffer = new ArrayBuffer(fileLength);
   const view = new DataView(arrayBuffer);
-  
+
   // WAV header
   let offset = 0;
   view.setUint32(offset, 0x52494646, false); offset += 4; // "RIFF"
@@ -324,14 +321,14 @@ const audioBufferToBlob = async (audioBuffer: AudioBuffer, format: string): Prom
   view.setUint16(offset, 16, true); offset += 2; // 16-bit
   view.setUint32(offset, 0x64617461, false); offset += 4; // "data"
   view.setUint32(offset, dataLength, true); offset += 4;
-  
+
   // Convert audio data in chunks to prevent blocking
   const chunkSize = 4096;
   const maxValue = 32767;
-  
+
   for (let i = 0; i < length; i += chunkSize) {
     const end = Math.min(i + chunkSize, length);
-    
+
     for (let j = i; j < end; j++) {
       for (let channel = 0; channel < numberOfChannels; channel++) {
         const sample = audioBuffer.getChannelData(channel)[j];
@@ -341,12 +338,12 @@ const audioBufferToBlob = async (audioBuffer: AudioBuffer, format: string): Prom
         offset += 2;
       }
     }
-    
+
     // Yield control every chunk to prevent blocking
     if (i % (chunkSize * 10) === 0) {
       await new Promise(resolve => setTimeout(resolve, 1));
     }
   }
-  
+
   return new Blob([arrayBuffer], { type: 'audio/wav' });
 };

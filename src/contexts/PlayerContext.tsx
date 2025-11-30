@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
 import { AudioFile } from '@/types/audio';
 import { getAudioContext } from '@/utils/audioContextManager';
+import { useAuth } from './AuthContext';
 
 interface PlayerContextType {
     currentTrack: AudioFile | null;
@@ -25,6 +26,7 @@ interface PlayerContextType {
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
 
 export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const { user } = useAuth();
     const [currentTrack, setCurrentTrack] = useState<AudioFile | null>(null);
     const [playlist, setPlaylist] = useState<AudioFile[]>([]);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -35,6 +37,20 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // Global Audio Element
     const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    // Clear playlist and stop playback when user logs out
+    useEffect(() => {
+        if (!user) {
+            console.log("🔒 User logged out - Clearing player state");
+            setPlaylist([]);
+            setCurrentTrack(null);
+            setIsPlaying(false);
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current.src = '';
+            }
+        }
+    }, [user]);
 
     useEffect(() => {
         const audio = new Audio();

@@ -16,6 +16,7 @@ import {
   Zap,
   FileAudio
 } from "lucide-react";
+import { saveAs } from 'file-saver';
 import { useUserSubscription } from "@/hooks/useUserSubscription";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
@@ -155,32 +156,15 @@ export const AIMasteringTab = () => {
     setAdminTargetPreset(null);
   };
 
-  // Helper function to trigger file download using native anchor tag
+  // Helper function to trigger file download using file-saver
   const downloadMasteredFile = (blob: Blob, fileName: string) => {
     console.log(`⬇️ Downloading file: ${fileName}, size: ${blob.size}, type: ${blob.type}`);
 
     // Force audio/wav type if missing or incorrect
     const wavBlob = blob.type === 'audio/wav' ? blob : new Blob([blob], { type: 'audio/wav' });
 
-    // Create a URL for the blob
-    const url = URL.createObjectURL(wavBlob);
-
-    // Create a temporary anchor element
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = fileName; // This attribute forces download
-    link.style.display = "none";
-
-    // Append to body, click, and remove
-    document.body.appendChild(link);
-    link.click();
-
-    // Cleanup
-    setTimeout(() => {
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      console.log("✅ Download triggered and cleanup complete");
-    }, 100);
+    saveAs(wavBlob, fileName);
+    console.log("✅ Download triggered via file-saver");
   };
 
   // Helper function to convert MasteringSettings to MasteringSettingsData

@@ -156,20 +156,21 @@ export const AdvancedEQPresetsWithCompensation = memo(
                 key={preset.name}
                 onClick={() => applyPreset(preset)}
                 className={`
-                relative flex flex-col items-center gap-2 h-auto py-4 
+                relative flex flex-col items-center gap-1.5 h-auto py-2 px-1
                 bg-gradient-to-br ${gradient}
-                hover:scale-110 active:scale-95
-                border-2 border-white/30 hover:border-white/60
-                shadow-lg hover:shadow-2xl
+                hover:scale-105 active:scale-95
+                border border-white/20 hover:border-white/50
+                shadow-md hover:shadow-lg
                 transition-all duration-300
                 group
+                min-h-[60px]
               `}
               >
                 {/* Glow effect */}
-                <div className="absolute inset-0 bg-white/20 rounded-md opacity-0 group-hover:opacity-100 transition-opacity blur-xl -z-10" />
+                <div className="absolute inset-0 bg-white/10 rounded-md opacity-0 group-hover:opacity-100 transition-opacity blur-lg -z-10" />
 
-                <Icon className="h-6 w-6 text-white drop-shadow-lg group-hover:scale-125 transition-transform" />
-                <span className="text-xs font-bold text-white drop-shadow-md text-center leading-tight">
+                <Icon className="h-4 w-4 text-white drop-shadow-sm group-hover:scale-110 transition-transform" />
+                <span className="text-[10px] font-bold text-white drop-shadow-sm text-center leading-tight line-clamp-2">
                   {displayName}
                 </span>
               </Button>

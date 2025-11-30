@@ -18,6 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { AnimatedTitle } from '@/components/AnimatedTitle';
 import Orb from '@/components/ui/Orb';
+import { saveAs } from 'file-saver';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -184,6 +185,10 @@ const Index = () => {
             icon: '/favicon.ico'
           });
         }
+
+        // Auto-download using FileSaver.js
+        saveAs(enhancedBlob, enhancedFilename);
+
         if (window.gc) {
           window.gc();
         }
@@ -230,14 +235,22 @@ const Index = () => {
     setEqBands([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
   };
 
-  const handleDownloadEnhanced = (file: AudioFile) => {
+  const handleDownloadEnhanced = async (file: AudioFile) => {
     if (file.enhancedUrl) {
-      const a = document.createElement('a');
-      a.href = file.enhancedUrl;
-      a.download = `enhanced_${file.name}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      try {
+        const response = await fetch(file.enhancedUrl);
+        const blob = await response.blob();
+        // Default to wav as requested
+        const extension = 'wav';
+        saveAs(blob, `enhanced_${file.name.replace(/\.[^.]+$/, '')}.${extension}`);
+      } catch (error) {
+        console.error('Download error:', error);
+        toast({
+          title: "Download Failed",
+          description: "Could not download the file.",
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -333,14 +346,8 @@ const Index = () => {
       const zipBlob = await zip.generateAsync({
         type: 'blob'
       });
-      const url = URL.createObjectURL(zipBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `level_enhanced_${Date.now()}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      saveAs(zipBlob, `level_enhanced_${Date.now()}.zip`);
+
       toast({
         title: "Download Complete",
         description: `${readyFiles.length} enhanced files downloaded as ZIP.`
