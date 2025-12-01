@@ -10,6 +10,7 @@ import {
   Volume2,
   Repeat,
   Trash2,
+  ExternalLink
 } from "lucide-react";
 import WaveSurfer from "wavesurfer.js";
 import {
@@ -203,14 +204,14 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
       if (onFilesAdded) {
         onFilesAdded(newFiles);
       }
-      addToPlaylist(newFiles);
-      // If nothing playing, load first
-      if (!currentTrack && newFiles.length > 0) {
-        loadTrack(newFiles[0]);
-      }
-      toast.success(`Added ${newFiles.length} file(s) to player`);
+      // Note: We rely on the parent (LevelTabs) to add to the global playlist after analysis
+      // This prevents duplicates and ensures BPM/Key data is present
+
+      // If nothing playing, we might want to load first, but we should wait for analysis
+      // So we remove the immediate loadTrack here as well
+      toast.info(`Analyzing ${newFiles.length} file(s)...`);
     },
-    [onFilesAdded, addToPlaylist, currentTrack, loadTrack]
+    [onFilesAdded]
   );
 
   // Initialize Audio Graph (Effects Chain)
@@ -584,6 +585,19 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
 
   return (
     <div className="space-y-6 p-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-white">Media Player</h2>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => window.open('/player', '_blank')}
+          className="flex items-center gap-2 border-cyan-500/30 text-cyan-400 hover:bg-cyan-950/30"
+        >
+          <ExternalLink className="w-4 h-4" />
+          <span>Open External Player</span>
+        </Button>
+      </div>
+
       {/* Upload Zone */}
       <MediaPlayerUpload onFilesAdded={handleFilesAdded} />
 
@@ -696,30 +710,32 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
           />
 
           {/* Playlist */}
-          <PlaylistPanel
-            files={files}
-            currentFileId={currentTrack?.id || null}
-            onFileSelect={loadTrack}
-            onFileDelete={onFileDelete}
-            onClearAll={onClearAll}
-          />
+          <div className="max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+            <PlaylistPanel
+              files={files}
+              currentFileId={currentTrack?.id || null}
+              onFileSelect={loadTrack}
+              onFileDelete={onFileDelete}
+              onClearAll={onClearAll}
+            />
+          </div>
         </div>
 
-        {/* Right Column: Compressor, Effects & Visualizer */}
+        {/* Right Column: Audio Effects, Compressor & Visualizer */}
         <div className="space-y-6 flex flex-col">
-          {/* Compressor */}
+          {/* Audio Effects (Top) */}
+          <AudioEffectsControls
+            settings={effectsSettings}
+            onSettingsChange={(settings) => setEffectsSettings(prev => ({ ...prev, ...settings }))}
+          />
+
+          {/* Compressor (Middle) */}
           <DynamicsCompressorControls
             settings={compressorSettings}
             gainReduction={gainReduction}
             onSettingsChange={(settings) =>
               setCompressorSettings({ ...compressorSettings, ...settings })
             }
-          />
-
-          {/* Audio Effects */}
-          <AudioEffectsControls
-            settings={effectsSettings}
-            onSettingsChange={(settings) => setEffectsSettings(prev => ({ ...prev, ...settings }))}
           />
 
           {/* Visualizer - Now in right column, filling remaining height if needed or fixed height */}

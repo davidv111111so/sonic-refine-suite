@@ -1,7 +1,6 @@
 import React, { useRef, useEffect, useState, Suspense } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Maximize, Minimize, Activity } from 'lucide-react';
 
 // Lazy load the 3D visualizer to avoid bundle bloat and potential crashes affecting the main thread
@@ -260,22 +259,22 @@ export const VisualizerDisplay: React.FC<VisualizerDisplayProps> = ({
                 {onModeChange && (
                     <div className="flex items-center gap-2 bg-black/60 px-3 py-2 rounded-lg backdrop-blur-sm border border-cyan-500/30 pointer-events-auto">
                         <Activity className="h-4 w-4 text-cyan-400" />
-                        <Select value={mode} onValueChange={(v) => onModeChange(v as VisualizerMode)}>
-                            <SelectTrigger className="w-[130px] h-7 text-xs bg-slate-800/80 border-purple-500/30 text-slate-300 shadow-lg">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="bars">Bars</SelectItem>
-                                <SelectItem value="wave">Wave</SelectItem>
-                                <SelectItem value="circular">Circular</SelectItem>
-                                <SelectItem value="particles">Particles</SelectItem>
-                                <SelectItem value="spectrogram">Spectrogram</SelectItem>
-                                <SelectItem value="terrain3d">3D Terrain</SelectItem>
-                                <SelectItem value="particles3d">3D Particles</SelectItem>
-                                <SelectItem value="tunnel3d">3D Tunnel</SelectItem>
-                                <SelectItem value="sphere3d">3D Sphere</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <select
+                            value={mode}
+                            onChange={(e) => onModeChange(e.target.value as VisualizerMode)}
+                            className="h-7 text-xs bg-slate-800/80 border border-purple-500/30 text-slate-300 shadow-lg rounded-md px-2 py-0 focus:outline-none focus:ring-1 focus:ring-purple-500 appearance-none cursor-pointer"
+                            style={{ width: '130px' }}
+                        >
+                            <option value="bars">Bars</option>
+                            <option value="wave">Wave</option>
+                            <option value="circular">Circular</option>
+                            <option value="particles">Particles</option>
+                            <option value="spectrogram">Spectrogram</option>
+                            <option value="terrain3d">3D Terrain</option>
+                            <option value="particles3d">3D Particles</option>
+                            <option value="tunnel3d">3D Tunnel</option>
+                            <option value="sphere3d">3D Sphere</option>
+                        </select>
                     </div>
                 )}
 

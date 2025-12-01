@@ -39,7 +39,12 @@ import { saveReferenceTrack, getReferenceTrack } from "@/utils/referenceTrackSto
 import { masteringService } from "@/services/masteringService";
 import { LUFSDisplay, AudioAnalysisData } from "./LUFSDisplay";
 
-export const AIMasteringTab = () => {
+interface AIMasteringTabProps {
+  isProcessing?: boolean;
+  setIsProcessing?: (isProcessing: boolean) => void;
+}
+
+export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing: propSetIsProcessing }: AIMasteringTabProps) => {
   const { t } = useLanguage();
   const { isPremium, isAdmin, loading } = useUserSubscription();
   const navigate = useNavigate();
@@ -111,7 +116,12 @@ export const AIMasteringTab = () => {
   const [error, setError] = useState<string>("");
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+
+  // Local state fallback if props are not provided
+  const [localIsProcessing, setLocalIsProcessing] = useState(false);
+  const isProcessing = propIsProcessing !== undefined ? propIsProcessing : localIsProcessing;
+  const setIsProcessing = propSetIsProcessing || setLocalIsProcessing;
+
   const [progress, setProgress] = useState(0);
   const [masteredBlob, setMasteredBlob] = useState<Blob | null>(null);
   const [masteredFileName, setMasteredFileName] = useState<string>("mastered_track.wav");
@@ -379,6 +389,19 @@ export const AIMasteringTab = () => {
     referenceInputRef.current?.click();
   };
 
+  // Refs for tracking state in async functions
+  const isMounted = useRef(true);
+  const isProcessingRef = useRef(isProcessing);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false; };
+  }, []);
+
+  useEffect(() => {
+    isProcessingRef.current = isProcessing;
+  }, [isProcessing]);
+
   const handleMastering = async () => {
     if (!targetFile) {
       setError("Please select a target audio file.");
@@ -421,10 +444,17 @@ export const AIMasteringTab = () => {
         referenceFileToUse,
         convertedSettings,
         (stage, percent) => {
+          if (!isMounted.current || !isProcessingRef.current) return;
           setProgress(percent);
           console.log(`Progress: ${stage} - ${percent.toFixed(0)}%`);
         }
       );
+
+      // Check if we should still proceed
+      if (!isMounted.current || !isProcessingRef.current) {
+        console.log("🛑 Mastering cancelled or component unmounted");
+        return;
+      }
 
       const { blob: resultBlob, analysis } = result;
       if (analysis) setAudioAnalysis(analysis);
@@ -447,6 +477,7 @@ export const AIMasteringTab = () => {
       sessionStorage.removeItem("aiMastering_targetFile");
       sessionStorage.removeItem("aiMastering_referenceFile");
     } catch (err) {
+      if (!isMounted.current || !isProcessingRef.current) return;
       let errorMsg = "An error occurred during mastering";
       if (err instanceof Error) errorMsg = err.message;
       else if (typeof err === "string") errorMsg = err;
@@ -454,8 +485,10 @@ export const AIMasteringTab = () => {
       setError(errorMsg);
       toast.error(errorMsg);
     } finally {
-      setIsProcessing(false);
-      setProgress(0);
+      if (isMounted.current) {
+        setIsProcessing(false);
+        setProgress(0);
+      }
     }
   };
 
@@ -680,6 +713,7 @@ export const AIMasteringTab = () => {
 
           {/* Right Column: Reference & Actions */}
           <div className="space-y-8">
+            {/* Custom Reference Card */}
             {/* Custom Reference Card */}
             <Card className="bg-slate-900/80 border-slate-800 shadow-xl backdrop-blur-sm relative overflow-hidden">
               <div className="absolute top-0 right-0 w-1 h-full bg-gradient-to-b from-purple-500 to-pink-600 opacity-50" />

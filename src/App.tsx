@@ -11,6 +11,7 @@ import { BetaGate } from "@/components/BetaGate";
 import { PlayerProvider } from "@/contexts/PlayerContext";
 import { FloatingMiniPlayer } from "@/components/FloatingMiniPlayer";
 import Index from "./pages/Index";
+import PlayerPage from "./pages/Player";
 import Auth from "./pages/Auth";
 import { TermsAndConditions } from "./pages/TermsAndConditions";
 import NotFound from "./pages/NotFound";
@@ -41,6 +42,7 @@ const App = () => (
               <BrowserRouter>
                 <FloatingMiniPlayer />
                 <Routes>
+                  <Route path="/player" element={<PlayerPage />} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/terms" element={<TermsAndConditions />} />
                   <Route path="/admin" element={

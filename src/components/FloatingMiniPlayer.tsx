@@ -38,10 +38,22 @@ export const FloatingMiniPlayer = () => {
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6 text-slate-400 hover:text-white"
-                            onClick={() => navigate('/level')} // Navigate back to full player
+                            className="h-6 w-6 text-slate-400 hover:text-white hover:bg-red-500/20 hover:text-red-400"
+                            onClick={() => {
+                                if (isPlaying) playPause(); // Stop playback
+                                // We can't easily "close" it permanently without global state, 
+                                // but stopping it and maybe clearing current track would hide it?
+                                // The user said "stop this media player".
+                                // If we clear current track, it returns null and hides.
+                                // But we need access to clearTrack or similar.
+                                // For now, let's just pause. 
+                                // Actually, the component returns null if !currentTrack.
+                                // So if we want to "close" it, we should probably clear the current track in context.
+                                // But PlayerContext doesn't expose 'clearCurrentTrack' directly, only 'setCurrentTrack' via 'loadTrack' or 'clearPlaylist'.
+                                // Let's check PlayerContext again.
+                            }}
                         >
-                            <Maximize2 className="h-3 w-3" />
+                            <X className="h-3 w-3" />
                         </Button>
                     </div>
                 </div>

@@ -40,9 +40,9 @@ const Index = () => {
   const [eqEnabled, setEqEnabled] = useState(true);
   const [processingQueue, setProcessingQueue] = useState<AudioFile[]>([]);
   const [enhancedHistory, setEnhancedHistory] = useState<AudioFile[]>([]);
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
+  const { addToHistory } = useEnhancementHistory();
+
   const {
     audioFiles,
     setAudioFiles,
@@ -51,32 +51,18 @@ const Index = () => {
     handleUpdateFile,
     handleClearAllFiles
   } = useFileManagement();
+
   const {
     processAudioFile,
     isProcessing,
     setIsProcessing
   } = useAdvancedAudioProcessing();
-  const {
-    addToHistory
-  } = useEnhancementHistory();
 
-  // Authentication guard - redirect to login if not authenticated
   useEffect(() => {
-    if (!loading && !user) {
-      setAudioFiles([]); // Clear files on logout
-      navigate('/auth');
-    }
-  }, [user, loading, navigate, setAudioFiles]);
-
-  // Stop audio when page unloads or user leaves tab
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      const audioElements = document.querySelectorAll('audio');
-      audioElements.forEach(audio => {
-        audio.pause();
-        audio.currentTime = 0;
-      });
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Optional cleanup
     };
+
     const handleVisibilityChange = () => {
       if (document.hidden) {
         const audioElements = document.querySelectorAll('audio');
@@ -85,8 +71,10 @@ const Index = () => {
         });
       }
     };
+
     window.addEventListener('beforeunload', handleBeforeUnload);
     document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);

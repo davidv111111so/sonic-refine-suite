@@ -459,10 +459,11 @@ export default function Auth() {
                         type="button"
                         variant="outline"
                         onClick={handleGoogleSignIn}
-                        className="w-full border-slate-700 bg-white hover:bg-gray-100 text-gray-900"
+                        className="w-full border-slate-700 bg-slate-900 text-white hover:bg-slate-800 hover:text-cyan-400 transition-all duration-300 group relative overflow-hidden"
                       >
-                        <Chrome className="mr-2 h-4 w-4" />
-                        <span className="font-medium">Sign in with Google</span>
+                        <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <Chrome className="mr-2 h-4 w-4 text-cyan-400 group-hover:scale-110 transition-transform" />
+                        <span className="font-medium relative z-10">Sign in with Google</span>
                       </Button>
                     </form>
                   </TabsContent>
@@ -551,10 +552,11 @@ export default function Auth() {
                         type="button"
                         variant="outline"
                         onClick={handleGoogleSignIn}
-                        className="w-full bg-white border-slate-700 text-gray-900 hover:bg-gray-100"
+                        className="w-full border-slate-700 bg-slate-900 text-white hover:bg-slate-800 hover:text-purple-400 transition-all duration-300 group relative overflow-hidden"
                       >
-                        <Chrome className="mr-2 h-4 w-4" />
-                        <span className="font-medium">Sign up with Google</span>
+                        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <Chrome className="mr-2 h-4 w-4 text-purple-400 group-hover:scale-110 transition-transform" />
+                        <span className="font-medium relative z-10">Sign up with Google</span>
                       </Button>
                     </form>
                   </TabsContent>

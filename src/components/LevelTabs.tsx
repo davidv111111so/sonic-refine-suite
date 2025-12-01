@@ -12,7 +12,7 @@ import { AdvancedAudioEnhancement } from '@/components/enhancement/AdvancedAudio
 import { FileInfoModal } from '@/components/FileInfoModal';
 import { AudioFile } from '@/types/audio';
 import { ProcessingSettings } from '@/utils/audioProcessor';
-import { BarChart3, Settings, Upload, Zap, Package, Music } from 'lucide-react';
+import { BarChart3, Settings, Upload, Zap, Package, Music, ExternalLink } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { IndividualModeQueue } from '@/components/enhancement/IndividualModeQueue';
 import { AIMasteringTab } from '@/components/ai-mastering/AIMasteringTab';
@@ -20,6 +20,7 @@ import { LevelMediaPlayer } from '@/components/media-player/LevelMediaPlayer';
 import { StemsTab } from '@/components/stems/StemsTab';
 import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
+import { usePlayer } from '@/contexts/PlayerContext';
 
 interface LevelTabsProps {
   audioFiles: AudioFile[];
@@ -57,6 +58,7 @@ export const LevelTabs = ({
   setEqEnabled
 }: LevelTabsProps) => {
   const { t, language } = useLanguage();
+  const { addToPlaylist } = usePlayer();
   const [activeTab, setActiveTab] = useState('level');
   const [autoPlayFile, setAutoPlayFile] = useState<AudioFile | null>(null);
   const [selectedFilesForIndividual, setSelectedFilesForIndividual] = useState<string[]>([]);
@@ -71,6 +73,10 @@ export const LevelTabs = ({
   // Analysis progress state
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  // Stems processing state (Lifted for navigation warning)
+  const [isStemsProcessing, setIsStemsProcessing] = useState(false);
+  const [isMasteringProcessing, setIsMasteringProcessing] = useState(false);
 
   // Processing settings state
   const [processingSettings, setProcessingSettings] = useState<ProcessingSettings>({
@@ -219,9 +225,11 @@ export const LevelTabs = ({
           ]);
 
           if (keyResult.status === 'fulfilled') {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             harmonicKey = (keyResult.value as any).camelot;
           }
           if (bpmResult.status === 'fulfilled') {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             bpm = (bpmResult.value as any).bpm;
           }
 
@@ -246,6 +254,7 @@ export const LevelTabs = ({
         setIsAnalyzing(false);
         setAnalysisProgress(0);
         onFilesUploaded(filesWithAnalysis);
+        addToPlaylist(filesWithAnalysis); // Sync with global player
       }, 500);
 
     } catch (error) {
@@ -288,9 +297,44 @@ export const LevelTabs = ({
     toast.success(language === 'ES' ? 'Procesamiento iniciado' : 'Processing started');
   };
 
+  const handleTabChange = (value: string) => {
+    // Check Stems Processing
+    if (isStemsProcessing && activeTab === 'stems' && value !== 'stems') {
+      // Use setTimeout to allow the UI to settle before showing the alert
+      setTimeout(() => {
+        const confirmLeave = window.confirm(
+          "Stem separation is currently in progress. Leaving this tab will stop the process. Are you sure you want to leave?"
+        );
+        if (confirmLeave) {
+          setIsStemsProcessing(false);
+          toast.info("Processing stopped", { description: "You have left the Stems tab." });
+          setActiveTab(value);
+        }
+      }, 10);
+      return;
+    }
+
+    // Check Mastering Processing
+    if (isMasteringProcessing && activeTab === 'ai-mastering' && value !== 'ai-mastering') {
+      setTimeout(() => {
+        const confirmLeave = window.confirm(
+          "AI Mastering is currently in progress. Leaving this tab will stop the process. Are you sure you want to leave?"
+        );
+        if (confirmLeave) {
+          setIsMasteringProcessing(false);
+          toast.info("Processing stopped", { description: "You have left the AI Mastering tab." });
+          setActiveTab(value);
+        }
+      }, 10);
+      return;
+    }
+
+    setActiveTab(value);
+  };
+
   return (
     <>
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full relative z-30">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full relative z-30">
         <TabsList className="grid w-full grid-cols-5 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-black dark:via-slate-900 dark:to-black border-2 border-slate-600 dark:border-slate-700 p-1 rounded-xl shadow-xl relative z-50">
           <TabsTrigger value="level" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:via-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-cyan-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl cursor-pointer">
             <BarChart3 className="h-5 w-5" />
@@ -423,11 +467,19 @@ export const LevelTabs = ({
         </TabsContent>
 
         <TabsContent value="stems" className={`space-y-6 ${activeTab !== 'stems' ? 'hidden' : ''}`}>
-          <StemsTab audioFiles={audioFiles} onFilesUploaded={onFilesUploaded} />
+          <StemsTab
+            audioFiles={audioFiles}
+            onFilesUploaded={onFilesUploaded}
+            isProcessing={isStemsProcessing}
+            setIsProcessing={setIsStemsProcessing}
+          />
         </TabsContent>
 
         <TabsContent value="ai-mastering" className={`space-y-6 ${activeTab !== 'ai-mastering' ? 'hidden' : ''}`}>
-          <AIMasteringTab />
+          <AIMasteringTab
+            isProcessing={isMasteringProcessing}
+            setIsProcessing={setIsMasteringProcessing}
+          />
         </TabsContent>
 
         <TabsContent value="media-player" className={`space-y-6 ${activeTab !== 'media-player' ? 'hidden' : ''}`}>

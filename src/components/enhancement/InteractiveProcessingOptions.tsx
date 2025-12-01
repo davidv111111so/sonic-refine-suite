@@ -74,16 +74,7 @@ export const InteractiveProcessingOptions = ({
             <CardTitle className="text-lg font-bold text-slate-200">Processing Options</CardTitle>
           </div>
           <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onReset}
-              className="h-6 px-2 text-[10px] text-red-400 hover:text-red-300 hover:bg-red-950/30 gap-1.5 border border-red-900/30"
-            >
-              <RotateCcw className="w-3 h-3" />
-              Reset
-            </Button>
-            <div className="flex items-center bg-slate-950 p-1 rounded-lg border border-slate-800 mr-2">
+            <div className="flex items-center bg-slate-950 p-1 rounded-lg border border-slate-800">
               <button
                 onClick={() => onBatchModeChange(false)}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all duration-300 ${!batchMode
@@ -222,6 +213,19 @@ export const InteractiveProcessingOptions = ({
               />
             </div>
           )}
+        </div>
+
+        {/* Reset Button */}
+        <div className="pt-4 border-t border-slate-800 flex justify-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onReset}
+            className="h-8 px-3 text-xs text-red-400 hover:text-red-300 hover:bg-red-950/30 gap-2 border border-red-900/30"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            Reset Settings
+          </Button>
         </div>
       </CardContent>
     </Card>

@@ -1,47 +1,53 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, Music, Download, Clock, Cpu, Zap } from 'lucide-react';
+import { Loader2, Upload, Music, Download, Clock, Cpu, Zap, Play, Pause, FileAudio } from 'lucide-react';
 import { AudioFile } from '@/types/audio';
 import { supabase } from '@/integrations/supabase/client';
 import { Progress } from '@/components/ui/progress';
+import { useDropzone } from 'react-dropzone';
+import JSZip from 'jszip';
+import { StemPlayer } from './StemPlayer';
+import WaveSurfer from 'wavesurfer.js';
+import { StemsGuide } from './StemsGuide';
+import { saveAs } from 'file-saver';
 
 interface StemsTabProps {
     audioFiles: AudioFile[];
     onFilesUploaded: (files: AudioFile[]) => void;
+    isProcessing: boolean;
+    setIsProcessing: (isProcessing: boolean) => void;
 }
 
-export const StemsTab = ({ audioFiles, onFilesUploaded }: StemsTabProps) => {
+interface Stem {
+    name: string;
+    url: string;
+    color: string;
+    isMuted: boolean;
+    isSoloed: boolean;
+}
+
+export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProcessing }: StemsTabProps) => {
     const { toast } = useToast();
     const [selectedFileId, setSelectedFileId] = useState<string>('');
-    // Library is now always demucs
     const [stemCount, setStemCount] = useState<string>('4');
-    const [isProcessing, setIsProcessing] = useState(false);
+    // isProcessing state is now passed as prop
     const [processingStage, setProcessingStage] = useState('');
     const [progress, setProgress] = useState(0);
     const [results, setResults] = useState<string | null>(null); // URL to zip
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [stems, setStems] = useState<Stem[]>([]);
+    const [isPlaying, setIsPlaying] = useState(false);
+
     const pollingInterval = useRef<NodeJS.Timeout | null>(null);
+    const wavesurfersRef = useRef<WaveSurfer[]>([]);
 
-    const handleFileSelect = (fileId: string) => {
-        setSelectedFileId(fileId);
-        setResults(null);
-        setProgress(0);
-        setProcessingStage('');
-    };
-
-    const handleUploadClick = () => {
-        fileInputRef.current?.click();
-    };
-
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const files = event.target.files;
-        if (files && files.length > 0) {
-            // Convert File objects to AudioFile objects
-            const newFiles: AudioFile[] = Array.from(files).map(file => ({
+    // Dropzone logic
+    const onDrop = useCallback((acceptedFiles: File[]) => {
+        if (acceptedFiles.length > 0) {
+            const newFiles: AudioFile[] = acceptedFiles.map(file => ({
                 id: crypto.randomUUID(),
                 name: file.name,
                 size: file.size,
@@ -50,6 +56,89 @@ export const StemsTab = ({ audioFiles, onFilesUploaded }: StemsTabProps) => {
                 status: 'uploaded',
             }));
             onFilesUploaded(newFiles);
+            // Auto-select the first uploaded file
+            if (newFiles.length > 0) {
+                setSelectedFileId(newFiles[0].id);
+            }
+        }
+    }, [onFilesUploaded]);
+
+    const { getRootProps, getInputProps, isDragActive } = useDropzone({
+        onDrop,
+        accept: {
+            'audio/*': ['.mp3', '.wav', '.flac', '.m4a', '.ogg']
+        },
+        maxFiles: 1
+    });
+
+    const handleFileSelect = (fileId: string) => {
+        setSelectedFileId(fileId);
+        resetState();
+    };
+
+    const resetState = () => {
+        setResults(null);
+        setProgress(0);
+        setProcessingStage('');
+        setStems([]);
+        setIsPlaying(false);
+        wavesurfersRef.current = [];
+    };
+
+    const handleUnzip = async (blob: Blob) => {
+        try {
+            setProcessingStage('Extracting stems...');
+            const zip = new JSZip();
+            const contents = await zip.loadAsync(blob);
+            const newStems: Stem[] = [];
+
+            const getStemColor = (name: string) => {
+                const n = name.toLowerCase();
+                if (n.includes('vocals')) return '#22d3ee'; // Cyan
+                if (n.includes('drums')) return '#3b82f6'; // Blue
+                if (n.includes('bass')) return '#a855f7'; // Purple
+                if (n.includes('other')) return '#ec4899'; // Pink
+                if (n.includes('guitar')) return '#10b981'; // Green
+                if (n.includes('piano')) return '#facc15'; // Yellow
+                return '#94a3b8'; // Slate
+            };
+
+            for (const filename of Object.keys(contents.files)) {
+                if (!contents.files[filename].dir && !filename.startsWith('__MACOSX') && !filename.includes('.DS_Store')) {
+                    const fileData = await contents.files[filename].async('blob');
+                    const url = URL.createObjectURL(fileData);
+                    // Clean up filename (remove directory path if present)
+                    const cleanName = filename.split('/').pop() || filename;
+
+                    newStems.push({
+                        name: cleanName,
+                        url,
+                        color: getStemColor(cleanName),
+                        isMuted: false,
+                        isSoloed: false
+                    });
+                }
+            }
+
+            // Sort stems for consistent order (Vocals, Drums, Bass, Other)
+            const order = ['vocals', 'drums', 'bass', 'other'];
+            newStems.sort((a, b) => {
+                const aIndex = order.findIndex(o => a.name.toLowerCase().includes(o));
+                const bIndex = order.findIndex(o => b.name.toLowerCase().includes(o));
+                if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+                if (aIndex !== -1) return -1;
+                if (bIndex !== -1) return 1;
+                return a.name.localeCompare(b.name);
+            });
+
+            setStems(newStems);
+        } catch (error) {
+            console.error("Error unzipping:", error);
+            toast({
+                title: "Extraction Failed",
+                description: "Could not extract stems from the result.",
+                variant: "destructive"
+            });
         }
     };
 
@@ -76,13 +165,16 @@ export const StemsTab = ({ audioFiles, onFilesUploaded }: StemsTabProps) => {
                 const blob = await resultResponse.blob();
                 const url = URL.createObjectURL(blob);
                 setResults(url);
+
+                await handleUnzip(blob);
+
                 setIsProcessing(false);
                 setProcessingStage('Complete!');
                 setProgress(100);
 
                 toast({
                     title: "Separation Complete",
-                    description: "Stems are ready for download.",
+                    description: "Stems are ready for playback and download.",
                 });
             } else if (data.status === 'failed') {
                 if (pollingInterval.current) clearInterval(pollingInterval.current);
@@ -120,12 +212,12 @@ export const StemsTab = ({ audioFiles, onFilesUploaded }: StemsTabProps) => {
         setProcessingStage('Preparing file...');
         setProgress(0);
         setResults(null);
+        setStems([]);
 
         try {
             // Get auth token
             const { data: { session } } = await supabase.auth.getSession();
             if (!session?.access_token) {
-                // Check for dev bypass
                 if (localStorage.getItem("dev_bypass") !== "true") {
                     throw new Error('Please log in to use this feature');
                 }
@@ -196,33 +288,80 @@ export const StemsTab = ({ audioFiles, onFilesUploaded }: StemsTabProps) => {
         };
     }, []);
 
+    // Player Controls
+    const togglePlay = () => {
+        if (isPlaying) {
+            wavesurfersRef.current.forEach(ws => ws.pause());
+        } else {
+            wavesurfersRef.current.forEach(ws => ws.play());
+        }
+        setIsPlaying(!isPlaying);
+    };
+
+    const handleMute = (index: number) => {
+        const newStems = [...stems];
+        newStems[index].isMuted = !newStems[index].isMuted;
+        setStems(newStems);
+    };
+
+    const handleSolo = (index: number) => {
+        const newStems = [...stems];
+        const isCurrentlySoloed = newStems[index].isSoloed;
+
+        if (isCurrentlySoloed) {
+            // Unsolo: Unmute everything that wasn't manually muted? 
+            // Simpler: Unsolo this, and if no other solos exist, unmute all non-manually muted.
+            // For simplicity: Just clear solo state and restore mutes.
+            // Actually, let's just toggle solo for this one.
+            newStems[index].isSoloed = false;
+        } else {
+            // Solo this one.
+            newStems[index].isSoloed = true;
+        }
+
+        // Recalculate effective mute state
+        const anySolo = newStems.some(s => s.isSoloed);
+        newStems.forEach(s => {
+            if (anySolo) {
+                // If any solo exists, mute if not soloed
+                s.isMuted = !s.isSoloed;
+            } else {
+                // If no solo, unmute (unless we want to track manual mutes separately, but let's keep it simple for now)
+                s.isMuted = false;
+            }
+        });
+
+        setStems(newStems);
+    };
+
+    const handleWaveSurferReady = (ws: WaveSurfer) => {
+        wavesurfersRef.current.push(ws);
+    };
+
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Left Column: Input & Options */}
                 <div className="md:col-span-1 space-y-6">
                     <Card className="bg-slate-900/50 border-slate-800 backdrop-blur-sm">
-                        <CardHeader>
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
                             <CardTitle className="text-white flex items-center gap-2">
                                 <Music className="w-5 h-5 text-cyan-400" />
                                 Input Audio
                             </CardTitle>
+                            <StemsGuide />
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div
-                                className="border-2 border-dashed border-slate-700 rounded-lg p-6 text-center hover:border-cyan-500/50 transition-colors cursor-pointer bg-slate-950/30"
-                                onClick={handleUploadClick}
+                                {...getRootProps()}
+                                className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer bg-slate-950/30 ${isDragActive ? 'border-cyan-500 bg-cyan-950/20' : 'border-slate-700 hover:border-cyan-500/50'
+                                    }`}
                             >
-                                <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    className="hidden"
-                                    accept="audio/*"
-                                    onChange={handleFileChange}
-                                    multiple
-                                />
+                                <input {...getInputProps()} />
                                 <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                                <p className="text-sm text-slate-400">Click to upload audio</p>
+                                <p className="text-sm text-slate-400">
+                                    {isDragActive ? "Drop the audio file here" : "Drag & drop or click to upload"}
+                                </p>
                             </div>
 
                             {audioFiles.length > 0 && (
@@ -258,31 +397,24 @@ export const StemsTab = ({ audioFiles, onFilesUploaded }: StemsTabProps) => {
                                 <div className="p-3 rounded-lg border bg-purple-950/30 border-purple-500/50">
                                     <div className="flex items-center gap-2 mb-1">
                                         <Music className="w-4 h-4 text-purple-400" />
-                                        <span className="font-medium text-white">Demucs (High Quality)</span>
+                                        <span className="font-medium text-white">Level (High Quality)</span>
                                     </div>
                                     <p className="text-xs text-slate-400">State-of-the-art separation powered by AI.</p>
                                 </div>
                             </div>
 
                             <div className="space-y-3">
-                                <Label className="text-slate-300">Stems</Label>
+                                <Label className="text-slate-300">Stem Count</Label>
                                 <Select value={stemCount} onValueChange={setStemCount}>
                                     <SelectTrigger className="bg-slate-950 border-slate-700 text-white">
-                                        <SelectValue />
+                                        <SelectValue placeholder="Select number of stems" />
                                     </SelectTrigger>
                                     <SelectContent className="bg-slate-900 border-slate-700 text-white">
-                                        <SelectItem value="2">2 Stems (Vocals + Instrumental)</SelectItem>
-                                        <SelectItem value="4">4 Stems (Vocals, Drums, Bass, Other)</SelectItem>
-                                        <SelectItem value="6">6 Stems (+ Guitar, Piano)</SelectItem>
+                                        <SelectItem value="2">2 Stems (Vocals/Instrumental)</SelectItem>
+                                        <SelectItem value="4">4 Stems (Vocals/Drums/Bass/Other)</SelectItem>
+                                        <SelectItem value="6">6 Stems (Vocals/Drums/Bass/Guitar/Piano/Other)</SelectItem>
                                     </SelectContent>
                                 </Select>
-                            </div>
-
-                            <div className="pt-2">
-                                <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-950/50 p-2 rounded">
-                                    <Clock className="w-3 h-3" />
-                                    <span>Est. time: ~2-5 mins (CPU)</span>
-                                </div>
                             </div>
 
                             <Button
@@ -309,9 +441,47 @@ export const StemsTab = ({ audioFiles, onFilesUploaded }: StemsTabProps) => {
                 {/* Right Column: Results */}
                 <div className="md:col-span-2">
                     <Card className="bg-slate-900/50 border-slate-800 backdrop-blur-sm h-full min-h-[400px]">
-                        <CardHeader>
-                            <CardTitle className="text-white">Results</CardTitle>
-                            <CardDescription className="text-slate-400">Separated stems will appear here</CardDescription>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle className="text-white">Results</CardTitle>
+                                <CardDescription className="text-slate-400">Separated stems will appear here</CardDescription>
+                            </div>
+                            {stems.length > 0 && (
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="border-slate-700 text-slate-200 hover:bg-slate-800"
+                                        onClick={togglePlay}
+                                    >
+                                        {isPlaying ? <Pause className="w-4 h-4 mr-2" /> : <Play className="w-4 h-4 mr-2" />}
+                                        {isPlaying ? "Pause All" : "Play All"}
+                                    </Button>
+                                    {results && (
+                                        <Button
+                                            size="sm"
+                                            className="bg-emerald-600 hover:bg-emerald-500"
+                                            onClick={async () => {
+                                                try {
+                                                    const response = await fetch(results);
+                                                    const blob = await response.blob();
+                                                    saveAs(blob, "stems.zip");
+                                                } catch (error) {
+                                                    console.error("Download failed:", error);
+                                                    toast({
+                                                        title: "Download Failed",
+                                                        description: "Could not download stems.",
+                                                        variant: "destructive"
+                                                    });
+                                                }
+                                            }}
+                                        >
+                                            <Download className="w-4 h-4 mr-2" />
+                                            Download ZIP
+                                        </Button>
+                                    )}
+                                </div>
+                            )}
                         </CardHeader>
                         <CardContent>
                             {isProcessing && (
@@ -327,30 +497,21 @@ export const StemsTab = ({ audioFiles, onFilesUploaded }: StemsTabProps) => {
                                 </div>
                             )}
 
-                            {results ? (
-                                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                    <div className="p-8 bg-emerald-950/20 border border-emerald-500/20 rounded-lg text-center">
-                                        <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-500/10">
-                                            <Download className="w-10 h-10 text-emerald-400" />
-                                        </div>
-                                        <h3 className="text-2xl font-bold text-white mb-2">Separation Complete!</h3>
-                                        <p className="text-slate-400 mb-8">Your stems have been successfully separated and are ready for download.</p>
-
-                                        <a href={results} download="stems.zip">
-                                            <Button className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-6 text-lg shadow-lg shadow-emerald-500/20 transition-all hover:scale-105">
-                                                <Download className="w-5 h-5 mr-2" />
-                                                Download Stems (ZIP)
-                                            </Button>
-                                        </a>
-                                    </div>
-
-                                    <div className="text-center text-sm text-slate-500">
-                                        <p>Individual stem playback coming soon.</p>
-                                    </div>
+                            {stems.length > 0 ? (
+                                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                    {stems.map((stem, index) => (
+                                        <StemPlayer
+                                            key={index}
+                                            {...stem}
+                                            onMute={() => handleMute(index)}
+                                            onSolo={() => handleSolo(index)}
+                                            onReady={handleWaveSurferReady}
+                                        />
+                                    ))}
                                 </div>
                             ) : !isProcessing && (
                                 <div className="h-full flex flex-col items-center justify-center text-slate-500 opacity-50 min-h-[300px]">
-                                    <Music className="w-24 h-24 mb-6" />
+                                    <FileAudio className="w-24 h-24 mb-6" />
                                     <p className="text-lg">Select a file and click Separate to begin</p>
                                 </div>
                             )}

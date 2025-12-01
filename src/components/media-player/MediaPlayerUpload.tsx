@@ -108,7 +108,8 @@ export const MediaPlayerUpload: React.FC<MediaPlayerUploadProps> = ({ onFilesAdd
     onDragEnter: () => setIsDragActiveState(true),
     onDragLeave: () => setIsDragActiveState(false),
     accept: {
-      'audio/*': ['.mp3', '.wav', '.flac']
+      'audio/*': ['.mp3', '.wav', '.flac'],
+      'video/*': ['.mp4', '.m4v', '.mov', '.webm']
     },
     multiple: true,
     disabled: !hasConsented
@@ -164,7 +165,7 @@ export const MediaPlayerUpload: React.FC<MediaPlayerUploadProps> = ({ onFilesAdd
             {(isDragActive || isDragActiveState) ? "Drop files here" : "Drag & Drop or Click to Upload"}
           </h3>
           <p className="text-slate-400 text-xs font-medium">
-            MP3, WAV, FLAC
+            MP3, WAV, FLAC, MP4, Video
           </p>
         </div>
       </div>

@@ -17,7 +17,7 @@ export interface AudioFile {
   artist?: string;
   title?: string;
   artworkUrl?: string;
-  fileType?: 'mp3' | 'wav' | 'flac' | 'unsupported';
+  fileType?: 'mp3' | 'wav' | 'flac' | 'mp4' | 'm4v' | 'mov' | 'webm' | 'unsupported';
   harmonicKey?: string; // Camelot notation for harmonic mixing (e.g., "8A")
   bpm?: number; // Beats per minute (detected automatically)
   metadata?: {

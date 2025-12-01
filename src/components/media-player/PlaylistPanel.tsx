@@ -64,8 +64,8 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
   };
 
   return (
-    <Card className="bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 p-6">
-      <div className="flex items-center justify-between mb-4">
+    <Card className="bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 p-6 h-full flex flex-col">
+      <div className="flex items-center justify-between mb-4 shrink-0">
         <h3 className="text-lg font-semibold text-cyan-400 flex items-center gap-2">
           <Music className="h-5 w-5" />
           Playlist ({files.length})
@@ -84,7 +84,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
       </div>
 
       {files.length === 0 ? (
-        <div className="text-center py-12">
+        <div className="text-center py-12 flex-1 flex flex-col items-center justify-center">
           <Music className="h-16 w-16 text-slate-600 mx-auto mb-4" />
           <p className="text-slate-100">No tracks loaded</p>
           <p className="text-sm text-slate-500 mt-2">
@@ -92,48 +92,60 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="flex flex-col flex-1 min-h-0">
           {/* Table Header */}
-          <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-slate-950/50 rounded-lg border border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-slate-950/50 rounded-lg border border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400 shrink-0">
             <div className="col-span-4">Track</div>
-            <div className="col-span-1 text-center">Key</div>
-            <div className="col-span-1 text-center">BPM</div>
+            <div className="col-span-1 text-center text-cyan-400">Key</div>
+            <div className="col-span-1 text-center text-emerald-400">BPM</div>
             <div className="col-span-2 text-center">Quality</div>
             <div className="col-span-2 text-center">Added</div>
             <div className="col-span-1 text-center">Time</div>
             <div className="col-span-1 text-right">Action</div>
           </div>
 
-          <ScrollArea className="h-[400px] pr-2">
-            <div className="space-y-2">
+          <ScrollArea className="flex-1 mt-2">
+            <div className="space-y-2 pr-3 pb-2">
               {files.map(file => {
                 const isPlaying = file.id === currentFileId;
-                // Mock data for new columns if missing
                 const bitrate = file.bitrate || 320;
                 const sampleRate = file.sampleRate || 44100;
-                const genre = "Electronic"; // Placeholder
+                const genre = "Electronic";
 
                 return (
                   <div
                     key={file.id}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData("application/json", JSON.stringify(file));
+                      e.dataTransfer.effectAllowed = "copy";
+                    }}
                     className={cn(
-                      "grid grid-cols-12 gap-2 px-4 py-3 items-center rounded-lg border transition-all cursor-pointer group",
+                      "grid grid-cols-12 gap-2 px-4 py-3 items-center rounded-lg border transition-all cursor-pointer group hover:bg-slate-800/60",
                       isPlaying
                         ? "bg-cyan-950/30 border-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.1)]"
-                        : "bg-slate-900/40 border-slate-800/50 hover:bg-slate-800/60 hover:border-cyan-500/30"
+                        : "bg-slate-900/40 border-slate-800/50 hover:border-cyan-500/30"
                     )}
                     onClick={() => onFileSelect(file)}
                   >
                     {/* File Name & Icon */}
                     <div className="col-span-4 flex items-center gap-3 overflow-hidden">
-                      <div className={cn(
-                        "w-8 h-8 rounded flex items-center justify-center shrink-0 transition-colors border",
-                        isPlaying
-                          ? "bg-cyan-500 text-white border-cyan-400"
-                          : "bg-slate-800 text-slate-400 border-slate-700 group-hover:text-cyan-400 group-hover:border-cyan-500/30"
-                      )}>
-                        {isPlaying ? <Activity className="w-4 h-4 animate-pulse" /> : <Music className="w-4 h-4" />}
-                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={cn(
+                          "w-8 h-8 rounded flex items-center justify-center shrink-0 transition-colors border hover:scale-105",
+                          isPlaying
+                            ? "bg-cyan-500 text-white border-cyan-400 hover:bg-cyan-400"
+                            : "bg-slate-800 text-slate-400 border-slate-700 group-hover:text-cyan-400 group-hover:border-cyan-500/30 hover:bg-slate-700"
+                        )}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onFileSelect(file);
+                        }}
+                      >
+                        {isPlaying ? <Activity className="w-4 h-4 animate-pulse" /> : <Play className="w-4 h-4 ml-0.5" />}
+                      </Button>
                       <div className="min-w-0">
                         <p className={cn(
                           "text-sm font-medium truncate transition-colors",
@@ -158,11 +170,11 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                     </div>
 
                     {/* BPM */}
-                    <div className="col-span-1 text-center text-xs font-bold text-slate-400 font-mono group-hover:text-cyan-400 transition-colors">
+                    <div className="col-span-1 text-center text-xs font-bold text-emerald-400 font-mono group-hover:text-emerald-300 transition-colors">
                       {file.bpm || '-'}
                     </div>
 
-                    {/* Quality (Bitrate/SampleRate) */}
+                    {/* Quality */}
                     <div className="col-span-2 flex flex-col items-center justify-center">
                       <span className="text-[10px] font-mono text-slate-400">{bitrate}kbps</span>
                       <span className="text-[10px] font-mono text-slate-500">{sampleRate / 1000}kHz</span>

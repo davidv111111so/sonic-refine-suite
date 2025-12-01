@@ -75,10 +75,12 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         // Initialize Source Node
         const initAudioNode = () => {
             const ctx = getAudioContext();
-            if (ctx && !mediaSourceNode) {
+            // Check if we already have a source for this element
+            if (ctx && !mediaSourceNode && !(audio as any)._source) {
                 try {
                     const source = ctx.createMediaElementSource(audio);
                     source.connect(ctx.destination); // Default connection
+                    (audio as any)._source = source; // Mark as initialized
                     setMediaSourceNode(source);
                     console.log("✅ Global MediaElementSourceNode created");
                 } catch (e) {
