@@ -396,7 +396,7 @@ def update_task_progress(task_id, progress):
     if task_id in TASKS:
         TASKS[task_id]['progress'] = progress
 
-def background_separation(task_id, file_path, output_dir, library, model_name, shifts):
+def background_separation(task_id, file_path, output_dir, library, model_name, shifts, two_stems=False):
     try:
         TASKS[task_id]['status'] = 'processing'
         
@@ -409,6 +409,7 @@ def background_separation(task_id, file_path, output_dir, library, model_name, s
             library=library, 
             model_name=model_name,
             shifts=shifts,
+            two_stems=two_stems,
             progress_callback=progress_callback
         )
         
@@ -477,6 +478,11 @@ def separate_audio_endpoint():
     model_name = request.form.get('model_name', 'htdemucs')
     shifts = int(request.form.get('shifts', 1))
     
+    # Check for 2-stems request
+    # We use a specific flag or infer from stem_count if passed
+    stem_count = request.form.get('stem_count', '4')
+    two_stems = (stem_count == '2')
+
     # Create task
     task_id = str(uuid.uuid4())
     temp_dir = tempfile.mkdtemp()
@@ -501,7 +507,8 @@ def separate_audio_endpoint():
             output_dir,
             library,
             model_name,
-            shifts
+            shifts,
+            two_stems # Pass the new argument
         )
         
         return jsonify({

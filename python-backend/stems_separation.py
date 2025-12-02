@@ -22,7 +22,7 @@ def estimate_processing_time(duration, library, hardware_type='cpu'):
     
     return duration * factor
 
-def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs', shifts=1, overlap=0.25, progress_callback=None):
+def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs', shifts=1, overlap=0.25, two_stems=False, progress_callback=None):
     """
     Separate audio into stems using Demucs.
     
@@ -33,6 +33,7 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
         model_name (str): Model name (e.g., 'htdemucs').
         shifts (int): Number of random shifts for Demucs.
         overlap (float): Overlap between splits for Demucs.
+        two_stems (bool): If True, mix non-vocal stems into 'instrumental'.
         progress_callback (callable): Function to call with progress (0-100).
         
     Returns:
@@ -53,6 +54,7 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
         from demucs.pretrained import get_model
         from demucs.apply import apply_model
         import soundfile as sf
+        import numpy as np
 
         if progress_callback:
             progress_callback(5) # Started
@@ -97,24 +99,26 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
         
         # Start simulated progress thread for the separation phase
         # Demucs separation can take time, and we don't have a direct callback.
-        # We'll simulate progress from 20 to 85 over an estimated duration.
+        # We'll simulate progress from 15 to 85 over an estimated duration.
         stop_progress = threading.Event()
         
         def simulate_progress():
-            current_progress = 20
-            # Estimate: 3 minutes (180s) for a typical song
-            # We'll increment slowly.
-            while not stop_progress.is_set() and current_progress < 85:
-                time.sleep(1)
-                # Logarithmic-ish slowdown
-                if current_progress < 50:
-                    increment = 0.5
-                elif current_progress < 70:
-                    increment = 0.2
-                else:
-                    increment = 0.1
+            current_progress = 15.0
+            target_progress = 85.0
+            # Estimate: 2 minutes (120s) for a typical song on CPU
+            # We want to move smoothly.
+            fps = 10 # updates per second
+            duration = 120 # seconds
+            step = (target_progress - current_progress) / (duration * fps)
+            
+            while not stop_progress.is_set() and current_progress < target_progress:
+                time.sleep(1.0 / fps)
+                current_progress += step
                 
-                current_progress += increment
+                # Non-linear slowdown as we approach the end to avoid "hanging" at 100%
+                if current_progress > 70:
+                    step *= 0.995
+                
                 if progress_callback:
                     progress_callback(int(current_progress))
         
@@ -142,17 +146,43 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
         saved_files = []
         
         print(f"   Saving stems to {output_path}...")
-        for i, (source, name) in enumerate(zip(sources, source_names)):
-            stem_path = output_path / f"{name}.wav"
-            # source is [channels, length], soundfile expects [length, channels]
-            source = source.cpu().numpy().T
-            sf.write(str(stem_path), source, sr)
-            saved_files.append(str(stem_path))
+        
+        # Handle 2-stem logic (Vocals + Instrumental)
+        if two_stems and "vocals" in source_names:
+            print("   Mixing down to 2 stems (Vocals + Instrumental)...")
             
-            # Update progress for saving
-            if progress_callback:
-                progress = 90 + int((i + 1) / len(source_names) * 10)
-                progress_callback(progress)
+            # Find indices
+            vocals_idx = source_names.index("vocals")
+            other_indices = [i for i, name in enumerate(source_names) if name != "vocals"]
+            
+            # Save Vocals
+            vocals_source = sources[vocals_idx].cpu().numpy().T
+            vocals_path = output_path / "vocals.wav"
+            sf.write(str(vocals_path), vocals_source, sr)
+            saved_files.append(str(vocals_path))
+            
+            # Mix Instrumental
+            instrumental_source = np.zeros_like(vocals_source)
+            for idx in other_indices:
+                instrumental_source += sources[idx].cpu().numpy().T
+            
+            instrumental_path = output_path / "instrumental.wav"
+            sf.write(str(instrumental_path), instrumental_source, sr)
+            saved_files.append(str(instrumental_path))
+            
+        else:
+            # Standard saving
+            for i, (source, name) in enumerate(zip(sources, source_names)):
+                stem_path = output_path / f"{name}.wav"
+                # source is [channels, length], soundfile expects [length, channels]
+                source = source.cpu().numpy().T
+                sf.write(str(stem_path), source, sr)
+                saved_files.append(str(stem_path))
+                
+                # Update progress for saving
+                if progress_callback:
+                    progress = 90 + int((i + 1) / len(source_names) * 10)
+                    progress_callback(progress)
         
         return {
             "success": True,

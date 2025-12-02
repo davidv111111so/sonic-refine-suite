@@ -2,11 +2,11 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Music, Play, Trash2, Pause, Calendar, Radio, Activity, Disc } from 'lucide-react';
+import { Music, Play, Trash2, Calendar, Activity, Disc } from 'lucide-react';
 import { AudioFile } from '@/types/audio';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { formatFileSize, formatDuration } from '@/utils/formatters';
+import { formatDuration } from '@/utils/formatters';
 
 interface PlaylistPanelProps {
   files: AudioFile[];
@@ -15,29 +15,6 @@ interface PlaylistPanelProps {
   onFileDelete?: (fileId: string) => void;
   onClearAll?: () => void;
 }
-
-const getKeyColor = (key: string | undefined) => {
-  if (!key || key === 'N/A') return 'bg-slate-800 text-slate-400 border-slate-700';
-
-  // Camelot wheel colors approximation
-  const keyNum = parseInt(key);
-  if (isNaN(keyNum)) return 'bg-slate-800 text-slate-400 border-slate-700';
-
-  // Warm colors for major/minor mix
-  if (key.includes('B')) {
-    // Major keys - brighter/warmer
-    if (keyNum <= 3) return 'bg-green-900/50 text-green-400 border-green-800'; // 1-3
-    if (keyNum <= 6) return 'bg-cyan-900/50 text-cyan-400 border-cyan-800';   // 4-6
-    if (keyNum <= 9) return 'bg-blue-900/50 text-blue-400 border-blue-800';    // 7-9
-    return 'bg-purple-900/50 text-purple-400 border-purple-800';               // 10-12
-  } else {
-    // Minor keys - darker/cooler
-    if (keyNum <= 3) return 'bg-emerald-950/50 text-emerald-500 border-emerald-900';
-    if (keyNum <= 6) return 'bg-sky-950/50 text-sky-500 border-sky-900';
-    if (keyNum <= 9) return 'bg-indigo-950/50 text-indigo-500 border-indigo-900';
-    return 'bg-fuchsia-950/50 text-fuchsia-500 border-fuchsia-900';
-  }
-};
 
 export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
   files,
@@ -95,9 +72,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
         <div className="flex flex-col flex-1 min-h-0">
           {/* Table Header */}
           <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-slate-950/50 rounded-lg border border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400 shrink-0">
-            <div className="col-span-4">Track</div>
-            <div className="col-span-1 text-center text-cyan-400">Key</div>
-            <div className="col-span-1 text-center text-emerald-400">BPM</div>
+            <div className="col-span-6">Track</div>
             <div className="col-span-2 text-center">Quality</div>
             <div className="col-span-2 text-center">Added</div>
             <div className="col-span-1 text-center">Time</div>
@@ -129,7 +104,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                     onClick={() => onFileSelect(file)}
                   >
                     {/* File Name & Icon */}
-                    <div className="col-span-4 flex items-center gap-3 overflow-hidden">
+                    <div className="col-span-6 flex items-center gap-3 overflow-hidden">
                       <Button
                         variant="ghost"
                         size="icon"
@@ -157,21 +132,6 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                           <Disc className="w-3 h-3" /> {genre}
                         </p>
                       </div>
-                    </div>
-
-                    {/* Key */}
-                    <div className="col-span-1 flex justify-center">
-                      <span className={cn(
-                        "text-[10px] font-bold px-1.5 py-0.5 rounded border shadow-sm",
-                        getKeyColor(file.harmonicKey)
-                      )}>
-                        {file.harmonicKey || 'N/A'}
-                      </span>
-                    </div>
-
-                    {/* BPM */}
-                    <div className="col-span-1 text-center text-xs font-bold text-emerald-400 font-mono group-hover:text-emerald-300 transition-colors">
-                      {file.bpm || '-'}
                     </div>
 
                     {/* Quality */}

@@ -52,3 +52,12 @@
 - **Graceful Degradation**: If a feature fails (e.g., 3D visualizer), fallback to a simpler version (e.g., 2D canvas) rather than crashing.
 - **User Notification**: Use `sonner` toasts to inform users of errors or success states.
 
+### Media Handling
+- **Event-Driven State**: Always rely on media events (`play`, `pause`, `ended`, `timeupdate`) to update UI state (`isPlaying`, `currentTime`). Do not manually toggle state in handlers, as this leads to desync.
+- **Robust Playback**: Always handle promises returned by `play()` and catch potential errors (e.g., "The play() request was interrupted").
+- **Cleanup**: Ensure audio contexts and media elements are properly cleaned up or paused when components unmount.
+
+### Layout & Responsiveness
+- **Flexible Containers**: Use `flex-1` and `min-h-0` for main content areas to ensure they take up available space without overflowing.
+- **Scrollable Areas**: Explicitly define scrollable areas with `overflow-y-auto` and constrained heights (e.g., `h-[300px]` or `flex-1`).
+

@@ -244,6 +244,15 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
             if (stemCount === '6') {
                 formData.append('model_name', 'htdemucs_6s');
             }
+            formData.append('stem_count', stemCount);
+
+            // Time Estimation Toast
+            const duration = file.duration || 180; // Default to 3 mins if unknown
+            const estimatedTime = Math.ceil(duration * (stemCount === '6' ? 0.4 : 0.3)); // Rough heuristic
+            toast({
+                title: "Separation Started",
+                description: `Estimated time: ~${Math.floor(estimatedTime / 60)}m ${estimatedTime % 60}s`,
+            });
 
             setProcessingStage('Uploading and starting separation...');
 
@@ -440,7 +449,7 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
 
                 {/* Right Column: Results */}
                 <div className="md:col-span-2">
-                    <Card className="bg-slate-900/50 border-slate-800 backdrop-blur-sm h-full min-h-[400px]">
+                    <Card className="bg-slate-950/80 border-cyan-500/30 backdrop-blur-md h-full min-h-[400px] shadow-[0_0_30px_rgba(6,182,212,0.1)]">
                         <CardHeader className="flex flex-row items-center justify-between">
                             <div>
                                 <CardTitle className="text-white">Results</CardTitle>
@@ -501,7 +510,7 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                     {stems.map((stem, index) => (
                                         <StemPlayer
-                                            key={index}
+                                            key={stem.name}
                                             {...stem}
                                             onMute={() => handleMute(index)}
                                             onSolo={() => handleSolo(index)}
