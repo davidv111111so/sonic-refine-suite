@@ -18,7 +18,7 @@ const translations = {
     'header.upload': 'Upload',
     'header.enhance': 'Enhance',
     'header.settings': 'Settings',
-    
+
     // EQ Presets
     'eq.preset.flat': 'Flat',
     'eq.preset.bassBoost': 'Bass Boost',
@@ -28,14 +28,14 @@ const translations = {
     'eq.preset.club': 'Club',
     'eq.preset.rock': 'Rock',
     'eq.preset.jazz': 'Jazz',
-    
+
     // Upload Section
     'upload.title': 'Upload Audio Files',
     'upload.dragDrop': 'Drag & drop your audio files here',
     'upload.clickSelect': 'or click to select files',
     'upload.supportedFormats': 'MP3, WAV, FLAC, OGG, M4A, AAC',
     'upload.limits': 'Max 20 files • 100MB each',
-    
+
     // Track List
     'tracks.title': 'Track List',
     'tracks.noTracks': 'No tracks uploaded yet',
@@ -50,7 +50,7 @@ const translations = {
     'tracks.inQueue': 'In Queue',
     'tracks.processing': 'Processing',
     'tracks.completed': 'Completed',
-    
+
     // Buttons & Actions
     'button.spectrum': 'Spectrum',
     'button.enhance': 'Enhance',
@@ -65,7 +65,7 @@ const translations = {
     'button.load': 'Load',
     'button.cancel': 'Cancel',
     'button.ok': 'OK',
-    
+
     // Status Messages
     'status.loading': 'Loading',
     'status.ready': 'Ready',
@@ -73,7 +73,7 @@ const translations = {
     'status.error': 'Error',
     'status.enhanced': 'Enhanced',
     'status.queue': 'Queue',
-    
+
     // Enhancement Settings
     'enhance.title': 'Advanced Audio Enhancement',
     'enhance.format': 'Format',
@@ -82,7 +82,7 @@ const translations = {
     'enhance.outputSettings': 'Output Settings',
     'enhance.processingOptions': 'Processing Options',
     'enhance.equalizer': 'Equalizer & Presets',
-    
+
     // Audio Settings
     'settings.outputFormat': 'Output Format',
     'settings.sampleRate': 'Sample Rate',
@@ -95,7 +95,7 @@ const translations = {
     'settings.bassBoost': 'Bass Boost',
     'settings.trebleEnhancement': 'Treble Enhancement',
     'settings.gainAdjustment': 'Gain Adjustment',
-    
+
     // Equalizer
     'eq.title': '10-Band Equalizer',
     'eq.enable': 'Enable Equalizer',
@@ -104,18 +104,18 @@ const translations = {
     'eq.tenBandEqualizer': '10-Band Equalizer',
     'eq.eqPresets': 'EQ Presets',
     'eq.reset': 'Reset',
-    
+
     // Conversion
     'conversion.source': 'Source',
     'conversion.output': 'Output',
     'conversion.size': 'Size',
     'conversion.noConversion': 'No conversion',
-    
+
     // Dialogs & Modals
     'dialog.downloadAll.title': 'Download Multiple Files',
     'dialog.downloadAll.message': 'Do you want to download {count} files?',
     'dialog.downloadAll.confirm': 'Yes, download all',
-    
+
     // Toast Messages
     'toast.noFiles': 'No files to process',
     'toast.uploadFirst': 'Please upload some audio files first',
@@ -124,13 +124,13 @@ const translations = {
     'toast.downloadComplete': 'Download Complete',
     'toast.downloadFailed': 'Download Failed',
     'toast.filesCleared': 'Files cleared',
-    
+
     // Stats
     'stats.total': 'Total Files',
     'stats.uploaded': 'Queue',
     'stats.processing': 'Processing',
     'stats.enhanced': 'Completed',
-    
+
     // AI Mastering
     'aiMastering.title': 'AI Audio Mastering',
     'aiMastering.description': 'Professional-grade mastering powered by AI technology',
@@ -187,7 +187,7 @@ const translations = {
     'aiMastering.complete': 'Mastering Complete!',
     'aiMastering.dragOrClick': 'Drag & drop or click to select',
     'aiMastering.dropFile': 'Drop your file here',
-    
+
     // Processing Options - Phase 1 & 2
     'processing.options': 'Processing Options',
     'processing.batchMode': 'Batch Mode',
@@ -200,18 +200,18 @@ const translations = {
     'processing.stereoWideningInfo': 'Subtle stereo enhancement. Values >70% may cause phase issues.',
     'processing.antiPhaseWarning': '⚠️ Anti-phase territory! Risk of phase cancellation.',
     'processing.premiumRequired': 'Premium subscription required for this feature',
-    
+
     // EQ Presets - Phase 3
     'eq.professionalPresets': 'Professional EQ Presets',
     'eq.autoGainCompensation': 'Auto Gain Compensation',
     'eq.gainComp': 'Gain Comp',
     'eq.compensationExplanation': 'All presets include automatic gain compensation for objective A/B comparison at equal perceived loudness',
-    
+
     // Real-time Audio Player
     'player.realtimePreview': 'Real-time Audio Preview',
     'player.noAudioLoaded': 'No audio file loaded',
     'player.realtimeProcessing': '⚡ Real-time processing active - hear changes instantly',
-    
+
     // EQ Band Names (5-Band with specific frequencies)
     'eq.band1': 'Low / Sub',
     'eq.band1Freq': '50 Hz',
@@ -230,96 +230,30 @@ const translations = {
     'eq.band5Range': '9.8k-20k Hz',
     'eq.psychoacousticInfo': 'The default range has selected frequencies that are psychoacoustically pleasing to the human ear, naturally highlighting the most embellishing tones in the audio.',
   },
-    ES: {
-      // Navigation
-      'nav.upload': 'Subir',
-      'nav.enhance': 'Mejorar',
-      'nav.tracks': 'Pistas',
-      'nav.export': 'Exportar',
-      'nav.guide': 'Guía',
-      'nav.aiMastering': 'Masterización IA',
-
-      // Upload & Terms
-      'upload.title': 'Subir Audio',
-      'upload.description': 'Arrastra y suelta archivos de audio o haz clic para seleccionar',
-      'upload.acceptTerms': 'Aceptar Términos y Condiciones para subir',
-      'upload.uploadFormats': '.MP3, .WAV, .FLAC (Máximo 100MB cada uno, 20 archivos)',
-      'upload.agreeToTerms': 'Acepto los Términos y Condiciones y reconozco el Aviso de Copyright. Confirmo que soy propietario o tengo la autorización adecuada para todos los archivos de audio que subo y proceso a través de este servicio.',
-      'upload.pleaseAcceptTerms': 'Por favor, acepta los Términos y Condiciones para habilitar la carga de archivos.',
-      'upload.noTracksUploaded': 'Aún no se han subido pistas',
-      'upload.uploadAudioFiles': 'Sube archivos de audio para verlos listados aquí',
-      'upload.selectFiles': 'Seleccionar Archivos',
-      'upload.dropHere': 'Suelta archivos aquí',
-      'upload.uploading': 'Subiendo...',
-      
-      // Output Settings
-      'output.settings': 'Configuración de Salida',
-      'output.format': 'Formato',
-      'output.wav': 'WAV',
-      'output.mp3': 'MP3',
-      'output.flac': 'FLAC',
-      'output.ogg': 'OGG',
-      'output.sampleRate': 'Frecuencia de Muestreo',
-      'output.khz441': '44.1 kHz',
-      'output.khz48': '48 kHz',
-      'output.khz96': '96 kHz',
-      'output.khz192': '192 kHz',
-      'output.bitDepth': 'Profundidad de Bits',
-      'output.bit16': '16-bit',
-      'output.bit24': '24-bit',
-      'output.bit32': '32-bit',
-      'output.formatLabel': 'Formato:',
-      'output.quality': 'Calidad:',
-      'output.bit16_441': '16-bit, 44.1 kHz',
-      'output.type': 'Tipo:',
-      'output.lossless': 'Sin pérdida',
-      'output.compressed': 'Comprimido',
-      
-      // Processing Options (Spanish - old keys to remove duplicates)
-      'processing.reset': 'Restablecer',
-      'processing.noiseReduction': 'Reducción de Ruido',
-      'processing.audioNormalization': 'Normalización de Audio',
-      'processing.targetLevel': 'Nivel Objetivo',
-      'processing.db3': '-3 dB',
-      'processing.db6': '-6 dB',
-      'processing.db12': '-12 dB',
-      'processing.dynamicCompression': 'Compresión Dinámica',
-      'processing.stereoWideningAlt': 'Ampliación Estéreo',
-      'processing.bassBoost': 'Realce de Graves',
-      'processing.trebleEnhancement': 'Realce de Agudos',
-      
-      // Equalizer
-      'eq.equalizer': 'Ecualizador',
-      'eq.audioEQ': 'EQ de Audio',
-      'eq.reset': 'Restablecer',
-      'eq.presets': '✨ Preajustes de EQ',
-      'eq.quickAdjustments': '(Ajustes Rápidos)',
-      'eq.flat': 'Plano',
-      'eq.bassBoost': 'Realce de Graves',
-      'eq.trebleBoost': 'Realce de Agudos',
-      'eq.vShape': 'Forma V',
-      'eq.vocal': 'Vocal',
-      'eq.rock': 'Rock',
-      'eq.jazz': 'Jazz',
-      'eq.classical': 'Clásica',
-      'eq.electronic': 'Electrónica',
-      'eq.hipHop': 'Hip-Hop',
-      'eq.podcast': 'Podcast',
-      'eq.live': 'En Vivo',
-      
-    // Header & Navigation
-    'header.title': 'Procesador de Audio Spectrum',
+  ES: {
+    // Navigation
+    'header.title': 'Procesador de Audio Level',
     'header.upload': 'Subir',
     'header.enhance': 'Mejorar',
     'header.settings': 'Configuración',
-    
-    // Upload Section  
-    'upload.titleAlt': 'Subir Archivos de Audio',
+
+    // EQ Presets
+    'eq.preset.flat': 'Plano',
+    'eq.preset.bassBoost': 'Realce de Graves',
+    'eq.preset.vocalEnhance': 'Mejora Vocal',
+    'eq.preset.bright': 'Brillante',
+    'eq.preset.warm': 'Cálido',
+    'eq.preset.club': 'Club',
+    'eq.preset.rock': 'Rock',
+    'eq.preset.jazz': 'Jazz',
+
+    // Upload Section
+    'upload.title': 'Subir Archivos de Audio',
     'upload.dragDrop': 'Arrastra tus archivos de audio aquí',
     'upload.clickSelect': 'o haz clic para seleccionar archivos',
     'upload.supportedFormats': 'MP3, WAV, FLAC, OGG, M4A, AAC',
     'upload.limits': 'Máx 20 archivos • 100MB cada uno',
-    
+
     // Track List
     'tracks.title': 'Lista de Pistas',
     'tracks.noTracks': 'No hay pistas subidas',
@@ -334,11 +268,11 @@ const translations = {
     'tracks.inQueue': 'En Cola',
     'tracks.processing': 'Procesando',
     'tracks.completed': 'Completados',
-    
+
     // Buttons & Actions
     'button.spectrum': 'Spectrum',
     'button.enhance': 'Mejorar',
-    'button.enhanceAll': 'Mejorar Todos los Archivos',
+    'button.enhanceAll': 'Mejorar Todos',
     'button.downloadAll': 'Descargar Todos',
     'button.clear': 'Limpiar',
     'button.clearDownloaded': 'Limpiar Descargados',
@@ -349,7 +283,7 @@ const translations = {
     'button.load': 'Cargar',
     'button.cancel': 'Cancelar',
     'button.ok': 'Aceptar',
-    
+
     // Status Messages
     'status.loading': 'Cargando',
     'status.ready': 'Listo',
@@ -357,7 +291,7 @@ const translations = {
     'status.error': 'Error',
     'status.enhanced': 'Mejorado',
     'status.queue': 'Cola',
-    
+
     // Enhancement Settings
     'enhance.title': 'Mejora de Audio Avanzada',
     'enhance.format': 'Formato',
@@ -366,7 +300,7 @@ const translations = {
     'enhance.outputSettings': 'Configuración de Salida',
     'enhance.processingOptions': 'Opciones de Procesamiento',
     'enhance.equalizer': 'Ecualizador y Preajustes',
-    
+
     // Audio Settings
     'settings.outputFormat': 'Formato de Salida',
     'settings.sampleRate': 'Frecuencia de Muestreo',
@@ -379,27 +313,27 @@ const translations = {
     'settings.bassBoost': 'Realce de Graves',
     'settings.trebleEnhancement': 'Realce de Agudos',
     'settings.gainAdjustment': 'Ajuste de Ganancia',
-    
-    // Equalizer Alt
+
+    // Equalizer
     'eq.title': 'Ecualizador de 10 Bandas',
     'eq.enable': 'Activar Ecualizador',
-    'eq.presetsAlt': 'Preajustes EQ',
+    'eq.presets': 'Preajustes EQ',
     'eq.enableEqualizer': 'Activar Ecualizador',
     'eq.tenBandEqualizer': 'Ecualizador de 10 Bandas',
-    'eq.eqPresetsAlt': 'Preajustes EQ',
-    'eq.resetAlt': 'Restablecer',
-    
+    'eq.eqPresets': 'Preajustes EQ',
+    'eq.reset': 'Restablecer',
+
     // Conversion
     'conversion.source': 'Origen',
     'conversion.output': 'Salida',
     'conversion.size': 'Tamaño',
     'conversion.noConversion': 'Sin conversión',
-    
+
     // Dialogs & Modals
     'dialog.downloadAll.title': 'Descargar Múltiples Archivos',
     'dialog.downloadAll.message': '¿Desea descargar {count} archivos?',
     'dialog.downloadAll.confirm': 'Sí, descargar todos',
-    
+
     // Toast Messages
     'toast.noFiles': 'No hay archivos para procesar',
     'toast.uploadFirst': 'Por favor sube algunos archivos de audio primero',
@@ -408,13 +342,13 @@ const translations = {
     'toast.downloadComplete': 'Descarga Completa',
     'toast.downloadFailed': 'Descarga Fallida',
     'toast.filesCleared': 'Archivos limpiados',
-    
+
     // Stats
     'stats.total': 'Archivos Totales',
     'stats.uploaded': 'Cola',
     'stats.processing': 'Procesando',
     'stats.enhanced': 'Completados',
-    
+
     // AI Mastering
     'aiMastering.title': 'Masterización de Audio con IA',
     'aiMastering.description': 'Masterización de nivel profesional impulsada por tecnología IA',
@@ -471,8 +405,8 @@ const translations = {
     'aiMastering.complete': '¡Masterización Completa!',
     'aiMastering.dragOrClick': 'Arrastra y suelta o haz clic para seleccionar',
     'aiMastering.dropFile': 'Suelta tu archivo aquí',
-    
-    // Processing Options - Phase 1 & 2
+
+    // Processing Options
     'processing.options': 'Opciones de Procesamiento',
     'processing.batchMode': 'Modo Lote',
     'processing.individualMode': 'Modo Individual',
@@ -484,19 +418,19 @@ const translations = {
     'processing.stereoWideningInfo': 'Mejora estéreo sutil. Valores >70% pueden causar problemas de fase.',
     'processing.antiPhaseWarning': '⚠️ ¡Territorio de antifase! Riesgo de cancelación de fase.',
     'processing.premiumRequired': 'Se requiere suscripción premium para esta función',
-    
-    // EQ Presets - Phase 3
+
+    // EQ Presets
     'eq.professionalPresets': 'Presets Profesionales de EQ',
     'eq.autoGainCompensation': 'Compensación Automática de Ganancia',
     'eq.gainComp': 'Comp. Ganancia',
     'eq.compensationExplanation': 'Todos los presets incluyen compensación automática de ganancia para comparación A/B objetiva a volumen percibido igual',
-    
+
     // Real-time Audio Player
     'player.realtimePreview': 'Vista Previa de Audio en Tiempo Real',
     'player.noAudioLoaded': 'No hay archivo de audio cargado',
     'player.realtimeProcessing': '⚡ Procesamiento en tiempo real activo - escucha los cambios instantáneamente',
-    
-    // EQ Band Names (5-Band with specific frequencies)
+
+    // EQ Band Names
     'eq.band1': 'Graves / Sub',
     'eq.band1Freq': '50 Hz',
     'eq.band1Range': '20-85 Hz',

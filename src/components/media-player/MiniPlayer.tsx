@@ -1,99 +1,87 @@
-import React from "react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Play, Pause, X, ArrowUpRight } from "lucide-react";
+import React from 'react';
+import { usePlayer } from '@/contexts/PlayerContext';
+import { Button } from '@/components/ui/button';
+import { Play, Pause, X, Maximize2, SkipForward, SkipBack } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
 
 interface MiniPlayerProps {
-    currentFile: {
-        id: string;
-        name: string;
-    } | null;
-    isPlaying: boolean;
-    currentTime: number;
-    duration: number;
-    onPlayPause: () => void;
+    onExpand: () => void;
     onClose: () => void;
-    onNavigateToPlayer: () => void;
 }
 
-export const MiniPlayer: React.FC<MiniPlayerProps> = ({
-    currentFile,
-    isPlaying,
-    currentTime,
-    duration,
-    onPlayPause,
-    onClose,
-    onNavigateToPlayer,
-}) => {
-    if (!currentFile) return null;
+export const MiniPlayer: React.FC<MiniPlayerProps> = ({ onExpand, onClose }) => {
+    const { currentTrack, isPlaying, playPause, volume, setVolume, playNext, playPrevious } = usePlayer();
 
-    const formatTime = (seconds: number) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        return `${mins}:${secs.toString().padStart(2, "0")}`;
-    };
-
-    const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+    if (!currentTrack) return null;
 
     return (
-        <Card className="fixed bottom-6 right-6 z-50 w-80 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-xl border-cyan-500/30 shadow-2xl shadow-cyan-500/20 animate-in slide-in-from-bottom-5">
-            {/* Progress Bar */}
-            <div className="absolute top-0 left-0 right-0 h-1 bg-slate-700/50 rounded-t-lg overflow-hidden">
-                <div
-                    className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-300"
-                    style={{ width: `${progress}%` }}
-                />
-            </div>
-
-            <div className="p-4 pt-5">
-                {/* Header */}
-                <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1 mr-2">
-                        <p className="text-sm font-semibold text-cyan-400 truncate">
-                            {currentFile.name}
-                        </p>
-                        <p className="text-xs text-slate-400 mt-1">
-                            {formatTime(currentTime)} / {formatTime(duration)}
-                        </p>
-                    </div>
-                    <div className="flex gap-1">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={onNavigateToPlayer}
-                            className="h-7 w-7 text-slate-400 hover:text-cyan-400 hover:bg-slate-800"
-                            title="Go to Media Player"
-                        >
-                            <ArrowUpRight className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={onClose}
-                            className="h-7 w-7 text-slate-400 hover:text-red-400 hover:bg-slate-800"
-                            title="Stop playback"
-                        >
-                            <X className="h-4 w-4" />
-                        </Button>
-                    </div>
+        <div className="fixed bottom-4 right-4 z-50 w-80 bg-slate-900/95 backdrop-blur-md border border-cyan-500/30 rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.2)] p-4 animate-in slide-in-from-bottom-10 fade-in duration-300">
+            <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2 overflow-hidden">
+                    <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                    <span className="text-sm font-medium text-white truncate max-w-[180px]">
+                        {currentTrack.name}
+                    </span>
                 </div>
-
-                {/* Controls */}
-                <div className="flex items-center justify-center">
+                <div className="flex items-center gap-1">
                     <Button
-                        variant="default"
+                        variant="ghost"
                         size="icon"
-                        onClick={onPlayPause}
-                        className="h-12 w-12 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 shadow-lg shadow-cyan-500/30"
+                        className="h-6 w-6 text-slate-400 hover:text-white"
+                        onClick={onExpand}
                     >
-                        {isPlaying ? (
-                            <Pause className="h-5 w-5" />
-                        ) : (
-                            <Play className="h-5 w-5 ml-0.5" />
-                        )}
+                        <Maximize2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-slate-400 hover:text-red-400"
+                        onClick={onClose}
+                    >
+                        <X className="h-4 w-4" />
                     </Button>
                 </div>
             </div>
-        </Card>
+
+            <div className="flex items-center justify-center gap-4 mb-3">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-slate-300 hover:text-white"
+                    onClick={playPrevious}
+                >
+                    <SkipBack className="h-4 w-4" />
+                </Button>
+
+                <Button
+                    variant="default"
+                    size="icon"
+                    className="h-10 w-10 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 shadow-lg shadow-cyan-500/20"
+                    onClick={playPause}
+                >
+                    {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
+                </Button>
+
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-slate-300 hover:text-white"
+                    onClick={playNext}
+                >
+                    <SkipForward className="h-4 w-4" />
+                </Button>
+            </div>
+
+            <div className="flex items-center gap-2">
+                <Slider
+                    value={[volume]}
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    onValueChange={(v) => setVolume(v[0])}
+                    className="h-1.5"
+                />
+            </div>
+        </div>
     );
 };

@@ -18,7 +18,11 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-export const UserHeader = () => {
+interface UserHeaderProps {
+  onLogout?: () => void;
+}
+
+export const UserHeader = ({ onLogout }: UserHeaderProps) => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
@@ -87,6 +91,10 @@ export const UserHeader = () => {
 
   const handleLogout = async () => {
     try {
+      if (onLogout) {
+        onLogout();
+      }
+
       // Clear dev bypass flag
       localStorage.removeItem("dev_bypass");
 

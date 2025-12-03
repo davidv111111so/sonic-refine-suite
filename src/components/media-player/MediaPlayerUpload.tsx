@@ -6,6 +6,8 @@ import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
+import { Progress } from '@/components/ui/progress';
+
 interface MediaPlayerUploadProps {
   onFilesAdded: (files: AudioFile[]) => void;
 }
@@ -14,8 +16,22 @@ export const MediaPlayerUpload: React.FC<MediaPlayerUploadProps> = ({ onFilesAdd
   const [hasConsented, setHasConsented] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [isDragActiveState, setIsDragActiveState] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const processFiles = useCallback(async (files: File[]) => {
+    setIsAnalyzing(true);
+    setUploadProgress(0);
+
+    // Simulate progress
+    const progressInterval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev >= 90) return prev;
+        const increment = prev < 50 ? 5 : prev < 80 ? 2 : 1;
+        return Math.min(prev + increment, 90);
+      });
+    }, 100);
+
     const toastId = toast.loading(`Analyzing ${files.length} file${files.length > 1 ? 's' : ''}...`, {
       description: 'Detecting BPM and key signatures',
     });
@@ -71,6 +87,9 @@ export const MediaPlayerUpload: React.FC<MediaPlayerUploadProps> = ({ onFilesAdd
       })
     );
 
+    clearInterval(progressInterval);
+    setUploadProgress(100);
+
     const detectedBPM = audioFiles.filter(f => f.bpm).length;
     const detectedKey = audioFiles.filter(f => f.harmonicKey && f.harmonicKey !== 'N/A').length;
 
@@ -88,6 +107,8 @@ export const MediaPlayerUpload: React.FC<MediaPlayerUploadProps> = ({ onFilesAdd
 
     onFilesAdded(audioFiles);
     setPendingFiles([]);
+    setUploadProgress(0);
+    setIsAnalyzing(false);
   }, [onFilesAdded]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -199,6 +220,17 @@ export const MediaPlayerUpload: React.FC<MediaPlayerUploadProps> = ({ onFilesAdd
         <div className="mt-4 p-3 rounded-md bg-yellow-900/20 border border-yellow-600/30 text-yellow-200/80 flex items-center justify-center text-xs">
           <AlertCircle className="h-3 w-3 mr-2 flex-shrink-0" />
           Please accept the Terms and Conditions to enable file uploads.
+        </div>
+      )}
+
+      {/* Progress Bar */}
+      {isAnalyzing && (
+        <div className="mt-6 space-y-2 animate-in fade-in slide-in-from-top-2">
+          <div className="flex justify-between text-xs text-slate-400">
+            <span>Analyzing audio...</span>
+            <span>{Math.round(uploadProgress)}%</span>
+          </div>
+          <Progress value={uploadProgress} className="h-2" />
         </div>
       )}
     </div>

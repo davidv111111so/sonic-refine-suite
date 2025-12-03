@@ -20,6 +20,7 @@ interface StemsTabProps {
     onFilesUploaded: (files: AudioFile[]) => void;
     isProcessing: boolean;
     setIsProcessing: (isProcessing: boolean) => void;
+    onComplete?: () => void;
 }
 
 interface Stem {
@@ -30,7 +31,7 @@ interface Stem {
     isSoloed: boolean;
 }
 
-export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProcessing }: StemsTabProps) => {
+export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProcessing, onComplete }: StemsTabProps) => {
     const { toast } = useToast();
     const [selectedFileId, setSelectedFileId] = useState<string>('');
     const [stemCount, setStemCount] = useState<string>('4');
@@ -176,6 +177,7 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                     title: "Separation Complete",
                     description: "Stems are ready for playback and download.",
                 });
+                if (onComplete) onComplete();
             } else if (data.status === 'failed') {
                 if (pollingInterval.current) clearInterval(pollingInterval.current);
                 throw new Error(data.error || 'Separation failed');

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,11 +12,12 @@ import { AdvancedAudioEnhancement } from '@/components/enhancement/AdvancedAudio
 import { FileInfoModal } from '@/components/FileInfoModal';
 import { AudioFile } from '@/types/audio';
 import { ProcessingSettings } from '@/utils/audioProcessor';
-import { BarChart3, Settings, Upload, Zap, Package, Music, ExternalLink } from 'lucide-react';
+import { BarChart3, Settings, Upload, Zap, Package, Music, ExternalLink, CreditCard } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { IndividualModeQueue } from '@/components/enhancement/IndividualModeQueue';
 import { AIMasteringTab } from '@/components/ai-mastering/AIMasteringTab';
 import { LevelMediaPlayer } from '@/components/media-player/LevelMediaPlayer';
+import { MiniPlayer } from '@/components/media-player/MiniPlayer';
 import { StemsTab } from '@/components/stems/StemsTab';
 import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
@@ -58,7 +59,7 @@ export const LevelTabs = ({
   setEqEnabled
 }: LevelTabsProps) => {
   const { t, language } = useLanguage();
-  const { addToPlaylist } = usePlayer();
+  const { addToPlaylist, isPlaying, playPause } = usePlayer();
   const [activeTab, setActiveTab] = useState('level');
   const [autoPlayFile, setAutoPlayFile] = useState<AudioFile | null>(null);
   const [selectedFilesForIndividual, setSelectedFilesForIndividual] = useState<string[]>([]);
@@ -77,6 +78,18 @@ export const LevelTabs = ({
   // Stems processing state (Lifted for navigation warning)
   const [isStemsProcessing, setIsStemsProcessing] = useState(false);
   const [isMasteringProcessing, setIsMasteringProcessing] = useState(false);
+
+  // Browser Close Warning
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isStemsProcessing || isMasteringProcessing) {
+        e.preventDefault();
+        e.returnValue = ''; // Chrome requires returnValue to be set
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isStemsProcessing, isMasteringProcessing]);
 
   // Processing settings state
   const [processingSettings, setProcessingSettings] = useState<ProcessingSettings>({
@@ -298,38 +311,20 @@ export const LevelTabs = ({
   };
 
   const handleTabChange = (value: string) => {
-    // Check Stems Processing
-    if (isStemsProcessing && activeTab === 'stems' && value !== 'stems') {
-      // Use setTimeout to allow the UI to settle before showing the alert
-      setTimeout(() => {
-        const confirmLeave = window.confirm(
-          "Stem separation is currently in progress. Leaving this tab will stop the process. Are you sure you want to leave?"
-        );
-        if (confirmLeave) {
-          setIsStemsProcessing(false);
-          toast.info("Processing stopped", { description: "You have left the Stems tab." });
-          setActiveTab(value);
-        }
-      }, 10);
-      return;
-    }
-
-    // Check Mastering Processing
-    if (isMasteringProcessing && activeTab === 'ai-mastering' && value !== 'ai-mastering') {
-      setTimeout(() => {
-        const confirmLeave = window.confirm(
-          "AI Mastering is currently in progress. Leaving this tab will stop the process. Are you sure you want to leave?"
-        );
-        if (confirmLeave) {
-          setIsMasteringProcessing(false);
-          toast.info("Processing stopped", { description: "You have left the AI Mastering tab." });
-          setActiveTab(value);
-        }
-      }, 10);
-      return;
-    }
-
+    // No longer blocking navigation for Stems/Mastering as they run in background
     setActiveTab(value);
+  };
+
+  const handleStemsComplete = () => {
+    if (activeTab !== 'stems') {
+      toast.success("Stem Separation Complete!", {
+        description: "Your stems are ready.",
+        action: {
+          label: "View Results",
+          onClick: () => setActiveTab('stems')
+        }
+      });
+    }
   };
 
   return (
@@ -386,103 +381,107 @@ export const LevelTabs = ({
         </TabsContent>
 
         <TabsContent value="enhance" className={`space-y-6 ${activeTab !== 'enhance' ? 'hidden' : ''}`}>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
-            {/* Left Column: Main Controls */}
-            <div className="lg:col-span-2 space-y-6">
-              <AdvancedAudioEnhancement
-                audioFiles={processingSettings.batchMode ? audioFiles : audioFiles.filter(f => selectedFilesForIndividual.includes(f.id))}
-                processingSettings={processingSettings}
-                estimatedTotalSize={estimatedTotalSize}
-                onEnhance={handleEnhanceFiles}
-                isProcessing={false}
-              />
-
-              {!processingSettings.batchMode && audioFiles.length > 0 && (
-                <IndividualModeQueue
-                  files={audioFiles}
-                  selectedFiles={selectedFilesForIndividual}
-                  onToggleFile={handleToggleFileForIndividual}
-                  onClearAll={handleClearSelectedFiles}
+          {/* Scaled down UI for Enhance Tab */}
+          <div className="transform scale-90 origin-top w-[111%]">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+              {/* Left Column: Main Controls */}
+              <div className="lg:col-span-2 space-y-6">
+                <AdvancedAudioEnhancement
+                  audioFiles={processingSettings.batchMode ? audioFiles : audioFiles.filter(f => selectedFilesForIndividual.includes(f.id))}
+                  processingSettings={processingSettings}
+                  estimatedTotalSize={estimatedTotalSize}
+                  onEnhance={handleEnhanceFiles}
+                  isProcessing={false}
                 />
-              )}
 
-              <FiveBandEqualizer
-                eqBands={eqBands}
-                onEQBandChange={onEQBandChange}
-                onResetEQ={onResetEQ}
-                enabled={eqEnabled}
-                onEnabledChange={setEqEnabled}
-              />
-            </div>
+                {!processingSettings.batchMode && audioFiles.length > 0 && (
+                  <IndividualModeQueue
+                    files={audioFiles}
+                    selectedFiles={selectedFilesForIndividual}
+                    onToggleFile={handleToggleFileForIndividual}
+                    onClearAll={handleClearSelectedFiles}
+                  />
+                )}
 
-            {/* Right Column: Settings & Actions */}
-            <div className="space-y-6 flex flex-col h-full">
-              <div className="space-y-6 flex-1">
-                <Card className="bg-slate-900/90 border-slate-800">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg font-bold text-slate-200">Output Settings</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <DynamicOutputSettings
-                      outputFormat={processingSettings.outputFormat}
-                      sampleRate={processingSettings.sampleRate}
-                      bitDepth={processingSettings.bitDepth}
-                      bitrate={processingSettings.bitrate}
-                      onOutputFormatChange={format => handleProcessingSettingChange('outputFormat', format)}
-                      onSampleRateChange={rate => handleProcessingSettingChange('sampleRate', rate)}
-                      onBitDepthChange={depth => handleProcessingSettingChange('bitDepth', depth)}
-                      onBitrateChange={rate => handleProcessingSettingChange('bitrate', rate)}
-                    />
-                  </CardContent>
-                </Card>
-
-                <InteractiveProcessingOptions
-                  noiseReduction={processingSettings.noiseReduction}
-                  noiseReductionEnabled={processingSettings.noiseReductionEnabled}
-                  normalize={processingSettings.normalize}
-                  normalizeLevel={processingSettings.normalizeLevel}
-                  compression={processingSettings.compression}
-                  compressionEnabled={processingSettings.compressionEnabled}
-                  compressionThreshold={processingSettings.compressionThreshold}
-                  compressionRatio={processingSettings.compressionRatio}
-                  stereoWidening={processingSettings.stereoWidening}
-                  stereoWideningEnabled={processingSettings.stereoWideningEnabled}
-                  batchMode={processingSettings.batchMode}
-                  onNoiseReductionChange={value => handleProcessingSettingChange('noiseReduction', value)}
-                  onNoiseReductionEnabledChange={enabled => handleProcessingSettingChange('noiseReductionEnabled', enabled)}
-                  onNormalizeChange={enabled => handleProcessingSettingChange('normalize', enabled)}
-                  onNormalizeLevelChange={level => handleProcessingSettingChange('normalizeLevel', level)}
-                  onCompressionChange={value => handleProcessingSettingChange('compression', value)}
-                  onCompressionEnabledChange={enabled => handleProcessingSettingChange('compressionEnabled', enabled)}
-                  onCompressionThresholdChange={value => handleProcessingSettingChange('compressionThreshold', value)}
-                  onCompressionRatioChange={ratio => handleProcessingSettingChange('compressionRatio', ratio)}
-                  onStereoWideningChange={value => handleProcessingSettingChange('stereoWidening', value)}
-                  onStereoWideningEnabledChange={enabled => handleProcessingSettingChange('stereoWideningEnabled', enabled)}
-                  onBatchModeChange={enabled => handleProcessingSettingChange('batchMode', enabled)}
-                  onReset={handleResetProcessingOptions}
+                <FiveBandEqualizer
+                  eqBands={eqBands}
+                  onEQBandChange={onEQBandChange}
+                  onResetEQ={onResetEQ}
+                  enabled={eqEnabled}
+                  onEnabledChange={setEqEnabled}
                 />
+              </div>
+
+              {/* Right Column: Settings & Actions */}
+              <div className="space-y-6 flex flex-col h-full">
+                <div className="space-y-6 flex-1">
+                  <Card className="bg-slate-900/90 border-slate-800">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg font-bold text-slate-200">Output Settings</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <DynamicOutputSettings
+                        outputFormat={processingSettings.outputFormat}
+                        sampleRate={processingSettings.sampleRate}
+                        bitDepth={processingSettings.bitDepth}
+                        bitrate={processingSettings.bitrate}
+                        onOutputFormatChange={format => handleProcessingSettingChange('outputFormat', format)}
+                        onSampleRateChange={rate => handleProcessingSettingChange('sampleRate', rate)}
+                        onBitDepthChange={depth => handleProcessingSettingChange('bitDepth', depth)}
+                        onBitrateChange={rate => handleProcessingSettingChange('bitrate', rate)}
+                      />
+                    </CardContent>
+                  </Card>
+
+                  <InteractiveProcessingOptions
+                    noiseReduction={processingSettings.noiseReduction}
+                    noiseReductionEnabled={processingSettings.noiseReductionEnabled}
+                    normalize={processingSettings.normalize}
+                    normalizeLevel={processingSettings.normalizeLevel}
+                    compression={processingSettings.compression}
+                    compressionEnabled={processingSettings.compressionEnabled}
+                    compressionThreshold={processingSettings.compressionThreshold}
+                    compressionRatio={processingSettings.compressionRatio}
+                    stereoWidening={processingSettings.stereoWidening}
+                    stereoWideningEnabled={processingSettings.stereoWideningEnabled}
+                    batchMode={processingSettings.batchMode}
+                    onNoiseReductionChange={value => handleProcessingSettingChange('noiseReduction', value)}
+                    onNoiseReductionEnabledChange={enabled => handleProcessingSettingChange('noiseReductionEnabled', enabled)}
+                    onNormalizeChange={enabled => handleProcessingSettingChange('normalize', enabled)}
+                    onNormalizeLevelChange={level => handleProcessingSettingChange('normalizeLevel', level)}
+                    onCompressionChange={value => handleProcessingSettingChange('compression', value)}
+                    onCompressionEnabledChange={enabled => handleProcessingSettingChange('compressionEnabled', enabled)}
+                    onCompressionThresholdChange={value => handleProcessingSettingChange('compressionThreshold', value)}
+                    onCompressionRatioChange={ratio => handleProcessingSettingChange('compressionRatio', ratio)}
+                    onStereoWideningChange={value => handleProcessingSettingChange('stereoWidening', value)}
+                    onStereoWideningEnabledChange={enabled => handleProcessingSettingChange('stereoWideningEnabled', enabled)}
+                    onBatchModeChange={enabled => handleProcessingSettingChange('batchMode', enabled)}
+                    onReset={handleResetProcessingOptions}
+                  />
+                </div>
               </div>
             </div>
           </div>
         </TabsContent>
 
-        <TabsContent value="stems" className={`space-y-6 ${activeTab !== 'stems' ? 'hidden' : ''}`}>
+        <TabsContent value="stems" forceMount={true} className={`space-y-6 ${activeTab !== 'stems' ? 'hidden' : ''}`}>
           <StemsTab
             audioFiles={audioFiles}
             onFilesUploaded={onFilesUploaded}
             isProcessing={isStemsProcessing}
             setIsProcessing={setIsStemsProcessing}
+            onComplete={handleStemsComplete}
           />
         </TabsContent>
 
-        <TabsContent value="ai-mastering" className={`space-y-6 ${activeTab !== 'ai-mastering' ? 'hidden' : ''}`}>
+        <TabsContent value="ai-mastering" forceMount={true} className={`space-y-6 ${activeTab !== 'ai-mastering' ? 'hidden' : ''}`}>
           <AIMasteringTab
             isProcessing={isMasteringProcessing}
             setIsProcessing={setIsMasteringProcessing}
           />
         </TabsContent>
 
-        <TabsContent value="media-player" className={`space-y-6 ${activeTab !== 'media-player' ? 'hidden' : ''}`}>
+        <TabsContent value="media-player" forceMount={true} className={`space-y-6 ${activeTab !== 'media-player' ? 'hidden' : ''}`}>
           <LevelMediaPlayer
             files={[...audioFiles, ...enhancedHistory]}
             onFilesAdded={handleFilesUploaded}
@@ -493,6 +492,14 @@ export const LevelTabs = ({
           />
         </TabsContent>
       </Tabs >
+
+      {/* Persistent Mini Player */}
+      {activeTab !== 'media-player' && isPlaying && (
+        <MiniPlayer
+          onExpand={() => setActiveTab('media-player')}
+          onClose={() => playPause()}
+        />
+      )}
 
       {
         fileInfoModal.isOpen && fileInfoModal.file && (

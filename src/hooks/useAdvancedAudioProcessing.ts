@@ -96,7 +96,7 @@ export const useAdvancedAudioProcessing = () => {
         }
 
         if (settings.compressionEnabled && settings.compression && settings.compression > 0) {
-          currentNode = applyCompression(offlineContext, currentNode, settings.compression);
+          currentNode = applyCompression(offlineContext, currentNode, settings.compression, settings.compressionThreshold || -20);
         }
 
         if (settings.normalize) {
@@ -213,11 +213,14 @@ const applyNoiseReduction = (context: OfflineAudioContext, input: AudioNode, lev
   return filter;
 };
 
-const applyCompression = (context: OfflineAudioContext, input: AudioNode, ratio: number): AudioNode => {
+const applyCompression = (context: OfflineAudioContext, input: AudioNode, ratio: number, threshold: number): AudioNode => {
   const compressor = context.createDynamicsCompressor();
-  compressor.threshold.value = -20;
+  compressor.threshold.value = threshold;
   compressor.knee.value = 5;
-  compressor.ratio.value = Math.max(1, ratio / 10);
+  compressor.ratio.value = Math.max(1, ratio / 10); // Assuming ratio passed is 0-100 or similar, scaling it down. Wait, UI passes '2:1' string? No, settings.compression is number.
+  // Let's check LevelTabs state. compression is number (default 4). compressionRatio is string '2:1'.
+  // The original code used settings.compression as ratio.
+  // Let's stick to the existing logic for ratio but add threshold.
   compressor.attack.value = 0.005;
   compressor.release.value = 0.1;
 

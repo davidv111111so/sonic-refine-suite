@@ -180,12 +180,7 @@ export const FiveBandEqualizer = memo(
                       style={{
                         top: `${((12 - mark) / 24) * 100}%`,
                       }}
-                    >
-                      <span className="absolute left-2 -top-2.5 text-slate-600 text-[10px] font-mono">
-                        {mark > 0 ? "+" : ""}
-                        {mark}dB
-                      </span>
-                    </div>
+                    />
                   ))}
                 </div>
 

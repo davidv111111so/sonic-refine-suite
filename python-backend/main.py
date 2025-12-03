@@ -8,6 +8,7 @@ import io
 import time
 import tempfile
 import magic
+import hashlib
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import matchering as mg
@@ -34,7 +35,8 @@ ALLOWED_ORIGINS = [
     "http://localhost:8085",
     "http://127.0.0.1:8080",
     "https://*.lovable.app",
-    "https://*.lovableproject.com"
+    "https://*.lovableproject.com",
+    "https://7d506715-84dc-4abb-95cb-4ef4492a151b.lovableproject.com"
 ]
 
 CORS(app, resources={
@@ -519,6 +521,45 @@ def separate_audio_endpoint():
         
     except Exception as e:
         print(f"❌ Separation endpoint error: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/payment/payu-signature', methods=['POST', 'OPTIONS'])
+def payu_signature():
+    """Generate PayU Latam signature"""
+    if request.method == 'OPTIONS':
+        return '', 204
+        
+    try:
+        data = request.get_json()
+        reference_code = data.get('referenceCode')
+        amount = data.get('amount')
+        currency = data.get('currency')
+        
+        if not all([reference_code, amount, currency]):
+            return jsonify({"error": "Missing required fields"}), 400
+            
+        # PayU Sandbox Credentials
+        API_KEY = "4Vj8eK4rloUd272L48hsrarnUA"
+        MERCHANT_ID = "508029"
+        ACCOUNT_ID = "512321"
+        
+        # Signature format: "ApiKey~merchantId~referenceCode~amount~currency"
+        # Note: amount must be formatted correctly (e.g. no decimals for COP if needed, but PayU usually handles standard float string)
+        # For safety, ensure amount ends with .0 or .00 if it's an integer, but PayU is picky.
+        # Best practice: Use the exact string that will be sent to the form.
+        
+        signature_str = f"{API_KEY}~{MERCHANT_ID}~{reference_code}~{amount}~{currency}"
+        signature = hashlib.md5(signature_str.encode('utf-8')).hexdigest()
+        
+        return jsonify({
+            "signature": signature,
+            "merchantId": MERCHANT_ID,
+            "accountId": ACCOUNT_ID,
+            "test": 1 # 1 for Sandbox, 0 for Production
+        })
+        
+    except Exception as e:
+        print(f"❌ Payment signature error: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":

@@ -19,6 +19,9 @@ import { Progress } from '@/components/ui/progress';
 import { AnimatedTitle } from '@/components/AnimatedTitle';
 import Orb from '@/components/ui/Orb';
 import { saveAs } from 'file-saver';
+import { Button } from '@/components/ui/button';
+import { Crown } from 'lucide-react';
+import { SubscriptionModal } from '@/components/payment/SubscriptionModal';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -40,6 +43,7 @@ const Index = () => {
   const [eqEnabled, setEqEnabled] = useState(true);
   const [processingQueue, setProcessingQueue] = useState<AudioFile[]>([]);
   const [enhancedHistory, setEnhancedHistory] = useState<AudioFile[]>([]);
+  const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
   const { toast } = useToast();
   const { addToHistory } = useEnhancementHistory();
 
@@ -88,6 +92,11 @@ const Index = () => {
       });
     }
   }, []);
+
+  const handleLogoutCleanup = () => {
+    handleClearAllFiles();
+    setEnhancedHistory([]);
+  };
 
   const handleEnhanceFiles = useCallback(async (settings: Record<string, any>) => {
     setIsProcessing(true);
@@ -446,7 +455,14 @@ const Index = () => {
         <div className="flex items-center justify-between mb-8">
           <AnimatedTitle />
           <div className="flex items-center gap-3">
-            <UserHeader />
+            <Button
+              onClick={() => setIsPremiumModalOpen(true)}
+              className="bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-white border-0 shadow-lg shadow-amber-900/20 group"
+            >
+              <Crown className="h-4 w-4 mr-2 group-hover:animate-bounce" />
+              Premium
+            </Button>
+            <UserHeader onLogout={handleLogoutCleanup} />
             <LanguageToggle />
             <Guide />
             <ThemeToggle />
@@ -530,6 +546,12 @@ const Index = () => {
       <div className="relative z-10">
         <Footer />
       </div>
+
+      {/* Subscription Modal */}
+      <SubscriptionModal
+        isOpen={isPremiumModalOpen}
+        onClose={() => setIsPremiumModalOpen(false)}
+      />
     </div>
   );
 };

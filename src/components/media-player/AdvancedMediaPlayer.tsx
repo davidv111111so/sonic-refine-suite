@@ -113,7 +113,7 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
 
   // UI State
   const [activePanelTab, setActivePanelTab] = useState<PanelTab>(null);
-  const [isPlaylistCollapsed, setIsPlaylistCollapsed] = useState(false);
+  const [isPlaylistCollapsed, setIsPlaylistCollapsed] = useState(true);
   const [showControls, setShowControls] = useState(false);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -558,6 +558,7 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
         if (file && file.id) {
           shouldAutoPlayRef.current = true;
           setCurrentFile(file);
+          setIsPlaylistCollapsed(false);
         }
       } catch (err) {
         console.error("Failed to parse dropped file", err);
@@ -579,6 +580,7 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
       }));
       if (onFilesAdded) onFilesAdded(newFiles);
       toast.success(`Added ${newFiles.length} files`);
+      setIsPlaylistCollapsed(false);
     },
     accept: { "audio/*": [], "video/*": [] },
     noClick: true,

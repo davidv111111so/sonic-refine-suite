@@ -14,7 +14,8 @@ import {
   X,
   CheckCircle,
   Zap,
-  FileAudio
+  FileAudio,
+  RotateCcw
 } from "lucide-react";
 import { saveAs } from 'file-saver';
 import { useUserSubscription } from "@/hooks/useUserSubscription";
@@ -125,6 +126,7 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
   const [progress, setProgress] = useState(0);
   const [masteredBlob, setMasteredBlob] = useState<Blob | null>(null);
   const [masteredFileName, setMasteredFileName] = useState<string>("mastered_track.wav");
+  const [isMasteringComplete, setIsMasteringComplete] = useState(false);
 
   // Admin state
   const [presetStatuses, setPresetStatuses] = useState<Record<string, boolean>>({});
@@ -469,13 +471,7 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
 
       downloadMasteredFile(resultBlob, fileName);
       toast.success("✅ Your track has been mastered with Matchering!");
-
-      setTargetFile(null);
-      setTargetFileInfo(null);
-      setReferenceFile(null);
-      setReferenceFileInfo(null);
-      sessionStorage.removeItem("aiMastering_targetFile");
-      sessionStorage.removeItem("aiMastering_referenceFile");
+      setIsMasteringComplete(true);
     } catch (err) {
       if (!isMounted.current || !isProcessingRef.current) return;
       let errorMsg = "An error occurred during mastering";
@@ -490,6 +486,21 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
         setProgress(0);
       }
     }
+  };
+
+  const handleClear = () => {
+    setTargetFile(null);
+    setTargetFileInfo(null);
+    setReferenceFile(null);
+    setReferenceFileInfo(null);
+    setSelectedPreset(null);
+    setActiveMode("preset");
+    setMasteredBlob(null);
+    setIsMasteringComplete(false);
+    setAudioAnalysis(null);
+    sessionStorage.removeItem("aiMastering_targetFile");
+    sessionStorage.removeItem("aiMastering_referenceFile");
+    sessionStorage.removeItem("aiMastering_selectedPreset");
   };
 
   if (loading) {
@@ -617,20 +628,20 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
                           {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
                           Analyze
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setTargetFile(null);
-                            setTargetFileInfo(null);
-                            if (targetInputRef.current) targetInputRef.current.value = "";
-                          }}
-                          className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                        >
-                          Remove
-                        </Button>
                       </div>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setTargetFile(null);
+                          setTargetFileInfo(null);
+                          if (targetInputRef.current) targetInputRef.current.value = "";
+                        }}
+                        className="absolute top-2 right-2 h-8 w-8 rounded-full bg-slate-900/50 hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
                   ) : (
                     <>
@@ -729,7 +740,9 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
                 <div
                   className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all duration-300 ${activeMode === "custom" && referenceFile
                     ? "border-pink-500/50 bg-pink-500/5"
-                    : "border-slate-700 hover:border-pink-500/50 hover:bg-slate-800/50"
+                    : activeMode === "preset" && selectedPreset
+                      ? "border-purple-500/50 bg-purple-500/5"
+                      : "border-slate-700 hover:border-pink-500/50 hover:bg-slate-800/50"
                     }`}
                   onClick={handleCustomReferenceClick}
                 >
@@ -752,20 +765,43 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
                           {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
                           Analyze
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setReferenceFile(null);
-                            setReferenceFileInfo(null);
-                            if (referenceInputRef.current) referenceInputRef.current.value = "";
-                          }}
-                          className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                        >
-                          Remove
-                        </Button>
                       </div>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setReferenceFile(null);
+                          setReferenceFileInfo(null);
+                          if (referenceInputRef.current) referenceInputRef.current.value = "";
+                        }}
+                        className="absolute top-2 right-2 h-8 w-8 rounded-full bg-slate-900/50 hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : activeMode === "preset" && selectedPreset ? (
+                    <div className="space-y-4">
+                      <div className="mx-auto w-16 h-16 rounded-full bg-purple-500/20 flex items-center justify-center animate-pulse">
+                        <Zap className="h-8 w-8 text-purple-400" />
+                      </div>
+                      <div>
+                        <p className="text-lg font-medium text-purple-100">
+                          {MASTERING_PRESETS.find(p => p.id === selectedPreset)?.displayName || selectedPreset}
+                        </p>
+                        <p className="text-sm text-purple-400/60">Genre Preset Selected</p>
+                      </div>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedPreset(null);
+                        }}
+                        className="absolute top-2 right-2 h-8 w-8 rounded-full bg-slate-900/50 hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center gap-2 py-2">
@@ -793,79 +829,98 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
 
             {/* Action Area */}
             <div className="space-y-6">
-              <Button
-                onClick={handleMastering}
-                disabled={isProcessing || !targetFile || (!selectedPreset && !referenceFile)}
-                className="w-full h-24 text-2xl font-black tracking-widest uppercase bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 hover:from-cyan-500 hover:via-blue-500 hover:to-purple-500 shadow-[0_0_30px_rgba(6,182,212,0.4)] hover:shadow-[0_0_50px_rgba(6,182,212,0.6)] transition-all duration-300 rounded-2xl border-2 border-white/10 relative overflow-hidden group"
-              >
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                <span className="relative z-10 flex items-center justify-center gap-4 group-hover:scale-105 transition-transform">
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="h-8 w-8 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-8 w-8 fill-yellow-300 text-yellow-300 animate-pulse" />
-                      Master My Track
-                    </>
-                  )}
-                </span>
-              </Button>
+              {isMasteringComplete ? (
+                <Button
+                  onClick={handleClear}
+                  className="w-full h-24 text-2xl font-black tracking-widest uppercase bg-slate-800 hover:bg-slate-700 text-slate-200 shadow-lg transition-all duration-300 rounded-2xl border-2 border-slate-600"
+                >
+                  <RotateCcw className="mr-3 h-8 w-8" />
+                  Start New Mastering
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleMastering}
+                  disabled={isProcessing || !targetFile || (!selectedPreset && !referenceFile)}
+                  className="w-full h-24 text-2xl font-black tracking-widest uppercase bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 hover:from-cyan-500 hover:via-blue-500 hover:to-purple-500 shadow-[0_0_30px_rgba(6,182,212,0.4)] hover:shadow-[0_0_50px_rgba(6,182,212,0.6)] transition-all duration-300 rounded-2xl border-2 border-white/10 relative overflow-hidden group"
+                >
+                  <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
 
-              {/* Progress & Status */}
-              {isProcessing && (
-                <Card className="bg-slate-900/90 border-slate-800 animate-in fade-in slide-in-from-bottom-4">
-                  <CardContent className="p-6 space-y-4">
-                    <div className="flex justify-between text-sm font-medium text-cyan-400">
-                      <span>Processing...</span>
-                      <span>{progress.toFixed(0)}%</span>
-                    </div>
-                    <Progress value={progress} className="h-3 bg-slate-800" indicatorClassName="bg-gradient-to-r from-cyan-500 to-purple-500" />
-                    <p className="text-xs text-center text-slate-500 font-mono">
-                      {progress < 30 && "Uploading to secure cloud..."}
-                      {progress >= 30 && progress < 50 && "Analyzing audio spectrum..."}
-                      {progress >= 50 && progress < 80 && "Applying AI mastering chain..."}
-                      {progress >= 80 && "Finalizing and downloading..."}
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Analysis & Results */}
-              {(audioAnalysis || masteredBlob) && (
-                <Card className="bg-slate-900/90 border-slate-800">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg text-slate-200">
-                      <ActivityIcon className="h-5 w-5 text-emerald-400" />
-                      Analysis Results
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <LUFSDisplay analysis={audioAnalysis || { target: null, reference: null, output: null }} />
-
-                    {masteredBlob && (
-                      <Button
-                        onClick={() => downloadMasteredFile(masteredBlob, masteredFileName)}
-                        className="w-full bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.3)]"
-                        size="lg"
-                      >
-                        <Download className="mr-2 h-5 w-5" />
-                        Download Mastered Track Again
-                      </Button>
+                  <span className="relative z-10 flex items-center justify-center gap-4 group-hover:scale-105 transition-transform">
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                        <span>Processing... {progress.toFixed(0)}%</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-8 w-8 fill-yellow-300 text-yellow-300 animate-pulse" />
+                        <span>Master Track</span>
+                      </>
                     )}
-                  </CardContent>
-                </Card>
-              )}
+                  </span>
 
-              {error && (
-                <div className="p-4 bg-red-950/30 border border-red-500/30 rounded-xl text-red-400 text-sm text-center animate-in fade-in">
-                  {error}
-                </div>
+                  {/* Progress Bar Overlay */}
+                  {isProcessing && (
+                    <div
+                      className="absolute bottom-0 left-0 h-2 bg-white/50 transition-all duration-300 ease-out"
+                      style={{ width: `${progress}%` }}
+                    />
+                  )}
+                </Button>
               )}
             </div>
+
+            {/* Progress & Status */}
+            {isProcessing && (
+              <Card className="bg-slate-900/90 border-slate-800 animate-in fade-in slide-in-from-bottom-4">
+                <CardContent className="p-6 space-y-4">
+                  <div className="flex justify-between text-sm font-medium text-cyan-400">
+                    <span>Processing...</span>
+                    <span>{progress.toFixed(0)}%</span>
+                  </div>
+                  <Progress value={progress} className="h-3 bg-slate-800" indicatorClassName="bg-gradient-to-r from-cyan-500 to-purple-500" />
+                  <p className="text-xs text-center text-slate-500 font-mono">
+                    {progress < 30 && "Uploading to secure cloud..."}
+                    {progress >= 30 && progress < 50 && "Analyzing audio spectrum..."}
+                    {progress >= 50 && progress < 80 && "Applying AI mastering chain..."}
+                    {progress >= 80 && "Finalizing and downloading..."}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Analysis & Results */}
+            {(audioAnalysis || masteredBlob) && (
+              <Card className="bg-slate-900/90 border-slate-800">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg text-slate-200">
+                    <ActivityIcon className="h-5 w-5 text-emerald-400" />
+                    Analysis Results
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <LUFSDisplay analysis={audioAnalysis || { target: null, reference: null, output: null }} />
+
+                  {masteredBlob && (
+                    <Button
+                      onClick={() => downloadMasteredFile(masteredBlob, masteredFileName)}
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                      size="lg"
+                    >
+                      <Download className="mr-2 h-5 w-5" />
+                      Download Mastered Track Again
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {error && (
+              <div className="p-4 bg-red-950/30 border border-red-500/30 rounded-xl text-red-400 text-sm text-center animate-in fade-in">
+                {error}
+              </div>
+            )}
           </div>
         </div>
       </div>
