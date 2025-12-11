@@ -145,7 +145,7 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
 
     const pollStatus = async (taskId: string, authToken: string) => {
         try {
-            const response = await fetch(`http://localhost:8001/api/task-status/${taskId}`);
+            const response = await fetch(`/api/task-status/${taskId}`);
 
             if (response.status === 404) {
                 if (pollingInterval.current) clearInterval(pollingInterval.current);
@@ -162,7 +162,7 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                 if (pollingInterval.current) clearInterval(pollingInterval.current);
 
                 // Get result
-                const resultResponse = await fetch(`http://localhost:8001/api/task-result/${taskId}`);
+                const resultResponse = await fetch(`/api/task-result/${taskId}`);
                 const blob = await resultResponse.blob();
                 const url = URL.createObjectURL(blob);
                 setResults(url);
@@ -259,7 +259,7 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
             setProcessingStage('Uploading and starting separation...');
 
             // Call backend to start task
-            const backendUrl = 'http://localhost:8001/api/separate-audio';
+            const backendUrl = '/api/separate-audio';
 
             const response = await fetch(backendUrl, {
                 method: 'POST',

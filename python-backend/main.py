@@ -56,6 +56,12 @@ CORS(app, resources={
     }
 })
 
+@app.errorhandler(Exception)
+def handle_exception(e):
+    import traceback
+    traceback.print_exc()
+    return jsonify({"error": str(e), "trace": traceback.format_exc()}), 500
+
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
