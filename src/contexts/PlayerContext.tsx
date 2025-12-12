@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useRef, useCallback, useEff
 import { AudioFile } from '@/types/audio';
 import { getAudioContext } from '@/utils/audioContextManager';
 import { useAuth } from './AuthContext';
+import { saveAudioFile, getAllAudioFiles, deleteAudioFile, clearAllAudioFiles } from '@/utils/audioStorage';
 
 interface PlayerContextType {
     currentTrack: AudioFile | null;
@@ -21,6 +22,7 @@ interface PlayerContextType {
     clearPlaylist: () => void;
     playNext: () => void;
     playPrevious: () => void;
+    setIsDirectOutputEnabled: (enabled: boolean) => void;
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
@@ -34,6 +36,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [duration, setDuration] = useState(0);
     const [currentTime, setCurrentTime] = useState(0);
     const [mediaSourceNode, setMediaSourceNode] = useState<MediaElementAudioSourceNode | null>(null);
+    const [isDirectOutputEnabled, setIsDirectOutputEnabled] = useState(true);
 
     // Global Audio Element
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -52,6 +55,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
     }, [user]);
 
+    // Initial Audio Setup
     useEffect(() => {
         const audio = new Audio();
         // Enable cross origin for potential CORS issues with visualizers
@@ -75,13 +79,17 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         // Initialize Source Node
         const initAudioNode = () => {
             const ctx = getAudioContext();
-            // Check if we already have a source for this element
-            if (ctx && !mediaSourceNode && !(audio as any)._source) {
+            if (ctx && !mediaSourceNode && !(audioRef.current as any)._source) {
                 try {
-                    const source = ctx.createMediaElementSource(audio);
-                    source.connect(ctx.destination); // Default connection
-                    (audio as any)._source = source; // Mark as initialized
+                    const source = ctx.createMediaElementSource(audioRef.current!);
+                    (audioRef.current as any)._source = source;
                     setMediaSourceNode(source);
+
+                    // Connect to destination by default if enabled
+                    if (isDirectOutputEnabled) {
+                        source.connect(ctx.destination);
+                    }
+
                     console.log("✅ Global MediaElementSourceNode created");
                 } catch (e) {
                     console.error("Error creating MediaElementSourceNode:", e);
@@ -105,6 +113,22 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         };
     }, []);
 
+    // Manage Direct Output Connection
+    useEffect(() => {
+        const ctx = getAudioContext();
+        if (!mediaSourceNode || !ctx) return;
+
+        try {
+            if (isDirectOutputEnabled) {
+                mediaSourceNode.connect(ctx.destination);
+            } else {
+                mediaSourceNode.disconnect(ctx.destination);
+            }
+        } catch (e) {
+            // Ignore connection errors if already connected/disconnected
+        }
+    }, [isDirectOutputEnabled, mediaSourceNode]);
+
     // Auto-play next when track ends
     useEffect(() => {
         const audio = audioRef.current;
@@ -122,6 +146,40 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         audio.addEventListener('ended', handleEnded);
         return () => audio.removeEventListener('ended', handleEnded);
     }, [currentTrack, playlist]);
+
+    // Load saved playlist on mount
+    useEffect(() => {
+        const loadSavedFiles = async () => {
+            try {
+                const storedFiles = await getAllAudioFiles();
+                if (storedFiles.length > 0) {
+                    const hydratedFiles: AudioFile[] = storedFiles.map(f => {
+                        // Reconstruct Blob with explicit type
+                        const safeBlob = new Blob([f.blob], { type: f.type || 'audio/mpeg' });
+                        const safeUrl = URL.createObjectURL(safeBlob);
+
+                        return {
+                            id: f.id,
+                            name: f.name,
+                            size: f.size,
+                            type: f.type,
+                            fileType: f.metadata?.fileType || 'mp3',
+                            status: 'uploaded',
+                            originalUrl: safeUrl,
+                            originalFile: new File([safeBlob], f.name, { type: f.type }),
+                            enhancedUrl: f.metadata?.enhancedUrl
+                        };
+                    });
+
+                    setPlaylist(hydratedFiles);
+                    console.log(`💾 Restored ${hydratedFiles.length} files from IndexedDB`);
+                }
+            } catch (e) {
+                console.error("Failed to load saved audio:", e);
+            }
+        };
+        loadSavedFiles();
+    }, []);
 
     const loadTrack = useCallback((track: AudioFile) => {
         if (!audioRef.current) return;
@@ -162,30 +220,53 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
     }, []);
 
-    const addToPlaylist = useCallback((files: AudioFile[]) => {
+    const addToPlaylist = useCallback(async (files: AudioFile[]) => {
         setPlaylist(prev => [...prev, ...files]);
-        // If no track is playing, load the first one? Optional.
+
+        // Persist
+        for (const file of files) {
+            if (file.originalFile) {
+                try {
+                    await saveAudioFile(
+                        file.originalFile,
+                        file.id,
+                        file.name,
+                        file.type,
+                        file.size,
+                        { fileType: file.fileType }
+                    );
+                } catch (e) {
+                    console.error("Failed to save to DB:", e);
+                }
+            }
+        }
     }, []);
 
-    const removeFromPlaylist = useCallback((id: string) => {
+    const removeFromPlaylist = useCallback(async (id: string) => {
         setPlaylist(prev => prev.filter(f => f.id !== id));
         if (currentTrack?.id === id) {
-            // Stop if the removed track is playing
             if (audioRef.current) {
                 audioRef.current.pause();
                 audioRef.current.src = '';
             }
             setCurrentTrack(null);
         }
+        // Remove from DB
+        try {
+            await deleteAudioFile(id);
+        } catch (e) {
+            console.error("Failed to delete from DB:", e);
+        }
     }, [currentTrack]);
 
-    const clearPlaylist = useCallback(() => {
+    const clearPlaylist = useCallback(async () => {
         setPlaylist([]);
         setCurrentTrack(null);
         if (audioRef.current) {
             audioRef.current.pause();
             audioRef.current.src = '';
         }
+        await clearAllAudioFiles();
     }, []);
 
     const playNext = useCallback(() => {
@@ -222,7 +303,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             removeFromPlaylist,
             clearPlaylist,
             playNext,
-            playPrevious
+            playPrevious,
+            setIsDirectOutputEnabled
         }}>
             {children}
         </PlayerContext.Provider>

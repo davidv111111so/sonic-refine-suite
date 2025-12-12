@@ -12,7 +12,8 @@ import {
   Trash2,
   ExternalLink
 } from "lucide-react";
-import WaveSurfer from "wavesurfer.js";
+// WaveSurfer removed
+import { DetailWaveform } from "../mixer/DetailWaveform";
 import {
   getAudioContext,
 } from "@/utils/audioContextManager";
@@ -95,8 +96,20 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
     seekTo,
     addToPlaylist,
     playNext,
-    playPrevious
+    playPrevious,
+    setIsDirectOutputEnabled
   } = usePlayer();
+
+  // Route Audio through our Effects Chain ONLY
+  useEffect(() => {
+    // Disable global direct output so we can process audio here
+    setIsDirectOutputEnabled(false);
+
+    return () => {
+      // Re-enable global output when leaving this view
+      setIsDirectOutputEnabled(true);
+    };
+  }, [setIsDirectOutputEnabled]);
 
   const [loop, setLoop] = useState(false);
   const [eqBands, setEqBands] = useState<EQBand[]>(INITIAL_EQ_BANDS);
@@ -105,8 +118,7 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
   const [gainReduction, setGainReduction] = useState(0);
   const [visualizerMode, setVisualizerMode] = useState<VisualizerMode>('bars');
 
-  const waveformRef = useRef<HTMLDivElement>(null);
-  const wavesurferRef = useRef<WaveSurfer | null>(null);
+  // Removed unused WaveSurfer refs
 
   // Audio Nodes Refs
   const eqFiltersRef = useRef<BiquadFilterNode[]>([]);
@@ -144,59 +156,70 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
     return curve;
   };
 
-  // Initialize WaveSurfer with shared Audio Element
+
+
+  const [audioBuffer, setAudioBuffer] = useState<AudioBuffer | null>(null);
+  const [waveformZoom, setWaveformZoom] = useState(100);
+  const [isDecoding, setIsDecoding] = useState(false);
+  const [decodeError, setDecodeError] = useState<string | null>(null);
+
+  // Load & Decode Audio for DetailWaveform
   useEffect(() => {
-    if (!waveformRef.current || !audioElement) return;
-
-    // Destroy existing instance if any
-    if (wavesurferRef.current) {
-      wavesurferRef.current.destroy();
+    const ctx = getAudioContext();
+    if (!currentTrack || !ctx) {
+      setAudioBuffer(null);
+      return;
     }
 
-    const ws = WaveSurfer.create({
-      container: waveformRef.current,
-      media: audioElement, // Use global audio element
-      waveColor: "#4b5563",
-      progressColor: "#06b6d4",
-      cursorColor: "#22d3ee",
-      barWidth: 2,
-      barRadius: 3,
-      cursorWidth: 1,
-      height: 100,
-      barGap: 2,
-      normalize: true,
-      minPxPerSec: 50,
-      fillParent: true,
-      interact: true,
-      dragToSeek: true,
-      audioRate: 1,
-      autoScroll: true,
-      autoCenter: true,
-      sampleRate: 8000,
-    });
+    const loadAudio = async () => {
+      try {
+        console.log("🌊 Loading Waveform for:", currentTrack.name);
+        setIsDecoding(true);
+        setDecodeError(null);
 
-    // Create a gradient for the progress wave
-    const ctx = document.createElement('canvas').getContext('2d');
-    if (ctx) {
-      const gradient = ctx.createLinearGradient(0, 0, 0, 100);
-      gradient.addColorStop(0, "rgb(34, 211, 238)"); // Cyan-400
-      gradient.addColorStop(0.5, "rgb(168, 85, 247)"); // Purple-500
-      gradient.addColorStop(1, "rgb(236, 72, 153)"); // Pink-500
-      ws.setOptions({ progressColor: gradient as any });
-    }
+        const url = currentTrack.enhancedUrl || currentTrack.originalUrl;
+        if (!url) {
+          console.error("🌊 No URL found for track");
+          return;
+        }
 
-    wavesurferRef.current = ws;
+        // Fetch
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`Fetch failed: ${response.status} ${response.statusText}`);
+        }
 
-    ws.on("finish", () => {
-      if (loop) {
-        ws.play();
+        const arrayBuffer = await response.arrayBuffer();
+        console.log("🌊 Audio fetch success, size:", arrayBuffer.byteLength);
+
+        if (arrayBuffer.byteLength === 0) {
+          throw new Error("Fetched audio buffer is empty");
+        }
+
+        // Clone to avoid detachment
+        const bufferCopy = arrayBuffer.slice(0);
+
+        // Decode
+        const decoded = await ctx.decodeAudioData(bufferCopy);
+        console.log("🌊 Decode success, duration:", decoded.duration);
+
+        setAudioBuffer(decoded);
+        setIsDecoding(false);
+
+      } catch (error: any) {
+        console.error("🌊 Waveform Decode Error:", error);
+        setDecodeError(error.message || "Failed to decode");
+        setIsDecoding(false);
       }
-    });
-
-    return () => {
-      ws.destroy();
     };
-  }, [audioElement, loop]);
+
+    loadAudio();
+  }, [currentTrack]);
+
+  // Sync Waveform Drag
+  const handleWaveformSeek = (time: number) => {
+    seekTo(time);
+  };
 
   // Handle File Uploads
   const handleFilesAdded = useCallback(
@@ -624,13 +647,51 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
             </div>
 
             <div
-              ref={waveformRef}
-              className="mb-6 rounded-lg overflow-hidden border border-slate-700/50 bg-slate-950/50 shadow-[0_0_15px_rgba(6,182,212,0.15)] relative"
+              className="mb-6 rounded-lg overflow-hidden border border-slate-700/50 bg-slate-950/50 shadow-[0_0_15px_rgba(6,182,212,0.15)] relative h-[150px]"
             >
-              {/* Futuristic Grid Overlay */}
-              <div className="absolute inset-0 bg-[linear-gradient(rgba(6,182,212,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(6,182,212,0.05)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none z-0"></div>
-              {/* Glow effect at the bottom */}
-              <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-cyan-500/10 to-transparent pointer-events-none z-0"></div>
+              {isDecoding && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20 text-cyan-400 font-mono text-xs">
+                  DECODING AUDIO...
+                </div>
+              )}
+
+              {decodeError && (
+                <div className="absolute inset-0 flex items-center justify-center bg-red-900/50 z-20 text-white font-mono text-xs">
+                  ERROR: {decodeError}
+                </div>
+              )}
+
+              <DetailWaveform
+                buffer={audioBuffer}
+                currentTime={currentTime || 0}
+                zoom={waveformZoom}
+                setZoom={setWaveformZoom}
+                color="cyan"
+                height={150}
+                showGrid={true}
+                onSeek={handleWaveformSeek}
+                audioElement={audioElement}
+              />
+
+              {/* Zoom Controls Overlay */}
+              <div className="absolute top-2 right-2 flex flex-col gap-1 z-30">
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  className="h-6 w-6 rounded-full bg-black/50 hover:bg-black/80 text-cyan-400 border border-cyan-500/30"
+                  onClick={() => setWaveformZoom(z => Math.min(z * 1.5, 1000))}
+                >
+                  <span className="text-xs font-bold">+</span>
+                </Button>
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  className="h-6 w-6 rounded-full bg-black/50 hover:bg-black/80 text-cyan-400 border border-cyan-500/30"
+                  onClick={() => setWaveformZoom(z => Math.max(z / 1.5, 10))}
+                >
+                  <span className="text-xs font-bold">-</span>
+                </Button>
+              </div>
             </div>
 
             <div className="flex items-center justify-between text-sm text-slate-400 mb-4">
