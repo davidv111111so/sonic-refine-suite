@@ -146,11 +146,13 @@ serve(async (req) => {
     })
 
   } catch (error) {
-    console.error('💥 Error in generate-upload-url:', error.message)
-    console.error('Stack trace:', error.stack)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : '';
+    console.error('💥 Error in generate-upload-url:', errorMessage)
+    console.error('Stack trace:', errorStack)
 
     return new Response(JSON.stringify({ 
-      error: error.message,
+      error: errorMessage,
       details: 'Failed to generate signed URLs for Google Cloud Storage'
     }), {
       status: 500,
@@ -312,7 +314,8 @@ function pemToArrayBuffer(pem: string): ArrayBuffer {
     console.error('   - Has BEGIN marker:', pem.includes('BEGIN PRIVATE KEY'))
     console.error('   - Has END marker:', pem.includes('END PRIVATE KEY'))
     console.error('   - Length:', pem.length)
-    throw new Error(`Failed to process private key: ${error.message}`)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to process private key: ${errorMessage}`)
   }
 }
 

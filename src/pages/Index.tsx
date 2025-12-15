@@ -132,7 +132,7 @@ const Index = () => {
         if (i > 0) {
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
-        const defaultSettings = {
+        const defaultSettings: Record<string, any> = {
           outputFormat: 'wav',
           sampleRate: 44100,
           bitDepth: 16,
@@ -150,7 +150,7 @@ const Index = () => {
           } : f));
         });
         const enhancedUrl = URL.createObjectURL(enhancedBlob);
-        const extension = enhancedSettings.outputFormat || 'mp3';
+        const extension = defaultSettings.outputFormat || 'mp3';
         const enhancedFilename = `${file.name.replace(/\.[^.]+$/, '')}_enhanced.${extension}`;
         addToHistory({
           fileName: file.name,

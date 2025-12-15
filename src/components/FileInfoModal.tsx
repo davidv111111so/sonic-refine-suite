@@ -85,45 +85,31 @@ export const FileInfoModal = ({ file, isOpen, onClose }: FileInfoModalProps) => 
             </h4>
             <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
               <div className="grid grid-cols-[100px_1fr] gap-px bg-slate-700">
-                {metadata.common.title && (
+                {metadata.format && (
                   <>
-                    <div className="bg-slate-800 p-2 text-xs text-slate-400">Title</div>
-                    <div className="bg-slate-800 p-2 text-sm text-white">{metadata.common.title}</div>
+                    <div className="bg-slate-800 p-2 text-xs text-slate-400">Format</div>
+                    <div className="bg-slate-800 p-2 text-sm text-white">{metadata.format}</div>
                   </>
                 )}
-                {metadata.common.artist && (
+                {metadata.channels && (
                   <>
-                    <div className="bg-slate-800 p-2 text-xs text-slate-400">Artist</div>
-                    <div className="bg-slate-800 p-2 text-sm text-white">{metadata.common.artist}</div>
+                    <div className="bg-slate-800 p-2 text-xs text-slate-400">Channels</div>
+                    <div className="bg-slate-800 p-2 text-sm text-white">{metadata.channels}</div>
                   </>
                 )}
-                {metadata.common.album && (
-                  <>
-                    <div className="bg-slate-800 p-2 text-xs text-slate-400">Album</div>
-                    <div className="bg-slate-800 p-2 text-sm text-white">{metadata.common.album}</div>
-                  </>
-                )}
-                {metadata.format.duration && (
-                  <>
-                    <div className="bg-slate-800 p-2 text-xs text-slate-400">Duration</div>
-                    <div className="bg-slate-800 p-2 text-sm text-white font-mono">
-                      {formatDuration(metadata.format.duration)}
-                    </div>
-                  </>
-                )}
-                {metadata.format.sampleRate && (
+                {metadata.sampleRate && (
                   <>
                     <div className="bg-slate-800 p-2 text-xs text-slate-400">Sample Rate</div>
                     <div className="bg-slate-800 p-2 text-sm text-white font-mono">
-                      {metadata.format.sampleRate} Hz
+                      {metadata.sampleRate} Hz
                     </div>
                   </>
                 )}
-                {metadata.format.bitrate && (
+                {metadata.bitDepth && (
                   <>
-                    <div className="bg-slate-800 p-2 text-xs text-slate-400">Bitrate</div>
+                    <div className="bg-slate-800 p-2 text-xs text-slate-400">Bit Depth</div>
                     <div className="bg-slate-800 p-2 text-sm text-white font-mono">
-                      {Math.round(metadata.format.bitrate / 1000)} kbps
+                      {metadata.bitDepth} bit
                     </div>
                   </>
                 )}
