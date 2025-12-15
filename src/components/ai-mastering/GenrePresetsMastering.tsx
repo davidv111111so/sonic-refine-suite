@@ -112,7 +112,7 @@ export const GenrePresetsMastering = () => {
       );
 
       // Create download URL
-      const url = URL.createObjectURL(resultBlob);
+      const url = URL.createObjectURL(resultBlob.blob);
       setMasteredUrl(url);
       
       toast({

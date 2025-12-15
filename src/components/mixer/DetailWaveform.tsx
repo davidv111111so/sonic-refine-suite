@@ -1,5 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { WaveformChunk } from '../../workers/waveformAnalysis.worker';
+
+interface WaveformChunk {
+    min: number;
+    max: number;
+}
 
 interface DetailWaveformProps {
     buffer: AudioBuffer | null;

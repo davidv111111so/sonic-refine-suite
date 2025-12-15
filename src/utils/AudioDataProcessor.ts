@@ -1,6 +1,6 @@
 export class AudioDataProcessor {
     private analyser: AnalyserNode;
-    private dataArray: Uint8Array;
+    private dataArray: Uint8Array<ArrayBuffer>;
     private bufferLength: number;
     private smoothingFactor: number;
     private previousVolume: number = 0;
@@ -8,11 +8,11 @@ export class AudioDataProcessor {
     constructor(analyser: AnalyserNode, smoothingFactor: number = 0.8) {
         this.analyser = analyser;
         this.bufferLength = analyser.frequencyBinCount;
-        this.dataArray = new Uint8Array(this.bufferLength);
+        this.dataArray = new Uint8Array(this.bufferLength) as Uint8Array<ArrayBuffer>;
         this.smoothingFactor = smoothingFactor;
     }
 
-    getFrequencyData(): Uint8Array {
+    getFrequencyData(): Uint8Array<ArrayBuffer> {
         this.analyser.getByteFrequencyData(this.dataArray);
         return this.dataArray;
     }
