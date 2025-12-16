@@ -104,8 +104,16 @@ export const LevelTrackList = ({
                     return (
                         <div
                             key={file.id}
+                            draggable={true}
+                            onDragStart={(e) => {
+                                const dragData = JSON.stringify(file);
+                                e.dataTransfer.setData('application/json', dragData);
+                                e.dataTransfer.effectAllowed = 'copy';
+                                // Also set text/plain for compatibility
+                                e.dataTransfer.setData('text/plain', file.url || '');
+                            }}
                             className={cn(
-                                "grid grid-cols-12 gap-4 px-6 py-3 items-center",
+                                "grid grid-cols-12 gap-4 px-6 py-3 items-center cursor-grab active:cursor-grabbing",
                                 "bg-slate-900/40 hover:bg-slate-800/60 transition-all duration-300",
                                 "border border-slate-800/50 hover:border-cyan-500/30 rounded-xl",
                                 "group hover:shadow-[0_0_15px_rgba(6,182,212,0.1)]"

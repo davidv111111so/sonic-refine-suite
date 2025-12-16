@@ -16,6 +16,7 @@ import Auth from "./pages/Auth";
 import { TermsAndConditions } from "./pages/TermsAndConditions";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
+import { ProMixer } from "@/components/mixer/ProMixer";
 import { initAudioContextOnInteraction } from "@/utils/audioContextManager";
 
 const queryClient = new QueryClient();
@@ -55,6 +56,7 @@ const App = () => (
                       <Index />
                     </BetaGate>
                   } />
+                  <Route path="/mixer" element={<ProMixer />} />
                   <Route path="*" element={
                     <BetaGate>
                       <NotFound />

@@ -503,6 +503,34 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
     };
   }, [mediaSourceNode, effectsSettings.enabled, compressorSettings.enabled]);
 
+  // Compressor Metering Loop
+  useEffect(() => {
+    if (!compressorSettings.enabled || !isPlaying) {
+      setGainReduction(0);
+      return;
+    }
+
+    let animationFrameId: number;
+
+    const updateMeter = () => {
+      if (compressorNodeRef.current) {
+        // reduction is a float in dB (always positive or 0 in Web Audio spec for reduction amount? 
+        // MDN: "a float representing the amount of gain reduction currently applied by the compressor to the signal."
+        // Usually negative in meters, but the API returns a float. Let's check typical behavior.
+        // Actually reduction is often negative in dB, e.g. -3.0. 
+        // My previous code used it directly. Let's stick to that.
+        setGainReduction(compressorNodeRef.current.reduction);
+        animationFrameId = requestAnimationFrame(updateMeter);
+      }
+    };
+
+    updateMeter();
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [compressorSettings.enabled, isPlaying]);
+
   // Auto-play file logic
   useEffect(() => {
     if (autoPlayFile && autoPlayFile.id !== currentTrack?.id) {

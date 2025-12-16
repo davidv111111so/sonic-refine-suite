@@ -1,0 +1,169 @@
+import React from 'react';
+import { DeckControls } from '@/hooks/useWebAudio';
+import { Knob } from './Knob';
+import { Fader } from './Fader';
+import { cn } from '@/lib/utils';
+import { Headphones, ChevronLeft, ChevronRight } from 'lucide-react';
+
+interface MixerControlsProps {
+    deckA: DeckControls;
+    deckB: DeckControls;
+    crossfader: number;
+    setCrossfader: (val: number) => void;
+    nudgeCrossfader?: (direction: 'left' | 'right') => void;
+    autoFade?: (target: 0 | 1) => void;
+    headphoneMix: number;
+    setHeadphoneMix: (val: number) => void;
+    headphoneVol: number;
+    setHeadphoneVol: (val: number) => void;
+    cueA: boolean;
+    setCueA: (val: boolean) => void;
+    cueB: boolean;
+    setCueB: (val: boolean) => void;
+    analysers: { A: AnalyserNode | null; B: AnalyserNode | null };
+}
+
+import { ChannelStrip } from './ChannelStrip';
+import { Meter } from './Meter';
+import { DeckPitchFader } from './DeckPitchFader';
+
+// ... imports preservation
+
+export const MixerControls = ({
+    deckA, deckB,
+    crossfader, setCrossfader,
+    nudgeCrossfader, autoFade,
+    headphoneMix, setHeadphoneMix,
+    headphoneVol, setHeadphoneVol,
+    cueA, setCueA, cueB, setCueB,
+    analysers
+}: MixerControlsProps) => {
+    return (
+        <div className="flex flex-col h-full bg-[#09090b] border border-[#27272a] rounded-md p-[2px] relative w-full max-w-[500px] mx-auto">
+            <div className="flex-1 flex justify-center gap-[2px] min-h-0 relative mb-24">
+                {/* Deck A Pitch */}
+                <DeckPitchFader deck={deckA} color="cyan" />
+
+                <ChannelStrip deck={deckA} color="cyan" label="A" side="left" cue={cueA} onToggleCue={() => setCueA(!cueA)} />
+
+                {/* Center Section */}
+                <div className="w-24 bg-[#121212] flex flex-col items-center py-2 gap-2 border-x border-[#27272a]">
+
+                    {/* TRIM Knobs (Moved to Center) */}
+                    <div className="flex gap-2 mb-1">
+                        <Knob
+                            label="TRIM A"
+                            value={deckA.state.trim || 1}
+                            min={0}
+                            max={2}
+                            onChange={(v) => deckA.setTrim(v)}
+                            color="cyan"
+                            size={28}
+                        />
+                        <Knob
+                            label="TRIM B"
+                            value={deckB.state.trim || 1}
+                            min={0}
+                            max={2}
+                            onChange={(v) => deckB.setTrim(v)}
+                            color="purple"
+                            size={28}
+                        />
+                    </div>
+
+                    <div className="w-full h-px bg-[#27272a]" />
+
+                    {/* Meters */}
+                    <div className="flex gap-1 h-32 px-1 w-full justify-center">
+                        <Meter active={deckA.state.isPlaying} analyser={analysers.A} />
+                        <Meter active={deckB.state.isPlaying} analyser={analysers.B} />
+                    </div>
+
+                    <div className="w-full h-px bg-[#27272a]" />
+
+                    {/* Headphone Controls */}
+                    <div className="flex flex-col gap-3 items-center">
+                        <Knob
+                            label="MIX"
+                            value={headphoneMix}
+                            min={0}
+                            max={1}
+                            onChange={setHeadphoneMix}
+                            color="white"
+                            size={28}
+                        />
+                        <Knob
+                            label="VOL"
+                            value={headphoneVol}
+                            min={0}
+                            max={1}
+                            onChange={setHeadphoneVol}
+                            color="white"
+                            size={28}
+                        />
+                        <Headphones className="w-4 h-4 text-neutral-500" />
+                    </div>
+                </div>
+
+                <ChannelStrip deck={deckB} color="purple" label="B" side="right" cue={cueB} onToggleCue={() => setCueB(!cueB)} />
+
+                {/* Deck B Pitch */}
+                <DeckPitchFader deck={deckB} color="purple" />
+            </div>
+
+            {/* Crossfader Section */}
+            <div className="absolute bottom-10 left-0 right-0 h-12 bg-[#121212] border-t border-[#27272a] flex items-center justify-between px-2 z-10 mx-1 rounded-sm gap-1">
+
+                {/* Auto Fade Left */}
+                <button
+                    className="h-6 px-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[8px] text-neutral-400 hover:text-white hover:bg-[#3f3f46] flex items-center justify-center"
+                    onClick={() => autoFade?.(0)}
+                    title="Auto Fade to A (4s)"
+                >
+                    AUTO
+                </button>
+
+                {/* Nudge Left */}
+                <button
+                    className="w-6 h-full flex items-center justify-center text-neutral-500 hover:text-white active:scale-95 transition-transform"
+                    onClick={() => nudgeCrossfader?.('left')}
+                    title="Nudge Left"
+                >
+                    <ChevronLeft className="w-4 h-4" />
+                </button>
+
+                <div className="flex-1 h-full relative flex flex-col justify-center px-2">
+                    <Fader
+                        orientation="horizontal"
+                        value={crossfader}
+                        onChange={setCrossfader}
+                        className="w-full h-full"
+                        thumbColor="#fff"
+                    />
+                    <div className="flex justify-between w-full px-2 absolute bottom-0 pointer-events-none left-0">
+                        <span className="text-[8px] font-bold text-neutral-600">A</span>
+                        <span className="text-[8px] font-bold text-neutral-600">B</span>
+                    </div>
+                </div>
+
+                {/* Nudge Right */}
+                <button
+                    className="w-6 h-full flex items-center justify-center text-neutral-500 hover:text-white active:scale-95 transition-transform"
+                    onClick={() => nudgeCrossfader?.('right')}
+                    title="Nudge Right"
+                >
+                    <ChevronRight className="w-4 h-4" />
+                </button>
+
+                {/* Auto Fade Right */}
+                <button
+                    className="h-6 px-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[8px] text-neutral-400 hover:text-white hover:bg-[#3f3f46] flex items-center justify-center"
+                    onClick={() => autoFade?.(1)}
+                    title="Auto Fade to B (4s)"
+                >
+                    AUTO
+                </button>
+            </div>
+        </div>
+    );
+};

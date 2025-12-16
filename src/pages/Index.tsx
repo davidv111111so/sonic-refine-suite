@@ -284,15 +284,10 @@ const Index = () => {
       };
 
       const convertedBlob = await processAudioFile(file, conversionSettings);
-      const convertedUrl = URL.createObjectURL(convertedBlob);
 
-      // Trigger download
-      const a = document.createElement('a');
-      a.href = convertedUrl;
-      a.download = `${file.name.replace(/\.[^.]+$/, '')}_converted.wav`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      // Use FileSaver logic ensuring specific filename
+      const fileName = `${file.name.replace(/\.[^.]+$/, '')}_converted.wav`;
+      saveAs(convertedBlob, fileName);
 
       toast({
         title: "Conversion Complete",

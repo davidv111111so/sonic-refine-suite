@@ -61,6 +61,7 @@ export const LevelTabs = ({
   const { t, language } = useLanguage();
   const { addToPlaylist, isPlaying, playPause } = usePlayer();
   const [activeTab, setActiveTab] = useState('level');
+  const [showMiniPlayer, setShowMiniPlayer] = useState(true); // Control visibility of MiniPlayer
   const [autoPlayFile, setAutoPlayFile] = useState<AudioFile | null>(null);
   const [selectedFilesForIndividual, setSelectedFilesForIndividual] = useState<string[]>([]);
   const [fileInfoModal, setFileInfoModal] = useState<{
@@ -90,6 +91,15 @@ export const LevelTabs = ({
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isStemsProcessing, isMasteringProcessing]);
+
+  // Reset mini player visibility when returning to media player so it works again next time we leave
+  useEffect(() => {
+    if (activeTab === 'media-player') {
+      setShowMiniPlayer(true);
+    }
+  }, [activeTab]);
+
+  // Processing settings state
 
   // Processing settings state
   const [processingSettings, setProcessingSettings] = useState<ProcessingSettings>({
@@ -330,7 +340,7 @@ export const LevelTabs = ({
   return (
     <>
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full relative z-30">
-        <TabsList className="grid w-full grid-cols-5 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-black dark:via-slate-900 dark:to-black border-2 border-slate-600 dark:border-slate-700 p-1 rounded-xl shadow-xl relative z-50">
+        <TabsList className="grid w-full grid-cols-6 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-black dark:via-slate-900 dark:to-black border-2 border-slate-600 dark:border-slate-700 p-1 rounded-xl shadow-xl relative z-50">
           <TabsTrigger value="level" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:via-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-cyan-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl cursor-pointer">
             <BarChart3 className="h-5 w-5" />
             <span className="text-lg text-blue-50">Level</span>
@@ -351,6 +361,15 @@ export const LevelTabs = ({
             <Music className="h-5 w-5" />
             <span className="text-lg text-green-50">Media Player</span>
           </TabsTrigger>
+          <div
+            onClick={() => window.open('/mixer', '_blank')}
+            className="flex items-center justify-center gap-2 px-4 py-2 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-3xl cursor-pointer transition-all duration-300"
+            role="button"
+            title="Open Mixer Lab in new window"
+          >
+            <ExternalLink className="h-5 w-5" />
+            <span className="text-lg font-bold">Mixer Lab</span>
+          </div>
         </TabsList>
 
         <TabsContent value="level" className={`space-y-8 ${activeTab !== 'level' ? 'hidden' : ''}`}>
@@ -494,10 +513,10 @@ export const LevelTabs = ({
       </Tabs >
 
       {/* Persistent Mini Player */}
-      {activeTab !== 'media-player' && isPlaying && (
+      {activeTab !== 'media-player' && isPlaying && showMiniPlayer && (
         <MiniPlayer
           onExpand={() => setActiveTab('media-player')}
-          onClose={() => playPause()}
+          onClose={() => setShowMiniPlayer(false)}
         />
       )}
 

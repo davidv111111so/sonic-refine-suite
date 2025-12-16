@@ -38,6 +38,12 @@
 - Review code before merging.
 
 ## Antigravity Agent Guidelines
+### Core Philosophy
+- **Investigate & Review**: Thoroughly investigate issues and review all options before acting. Don't guess; verify.
+- **Best Approach**: Choose the most robust and scalable solution, not just the quickest fix.
+- **Refactor when Required**: If the existing code is brittle or messy, refactor it to meet high standards.
+- **Fix All Errors**: Proactively identify and fix errors, including console warnings and linter issues.
+
 ### Workflow
 - **Verify First**: Before marking a task as complete, verify the implementation by reading the file or running the code.
 - **Atomic Changes**: Make small, focused changes. Avoid massive file rewrites unless necessary.

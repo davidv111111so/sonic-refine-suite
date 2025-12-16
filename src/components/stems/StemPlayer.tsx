@@ -41,7 +41,7 @@ export const StemPlayerComponent = ({ url, name, color, isMuted, isSoloed, onMut
             normalize: true,
             // minPxPerSec: 50, // Removed to prevent overflow/scrolling
             fillParent: true, // Ensure it fits the container
-            interact: false, // Disable interaction to keep sync simple for now
+            interact: true, // Enable interaction for seeking
             hideScrollbar: true,
             url: url, // Load URL directly in create options
         });
@@ -58,9 +58,15 @@ export const StemPlayerComponent = ({ url, name, color, isMuted, isSoloed, onMut
         wavesurfer.on('pause', () => setIsPlaying(false));
         wavesurfer.on('finish', () => setIsPlaying(false));
 
-        wavesurfer.on('error', (err) => {
-            console.error("WaveSurfer error:", err);
+        wavesurfer.on('interaction', (newTime) => {
+            // Optional: Notify parent to sync others? 
+            // For now, this allows seeking in this individual stem.
         });
+
+        const onError = (err: Error) => {
+            console.error("WaveSurfer error:", err);
+        };
+        wavesurfer.on('error', onError);
 
         return () => {
             try {

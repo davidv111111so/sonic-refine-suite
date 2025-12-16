@@ -15,10 +15,10 @@ interface DetailWaveformProps {
     showGrid?: boolean;
     bpm?: number;
     onSeek?: (time: number) => void;
-    audioElement?: HTMLMediaElement | null;
+    loop?: { active: boolean; start: number; end: number };
 }
 
-export const DetailWaveform = ({ buffer, currentTime, zoom, setZoom, color, height = 150, showGrid = true, bpm = 128, onSeek, audioElement }: DetailWaveformProps) => {
+export const DetailWaveform = ({ buffer, currentTime, zoom, setZoom, color, height = 150, showGrid = true, bpm = 128, onSeek, audioElement, loop }: DetailWaveformProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const workerRef = useRef<Worker | null>(null);
@@ -141,6 +141,37 @@ export const DetailWaveform = ({ buffer, currentTime, zoom, setZoom, color, heig
                         ctx.stroke();
                     }
                 }
+            }
+
+            // Draw Loop Region
+            if (loop && loop.active) {
+                const loopStartX = (width / 2) + ((loop.start - renderTime) * currentZoom);
+                const loopEndX = (width / 2) + ((loop.end - renderTime) * currentZoom);
+
+                // Region Overlay (Flashing)
+                const now = Date.now();
+                const alpha = 0.2 + 0.15 * Math.sin(now / 150);
+                ctx.fillStyle = `rgba(34, 197, 94, ${alpha})`;
+                ctx.fillRect(loopStartX, 0, loopEndX - loopStartX, h);
+
+                // Loop Markers
+                ctx.strokeStyle = '#22c55e';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([4, 2]);
+
+                // In
+                ctx.beginPath();
+                ctx.moveTo(loopStartX, 0);
+                ctx.lineTo(loopStartX, h);
+                ctx.stroke();
+
+                // Out
+                ctx.beginPath();
+                ctx.moveTo(loopEndX, 0);
+                ctx.lineTo(loopEndX, h);
+                ctx.stroke();
+
+                ctx.setLineDash([]); // Reset
             }
 
             // Draw Waveform

@@ -9,6 +9,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export interface EQBand {
   frequency: number;
@@ -152,102 +158,128 @@ export const TenBandEqualizer: React.FC<TenBandEqualizerProps> = ({
   };
 
   return (
-    <Card className="bg-slate-950 border-slate-800 p-6 shadow-2xl relative overflow-hidden">
-      {/* Top Bar */}
-      <div className="flex items-center justify-between mb-6 relative z-10">
-        <div className="flex items-center gap-4">
-          <h3 className="text-lg font-bold text-slate-200 flex items-center gap-2">
-            <span className="text-cyan-500">EQ</span>
-            <span className="text-slate-600">|</span>
-            <span className="text-sm font-medium text-slate-400">MASTERING GRADE</span>
-          </h3>
+    <TooltipProvider>
+      <Card className="bg-slate-950 border-slate-800 p-6 shadow-2xl relative overflow-hidden">
+        {/* Top Bar */}
+        <div className="flex items-center justify-between mb-6 relative z-10">
+          <div className="flex items-center gap-4">
+            <h3 className="text-lg font-bold text-slate-200 flex items-center gap-2">
+              <span className="text-cyan-500">EQ</span>
+              <span className="text-slate-600">|</span>
+              <span className="text-sm font-medium text-slate-400">MASTERING GRADE</span>
+            </h3>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-7 text-xs bg-slate-900 border-slate-700 text-slate-300 hover:text-white">
-                {selectedPreset} <ChevronDown className="ml-2 h-3 w-3" />
+            <DropdownMenu>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-7 text-xs bg-slate-900 border-slate-700 text-slate-300 hover:text-white">
+                      {selectedPreset} <ChevronDown className="ml-2 h-3 w-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent className="bg-slate-900 border-slate-700 text-slate-200">
+                  <p>Select EQ Preset</p>
+                </TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent className="bg-slate-900 border-slate-700">
+                {Object.entries(PRESETS).map(([name, values]) => (
+                  <DropdownMenuItem
+                    key={name}
+                    onClick={() => applyPreset(name, values)}
+                    className="text-slate-300 focus:bg-slate-800 focus:text-white cursor-pointer"
+                  >
+                    {name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  onReset();
+                  setSelectedPreset("Flat");
+                }}
+                className="text-xs text-slate-500 hover:text-cyan-400 hover:bg-transparent"
+              >
+                <RotateCcw className="h-3 w-3 mr-1" />
+                RESET
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="bg-slate-900 border-slate-700">
-              {Object.entries(PRESETS).map(([name, values]) => (
-                <DropdownMenuItem
-                  key={name}
-                  onClick={() => applyPreset(name, values)}
-                  className="text-slate-300 focus:bg-slate-800 focus:text-white cursor-pointer"
-                >
-                  {name}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </TooltipTrigger>
+            <TooltipContent className="bg-slate-900 border-slate-700 text-slate-200">
+              <p>Reset to Flat EQ</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            onReset();
-            setSelectedPreset("Flat");
-          }}
-          className="text-xs text-slate-500 hover:text-cyan-400 hover:bg-transparent"
-        >
-          <RotateCcw className="h-3 w-3 mr-1" />
-          RESET
-        </Button>
-      </div>
+        {/* Visualization Canvas */}
+        <div className="h-24 w-full mb-6 bg-slate-900/50 rounded-lg border border-slate-800/50 relative overflow-hidden">
+          <canvas
+            ref={canvasRef}
+            width={800}
+            height={100}
+            className="w-full h-full"
+          />
+        </div>
 
-      {/* Visualization Canvas */}
-      <div className="h-24 w-full mb-6 bg-slate-900/50 rounded-lg border border-slate-800/50 relative overflow-hidden">
-        <canvas
-          ref={canvasRef}
-          width={800}
-          height={100}
-          className="w-full h-full"
-        />
-      </div>
-
-      {/* Sliders Grid */}
-      <div className="grid grid-cols-8 gap-2 relative z-10">
-        {bands.map((band, index) => (
-          <div key={index} className="flex flex-col items-center gap-3 group">
-            {/* Gain Value */}
-            <div className={`
+        {/* Sliders Grid */}
+        <div className="grid grid-cols-8 gap-2 relative z-10">
+          {bands.map((band, index) => (
+            <div key={index} className="flex flex-col items-center gap-3 group">
+              {/* Gain Value */}
+              <div className={`
               text-[10px] font-mono font-medium px-1.5 py-0.5 rounded
               ${band.gain !== 0 ? 'text-cyan-400 bg-cyan-950/30' : 'text-slate-500'}
             `}>
-              {band.gain > 0 ? '+' : ''}{band.gain.toFixed(1)}
+                {band.gain > 0 ? '+' : ''}{band.gain.toFixed(1)}
+              </div>
+
+              {/* Slider Track */}
+              <div className="h-40 relative w-full flex justify-center">
+                {/* Center Line */}
+                <div className="absolute top-0 bottom-0 w-px bg-slate-800 z-0"></div>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="h-full z-10 block w-full flex justify-center cursor-ns-resize">
+                      {/* Wrapped Slider in a span to attach tooltip, keeping slider functional */}
+                      <Slider
+                        orientation="vertical"
+                        value={[band.gain]}
+                        min={-12}
+                        max={12}
+                        step={0.1}
+                        onValueChange={(values) => {
+                          onBandChange(index, values[0]);
+                          if (selectedPreset !== "Custom") setSelectedPreset("Custom");
+                        }}
+                        className="h-full [&>.relative>.absolute]:bg-slate-700 [&>.relative>.bg-primary]:bg-cyan-500 [&_span]:border-cyan-400 [&_span]:bg-slate-950 [&_span]:ring-offset-slate-950"
+                      />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-slate-900 border-slate-700 text-slate-200 text-xs">
+                    <p>Adjust {formatFrequency(FREQUENCIES[index] || band.frequency)}Hz ({band.gain > 0 ? '+' : ''}{band.gain.toFixed(1)}dB)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+
+              {/* Frequency Label */}
+              <div className="text-[10px] font-bold text-slate-500 group-hover:text-slate-300 transition-colors">
+                {formatFrequency(FREQUENCIES[index] || band.frequency)}
+              </div>
             </div>
+          ))}
+        </div>
 
-            {/* Slider Track */}
-            <div className="h-40 relative w-full flex justify-center">
-              {/* Center Line */}
-              <div className="absolute top-0 bottom-0 w-px bg-slate-800 z-0"></div>
-
-              <Slider
-                orientation="vertical"
-                value={[band.gain]}
-                min={-12}
-                max={12}
-                step={0.1}
-                onValueChange={(values) => {
-                  onBandChange(index, values[0]);
-                  if (selectedPreset !== "Custom") setSelectedPreset("Custom");
-                }}
-                className="h-full z-10 [&>.relative>.absolute]:bg-slate-700 [&>.relative>.bg-primary]:bg-cyan-500 [&_span]:border-cyan-400 [&_span]:bg-slate-950 [&_span]:ring-offset-slate-950"
-              />
-            </div>
-
-            {/* Frequency Label */}
-            <div className="text-[10px] font-bold text-slate-500 group-hover:text-slate-300 transition-colors">
-              {formatFrequency(FREQUENCIES[index] || band.frequency)}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Decorative Elements */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-3xl -z-0 pointer-events-none"></div>
-      <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-500/5 rounded-full blur-3xl -z-0 pointer-events-none"></div>
-    </Card>
+        {/* Decorative Elements */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-3xl -z-0 pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-500/5 rounded-full blur-3xl -z-0 pointer-events-none"></div>
+      </Card>
+    </TooltipProvider>
   );
 };

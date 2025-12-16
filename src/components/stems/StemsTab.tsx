@@ -143,6 +143,20 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
         }
     };
 
+    const handleClearStems = () => {
+        // Revoke object URLs to free memory
+        if (results) URL.revokeObjectURL(results);
+        stems.forEach(stem => URL.revokeObjectURL(stem.url));
+
+        // Reset State
+        setResults(null);
+        setStems([]);
+        setProgress(0);
+        setProcessingStage('');
+        setIsPlaying(false);
+        wavesurfersRef.current = [];
+    };
+
     const pollStatus = async (taskId: string, authToken: string) => {
         try {
             const response = await fetch(`/api/task-status/${taskId}`);
@@ -459,6 +473,14 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                             </div>
                             {stems.length > 0 && (
                                 <div className="flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="border-slate-700 text-slate-200 hover:bg-slate-800"
+                                        onClick={handleClearStems}
+                                    >
+                                        Clear
+                                    </Button>
                                     <Button
                                         variant="outline"
                                         size="sm"
