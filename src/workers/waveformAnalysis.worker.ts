@@ -1,18 +1,14 @@
-// Web Worker for Waveform Analysis
-// Calculates peaks for the DetailWaveform component
-
 export interface WaveformChunk {
     min: number;
     max: number;
     rms: number;
-    isBass: boolean;
+    low: number;      // Bass Energy
+    midHigh: number;  // Treble Energy
 }
 
 self.onmessage = (e: MessageEvent) => {
     const { channelData, sampleRate, samplesPerPixel } = e.data;
 
-    // channelData is a Float32Array
-    // We need to verify data validity
     if (!channelData || channelData.length === 0) {
         self.postMessage({ error: 'No data provided' });
         return;
@@ -21,37 +17,46 @@ self.onmessage = (e: MessageEvent) => {
     const peaks: WaveformChunk[] = [];
     const len = channelData.length;
 
-    // Process in chunks (each pixel represents N samples)
+    // Simple 1-pole LowPass Filter state
+    let lastOut = 0;
+    const alpha = 0.15; // Cutoff coefficient (~100-200Hz depending on sample rate)
+
+    // Process in chunks
     for (let i = 0; i < len; i += samplesPerPixel) {
         let min = 0;
         let max = 0;
         let rmsSum = 0;
+        let lowSum = 0;
+        let midHighSum = 0;
         let count = 0;
 
-        // Analyze the chunk
         for (let j = 0; j < samplesPerPixel; j++) {
             if (i + j >= len) break;
-            const val = channelData[i + j];
+            const original = channelData[i + j];
 
-            if (val < min) min = val;
-            if (val > max) max = val;
+            // Low Pass Filter (Bass)
+            const low = lastOut + alpha * (original - lastOut);
+            lastOut = low;
 
-            rmsSum += val * val;
+            // High Pass (Original - Bass)
+            const high = original - low;
+
+            if (original < min) min = original;
+            if (original > max) max = original;
+
+            rmsSum += original * original;
+            lowSum += low * low;
+            midHighSum += high * high;
+
             count++;
         }
-
-        const rms = Math.sqrt(rmsSum / count);
-
-        // Simple bass detection heuristic: high energy + low frequency dominance
-        // (Without FFT, we just assume high RMS might be a beat in electronic music, 
-        // but real bass detection needs FFT. For visualizer, simple RMS threshold is often "good enough" for color variation)
-        const isBass = rms > 0.5;
 
         peaks.push({
             min,
             max,
-            rms,
-            isBass
+            rms: Math.sqrt(rmsSum / count),
+            low: Math.sqrt(lowSum / count),
+            midHigh: Math.sqrt(midHighSum / count)
         });
     }
 

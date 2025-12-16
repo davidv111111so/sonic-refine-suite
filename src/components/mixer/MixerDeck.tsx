@@ -1,20 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Square, Repeat, Music2, RotateCw, ZoomIn, ZoomOut, Save, Power, Activity, Disc, ChevronDown, Headphones, Mic2 } from 'lucide-react';
-import { useDJDeck, DJDeckControls } from '../../hooks/useDJDeck';
+import { Play, Pause, Square, Repeat, Music2, RotateCw, ZoomIn, ZoomOut, Save, Power, Activity, Disc, ChevronDown, Headphones, Mic2, Disc3 } from 'lucide-react';
+import { useDJDeck, DeckControls } from '../../hooks/useDJDeck';
 import { cn } from '@/lib/utils';
-import { DetailWaveform } from './DetailWaveform';
-import { OverviewBar } from './OverviewBar';
+import { SpectralWaveform } from './SpectralWaveform';
+import { StripeOverview } from './StripeOverview';
 import { Knob } from './Knob';
 import { FXUnitGroup } from './FXUnitGroup';
 import { PhaseMeter } from './PhaseMeter';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Loader2 } from 'lucide-react';
+import { useCueLogic } from '../../hooks/useCueLogic';
 
 interface MixerDeckProps {
     id: string;
     deck: any; // Using any for now to avoid complexity in this fix, ideally explicit type
-    controls: DJDeckControls;
+    controls: DeckControls;
     isMaster?: boolean;
     onToggleMaster?: () => void;
     isDeckMaster?: boolean;
@@ -34,6 +35,17 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
     const [isHovering, setIsHovering] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isLoading, setIsLoading] = useState(false);
+
+    // Cue Logic
+    const cueLogic = useCueLogic({
+        currentTime: controls.state.currentTime,
+        duration: controls.state.duration,
+        isPlaying: controls.state.isPlaying,
+        bpm: controls.state.bpm || 120,
+        onSeek: controls.seek,
+        onPlay: controls.play,
+        onPause: controls.pause
+    });
 
     // Track Name
     const trackName = controls.state.meta?.title ? `${controls.state.meta.artist ? controls.state.meta.artist + ' - ' : ''}${controls.state.meta.title}` : null;
@@ -196,17 +208,18 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                 onDragLeave={() => setIsHovering(false)}
                 onDrop={handleDrop}
             >
-                <DetailWaveform
+                <SpectralWaveform
                     buffer={controls.state.buffer}
                     currentTime={controls.state.currentTime}
                     zoom={zoom}
                     setZoom={setZoom}
-                    color={color}
+                    color={color as 'cyan' | 'purple'}
                     height={containerRef.current?.clientHeight || 120}
                     showGrid={showGrid}
                     bpm={controls.state.bpm || 128}
                     onSeek={controls.seek}
                     loop={controls.state.loop}
+                    cuePoint={cueLogic.cuePoint}
                 />
 
                 {/* Zoom Controls Overlay */}
@@ -242,21 +255,35 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
 
             {/* 2.5 Overview Waveform (Compacted h-6) */}
             <div className="h-6 bg-[#09090b] border-b border-[#27272a] relative">
-                <OverviewBar
+                <StripeOverview
                     buffer={controls.state.buffer}
                     currentTime={controls.state.currentTime}
                     duration={controls.state.duration}
                     onSeek={controls.seek}
-                    color={color}
+                    color={color as 'cyan' | 'purple'}
                     height={24}
-                    zoom={zoom}
-                    canvasWidth={containerRef.current?.clientWidth || 500}
+                    cuePoint={cueLogic.cuePoint}
+                    loop={controls.state.loop}
                 />
             </div>
 
             {/* 3. Transport Strip (Compacted h-10) */}
             <div className="h-10 bg-[#18181b] border-b border-[#27272a] flex items-center px-3 gap-3 justify-between">
                 <div className="flex items-center gap-2">
+                    <Button
+                        variant="ghost"
+                        className={cn(
+                            "h-9 w-12 rounded-sm border border-[#3f3f46] bg-[#27272a] hover:bg-[#3f3f46] flex flex-col items-center justify-center p-0 transition-all active:scale-95",
+                            "active:border-white/50"
+                        )}
+                        onMouseDown={(e) => { e.preventDefault(); cueLogic.handleCue(true); }}
+                        onMouseUp={(e) => { e.preventDefault(); cueLogic.handleCue(false); }}
+                        onMouseLeave={(e) => { e.preventDefault(); cueLogic.handleCue(false); }}
+                    >
+                        <Disc3 className="w-4 h-4 text-neutral-400 mb-[1px]" />
+                        <span className="text-[9px] font-bold text-neutral-400 leading-none">CUE</span>
+                    </Button>
+
                     <Button
                         variant="ghost"
                         className={cn(

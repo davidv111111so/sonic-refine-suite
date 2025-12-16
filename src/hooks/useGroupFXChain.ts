@@ -14,16 +14,47 @@ interface FXChainState {
     slots: [FXSlotState, FXSlotState, FXSlotState];
 }
 
+interface FXInstance {
+    input: AudioNode;
+    output: AudioNode;
+    setAmount: (val: number, time: number) => void;
+    nodes: AudioNode[]; // Keep track for disconnection
+}
+
+export interface FXChainControls {
+    state: {
+        active: boolean; // mapped to masterOn
+        amount: number; // mapped to masterMix
+        activeEffect: string; // Not used in Group mode really, but present in FXPanel interface
+        parameter: number; // Not used in Group mode
+    };
+    toggleActive: () => void;
+    setAmount: (val: number) => void;
+    setParameter: (val: number) => void;
+    setEffect: (type: string) => void;
+    // Group Specific
+    setMasterMix: (val: number) => void;
+    setMasterOn: (val: boolean) => void;
+    setSlotType: (index: number, type: FXType) => void;
+    setSlotAmount: (index: number, val: number) => void;
+    setSlotOn: (index: number, val: boolean) => void;
+}
+
 export const useGroupFXChain = (audioContext: AudioContext | null, sourceNode: AudioNode | null, destinationNode: AudioNode | null) => {
     // Audio Graph Refs
     const graphRef = useRef<{
         input: GainNode;
         output: GainNode;
+        splitter: GainNode;
         dryGain: GainNode;
         wetGain: GainNode;
-        slotNodes: (AudioNode | null)[];
+
+        // Slot Infrastructure
         slotInputs: GainNode[];
         slotOutputs: GainNode[];
+
+        // Active Effects
+        fxInstances: (FXInstance | null)[];
     } | null>(null);
 
     // State
@@ -42,57 +73,63 @@ export const useGroupFXChain = (audioContext: AudioContext | null, sourceNode: A
         if (!audioContext) return;
 
         const ctx = audioContext;
-        const input = ctx.createGain();
-        const output = ctx.createGain();
-        const dryGain = ctx.createGain();
-        const wetGain = ctx.createGain();
 
-        // Slot Infrastructure (Input/Output wrappers for easy swapping)
+        // Main Architecture Nodes
+        const input = ctx.createGain();       // Entry Point
+        const output = ctx.createGain();      // Exit Point
+        const splitter = ctx.createGain();    // Splitter (after Input)
+        const dryGain = ctx.createGain();     // Dry Path Gain
+        const wetGain = ctx.createGain();     // Wet Path Gain (at end of chain)
+
+        // Slot Containers (Series Chain Anchors)
+        // Slot1_In -> ... -> Slot1_Out -> Slot2_In -> ... -> Slot2_Out -> Slot3_In -> ... -> Slot3_Out
         const slotInputs = [ctx.createGain(), ctx.createGain(), ctx.createGain()];
         const slotOutputs = [ctx.createGain(), ctx.createGain(), ctx.createGain()];
 
-        // Routing: Input -> Dry/Wet Split
-        input.connect(dryGain);
-        input.connect(wetGain);
+        // --- Topology Connections ---
 
+        // 1. Input Side
+        input.connect(splitter);
+
+        // 2. Parallel Paths
         // Dry Path
+        splitter.connect(dryGain);
         dryGain.connect(output);
 
-        // Wet Path Chain: WetGain -> Slot1 -> Slot2 -> Slot3 -> Output
-        // Note: Usually Wet Mix is at the END or BEGINNING. 
-        // User spec: Source -> Splitter |-> DryGain -> Output |-> Slot 1 -> Slot 2 -> Slot 3 -> WetGain -> Output
-        // Wait, if WetGain is at the end, then Slot 1 input is connected to Source directly (via Splitter).
+        // Wet Path (Series Chain)
+        splitter.connect(slotInputs[0]);
 
-        // Correct Routing based on spec:
-        // Input -> DryGain -> Output
-        // Input -> Slot1_In -> Slot1_Out -> Slot2_In -> Slot2_Out -> Slot3_In -> Slot3_Out -> WetGain -> Output
-
-        input.connect(slotInputs[0]);
-
-        slotInputs[0].connect(slotOutputs[0]); // Initially passthrough
+        // Slot 1
+        slotInputs[0].connect(slotOutputs[0]); // Default Through
         slotOutputs[0].connect(slotInputs[1]);
 
-        slotInputs[1].connect(slotOutputs[1]); // Initially passthrough
+        // Slot 2
+        slotInputs[1].connect(slotOutputs[1]); // Default Through
         slotOutputs[1].connect(slotInputs[2]);
 
-        slotInputs[2].connect(slotOutputs[2]); // Initially passthrough
+        // Slot 3
+        slotInputs[2].connect(slotOutputs[2]); // Default Through
         slotOutputs[2].connect(wetGain);
 
+        // Wet Exit
         wetGain.connect(output);
 
+        // Store Graph
         graphRef.current = {
             input,
             output,
+            splitter,
             dryGain,
             wetGain,
-            slotNodes: [null, null, null],
             slotInputs,
-            slotOutputs
+            slotOutputs,
+            fxInstances: [null, null, null]
         };
 
         return () => {
             input.disconnect();
             output.disconnect();
+            splitter.disconnect();
             dryGain.disconnect();
             wetGain.disconnect();
             slotInputs.forEach(n => n.disconnect());
@@ -104,114 +141,137 @@ export const useGroupFXChain = (audioContext: AudioContext | null, sourceNode: A
     useEffect(() => {
         if (!sourceNode || !destinationNode || !graphRef.current) return;
 
-        // Safety Check: Ensure Contexts Match
+        // Context Safety Check
         if (sourceNode.context !== graphRef.current.input.context) {
-            console.warn("useGroupFXChain: Source context mismatch. Skipping connection.");
-            return;
-        }
-        if (destinationNode.context !== graphRef.current.output.context) {
-            console.warn("useGroupFXChain: Destination context mismatch. Skipping connection.");
+            console.warn("useGroupFXChain: Source context mismatch. Skipping.");
             return;
         }
 
         try {
             sourceNode.connect(graphRef.current.input);
             graphRef.current.output.connect(destinationNode);
-        } catch (err) {
-            console.error("useGroupFXChain: Connection error:", err);
+        } catch (e) {
+            console.error("useGroupFXChain: Connection error", e);
         }
 
         return () => {
             try {
-                // Only disconnect if they matched, to avoid errors on cleanup too
                 if (sourceNode.context === graphRef.current!.input.context) {
                     sourceNode.disconnect(graphRef.current!.input);
                 }
-                if (destinationNode.context === graphRef.current!.output.context) {
-                    graphRef.current!.output.disconnect(destinationNode);
-                }
-            } catch (e) {
-                // Ignore disconnect errors (node might be gone)
-            }
+                // Don't disconnect output from destination usually, but beneficial for cleanup
+                graphRef.current!.output.disconnect(destinationNode);
+            } catch (e) { }
         };
     }, [sourceNode, destinationNode, graphRef]);
 
-    // Master Mix Logic
+    // Cleanup Instances on Unmount
+    useEffect(() => {
+        return () => {
+            graphRef.current?.fxInstances.forEach(inst => {
+                if (inst) inst.nodes.forEach(n => n.disconnect());
+            });
+        };
+    }, []);
+
+
+    // Master Mix Logic (Equal Power Crossfade)
     useEffect(() => {
         if (!graphRef.current || !audioContext) return;
         const { dryGain, wetGain } = graphRef.current;
         const ctx = audioContext;
         const t = ctx.currentTime;
+        const rampTime = 0.05; // 50ms smooth
 
         if (!state.masterOn) {
-            // Bypass whole unit: Dry = 1, Wet = 0
-            dryGain.gain.setTargetAtTime(1, t, 0.01);
-            wetGain.gain.setTargetAtTime(0, t, 0.01);
+            // Bypass Mode: Dry = 1, Wet = 0
+            dryGain.gain.linearRampToValueAtTime(1, t + rampTime);
+            wetGain.gain.linearRampToValueAtTime(0, t + rampTime);
             return;
         }
 
-        // Equal Power Crossfade
         const mix = state.masterMix;
+        // Equal Power Law: x^2 + y^2 = 1
         const dry = Math.cos(mix * 0.5 * Math.PI);
-        const wet = Math.sin(mix * 0.5 * Math.PI); // Use sin for equal power wet
+        const wet = Math.sin(mix * 0.5 * Math.PI);
 
-        dryGain.gain.setTargetAtTime(dry, t, 0.01);
-        wetGain.gain.setTargetAtTime(wet, t, 0.01);
+        dryGain.gain.linearRampToValueAtTime(dry, t + rampTime);
+        wetGain.gain.linearRampToValueAtTime(wet, t + rampTime);
+
     }, [state.masterMix, state.masterOn, audioContext]);
 
+
     // Effect Factory
-    const createEffect = useCallback((type: FXType, ctx: AudioContext) => {
+    const createEffect = useCallback((type: FXType, ctx: AudioContext): FXInstance | null => {
         const t = ctx.currentTime;
+
         switch (type) {
             case 'filter': {
-                const node = ctx.createBiquadFilter();
-                node.type = 'highpass';
-                node.frequency.value = 1000;
-                return { node, param: node.frequency, min: 20, max: 20000 };
+                // Low High Pass Filter
+                const filter = ctx.createBiquadFilter();
+                filter.type = 'highpass';
+                filter.Q.value = 1;
+                filter.frequency.value = 20; // Start open/low
+
+                // Set Amount: Exponential Map 20 -> 20k
+                const setAmount = (val: number, time: number) => {
+                    // val 0 -> 20
+                    // val 1 -> 20000
+                    // exp(ln(20) + val * (ln(20000)-ln(20)))
+                    const min = Math.log(20);
+                    const max = Math.log(20000);
+                    const v = Math.exp(min + val * (max - min));
+                    filter.frequency.linearRampToValueAtTime(v, time + 0.05);
+                };
+
+                return { input: filter, output: filter, setAmount, nodes: [filter] };
             }
             case 'filter-lfo': {
                 const filter = ctx.createBiquadFilter();
                 filter.type = 'lowpass';
                 filter.Q.value = 5;
+                filter.frequency.value = 2000;
+
                 const lfo = ctx.createOscillator();
                 lfo.type = 'sine';
-                lfo.frequency.value = 0.5; // Rate
+                lfo.frequency.value = 1;
+
                 const lfoGain = ctx.createGain();
-                lfoGain.gain.value = 2000; // Depth
+                lfoGain.gain.value = 1000;
+
                 lfo.connect(lfoGain);
                 lfoGain.connect(filter.frequency);
                 lfo.start(t);
-                // Param controls LFO Rate
-                return { node: filter, param: lfo.frequency, min: 0.1, max: 10 };
+
+                const setAmount = (val: number, time: number) => {
+                    // Map Amount to LFO Rate (0.1Hz to 10Hz)
+                    const rate = 0.1 + (val * 9.9);
+                    lfo.frequency.linearRampToValueAtTime(rate, time + 0.05);
+                };
+
+                return { input: filter, output: filter, setAmount, nodes: [filter, lfo, lfoGain] };
             }
             case 'delay': {
-                const delay = ctx.createDelay(5.0);
+                const delay = ctx.createDelay(2.0);
+                delay.delayTime.value = 0.375; // 3/8ths (default)
                 const feedback = ctx.createGain();
-                delay.delayTime.value = 0.375;
+
                 delay.connect(feedback);
                 feedback.connect(delay);
-                // Param: Feedback
-                return { node: delay, param: feedback.gain, min: 0, max: 0.9 };
-            }
-            case 'tape-delay': {
-                const delay = ctx.createDelay(5.0);
-                delay.delayTime.value = 0.5;
-                const feedback = ctx.createGain();
-                const filter = ctx.createBiquadFilter();
-                filter.type = 'lowpass';
-                filter.frequency.value = 2000; // Darken repeats
 
-                delay.connect(filter);
-                filter.connect(feedback);
-                feedback.connect(delay);
+                const setAmount = (val: number, time: number) => {
+                    // Map Amount to Feedback (0 to 0.95)
+                    const fb = val * 0.95;
+                    feedback.gain.linearRampToValueAtTime(fb, time + 0.05);
+                };
 
-                // Param: Delay Time (Speed)
-                return { node: delay, param: delay.delayTime, min: 0.1, max: 1.0 };
+                return { input: delay, output: delay, setAmount, nodes: [delay, feedback] };
             }
             case 'reverb': {
                 const convolver = ctx.createConvolver();
+                // Create Impulse noise
                 const rate = ctx.sampleRate;
-                const length = rate * 2;
+                const length = rate * 2; // 2 sec
                 const decay = 2.0;
                 const buffer = ctx.createBuffer(2, length, rate);
                 for (let c = 0; c < 2; c++) {
@@ -221,18 +281,49 @@ export const useGroupFXChain = (audioContext: AudioContext | null, sourceNode: A
                     }
                 }
                 convolver.buffer = buffer;
-                const gain = ctx.createGain();
-                convolver.connect(gain);
-                return { node: convolver, output: gain, param: gain.gain, min: 0, max: 1 };
+
+                const wetMix = ctx.createGain();
+                convolver.connect(wetMix);
+
+                const setAmount = (val: number, time: number) => {
+                    // Map Amount to Wet Gain (0 to 1)
+                    wetMix.gain.linearRampToValueAtTime(val, time + 0.05);
+                };
+
+                return { input: convolver, output: wetMix, setAmount, nodes: [convolver, wetMix] };
+            }
+            case 'distortion': {
+                const shaper = ctx.createWaveShaper();
+                // Create curve
+                const k = 50;
+                const n_samples = 44100;
+                const curve = new Float32Array(n_samples);
+                const deg = Math.PI / 180;
+                for (let i = 0; i < n_samples; ++i) {
+                    const x = i * 2 / n_samples - 1;
+                    curve[i] = (3 + k) * x * 20 * deg / (Math.PI + k * Math.abs(x));
+                }
+                shaper.curve = curve;
+                shaper.oversample = '4x';
+
+                const drive = ctx.createGain();
+                drive.connect(shaper);
+
+                const setAmount = (val: number, time: number) => {
+                    // Map Amount to Input Drive (1 to 20)
+                    const gain = 1 + val * 19;
+                    drive.gain.linearRampToValueAtTime(gain, time + 0.05);
+                };
+
+                return { input: drive, output: shaper, setAmount, nodes: [shaper, drive] };
             }
             case 'flanger': {
-                const delay = ctx.createDelay(1.0);
+                const delay = ctx.createDelay(0.1);
                 delay.delayTime.value = 0.005;
                 const feedback = ctx.createGain();
                 feedback.gain.value = 0.5;
                 const lfo = ctx.createOscillator();
-                lfo.type = 'sine';
-                lfo.frequency.value = 0.25;
+                lfo.frequency.value = 0.2;
                 const lfoGain = ctx.createGain();
                 lfoGain.gain.value = 0.002;
 
@@ -242,101 +333,101 @@ export const useGroupFXChain = (audioContext: AudioContext | null, sourceNode: A
                 feedback.connect(delay);
                 lfo.start(t);
 
-                // Param: LFO Rate
-                return { node: delay, param: lfo.frequency, min: 0.1, max: 5 };
+                const setAmount = (val: number, time: number) => {
+                    const rate = 0.1 + val * 4.9;
+                    lfo.frequency.linearRampToValueAtTime(rate, time + 0.05);
+                };
+                return { input: delay, output: delay, setAmount, nodes: [delay, feedback, lfo, lfoGain] };
             }
             case 'phaser': {
-                // Simple 2-stage allpass phaser
-                const allpass1 = ctx.createBiquadFilter();
-                allpass1.type = 'allpass';
-                allpass1.frequency.value = 1000;
-                const allpass2 = ctx.createBiquadFilter();
-                allpass2.type = 'allpass';
-                allpass2.frequency.value = 1000;
+                const ap1 = ctx.createBiquadFilter(); ap1.type = 'allpass'; ap1.frequency.value = 1000;
+                const ap2 = ctx.createBiquadFilter(); ap2.type = 'allpass'; ap2.frequency.value = 1000;
+                ap1.connect(ap2);
 
-                allpass1.connect(allpass2);
-
-                const lfo = ctx.createOscillator();
-                lfo.frequency.value = 0.5;
-                const lfoGain = ctx.createGain();
-                lfoGain.gain.value = 500;
+                const lfo = ctx.createOscillator(); lfo.frequency.value = 0.5;
+                const lfoGain = ctx.createGain(); lfoGain.gain.value = 800; // Sweep depth
 
                 lfo.connect(lfoGain);
-                lfoGain.connect(allpass1.frequency);
-                lfoGain.connect(allpass2.frequency);
+                lfoGain.connect(ap1.frequency);
+                lfoGain.connect(ap2.frequency);
                 lfo.start(t);
 
-                // Param: Rate
-                return { node: allpass1, output: allpass2, param: lfo.frequency, min: 0.1, max: 8 };
+                const setAmount = (val: number, time: number) => {
+                    const rate = 0.1 + val * 7.9;
+                    lfo.frequency.linearRampToValueAtTime(rate, time + 0.05);
+                };
+                return { input: ap1, output: ap2, setAmount, nodes: [ap1, ap2, lfo, lfoGain] };
             }
             case 'tremolo': {
                 const gain = ctx.createGain();
-                const lfo = ctx.createOscillator();
-                lfo.frequency.value = 4;
-                const lfoGain = ctx.createGain();
-                lfoGain.gain.value = 0.5; // Depth
-
-                // Gain node value is 1. We want to modulate it.
-                // But GainNode.gain is an AudioParam.
-                // We need to offset it? 
-                // Standard Tremolo: Gain varies from 1 to 0.
-                // LFO (-1 to 1) -> Scale (0.5) -> (-0.5 to 0.5) -> Offset (0.5) -> (0 to 1)
-                // Or just connect LFO to Gain.gain? 
-                // If Gain is 0, and LFO is +/- 1...
-                // Let's set Gain to 0.5, and LFO adds +/- 0.5.
                 gain.gain.value = 0.5;
+                const lfo = ctx.createOscillator(); lfo.frequency.value = 5;
+                const lfoGain = ctx.createGain(); lfoGain.gain.value = 0.5; // Modulates +/- 0.5
                 lfo.connect(gain.gain);
                 lfo.start(t);
 
-                // Param: Rate
-                return { node: gain, param: lfo.frequency, min: 1, max: 20 };
+                const setAmount = (val: number, time: number) => {
+                    const rate = 1 + val * 19;
+                    lfo.frequency.linearRampToValueAtTime(rate, time + 0.05);
+                };
+                return { input: gain, output: gain, setAmount, nodes: [gain, lfo, lfoGain] };
             }
             case 'ringmod': {
                 const gain = ctx.createGain();
-                gain.gain.value = 0; // Modulated by OSC
+                gain.gain.value = 0;
                 const osc = ctx.createOscillator();
                 osc.type = 'sine';
                 osc.frequency.value = 500;
                 osc.connect(gain.gain);
                 osc.start(t);
 
-                // Param: Frequency
-                return { node: gain, param: osc.frequency, min: 100, max: 2000 };
-            }
-            case 'distortion': {
-                const shaper = ctx.createWaveShaper();
-                // Sigmoid curve
-                const n_samples = 44100;
-                const curve = new Float32Array(n_samples);
-                const deg = Math.PI / 180;
-                const k = 20; // Distortion amount
-                for (let i = 0; i < n_samples; ++i) {
-                    const x = i * 2 / n_samples - 1;
-                    curve[i] = (3 + k) * x * 20 * deg / (Math.PI + k * Math.abs(x));
-                }
-                shaper.curve = curve;
-                shaper.oversample = '4x';
-
-                // Param: We can't easily change curve in real-time efficiently without recalculating.
-                // Instead, let's put a Gain before it to drive it harder.
-                const drive = ctx.createGain();
-                drive.gain.value = 1;
-                drive.connect(shaper);
-
-                // Param: Drive
-                return { node: drive, output: shaper, param: drive.gain, min: 1, max: 50 };
+                const setAmount = (val: number, time: number) => {
+                    const freq = 100 + val * 1900;
+                    osc.frequency.linearRampToValueAtTime(freq, time + 0.05);
+                };
+                return { input: gain, output: gain, setAmount, nodes: [gain, osc] };
             }
             case 'gater': {
                 const gain = ctx.createGain();
                 const osc = ctx.createOscillator();
-                const oscGain = ctx.createGain();
                 osc.type = 'square';
                 osc.frequency.value = 4;
-                osc.connect(oscGain);
-                oscGain.connect(gain.gain);
+                gain.gain.value = 0.5;
+
+                // Square wave Gater logic
+                // Square is -1 to 1.
+                // We want modulation.
+                const depth = ctx.createGain();
+                depth.gain.value = 0.5;
+                osc.connect(depth);
+                depth.connect(gain.gain);
                 osc.start(t);
-                return { node: gain, param: osc.frequency, min: 0.5, max: 20 };
+
+                const setAmount = (val: number, time: number) => {
+                    const rate = 1 + val * 19;
+                    osc.frequency.linearRampToValueAtTime(rate, time + 0.05);
+                };
+                return { input: gain, output: gain, setAmount, nodes: [gain, osc, depth] };
             }
+            case 'tape-delay': {
+                const delay = ctx.createDelay(2.0);
+                delay.delayTime.value = 0.5;
+                const feedback = ctx.createGain();
+                const filter = ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.value = 2500; // Dark repeats
+
+                delay.connect(filter);
+                filter.connect(feedback);
+                feedback.connect(delay);
+
+                const setAmount = (val: number, time: number) => {
+                    const fb = val * 0.95;
+                    feedback.gain.linearRampToValueAtTime(fb, time + 0.05);
+                };
+                return { input: delay, output: delay, setAmount, nodes: [delay, feedback, filter] };
+            }
+            // For others, return simple passthrough placeholder or unimplemented
             default:
                 return null;
         }
@@ -345,91 +436,73 @@ export const useGroupFXChain = (audioContext: AudioContext | null, sourceNode: A
     // Slot Management Logic
     const updateSlot = useCallback((index: number, newState: FXSlotState) => {
         if (!graphRef.current || !audioContext) return;
-        const { slotInputs, slotOutputs, slotNodes } = graphRef.current;
+        const { slotInputs, slotOutputs, fxInstances } = graphRef.current;
         const ctx = audioContext;
 
-        // 1. Handle Type Change
+        const currentInstance = fxInstances[index];
         const currentType = state.slots[index].type;
+
+        // 1. Check for Type Change
         if (newState.type !== currentType) {
-            // Remove old node
-            const oldNode = slotNodes[index];
-            if (oldNode) {
-                oldNode.disconnect();
-                // If it was a subgraph (reverb), we might need to disconnect output too
-                // But we only track the "entry" node in slotNodes usually.
-                // We need to track the "instance" which might have cleanup.
-            }
-
-            // Create new node
-            if (newState.type !== 'none') {
-                const fx = createEffect(newState.type, ctx);
-                if (fx) {
-                    // Connect: SlotInput -> FX -> SlotOutput
-                    slotInputs[index].disconnect(); // Disconnect direct passthrough
-
-                    if ('output' in fx && fx.output) {
-                        // Subgraph
-                        slotInputs[index].connect(fx.node);
-                        fx.output.connect(slotOutputs[index]);
-                        // Store metadata for updates
-                        // We need a way to store the param reference too.
-                        // Let's store it in a separate ref map or extend slotNodes.
-                        (slotNodes as any)[index] = { ...fx, isSubgraph: true };
-                    } else {
-                        // Single Node
-                        slotInputs[index].connect(fx.node);
-                        fx.node.connect(slotOutputs[index]);
-                        (slotNodes as any)[index] = { ...fx, isSubgraph: false };
-                    }
-                }
-            } else {
-                // None: Restore passthrough
+            // Cleanup Old
+            if (currentInstance) {
+                // Disconnect Physical Links
                 slotInputs[index].disconnect();
+
+                // Disconnect Internal Nodes
+                currentInstance.nodes.forEach(n => n.disconnect());
+                fxInstances[index] = null;
+
+                // Restore Passthrough (until new one is ready)
                 slotInputs[index].connect(slotOutputs[index]);
-                slotNodes[index] = null;
+            }
+
+            // Create New
+            if (newState.type !== 'none') {
+                const newFX = createEffect(newState.type, ctx);
+                if (newFX) {
+                    // Update Ref
+                    fxInstances[index] = newFX;
+
+                    // Route: Input -> FX -> Output
+                    slotInputs[index].disconnect(); // Remove passthrough / old
+
+                    // If On, connect through. If Off, connect passthrough.
+                    if (newState.isOn) {
+                        slotInputs[index].connect(newFX.input);
+                        newFX.output.connect(slotOutputs[index]);
+                    } else {
+                        slotInputs[index].connect(slotOutputs[index]);
+                    }
+
+                    // Set Initial Param
+                    newFX.setAmount(newState.amount, ctx.currentTime);
+                }
+            }
+        }
+        // 2. Check for Parameter Change
+        else if (currentInstance) {
+            if (newState.amount !== state.slots[index].amount) {
+                currentInstance.setAmount(newState.amount, ctx.currentTime);
             }
         }
 
-        // 2. Handle Parameter Update
-        const fxInstance = (slotNodes as any)[index];
-        if (fxInstance && fxInstance.param) {
-            const { min, max, param } = fxInstance;
-            const val = min + (newState.amount * (max - min));
-            param.setTargetAtTime(val, ctx.currentTime, 0.01);
-        }
-
-        // 3. Handle Bypass (On/Off)
-        // If Off, we should bypass the effect.
-        // But we already have the node inserted.
-        // We can disconnect Input->FX and connect Input->Output directly.
-        if (fxInstance) {
-            if (newState.isOn) {
-                // Ensure connected
-                // This is tricky if we toggle rapidly.
-                // Let's assume we just rebuild connections if state changes.
-                // Or use a Dry/Wet internal to the slot?
-                // User suggestion: "Each slot should have its own small Dry/Wet circuit."
-                // That's better.
-                // But we didn't build that in init.
-                // Let's stick to disconnect/connect for now or just set Gain to 0 if it's a mix effect?
-                // For Filter, "Off" means bypass.
-                // Let's implement bypass by re-routing around the node.
-
-                // Check if currently bypassed
-                // This requires tracking connection state.
-                // Let's simplify: Always run the "Type Change" logic if "IsOn" changes? No, expensive.
-
-                // Let's use the GainNode approach for bypass if possible.
-                // But Filter doesn't have a mix.
-
-                // Re-route approach:
-                // If On: Input -> FX -> Output
-                // If Off: Input -> Output (and Input !-> FX)
-
-                // We can do this in a `useEffect` that watches `state.slots[index].isOn`.
+        // 3. Check for Bypass Change
+        // Re-routing logic
+        if (newState.isOn !== state.slots[index].isOn) {
+            const inst = fxInstances[index];
+            if (inst) {
+                slotInputs[index].disconnect();
+                if (newState.isOn) {
+                    slotInputs[index].connect(inst.input);
+                    inst.output.connect(slotOutputs[index]);
+                } else {
+                    slotInputs[index].connect(slotOutputs[index]);
+                }
             }
         }
 
+        // Update State
         setState(prev => {
             const newSlots = [...prev.slots] as [FXSlotState, FXSlotState, FXSlotState];
             newSlots[index] = newState;
@@ -438,31 +511,13 @@ export const useGroupFXChain = (audioContext: AudioContext | null, sourceNode: A
 
     }, [audioContext, createEffect, state.slots]);
 
-    // We need a separate effect to handle the "Bypass" routing efficiently without recreating nodes
-    useEffect(() => {
-        if (!graphRef.current) return;
-        const { slotInputs, slotOutputs, slotNodes } = graphRef.current;
-
-        state.slots.forEach((slot, i) => {
-            const fx = (slotNodes as any)[i];
-            if (!fx) return; // 'none' type is already passthrough
-
-            // Reset connections
-            slotInputs[i].disconnect();
-
-            if (slot.isOn) {
-                // Connect through FX
-                slotInputs[i].connect(fx.node);
-            } else {
-                // Bypass FX
-                slotInputs[i].connect(slotOutputs[i]);
-            }
-        });
-    }, [state.slots.map(s => s.isOn).join(','), state.slots.map(s => s.type).join(',')]);
-
 
     return {
-        state,
+        state, // { masterMix, masterOn, slots }
+        toggleActive: () => setState(s => ({ ...s, masterOn: !s.masterOn })),
+        setAmount: (val) => setState(s => ({ ...s, masterMix: val })),
+
+        // Group Controls
         setMasterMix: (val: number) => setState(s => ({ ...s, masterMix: val })),
         setMasterOn: (val: boolean) => setState(s => ({ ...s, masterOn: val })),
         setSlotType: (index: number, type: FXType) => updateSlot(index, { ...state.slots[index], type }),
