@@ -92,7 +92,27 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                     key={file.id}
                     draggable
                     onDragStart={(e) => {
-                      e.dataTransfer.setData("application/json", JSON.stringify(file));
+                      let title = file.title || file.name.replace(/\.[^/.]+$/, "");
+                      let artist = file.artist || "Unknown Artist";
+
+                      if (!file.artist && !file.title && file.name.includes(' - ')) {
+                        const parts = file.name.replace(/\.[^/.]+$/, "").split(' - ');
+                        if (parts.length >= 2) {
+                          artist = parts[0].trim();
+                          title = parts.slice(1).join(' - ').trim();
+                        }
+                      }
+
+                      const dragData = {
+                        ...file,
+                        title,
+                        artist,
+                        // Ensure essential fields for MixerDeck
+                        url: file.enhancedUrl || file.originalUrl,
+                        key: file.harmonicKey
+                      };
+
+                      e.dataTransfer.setData("application/json", JSON.stringify(dragData));
                       e.dataTransfer.effectAllowed = "copy";
                     }}
                     className={cn(

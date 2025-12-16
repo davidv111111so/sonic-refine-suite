@@ -106,7 +106,23 @@ export const LevelTrackList = ({
                             key={file.id}
                             draggable={true}
                             onDragStart={(e) => {
-                                const dragData = JSON.stringify(file);
+                                let title = file.name.replace(/\.[^/.]+$/, "");
+                                let artist = 'Unknown Artist';
+
+                                if (file.name.includes(' - ')) {
+                                    const parts = file.name.replace(/\.[^/.]+$/, "").split(' - ');
+                                    if (parts.length >= 2) {
+                                        artist = parts[0].trim();
+                                        title = parts.slice(1).join(' - ').trim();
+                                    }
+                                }
+
+                                const dragData = JSON.stringify({
+                                    ...file,
+                                    title,
+                                    artist,
+                                    url: file.url
+                                });
                                 e.dataTransfer.setData('application/json', dragData);
                                 e.dataTransfer.effectAllowed = 'copy';
                                 // Also set text/plain for compatibility

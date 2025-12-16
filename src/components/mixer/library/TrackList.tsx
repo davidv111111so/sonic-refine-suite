@@ -25,6 +25,7 @@ export const TrackList: React.FC<TrackListProps> = ({ onLoadTrack }) => {
         e.dataTransfer.setData('application/json', JSON.stringify({
             type: 'track',
             title: track.title,
+            artist: track.artist,
             url: track.url,
             bpm: track.bpm,
             key: track.key
