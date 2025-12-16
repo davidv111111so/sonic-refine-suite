@@ -66,7 +66,12 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                 if (url) {
                     setIsLoading(true);
                     try {
-                        await controls.loadTrack(url, data.bpm, data.indicator || data.harmonicKey || data.key);
+                        await controls.loadTrack(
+                            url,
+                            data.bpm,
+                            data.indicator || data.harmonicKey || data.key,
+                            { title: data.title, artist: data.artist }
+                        );
                         console.log("MixerDeck: Internal track loaded successfully");
                     } catch (err) {
                         console.error("MixerDeck: Internal track load failed", err);
@@ -122,8 +127,8 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                 }}
             />
 
-            {/* 1. Header & Transport (Compacted h-14) */}
-            <div className="h-14 px-2 flex items-center justify-between border-b border-[#27272a] bg-[#18181b] gap-2">
+            {/* 1. Header & Transport (Compacted h-14 -> h-[60px]) */}
+            <div className="h-[60px] px-2 flex items-center justify-between border-b border-[#27272a] bg-[#18181b] gap-2">
 
                 {/* Deck ID */}
                 <div className="flex flex-col gap-1 w-12 shrink-0 h-full justify-center">
@@ -193,8 +198,8 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                     <PhaseMeter active={controls.state.isPlaying} offset={getPhaseOffset()} />
 
                     {/* Time & Key */}
-                    <div className="flex items-center justify-between text-[10px] font-bold text-neutral-400 uppercase tracking-widest leading-none">
-                        <span className="font-mono">{controls.state.buffer ? (controls.state.duration / 60).toFixed(2).replace('.', ':') : "00:00"}</span>
+                    <div className="flex items-center justify-between text-xs font-bold text-neutral-400 uppercase tracking-widest leading-none">
+                        <span className="font-mono text-sm">{controls.state.buffer ? (controls.state.duration / 60).toFixed(2).replace('.', ':') : "00:00"}</span>
                         <span className={cn(isCyan ? "text-cyan-200" : "text-purple-200", "font-mono")}>{controls.state.key || "--"}</span>
                     </div>
                 </div>
@@ -339,20 +344,20 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
 
                     {/* Loop Controls */}
                     <div className="flex gap-1 mb-1">
-                        <button onClick={controls.loopIn} className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[8px] text-neutral-400 hover:text-white hover:bg-[#3f3f46] h-6 flex items-center justify-center">IN</button>
-                        <button onClick={controls.loopOut} className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[8px] text-neutral-400 hover:text-white hover:bg-[#3f3f46] h-6 flex items-center justify-center">OUT</button>
+                        <button onClick={controls.loopIn} className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[9px] text-neutral-400 hover:text-white hover:bg-[#3f3f46] h-7 flex items-center justify-center">IN</button>
+                        <button onClick={controls.loopOut} className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[9px] text-neutral-400 hover:text-white hover:bg-[#3f3f46] h-7 flex items-center justify-center">OUT</button>
                     </div>
 
                     <div className="flex gap-1 mb-1">
-                        <button onClick={() => controls.loopShift('back')} className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[8px] text-neutral-400 hover:text-white hover:bg-[#3f3f46] h-6 flex items-center justify-center">&lt;</button>
-                        <button onClick={() => controls.loopShift('fwd')} className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[8px] text-neutral-400 hover:text-white hover:bg-[#3f3f46] h-6 flex items-center justify-center">&gt;</button>
+                        <button onClick={() => controls.loopShift('back')} className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[9px] text-neutral-400 hover:text-white hover:bg-[#3f3f46] h-7 flex items-center justify-center">&lt;</button>
+                        <button onClick={() => controls.loopShift('fwd')} className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[9px] text-neutral-400 hover:text-white hover:bg-[#3f3f46] h-7 flex items-center justify-center">&gt;</button>
                     </div>
 
                     <div className="grid grid-cols-2 gap-1 flex-1 min-h-0">
                         {['1/16', '1/8', '1/4', '1/2', '1', '2', '4', '8'].map(val => (
                             <button
                                 key={val}
-                                className="bg-[#27272a] border border-[#3f3f46] rounded-sm text-[7px] text-neutral-400 hover:text-white hover:bg-[#3f3f46] flex items-center justify-center transition-colors h-full"
+                                className="bg-[#27272a] border border-[#3f3f46] rounded-sm text-[9px] font-bold text-neutral-400 hover:text-white hover:bg-[#3f3f46] flex items-center justify-center transition-colors h-full"
                                 onClick={() => {
                                     let beats = 4;
                                     if (val.includes('/')) {

@@ -42,7 +42,7 @@ export interface DeckControls {
     loopShift: (direction: 'fwd' | 'back') => void;
     setLoopPoints: (start: number, end: number) => void;
     quantizedLoop: (beats: number) => void;
-    loadTrack: (source: AudioBuffer | File | string, bpm?: number, key?: string) => void | Promise<void>;
+    loadTrack: (source: AudioBuffer | File | string, bpm?: number, key?: string, providedMeta?: { title?: string, artist?: string }) => void | Promise<void>;
     loadStems: (stems: { [key: string]: AudioBuffer }, bpm?: number) => void;
     setKeyLock: (lock: boolean) => void;
     state: DeckState;
@@ -562,7 +562,7 @@ export const useDJDeck = (context: AudioContext | null): DeckControls => {
         });
     }, []);
 
-    const loadTrack = useCallback(async (source: AudioBuffer | File | string, bpm?: number, key?: string) => {
+    const loadTrack = useCallback(async (source: AudioBuffer | File | string, bpm?: number, key?: string, providedMeta?: { title?: string, artist?: string }) => {
         console.log("useDJDeck: loadTrack called with", source);
         if (!context) {
             console.error("useDJDeck: AudioContext is null!");
@@ -570,7 +570,11 @@ export const useDJDeck = (context: AudioContext | null): DeckControls => {
         }
 
         let buffer: AudioBuffer | null = null;
-        let meta = { title: 'Unknown Track', artist: 'Unknown Artist' };
+        // Default Meta or Provided Override
+        let meta = {
+            title: providedMeta?.title || 'Unknown Track',
+            artist: providedMeta?.artist || 'Unknown Artist'
+        };
 
         try {
             if (source instanceof AudioBuffer) {
@@ -579,15 +583,19 @@ export const useDJDeck = (context: AudioContext | null): DeckControls => {
                 console.log("useDJDeck: Decoding File...");
                 const arrayBuffer = await source.arrayBuffer();
                 buffer = await context.decodeAudioData(arrayBuffer);
-                meta = { title: source.name.replace(/\.[^/.]+$/, ""), artist: 'Unknown Artist' };
+                // Only overwrite if not provided
+                if (!providedMeta?.title) meta.title = source.name.replace(/\.[^/.]+$/, "");
                 console.log("useDJDeck: File Decoded", buffer);
             } else if (typeof source === 'string') {
                 console.log("useDJDeck: Fetching URL...");
                 const response = await fetch(source);
                 const arrayBuffer = await response.arrayBuffer();
                 buffer = await context.decodeAudioData(arrayBuffer);
-                const filename = source.split('/').pop()?.replace(/\.[^/.]+$/, "") || "Stream";
-                meta = { title: filename, artist: 'Unknown Artist' };
+                // Only overwrite if not provided
+                if (!providedMeta?.title) {
+                    const filename = source.split('/').pop()?.replace(/\.[^/.]+$/, "") || "Stream";
+                    meta.title = filename;
+                }
             }
 
             if (buffer) {
@@ -595,6 +603,7 @@ export const useDJDeck = (context: AudioContext | null): DeckControls => {
 
                 let detectedBPM = bpm || 0;
                 if (!detectedBPM && buffer) {
+                    // ... (keep existing BPM detection logic)
                     console.log("useDJDeck: No BPM provided, analyzing...");
                     try {
                         const analysis = await detectBPMFromBuffer(buffer);
