@@ -16,6 +16,7 @@ interface DetailWaveformProps {
     bpm?: number;
     onSeek?: (time: number) => void;
     loop?: { active: boolean; start: number; end: number };
+    audioElement?: HTMLAudioElement | null;
 }
 
 export const DetailWaveform = ({ buffer, currentTime, zoom, setZoom, color, height = 150, showGrid = true, bpm = 128, onSeek, audioElement, loop }: DetailWaveformProps) => {

@@ -121,9 +121,9 @@ export const MixerDeck = ({ id, controls, analyser, color, onSync, isMaster, onT
                                     if (controls.state.bpm) {
                                         const currentBPM = controls.state.bpm * controls.state.playbackRate;
                                         const targetBPM = currentBPM - 0.1;
-                                        controls.setSpeed(targetBPM / controls.state.bpm);
+                                        controls.setRate(targetBPM / controls.state.bpm);
                                     } else {
-                                        controls.setSpeed(controls.state.playbackRate - 0.001);
+                                        controls.setRate(controls.state.playbackRate - 0.001);
                                     }
                                 }}
                             >
@@ -141,9 +141,9 @@ export const MixerDeck = ({ id, controls, analyser, color, onSync, isMaster, onT
                                     if (controls.state.bpm) {
                                         const currentBPM = controls.state.bpm * controls.state.playbackRate;
                                         const targetBPM = currentBPM + 0.1;
-                                        controls.setSpeed(targetBPM / controls.state.bpm);
+                                        controls.setRate(targetBPM / controls.state.bpm);
                                     } else {
-                                        controls.setSpeed(controls.state.playbackRate + 0.001);
+                                        controls.setRate(controls.state.playbackRate + 0.001);
                                     }
                                 }}
                             >

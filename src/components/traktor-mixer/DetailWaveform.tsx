@@ -160,7 +160,7 @@ export const DetailWaveform = ({ buffer, currentTime, zoom, setZoom, color, heig
                 } else {
                     // Spectral coloring based on intensity?
                     // Or just standard color
-                    const alpha = Math.min(1, peak.rms * 2 + 0.5);
+                    const alpha = Math.min(1, (peak.rms ?? 0.5) * 2 + 0.5);
                     ctx.strokeStyle = `rgba(${baseColor}, ${alpha})`;
                     ctx.shadowBlur = 0;
                 }
