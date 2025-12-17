@@ -14,6 +14,7 @@ export interface AudioFile {
   originalFile: File;
   enhancedUrl?: string;
   originalUrl?: string;
+  url?: string; // Computed URL for playback
   artist?: string;
   title?: string;
   artworkUrl?: string;

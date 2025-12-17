@@ -1,9 +1,10 @@
 export interface WaveformChunk {
     min: number;
     max: number;
-    rms: number;
-    low: number;      // Bass Energy
-    midHigh: number;  // Treble Energy
+    rms?: number;
+    low?: number;      // Bass Energy
+    midHigh?: number;  // Treble Energy
+    isBass?: boolean;  // Legacy compatibility
 }
 
 self.onmessage = (e: MessageEvent) => {

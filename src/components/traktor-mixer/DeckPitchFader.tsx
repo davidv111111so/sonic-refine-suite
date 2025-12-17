@@ -22,18 +22,18 @@ export const DeckPitchFader = ({ deck, color }: DeckPitchFaderProps) => {
     const handlePitchChange = (val: number) => {
         setPitchFader(val);
         const newRate = 1 + (val - 0.5) * 0.16;
-        deck.setSpeed(newRate);
+        deck.setRate(newRate);
     };
 
     const handleNudge = (dir: 'left' | 'right', active: boolean) => {
         if (!active) {
             // Return to fader rate
             const targetRate = 1 + (pitchFader - 0.5) * 0.16;
-            deck.setSpeed(targetRate);
+            deck.setRate(targetRate);
         } else {
             const currentRate = deck.state.playbackRate;
             const delta = dir === 'left' ? -0.05 : 0.05;
-            deck.setSpeed(currentRate + delta);
+            deck.setRate(currentRate + delta);
         }
     };
 

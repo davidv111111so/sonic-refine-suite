@@ -14,7 +14,7 @@ import { useCueLogic } from '../../hooks/useCueLogic';
 
 interface MixerDeckProps {
     id: string;
-    deck: any; // Using any for now to avoid complexity in this fix, ideally explicit type
+    deck?: any; // Using any for now to avoid complexity in this fix, ideally explicit type
     controls: DeckControls;
     isMaster?: boolean;
     onToggleMaster?: () => void;
@@ -22,13 +22,13 @@ interface MixerDeckProps {
     handleSync?: () => void;
     onSync?: () => void;
     handleMaster?: () => void;
-    showGrid: boolean;
-    color: string;
-    accentColor: string;
+    showGrid?: boolean;
+    color?: string;
+    accentColor?: string;
     analyser?: AnalyserNode;
 }
 
-export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeckMaster, handleSync, onSync, handleMaster, showGrid, color, accentColor, analyser }: MixerDeckProps) => {
+export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeckMaster, handleSync, onSync, handleMaster, showGrid = true, color = 'cyan', accentColor = 'text-cyan-400', analyser }: MixerDeckProps) => {
     const isCyan = color === 'cyan';
     const [zoom, setZoom] = useState(100);
     const containerRef = useRef<HTMLDivElement>(null);

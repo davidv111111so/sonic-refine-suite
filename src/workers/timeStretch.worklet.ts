@@ -2,6 +2,18 @@
 // Acts as a placeholder for a high-fidelity Phase Vocoder (Rubber Band) if available.
 // Implements a simple Overlap-Add Granular Stretcher for demo purposes.
 
+// Type declarations for AudioWorklet API
+declare class AudioWorkletProcessor {
+    readonly port: MessagePort;
+    process(inputs: Float32Array[][], outputs: Float32Array[][], parameters: Record<string, Float32Array>): boolean;
+}
+
+declare function registerProcessor(name: string, processorCtor: typeof AudioWorkletProcessor): void;
+
+declare const sampleRate: number;
+declare const currentTime: number;
+declare const currentFrame: number;
+
 class TimeStretchProcessor extends AudioWorkletProcessor {
     buffer: Float32Array;
     writeIndex: number;
