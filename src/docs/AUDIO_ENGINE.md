@@ -32,3 +32,18 @@ The application uses a **Parallel Split / Series Chain** topology inspired by pr
 | **Ring Mod** | Carrier | 100Hz - 2kHz | Linear | Metallic/Robotic FM |
 | **Distortion** | Drive | 1 - 20 | Linear | WaveShaper (Mulholland curve) |
 | **Gater** | LFO Rate | 1Hz - 20Hz | Linear | Square wave chopping |
+
+## Master Bus Architecture
+To ensure professional "Mastering Grade" output and prevent digital clipping, the audio engine implements a robust **Gain Staging** and **Limiting** stage at the final output.
+
+### Gain Staging
+- **Deck Trim**: Individual decks are capped at **0.75** (-2.5dB) gain to provide headroom for summing.
+- **Master Bus**: The summed signal passes through a Master Gain Node (Default 0.8) before limiting.
+
+### Safety Limiter
+All audio passes through a `DynamicsCompressorNode` just before the destination.
+- **Threshold**: -2.0 dB (Catch peaks)
+- **Ratio**: 20:1 (Hard Limiting)
+- **Attack**: 3ms (Fast transient control)
+- **Release**: 250ms (Transparent recovery)
+

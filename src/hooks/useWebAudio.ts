@@ -15,13 +15,15 @@ export const useWebAudio = () => {
         crossfaderA: GainNode | null;
         crossfaderB: GainNode | null;
         masterBus: GainNode | null;
+        limiter: DynamicsCompressorNode | null; // Master Safety Limiter
         headphoneBus: GainNode | null;
-        cueMixNode: GainNode | null; // Master signal to Headphones
+        cueMixNode: GainNode | null;
         headphoneVolumeNode: GainNode | null;
     }>({
         crossfaderA: null,
         crossfaderB: null,
         masterBus: null,
+        limiter: null,
         headphoneBus: null,
         cueMixNode: null,
         headphoneVolumeNode: null
@@ -48,30 +50,51 @@ export const useWebAudio = () => {
             const crossfaderA = ctx.createGain();
             const crossfaderB = ctx.createGain();
             const masterBus = ctx.createGain();
+            const limiter = ctx.createDynamicsCompressor(); // Safety Limiter
             const headphoneBus = ctx.createGain(); // Accumulates Cue signals
             const cueMixNode = ctx.createGain(); // Feed Master to HP
             const headphoneVolumeNode = ctx.createGain();
 
+            // --- Configure Nodes ---
+
+            // Gain Staging: Default Master Volume to 80% (-2dB)
+            masterBus.gain.value = 0.8;
+
+            // Limiter Settings (Mastering Grade)
+            limiter.threshold.value = -2.0; // Catch peaks above -2dB
+            limiter.knee.value = 0;         // Hard knee for strict limiting
+            limiter.ratio.value = 20.0;     // High ratio (Limiter behavior)
+            limiter.attack.value = 0.003;   // 3ms attack (Fast but preserves some punch)
+            limiter.release.value = 0.25;   // 250ms release (Smooth recovery)
+
             // 2. Connect Master Path
+            // Decks -> Crossfaders -> Master Bus -> Limiter -> Destination
             crossfaderA.connect(masterBus);
             crossfaderB.connect(masterBus);
-            masterBus.connect(ctx.destination);
+            masterBus.connect(limiter);
+            limiter.connect(ctx.destination);
 
             // 3. Connect Headphone Path
             // Headphone Bus (Cues) -> Headphone Volume
             headphoneBus.connect(headphoneVolumeNode);
 
-            // Master -> Cue Mix -> Headphone Volume
+            // Master (Pre-Limiter) -> Cue Mix -> Headphone Volume
+            // We take Master Cue pre-limiter to hear dynamic range, or post? 
+            // Usually Post-Fader Pre-Limiter is fine, or Post-Limiter to hear clipping protection.
+            // Let's stick to Pre-Limiter for now to monitor the mix bus directly.
             masterBus.connect(cueMixNode);
             cueMixNode.connect(headphoneVolumeNode);
 
             // Headphone Volume -> Destination
+            // Note: In a real multi-output setup, this would go to a different destination.
+            // For browser, it sums to speakers, but we assume user logic handles Cue/Mix toggle.
             headphoneVolumeNode.connect(ctx.destination);
 
             mixerRef.current = {
                 crossfaderA,
                 crossfaderB,
                 masterBus,
+                limiter,
                 headphoneBus,
                 cueMixNode,
                 headphoneVolumeNode
