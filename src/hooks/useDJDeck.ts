@@ -155,7 +155,8 @@ export const useDJDeck = (context: AudioContext | null): DeckControls => {
         const trim = context.createGain(); // Input Trim
         const splitter = context.createGain(); // Splitter Point (Pre-Fader)
         const channelFader = context.createGain(); // Volume Fader
-        channelFader.gain.value = state.volume; // Initialize to state (0)
+        // Headroom Calib: Max Volume is 0.75 to leave room for mixing
+        channelFader.gain.value = state.volume * 0.75;
 
         const cueGate = context.createGain(); // Cue Switch
         const analyser = context.createAnalyser();
@@ -400,7 +401,8 @@ export const useDJDeck = (context: AudioContext | null): DeckControls => {
     const setVolume = useCallback((val: number) => {
         setState(prev => ({ ...prev, volume: val }));
         if (nodes.current.channelFader && context) {
-            nodes.current.channelFader.gain.setTargetAtTime(val, context.currentTime, 0.01);
+            // Headroom Scaling: 0.75 max
+            nodes.current.channelFader.gain.setTargetAtTime(val * 0.75, context.currentTime, 0.01);
         }
     }, [context]);
 
