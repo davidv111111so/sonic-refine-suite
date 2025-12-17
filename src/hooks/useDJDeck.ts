@@ -21,6 +21,8 @@ export interface DeckState {
     keyLock: boolean;
     key: string | null;
     meta?: { title?: string; artist?: string;[key: string]: any };
+    baseRate: number; // Persistent rate (Sync/Buttons)
+    tempoBend: number; // Temporary bend 0-1 (Fader)
 }
 
 export interface DeckControls {
@@ -45,6 +47,7 @@ export interface DeckControls {
     loadTrack: (source: AudioBuffer | File | string, bpm?: number, key?: string, providedMeta?: { title?: string, artist?: string }) => void | Promise<void>;
     loadStems: (stems: { [key: string]: AudioBuffer }, bpm?: number) => void;
     setKeyLock: (lock: boolean) => void;
+    setTempoBend: (val: number) => void;
     state: DeckState;
     analyser: AnalyserNode | null;
     // Outputs
@@ -139,7 +142,9 @@ export const useDJDeck = (context: AudioContext | null): DeckControls => {
         loop: { active: false, start: 0, end: 0 },
         stemVolumes: { vocals: 1, drums: 1, bass: 1, other: 1 },
         keyLock: false,
-        key: null
+        key: null,
+        baseRate: 1,
+        tempoBend: 0.5
     });
 
     // Initialize Deck Graph
@@ -356,8 +361,29 @@ export const useDJDeck = (context: AudioContext | null): DeckControls => {
         if (wasPlaying) play();
     }, [state.isPlaying, pause, play]);
 
+    const setTempoBend = useCallback((val: number) => {
+        setState(prev => {
+            const bendFactor = 1 + (val - 0.5) * 0.16; // +/- 8%
+            const effective = prev.baseRate * bendFactor;
+            return {
+                ...prev,
+                tempoBend: val,
+                playbackRate: effective
+            };
+        });
+    }, []);
+
     const setRate = useCallback((rate: number) => {
-        setState(prev => ({ ...prev, playbackRate: rate }));
+        setState(prev => {
+            // rate passed here is the NEW base rate
+            const bendFactor = 1 + (prev.tempoBend - 0.5) * 0.16;
+            const effective = rate * bendFactor;
+            return {
+                ...prev,
+                baseRate: rate,
+                playbackRate: effective
+            };
+        });
     }, []);
 
     const setVolume = useCallback((val: number) => {
@@ -622,7 +648,10 @@ export const useDJDeck = (context: AudioContext | null): DeckControls => {
                     bpm: detectedBPM || null,
                     key: key || null,
                     currentTime: 0,
-                    meta
+                    meta,
+                    baseRate: 1,
+                    tempoBend: 0.5,
+                    playbackRate: 1
                 }));
                 nodes.current.pauseTime = 0;
             } else {
@@ -668,7 +697,7 @@ export const useDJDeck = (context: AudioContext | null): DeckControls => {
     return {
         play, pause, cue, seek, setRate, setVolume, setTrim, setPitch, setEQ, toggleEQKill, setFilter, setStemVolume,
         toggleLoop, loopIn, loopOut, loopShift, setLoopPoints, quantizedLoop, loadTrack, loadStems,
-        setKeyLock,
+        setKeyLock, setTempoBend,
         state,
         analyser: nodes.current.analyser,
         masterOutput: nodes.current.analyser, // Post-Fader Output

@@ -311,6 +311,7 @@ export const useWebAudio = () => {
             const sourceEffectiveBPM = sourceDeck.state.bpm * sourceDeck.state.playbackRate;
             const newRate = sourceEffectiveBPM / targetOriginalBPM;
             targetDeck.setRate(newRate);
+            targetDeck.setTempoBend(0.5);
 
             const sourceTime = sourceDeck.state.currentTime;
             const targetTime = targetDeck.state.currentTime;

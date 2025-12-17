@@ -96,37 +96,40 @@ export const FXUnitGroup = ({
     return (
         <div className="flex flex-col h-full bg-[#09090b] border border-[#27272a] rounded-md w-full">
             {/* Header */}
-            <div className="h-10 border-b border-[#27272a] bg-[#121212] flex items-center justify-between px-3 gap-2 shrink-0">
-                {/* Label & Config */}
-                <div className="flex items-center gap-2">
+            <div className="h-10 border-b border-[#27272a] bg-[#121212] grid grid-cols-3 items-center px-3 shrink-0 relative">
+                {/* 1. Label (Left) */}
+                <div className="flex items-center gap-2 justify-start">
                     <span className="text-cyan-500 font-bold text-sm tracking-widest shadow-cyan-glow">{label}</span>
-                    <button className="text-neutral-500 hover:text-white">
-                        <Save className="w-4 h-4" />
-                    </button>
                 </div>
 
-                {/* Master Controls */}
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-neutral-500 font-bold">D/W</span>
-                        <Knob
-                            label=""
-                            value={masterMix}
-                            min={0}
-                            max={1}
-                            onChange={setMasterMix}
-                            color="white"
-                            size={28}
-                        />
-                    </div>
+                {/* 2. D/W Knob (Center) */}
+                <div className="flex items-center justify-center gap-2">
+                    <span className="text-[9px] text-neutral-500 font-bold">D/W</span>
+                    <Knob
+                        label=""
+                        value={masterMix}
+                        min={0}
+                        max={1}
+                        onChange={setMasterMix}
+                        color="white"
+                        size={32}
+                    />
+                </div>
+
+                {/* 3. Power Button (Right) */}
+                <div className="flex items-center justify-end gap-2">
+                    <button className="text-neutral-500 hover:text-white mr-2">
+                        <Save className="w-4 h-4" />
+                    </button>
                     <button
                         className={cn(
-                            "w-8 h-5 rounded-sm border flex items-center justify-center transition-all",
+                            "w-8 h-6 rounded border flex items-center justify-center transition-all shadow-sm",
                             masterOn
-                                ? "border-cyan-500 bg-cyan-500/20 text-cyan-500"
-                                : "border-[#3f3f46] bg-[#18181b] text-[#71717a]"
+                                ? "border-cyan-500 bg-cyan-500/20 text-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.4)]"
+                                : "border-[#3f3f46] bg-[#18181b] text-[#71717a] hover:border-[#52525b]"
                         )}
                         onClick={() => setMasterOn(!masterOn)}
+                        title="Toggle FX Unit"
                     >
                         <Power className="w-4 h-4" />
                     </button>
