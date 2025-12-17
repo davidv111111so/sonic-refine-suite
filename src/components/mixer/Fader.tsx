@@ -7,9 +7,10 @@ interface FaderProps {
     orientation?: 'vertical' | 'horizontal';
     className?: string;
     thumbColor?: string; // Hex or tailwind class
+    onDragEnd?: () => void;
 }
 
-export const Fader = ({ value, onChange, orientation = 'vertical', className, thumbColor = '#e5e5e5' }: FaderProps) => {
+export const Fader = ({ value, onChange, orientation = 'vertical', className, thumbColor = '#e5e5e5', onDragEnd }: FaderProps) => {
     const trackRef = useRef<HTMLDivElement>(null);
     const [isDragging, setIsDragging] = useState(false);
 
@@ -50,6 +51,7 @@ export const Fader = ({ value, onChange, orientation = 'vertical', className, th
 
         const handleMouseUp = () => {
             setIsDragging(false);
+            if (onDragEnd) onDragEnd();
         };
 
         if (isDragging) {
