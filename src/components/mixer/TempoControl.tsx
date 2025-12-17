@@ -69,7 +69,6 @@ export const TempoControl = ({
 
                 <div
                     className="h-full w-8"
-                    onMouseUp={() => setPitch(0.5)}
                     onMouseLeave={() => setPitch(0.5)}
                     onTouchEnd={() => setPitch(0.5)}
                 >
@@ -77,6 +76,7 @@ export const TempoControl = ({
                         orientation="vertical"
                         value={pitch}
                         onChange={setPitch}
+                        onDragEnd={() => setPitch(0.5)}
                         className="h-full w-full"
                         thumbColor={isCyan ? "#06b6d4" : "#a855f7"}
                     />

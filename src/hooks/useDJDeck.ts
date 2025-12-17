@@ -282,6 +282,17 @@ export const useDJDeck = (context: AudioContext | null): DeckControls => {
     // ... Play function ...
 
 
+    // Update Loop state on active sources
+    useEffect(() => {
+        nodes.current.sources.forEach(source => {
+            source.loop = state.loop.active;
+            if (state.loop.active) {
+                source.loopStart = state.loop.start;
+                source.loopEnd = state.loop.end;
+            }
+        });
+    }, [state.loop.active, state.loop.start, state.loop.end]);
+
     const play = useCallback(() => {
         if (!context || !nodes.current.trim) return;
         if (context.state === 'suspended') context.resume();
@@ -363,7 +374,7 @@ export const useDJDeck = (context: AudioContext | null): DeckControls => {
 
     const setTempoBend = useCallback((val: number) => {
         setState(prev => {
-            const bendFactor = 1 + (val - 0.5) * 0.16; // +/- 8%
+            const bendFactor = 1 + (val - 0.5) * 0.4; // +/- 20%
             const effective = prev.baseRate * bendFactor;
             return {
                 ...prev,
@@ -376,7 +387,7 @@ export const useDJDeck = (context: AudioContext | null): DeckControls => {
     const setRate = useCallback((rate: number) => {
         setState(prev => {
             // rate passed here is the NEW base rate
-            const bendFactor = 1 + (prev.tempoBend - 0.5) * 0.16;
+            const bendFactor = 1 + (prev.tempoBend - 0.5) * 0.4;
             const effective = rate * bendFactor;
             return {
                 ...prev,
