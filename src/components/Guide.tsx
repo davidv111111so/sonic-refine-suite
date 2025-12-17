@@ -108,236 +108,348 @@ export const Guide = () => {
         }
         maxWidth="max-w-6xl"
       >
-        <div className="space-y-4">
-          <p className="text-slate-300">
-            Complete guide to professional AI-powered audio mastering
-          </p>
-        </div>
-        <ScrollArea className="overflow-y-auto max-h-[calc(90vh-120px)] pr-4 bg-slate-900">
-          <div className="space-y-8 py-2">
-            {/* Quick Start Guide */}
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-blue-400">
-                  <Upload className="h-5 w-5" />
-                  Quick Start Guide
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="text-center p-6 bg-slate-700/50 dark:bg-slate-700/50 light:bg-white rounded-lg border border-slate-600 dark:border-slate-600 light:border-gray-200">
-                    <Upload className="h-12 w-12 mx-auto mb-4 text-blue-400" />
-                    <h4 className="font-bold text-lg mb-2">1. Upload Audio Files</h4>
-                    <p className="text-sm text-slate-300 dark:text-slate-300 light:text-gray-600 mb-4">Drag & drop up to 20 audio files (Max 100MB each)</p>
-                    <p className="text-xs text-slate-400 dark:text-slate-400 light:text-gray-500">Supports: MP3, WAV only (v2.0)</p>
-                  </div>
-                  <div className="text-center p-6 bg-slate-700/50 dark:bg-slate-700/50 light:bg-white rounded-lg border border-slate-600 dark:border-slate-600 light:border-gray-200">
-                    <Settings className="h-12 w-12 mx-auto mb-4 text-green-400" />
-                    <h4 className="font-bold text-lg mb-2">2. Configure & Enhance</h4>
-                    <p className="text-sm text-slate-300 dark:text-slate-300 light:text-gray-600 mb-4">Save and load presets, adjust 5-band EQ, and enhance audio</p>
-                    <p className="text-xs text-slate-400 dark:text-slate-400 light:text-gray-500">Real-time preview with mini players</p>
-                  </div>
-                  <div className="text-center p-6 bg-slate-700/50 dark:bg-slate-700/50 light:bg-white rounded-lg border border-slate-600 dark:border-slate-600 light:border-gray-200">
-                    <Download className="h-12 w-12 mx-auto mb-4 text-purple-400" />
-                    <h4 className="font-bold text-lg mb-2">3. Download Results</h4>
-                    <p className="text-sm text-slate-300 dark:text-slate-300 light:text-gray-600 mb-4">Enhanced files auto-download individually</p>
-                    <p className="text-xs text-slate-400 dark:text-slate-400 light:text-gray-500">Batch download as ZIP available</p>
-                  </div>
-                </div>
+        <Tabs defaultValue="mixer" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6 bg-slate-800 p-1">
+            <TabsTrigger value="mixer" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white">Pro Mixer</TabsTrigger>
+            <TabsTrigger value="mastering" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">AI Mastering</TabsTrigger>
+          </TabsList>
 
-                <Separator className="bg-slate-700 dark:bg-slate-700 light:bg-gray-200" />
+          <ScrollArea className="overflow-y-auto max-h-[calc(90vh-180px)] pr-4 bg-slate-900 rounded-lg p-2">
 
-                <div className="space-y-4">
-                  <h4 className="font-bold text-lg text-blue-400 dark:text-blue-400 light:text-blue-600">Key Features & Workflow:</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <ul className="space-y-2 text-slate-300 dark:text-slate-300 light:text-gray-600">
-                      <li className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                        <strong>Universal EQ:</strong> Single 5-band equalizer applies to all songs
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                        <strong>Custom Presets:</strong> Save and load presets for your own EQ settings
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-                        <strong>Stable Processing:</strong> One-at-a-time
-                      </li>
-                    </ul>
-                    <ul className="space-y-2 text-slate-300 dark:text-slate-300 light:text-gray-600">
-                      <li className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
-                        <strong>Auto-Upload:</strong> All selected files will upload automatically
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-cyan-400 rounded-full"></div>
-                        <strong>Smart Flow:</strong> Songs move between tabs as processed
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-pink-400 rounded-full"></div>
-                        <strong>Error Recovery:</strong> Failed files show trash icon for removal
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            {/* --- PRO MIXER TAB --- */}
+            <TabsContent value="mixer" className="space-y-8 mt-0">
+              {/* Introduction */}
+              <div className="space-y-4">
+                <p className="text-slate-300">
+                  A professional DJ mixing environment running entirely in your browser. Features dual decks, spectral waveforms, and studio-grade effects.
+                </p>
+              </div>
 
-            {/* Minimum Technical Requirements */}
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-orange-400">
-                  <Cpu className="h-5 w-5" />
-                  Minimum Technical Requirements
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 text-sm">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-3">
-                    <h5 className="font-bold text-cyan-400 dark:text-cyan-400 light:text-cyan-600">Hardware Requirements:</h5>
-                    <ul className="space-y-2 text-slate-300 dark:text-slate-300 light:text-gray-600">
-                      <li>• <strong>Processor:</strong> Intel Core i3 / AMD Ryzen 3 or better</li>
-                      <li>• <strong>RAM:</strong> Minimum 4GB (8GB recommended for large files)</li>
-                      <li>• <strong>Storage:</strong> 500MB free space for temporary files</li>
-                      <li>• <strong>Display:</strong> 1280x720 minimum resolution</li>
+              {/* 1. Deck Controls & Sync */}
+              <Card className="bg-slate-800 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-cyan-400">
+                    <Music2 className="h-5 w-5" />
+                    Deck Controls & Sync Logic
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 text-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <h5 className="font-bold text-white mb-2">Advanced Sync & Tempo</h5>
+                      <ul className="space-y-2 text-slate-300">
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-cyan-500 mt-0.5 shrink-0" />
+                          <span><strong>Sync Button:</strong> Instantly matches BPM and Phase to the other deck.</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-cyan-500 mt-0.5 shrink-0" />
+                          <span><strong>Tempo Bender (Slider):</strong> The Pitch Fader acts as a momentary "Bender". It allows you to nudge the track ahead or behind, but <strong>snaps back to center</strong> (0%) automatically when released.</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-cyan-500 mt-0.5 shrink-0" />
+                          <span><strong>Base BPM (+/-):</strong> To permanently change the track's speed, use the <strong>+</strong> and <strong>-</strong> buttons in the header.</span>
+                        </li>
+                      </ul>
+                    </div>
+                    <div className="space-y-3">
+                      <h5 className="font-bold text-white mb-2">Transport & Loops</h5>
+                      <ul className="space-y-2 text-slate-300">
+                        <li className="flex items-start gap-2">
+                          <div className="w-1.5 h-1.5 bg-orange-400 rounded-full mt-2" />
+                          <span><strong>Cue Points:</strong> Set a temporary Cue point while paused. Pressing Play from Cue jumps back to it.</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <div className="w-1.5 h-1.5 bg-orange-400 rounded-full mt-2" />
+                          <span><strong>Quantized Loops:</strong> Loops (1/4 to 32 beats) automatically snap to the beat grid for perfect timing.</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* 2. FX Units */}
+              <Card className="bg-slate-800 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-purple-400">
+                    <Sliders className="h-5 w-5" />
+                    Professional FX Units
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                  <div>
+                    <h5 className="font-bold text-white mb-2">Chained Effects</h5>
+                    <p className="text-slate-300 mb-2">
+                      Each FX Unit contains 3 chained effect slots. The signal flows from Left to Right (Slot 1 → Slot 2 → Slot 3).
+                    </p>
+                    <ul className="list-disc list-inside text-slate-400 space-y-1 ml-1">
+                      <li>Select effects like <strong>Reverb, Delay, Filter, Flanger</strong>.</li>
+                      <li>Toggle individual slots or the entire unit via the <strong>Power Button</strong>.</li>
                     </ul>
                   </div>
-                  <div className="space-y-3">
-                    <h5 className="font-bold text-purple-400 dark:text-purple-400 light:text-purple-600">Software Requirements:</h5>
-                    <ul className="space-y-2 text-slate-300 dark:text-slate-300 light:text-gray-600">
-                      <li>• <strong>Browser:</strong> Chrome 90+, Edge 90+, Firefox 88+, Safari 14+</li>
-                      <li>• <strong>Internet:</strong> 5 Mbps minimum for file uploads</li>
-                      <li>• <strong>OS:</strong> Windows 10/11, macOS 10.14+, or modern Linux</li>
-                      <li>• <strong>JavaScript:</strong> Enabled (required for app functionality)</li>
-                    </ul>
+                  <div>
+                    <h5 className="font-bold text-white mb-2">Dry/Wet Control</h5>
+                    <p className="text-slate-300">
+                      The large <strong>D/W Knob</strong> in the center of the unit controls the overall mix of the effects.
+                    </p>
+                    <p className="text-slate-400 text-xs mt-2">
+                      0% = Clean Signal <br />
+                      100% = Fully Processed Signal
+                    </p>
                   </div>
-                </div>
-                <Separator className="bg-slate-700 dark:bg-slate-700 light:bg-gray-200" />
-                <div className="space-y-2">
-                  <h5 className="font-bold text-green-400 dark:text-green-400 light:text-green-600">Performance Notes:</h5>
-                  <ul className="space-y-1 text-slate-400 dark:text-slate-400 light:text-gray-500">
-                    <li>• Processing time increases with file size and number of files</li>
-                    <li>• Close unused tabs and applications for optimal performance</li>
-                    <li>• Files over 50MB may require additional processing time</li>
-                    <li>• Do not refresh or close browser during enhancement</li>
+                </CardContent>
+              </Card>
+
+              {/* 3. Visuals */}
+              <Card className="bg-slate-800 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-green-400">
+                    <Sparkles className="h-5 w-5" />
+                    Spectral Visualization
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm space-y-2 text-slate-300">
+                  <p>
+                    The deck features a **Spectral Waveform** display.
+                  </p>
+                  <ul className="space-y-1">
+                    <li><span className="text-blue-400">Dark/Blue Colors:</span> Represent Bass and Low frequencies.</li>
+                    <li><span className="text-cyan-200">Bright/White Colors:</span> Represent High frequencies and transient spikes (snares/hats).</li>
                   </ul>
-                </div>
-              </CardContent>
-            </Card>
+                  <p className="text-xs text-slate-500 mt-2">
+                    Use the <strong>Overview Stripe</strong> at the bottom of the waveform to navigate quickly through the track.
+                  </p>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-            {/* Backend-Free Technologies */}
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-purple-400">
-                  <Sparkles className="h-5 w-5" />
-                  Backend-Free Technologies & How to Use Them
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {features.map((feature, index) => (
-                    <Card key={index} className="bg-slate-700/50 border-slate-600 dark:bg-slate-700/50 dark:border-slate-600 light:bg-white light:border-gray-200">
-                      <CardContent className="p-6">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center gap-3">
-                            {feature.icon}
-                            <h4 className="font-bold text-lg">{feature.name}</h4>
-                          </div>
-                          <Badge className={getPriorityColor(feature.priority)}>
-                            {feature.priority}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-slate-300 dark:text-slate-300 light:text-gray-600 mb-4">{feature.description}</p>
+            {/* --- MASTERING TAB (Existing Content) --- */}
+            <TabsContent value="mastering" className="space-y-8 mt-0">
+              {/* Quick Start Guide */}
+              <Card className="bg-slate-800 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-blue-400">
+                    <Upload className="h-5 w-5" />
+                    Quick Start Guide
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="text-center p-6 bg-slate-700/50 dark:bg-slate-700/50 light:bg-white rounded-lg border border-slate-600 dark:border-slate-600 light:border-gray-200">
+                      <Upload className="h-12 w-12 mx-auto mb-4 text-blue-400" />
+                      <h4 className="font-bold text-lg mb-2">1. Upload Audio Files</h4>
+                      <p className="text-sm text-slate-300 dark:text-slate-300 light:text-gray-600 mb-4">Drag & drop up to 20 audio files (Max 100MB each)</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-400 light:text-gray-500">Supports: MP3, WAV only (v2.0)</p>
+                    </div>
+                    <div className="text-center p-6 bg-slate-700/50 dark:bg-slate-700/50 light:bg-white rounded-lg border border-slate-600 dark:border-slate-600 light:border-gray-200">
+                      <Settings className="h-12 w-12 mx-auto mb-4 text-green-400" />
+                      <h4 className="font-bold text-lg mb-2">2. Configure & Enhance</h4>
+                      <p className="text-sm text-slate-300 dark:text-slate-300 light:text-gray-600 mb-4">Save and load presets, adjust 5-band EQ, and enhance audio</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-400 light:text-gray-500">Real-time preview with mini players</p>
+                    </div>
+                    <div className="text-center p-6 bg-slate-700/50 dark:bg-slate-700/50 light:bg-white rounded-lg border border-slate-600 dark:border-slate-600 light:border-gray-200">
+                      <Download className="h-12 w-12 mx-auto mb-4 text-purple-400" />
+                      <h4 className="font-bold text-lg mb-2">3. Download Results</h4>
+                      <p className="text-sm text-slate-300 dark:text-slate-300 light:text-gray-600 mb-4">Enhanced files auto-download individually</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-400 light:text-gray-500">Batch download as ZIP available</p>
+                    </div>
+                  </div>
 
-                        <div className="space-y-3">
-                          <div>
-                            <h5 className="font-semibold text-blue-400 dark:text-blue-400 light:text-blue-600 text-sm mb-2">How It Works:</h5>
-                            <p className="text-xs text-slate-400 dark:text-slate-400 light:text-gray-500">{feature.howItWorks}</p>
-                          </div>
+                  <Separator className="bg-slate-700 dark:bg-slate-700 light:bg-gray-200" />
 
-                          <div>
-                            <h5 className="font-semibold text-green-400 dark:text-green-400 light:text-green-600 text-sm mb-2">How to Use:</h5>
-                            <p className="text-xs text-slate-400 dark:text-slate-400 light:text-gray-500">{feature.howToUse}</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="space-y-4">
+                    <h4 className="font-bold text-lg text-blue-400 dark:text-blue-400 light:text-blue-600">Key Features & Workflow:</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <ul className="space-y-2 text-slate-300 dark:text-slate-300 light:text-gray-600">
+                        <li className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                          <strong>Universal EQ:</strong> Single 5-band equalizer applies to all songs
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                          <strong>Custom Presets:</strong> Save and load presets for your own EQ settings
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                          <strong>Stable Processing:</strong> One-at-a-time
+                        </li>
+                      </ul>
+                      <ul className="space-y-2 text-slate-300 dark:text-slate-300 light:text-gray-600">
+                        <li className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+                          <strong>Auto-Upload:</strong> All selected files will upload automatically
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-cyan-400 rounded-full"></div>
+                          <strong>Smart Flow:</strong> Songs move between tabs as processed
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-pink-400 rounded-full"></div>
+                          <strong>Error Recovery:</strong> Failed files show trash icon for removal
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-            {/* Keyboard Shortcuts */}
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-cyan-400">
-                  <Keyboard className="h-5 w-5" />
-                  Keyboard Shortcuts for Power Users
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
-                  <div className="bg-slate-700/50 dark:bg-slate-700/50 light:bg-white p-4 rounded text-center border border-slate-600 dark:border-slate-600 light:border-gray-200">
-                    <kbd className="px-3 py-2 bg-slate-900 dark:bg-slate-900 light:bg-gray-800 light:text-white rounded font-mono text-sm block mb-2">Ctrl+U</kbd>
-                    <p className="text-xs text-slate-400 dark:text-slate-400 light:text-gray-500">Upload Files</p>
+              {/* Minimum Technical Requirements */}
+              <Card className="bg-slate-800 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-orange-400">
+                    <Cpu className="h-5 w-5" />
+                    Minimum Technical Requirements
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 text-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <h5 className="font-bold text-cyan-400 dark:text-cyan-400 light:text-cyan-600">Hardware Requirements:</h5>
+                      <ul className="space-y-2 text-slate-300 dark:text-slate-300 light:text-gray-600">
+                        <li>• <strong>Processor:</strong> Intel Core i3 / AMD Ryzen 3 or better</li>
+                        <li>• <strong>RAM:</strong> Minimum 4GB (8GB recommended for large files)</li>
+                        <li>• <strong>Storage:</strong> 500MB free space for temporary files</li>
+                        <li>• <strong>Display:</strong> 1280x720 minimum resolution</li>
+                      </ul>
+                    </div>
+                    <div className="space-y-3">
+                      <h5 className="font-bold text-purple-400 dark:text-purple-400 light:text-purple-600">Software Requirements:</h5>
+                      <ul className="space-y-2 text-slate-300 dark:text-slate-300 light:text-gray-600">
+                        <li>• <strong>Browser:</strong> Chrome 90+, Edge 90+, Firefox 88+, Safari 14+</li>
+                        <li>• <strong>Internet:</strong> 5 Mbps minimum for file uploads</li>
+                        <li>• <strong>OS:</strong> Windows 10/11, macOS 10.14+, or modern Linux</li>
+                        <li>• <strong>JavaScript:</strong> Enabled (required for app functionality)</li>
+                      </ul>
+                    </div>
                   </div>
-                  <div className="bg-slate-700/50 dark:bg-slate-700/50 light:bg-white p-4 rounded text-center border border-slate-600 dark:border-slate-600 light:border-gray-200">
-                    <kbd className="px-3 py-2 bg-slate-900 dark:bg-slate-900 light:bg-gray-800 light:text-white rounded font-mono text-sm block mb-2">Ctrl+E</kbd>
-                    <p className="text-xs text-slate-400 dark:text-slate-400 light:text-gray-500">Start Enhancement</p>
-                  </div>
-                  <div className="bg-slate-700/50 dark:bg-slate-700/50 light:bg-white p-4 rounded text-center border border-slate-600 dark:border-slate-600 light:border-gray-200">
-                    <kbd className="px-3 py-2 bg-slate-900 dark:bg-slate-900 light:bg-gray-800 light:text-white rounded font-mono text-sm block mb-2">Space</kbd>
-                    <p className="text-xs text-slate-400 dark:text-slate-400 light:text-gray-500">Play/Pause</p>
-                  </div>
-                  <div className="bg-slate-700/50 dark:bg-slate-700/50 light:bg-white p-4 rounded text-center border border-slate-600 dark:border-slate-600 light:border-gray-200">
-                    <kbd className="px-3 py-2 bg-slate-900 dark:bg-slate-900 light:bg-gray-800 light:text-white rounded font-mono text-sm block mb-2">Ctrl+S</kbd>
-                    <p className="text-xs text-slate-400 dark:text-slate-400 light:text-gray-500">Save EQ Settings</p>
-                  </div>
-                  <div className="bg-slate-700/50 dark:bg-slate-700/50 light:bg-white p-4 rounded text-center border border-slate-600 dark:border-slate-600 light:border-gray-200">
-                    <kbd className="px-3 py-2 bg-slate-900 dark:bg-slate-900 light:bg-gray-800 light:text-white rounded font-mono text-sm block mb-2">Ctrl+R</kbd>
-                    <p className="text-xs text-slate-400 dark:text-slate-400 light:text-gray-500">Reset EQ</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Performance & Troubleshooting */}
-            <Card className="bg-slate-800 border-slate-700 dark:bg-slate-800 dark:border-slate-700 light:bg-gray-50 light:border-gray-200">
-              <CardHeader>
-                <CardTitle className="text-yellow-400 dark:text-yellow-400 light:text-yellow-600">Performance Tips & Troubleshooting</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 text-sm">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h5 className="font-bold text-green-400 dark:text-green-400 light:text-green-600 mb-3">Optimal Performance:</h5>
-                    <ul className="space-y-2 text-slate-300 dark:text-slate-300 light:text-gray-600">
-                      <li>• <strong>File Limits:</strong> Max 20 files, 100MB each (free account)</li>
-                      <li>• <strong>Processing:</strong> One file at a time prevents crashes</li>
-                      <li>• <strong>Browser:</strong> Use Chrome/Edge for best Web Audio API support</li>
-                      <li>• <strong>Memory:</strong> Close other tabs during large file processing</li>
+                  <Separator className="bg-slate-700 dark:bg-slate-700 light:bg-gray-200" />
+                  <div className="space-y-2">
+                    <h5 className="font-bold text-green-400 dark:text-green-400 light:text-green-600">Performance Notes:</h5>
+                    <ul className="space-y-1 text-slate-400 dark:text-slate-400 light:text-gray-500">
+                      <li>• Processing time increases with file size and number of files</li>
+                      <li>• Close unused tabs and applications for optimal performance</li>
+                      <li>• Files over 50MB may require additional processing time</li>
+                      <li>• Do not refresh or close browser during enhancement</li>
                     </ul>
                   </div>
-                  <div>
-                    <h5 className="font-bold text-red-400 dark:text-red-400 light:text-red-600 mb-3">Troubleshooting:</h5>
-                    <ul className="space-y-2 text-slate-300 dark:text-slate-300 light:text-gray-600">
-                      <li>• <strong>Audio Stops:</strong> Automatic when leaving tab or refreshing</li>
-                      <li>• <strong>Failed Files:</strong> Show trash icon - remove and retry</li>
-                      <li>• <strong>Slow Processing:</strong> Reduce file size or use lower sample rate</li>
-                      <li>• <strong>No Download:</strong> Check browser download permissions</li>
-                    </ul>
+                </CardContent>
+              </Card>
+
+              {/* Backend-Free Technologies */}
+              <Card className="bg-slate-800 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-purple-400">
+                    <Sparkles className="h-5 w-5" />
+                    Backend-Free Technologies & How to Use Them
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {features.map((feature, index) => (
+                      <Card key={index} className="bg-slate-700/50 border-slate-600 dark:bg-slate-700/50 dark:border-slate-600 light:bg-white light:border-gray-200">
+                        <CardContent className="p-6">
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                              {feature.icon}
+                              <h4 className="font-bold text-lg">{feature.name}</h4>
+                            </div>
+                            <Badge className={getPriorityColor(feature.priority)}>
+                              {feature.priority}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-slate-300 dark:text-slate-300 light:text-gray-600 mb-4">{feature.description}</p>
+
+                          <div className="space-y-3">
+                            <div>
+                              <h5 className="font-semibold text-blue-400 dark:text-blue-400 light:text-blue-600 text-sm mb-2">How It Works:</h5>
+                              <p className="text-xs text-slate-400 dark:text-slate-400 light:text-gray-500">{feature.howItWorks}</p>
+                            </div>
+
+                            <div>
+                              <h5 className="font-semibold text-green-400 dark:text-green-400 light:text-green-600 text-sm mb-2">How to Use:</h5>
+                              <p className="text-xs text-slate-400 dark:text-slate-400 light:text-gray-500">{feature.howToUse}</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
-                </div>
+                </CardContent>
+              </Card>
 
-                <Separator className="bg-slate-700 dark:bg-slate-700 light:bg-gray-200" />
+              {/* Keyboard Shortcuts */}
+              <Card className="bg-slate-800 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-cyan-400">
+                    <Keyboard className="h-5 w-5" />
+                    Keyboard Shortcuts for Power Users
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+                    <div className="bg-slate-700/50 dark:bg-slate-700/50 light:bg-white p-4 rounded text-center border border-slate-600 dark:border-slate-600 light:border-gray-200">
+                      <kbd className="px-3 py-2 bg-slate-900 dark:bg-slate-900 light:bg-gray-800 light:text-white rounded font-mono text-sm block mb-2">Ctrl+U</kbd>
+                      <p className="text-xs text-slate-400 dark:text-slate-400 light:text-gray-500">Upload Files</p>
+                    </div>
+                    <div className="bg-slate-700/50 dark:bg-slate-700/50 light:bg-white p-4 rounded text-center border border-slate-600 dark:border-slate-600 light:border-gray-200">
+                      <kbd className="px-3 py-2 bg-slate-900 dark:bg-slate-900 light:bg-gray-800 light:text-white rounded font-mono text-sm block mb-2">Ctrl+E</kbd>
+                      <p className="text-xs text-slate-400 dark:text-slate-400 light:text-gray-500">Start Enhancement</p>
+                    </div>
+                    <div className="bg-slate-700/50 dark:bg-slate-700/50 light:bg-white p-4 rounded text-center border border-slate-600 dark:border-slate-600 light:border-gray-200">
+                      <kbd className="px-3 py-2 bg-slate-900 dark:bg-slate-900 light:bg-gray-800 light:text-white rounded font-mono text-sm block mb-2">Space</kbd>
+                      <p className="text-xs text-slate-400 dark:text-slate-400 light:text-gray-500">Play/Pause</p>
+                    </div>
+                    <div className="bg-slate-700/50 dark:bg-slate-700/50 light:bg-white p-4 rounded text-center border border-slate-600 dark:border-slate-600 light:border-gray-200">
+                      <kbd className="px-3 py-2 bg-slate-900 dark:bg-slate-900 light:bg-gray-800 light:text-white rounded font-mono text-sm block mb-2">Ctrl+S</kbd>
+                      <p className="text-xs text-slate-400 dark:text-slate-400 light:text-gray-500">Save EQ Settings</p>
+                    </div>
+                    <div className="bg-slate-700/50 dark:bg-slate-700/50 light:bg-white p-4 rounded text-center border border-slate-600 dark:border-slate-600 light:border-gray-200">
+                      <kbd className="px-3 py-2 bg-slate-900 dark:bg-slate-900 light:bg-gray-800 light:text-white rounded font-mono text-sm block mb-2">Ctrl+R</kbd>
+                      <p className="text-xs text-slate-400 dark:text-slate-400 light:text-gray-500">Reset EQ</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-                <div className="bg-blue-900/30 dark:bg-blue-900/30 light:bg-blue-50 p-4 rounded border border-blue-600/50 dark:border-blue-600/50 light:border-blue-200">
-                  <h5 className="font-bold text-blue-400 dark:text-blue-400 light:text-blue-600 mb-2">Privacy & Security:</h5>
-                  <p className="text-slate-300 dark:text-slate-300 light:text-gray-600 text-sm">All processing happens locally in your browser. Files never leave your device. No servers, no cloud processing. Your audio files remain 100% private.</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </ScrollArea>
+              {/* Performance & Troubleshooting */}
+              <Card className="bg-slate-800 border-slate-700 dark:bg-slate-800 dark:border-slate-700 light:bg-gray-50 light:border-gray-200">
+                <CardHeader>
+                  <CardTitle className="text-yellow-400 dark:text-yellow-400 light:text-yellow-600">Performance Tips & Troubleshooting</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 text-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h5 className="font-bold text-green-400 dark:text-green-400 light:text-green-600 mb-3">Optimal Performance:</h5>
+                      <ul className="space-y-2 text-slate-300 dark:text-slate-300 light:text-gray-600">
+                        <li>• <strong>File Limits:</strong> Max 20 files, 100MB each (free account)</li>
+                        <li>• <strong>Processing:</strong> One file at a time prevents crashes</li>
+                        <li>• <strong>Browser:</strong> Use Chrome/Edge for best Web Audio API support</li>
+                        <li>• <strong>Memory:</strong> Close other tabs during large file processing</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h5 className="font-bold text-red-400 dark:text-red-400 light:text-red-600 mb-3">Troubleshooting:</h5>
+                      <ul className="space-y-2 text-slate-300 dark:text-slate-300 light:text-gray-600">
+                        <li>• <strong>Audio Stops:</strong> Automatic when leaving tab or refreshing</li>
+                        <li>• <strong>Failed Files:</strong> Show trash icon - remove and retry</li>
+                        <li>• <strong>Slow Processing:</strong> Reduce file size or use lower sample rate</li>
+                        <li>• <strong>No Download:</strong> Check browser download permissions</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <Separator className="bg-slate-700 dark:bg-slate-700 light:bg-gray-200" />
+
+                  <div className="bg-blue-900/30 dark:bg-blue-900/30 light:bg-blue-50 p-4 rounded border border-blue-600/50 dark:border-blue-600/50 light:border-blue-200">
+                    <h5 className="font-bold text-blue-400 dark:text-blue-400 light:text-blue-600 mb-2">Privacy & Security:</h5>
+                    <p className="text-slate-300 dark:text-slate-300 light:text-gray-600 text-sm">All processing happens locally in your browser. Files never leave your device. No servers, no cloud processing. Your audio files remain 100% private.</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </ScrollArea>
+        </Tabs>
       </SimpleModal>
     </>
   );
