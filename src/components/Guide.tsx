@@ -108,10 +108,10 @@ export const Guide = () => {
         }
         maxWidth="max-w-6xl"
       >
-        <Tabs defaultValue="mixer" className="w-full">
+        <Tabs defaultValue="mastering" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-6 bg-slate-800 p-1">
+            <TabsTrigger value="mastering" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">Level Guide</TabsTrigger>
             <TabsTrigger value="mixer" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white">Pro Mixer</TabsTrigger>
-            <TabsTrigger value="mastering" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">AI Mastering</TabsTrigger>
           </TabsList>
 
           <ScrollArea className="overflow-y-auto max-h-[calc(90vh-180px)] pr-4 bg-slate-900 rounded-lg p-2">
