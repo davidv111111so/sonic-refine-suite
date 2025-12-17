@@ -86,8 +86,38 @@ function libraryReducer(state: LibraryState, action: Action): LibraryState {
     }
 }
 
-// Helper: Worker Factory
-const createWorker = () => new Worker(new URL('../workers/metadata.worker.ts', import.meta.url), { type: 'module' });
+// Helper: Worker Factory - using inline worker to avoid build issues
+const createWorker = () => {
+    const workerCode = `
+        self.onmessage = async (e) => {
+            const { id, file } = e.data;
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const audioCtx = new OfflineAudioContext(2, 44100 * 10, 44100);
+                const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+                const duration = audioBuffer.duration;
+                const minutes = Math.floor(duration / 60);
+                const seconds = Math.floor(duration % 60);
+                self.postMessage({
+                    type: 'success',
+                    payload: {
+                        id,
+                        title: file.name.replace(/\\.[^/.]+$/, ""),
+                        artist: 'Unknown Artist',
+                        bpm: 120,
+                        key: '-',
+                        time: minutes + ':' + (seconds < 10 ? '0' : '') + seconds,
+                        duration
+                    }
+                });
+            } catch (err) {
+                self.postMessage({ type: 'error', payload: { id, error: err.message } });
+            }
+        };
+    `;
+    const blob = new Blob([workerCode], { type: 'application/javascript' });
+    return new Worker(URL.createObjectURL(blob));
+};
 
 import { saveAllTracksToDB, loadTracksFromDB } from '@/utils/libraryPersistence';
 

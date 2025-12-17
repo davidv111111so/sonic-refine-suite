@@ -2,10 +2,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { MasteringSettingsData } from '@/components/ai-mastering/MasteringSettings';
 
 export class MasteringService {
-  // Dynamic backend URL based on environment
-  private backendUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? ""
-    : "https://sonic-refine-backend-azkp62xtaq-uc.a.run.app";
+  // Use Supabase Edge Function proxy to bypass CORS
+  private useProxy = true;
+  private directBackendUrl = "https://sonic-refine-backend-azkp62xtaq-uc.a.run.app";
+  
+  private getProxyUrl(endpoint: string): string {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://lyymcpiujrnlwsbyrseh.supabase.co";
+    return `${supabaseUrl}/functions/v1/audio-proxy?endpoint=${encodeURIComponent(endpoint)}`;
+  }
 
   /**
    * Get auth token from Supabase session
@@ -49,8 +53,14 @@ export class MasteringService {
 
       if (onProgress) onProgress('Uploading files to backend...', 10);
 
-      // Send to Python backend
-      const response = await fetch(`${this.backendUrl}/api/master-audio`, {
+      // Use proxy or direct URL
+      const url = this.useProxy 
+        ? this.getProxyUrl('/api/master-audio')
+        : `${this.directBackendUrl}/api/master-audio`;
+      
+      console.log('📤 Sending to:', url);
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -98,7 +108,14 @@ export class MasteringService {
 
       console.log(`🔍 Analyzing audio: ${file.name} (${file.type}, ${file.size} bytes)`);
 
-      const response = await fetch(`${this.backendUrl}/api/analyze-audio`, {
+      // Use proxy or direct URL
+      const url = this.useProxy 
+        ? this.getProxyUrl('/api/analyze-audio')
+        : `${this.directBackendUrl}/api/analyze-audio`;
+      
+      console.log('📤 Sending to:', url);
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
