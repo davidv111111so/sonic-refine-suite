@@ -225,6 +225,9 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                     onSeek={controls.seek}
                     loop={controls.state.loop}
                     cuePoint={cueLogic.cuePoint}
+                    onPlay={controls.play}
+                    onPause={controls.pause}
+                    isPlaying={controls.state.isPlaying}
                 />
 
                 {/* Zoom Controls Overlay */}
