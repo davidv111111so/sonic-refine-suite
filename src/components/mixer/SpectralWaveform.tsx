@@ -20,9 +20,12 @@ interface SpectralWaveformProps {
     onSeek?: (time: number) => void;
     loop?: { active: boolean; start: number; end: number };
     cuePoint?: number | null;
+    onPlay?: () => void;
+    onPause?: () => void;
+    isPlaying?: boolean;
 }
 
-export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, height = 150, showGrid = true, bpm = 128, onSeek, loop, cuePoint }: SpectralWaveformProps) => {
+export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, height = 150, showGrid = true, bpm = 128, onSeek, loop, cuePoint, onPlay, onPause, isPlaying }: SpectralWaveformProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const workerRef = useRef<Worker | null>(null);
@@ -222,6 +225,7 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
 
     const startX = useRef(0);
     const startSeekTime = useRef(0);
+    const wasPlayingRef = useRef(false);
 
     // Mouse Interaction Handlers
     const handleMouseDown = (e: React.MouseEvent) => {
@@ -232,6 +236,12 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
         startX.current = e.clientX;
         startSeekTime.current = currentTime;
         document.body.style.cursor = 'grabbing';
+
+        // Hold to Pause Logic
+        wasPlayingRef.current = !!isPlaying;
+        if (isPlaying && onPause) {
+            onPause();
+        }
     };
 
     const handleMouseMove = (e: React.MouseEvent) => {
@@ -257,6 +267,12 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
         if (isDragging) {
             setIsDragging(false);
             document.body.style.cursor = '';
+
+            // Resume if was playing
+            if (wasPlayingRef.current && onPlay) {
+                onPlay();
+            }
+            wasPlayingRef.current = false;
         }
     };
 
@@ -264,6 +280,12 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
         if (isDragging) {
             setIsDragging(false);
             document.body.style.cursor = '';
+
+            // Resume if was playing (and left window)
+            if (wasPlayingRef.current && onPlay) {
+                onPlay();
+            }
+            wasPlayingRef.current = false;
         }
     };
 

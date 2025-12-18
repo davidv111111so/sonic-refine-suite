@@ -52,13 +52,30 @@ export const Knob = ({ value, min, max, onChange, label, color = "cyan", size = 
         };
     }, [isDragging, min, max, onChange]);
 
+    const handleWheel = (e: React.WheelEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const range = max - min;
+        // Fine tune step: 2% per click
+        const step = range * 0.02;
+
+        const delta = -Math.sign(e.deltaY);
+        const newValue = Math.max(min, Math.min(max, value + delta * step));
+
+        onChange(newValue);
+    };
+
     // Calculate rotation
     // Map value to angle: -135deg to +135deg
     const percentage = (value - min) / (max - min);
     const angle = -135 + (percentage * 270);
 
     return (
-        <div className="flex flex-col items-center gap-1">
+        <div
+            className="flex flex-col items-center gap-1 group/knob"
+            onWheel={handleWheel}
+        >
             <div
                 className="relative cursor-ns-resize group"
                 style={{ width: size, height: size }}
