@@ -220,13 +220,64 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
         setZoom(clamped);
     };
 
+    const startX = useRef(0);
+    const startSeekTime = useRef(0);
+
+    // Mouse Interaction Handlers
+    const handleMouseDown = (e: React.MouseEvent) => {
+        // Only left click
+        if (e.button !== 0) return;
+
+        setIsDragging(true);
+        startX.current = e.clientX;
+        startSeekTime.current = currentTime;
+        document.body.style.cursor = 'grabbing';
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (!isDragging || !onSeek || !buffer) return;
+
+        e.preventDefault();
+
+        // Scrub Logic
+        // Dragging Left (Delta < 0) -> Pulling record Left -> Audio moves Left -> Head over Future -> Time Increases
+        // Formula: DeltaPx / Zoom(Px/Sec) = DeltaSec
+
+        const deltaPx = startX.current - e.clientX; // Postive if dragged Left
+        const deltaSec = deltaPx / zoom;
+
+        const newTime = Math.max(0, Math.min(buffer.duration, startSeekTime.current + deltaSec));
+
+        // Throttling could be useful but standard setTargetAtTime in engine handles smooth updates usually.
+        // We'll call onSeek immediately for responsiveness.
+        onSeek(newTime);
+    };
+
+    const handleMouseUp = () => {
+        if (isDragging) {
+            setIsDragging(false);
+            document.body.style.cursor = '';
+        }
+    };
+
+    const handleMouseLeave = () => {
+        if (isDragging) {
+            setIsDragging(false);
+            document.body.style.cursor = '';
+        }
+    };
+
     return (
         <div
             ref={containerRef}
-            className="w-full h-full relative overflow-hidden bg-[#121212] cursor-crosshair group"
+            className={`w-full h-full relative overflow-hidden bg-[#121212] group ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
             onWheel={handleWheel}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseLeave}
         >
-            <canvas ref={canvasRef} className="block w-full h-full" />
+            <canvas ref={canvasRef} className="block w-full h-full pointer-events-none" />
 
             {/* Hover Zoom Controls */}
             <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
