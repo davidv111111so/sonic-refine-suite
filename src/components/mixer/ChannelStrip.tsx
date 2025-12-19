@@ -34,7 +34,7 @@ export const ChannelStrip = ({ deck, color, label, side, cue, onToggleCue }: Cha
                     kill={deck.state.eqKills?.high || false}
                     onToggleKill={() => deck.toggleEQKill('high')}
                     color={knobColor}
-                    size={24}
+                    size={36}
                 />
                 <EQKnobWithKill
                     label="MID"
@@ -43,7 +43,7 @@ export const ChannelStrip = ({ deck, color, label, side, cue, onToggleCue }: Cha
                     kill={deck.state.eqKills?.mid || false}
                     onToggleKill={() => deck.toggleEQKill('mid')}
                     color={knobColor}
-                    size={24}
+                    size={36}
                 />
                 <EQKnobWithKill
                     label="LOW"
@@ -52,7 +52,7 @@ export const ChannelStrip = ({ deck, color, label, side, cue, onToggleCue }: Cha
                     kill={deck.state.eqKills?.low || false}
                     onToggleKill={() => deck.toggleEQKill('low')}
                     color={knobColor}
-                    size={24}
+                    size={36}
                 />
             </div>
 
@@ -80,7 +80,7 @@ export const ChannelStrip = ({ deck, color, label, side, cue, onToggleCue }: Cha
                     max={1}
                     onChange={(v) => deck.setFilter(v)}
                     color={knobColor}
-                    size={24}
+                    size={36}
                 />
             </div>
 
@@ -90,7 +90,7 @@ export const ChannelStrip = ({ deck, color, label, side, cue, onToggleCue }: Cha
                     orientation="vertical"
                     value={deck.state.volume}
                     onChange={(v) => deck.setVolume(v)}
-                    className="h-full w-12"
+                    className="h-full w-8"
                     thumbColor="#fff"
                 />
             </div>
