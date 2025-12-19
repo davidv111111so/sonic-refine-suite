@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import AudioWorker from '../workers/audioDecoder.worker.ts?worker';
 import { useDJDeck, DeckControls, DeckState } from './useDJDeck';
+import { useSync } from '@/contexts/SyncContext';
 
 // Re-export types for compatibility
 export type { DeckControls, DeckState };
@@ -316,38 +317,41 @@ export const useWebAudio = () => {
 
 
     // Sync Logic
-    const [masterDeckId, setMasterDeckId] = useState<'A' | 'B' | null>(null);
+    // Sync Logic
+    const { masterDeckId, setMasterDeckId, syncMode } = useSync();
 
     const setMaster = useCallback((deckId: 'A' | 'B') => {
         setMasterDeckId(deckId);
-    }, []);
+    }, [setMasterDeckId]);
 
-    const handleSync = useCallback((deckId: 'A' | 'B') => {
-        const targetDeck = deckId === 'A' ? deckA : deckB;
-        const masterDeck = deckId === 'A' ? deckB : deckA;
-        const sourceDeck = masterDeckId ? (masterDeckId === 'A' ? deckA : deckB) : masterDeck;
+    // Deprecated but kept for type compat
+    const handleSync = useCallback((_id: 'A' | 'B') => { }, []);
 
-        if (sourceDeck === targetDeck) return;
+    // Sync Engine Loop
+    useEffect(() => {
+        let frame: number;
+        const syncLoop = () => {
+            const master = masterDeckId === 'A' ? deckA : (masterDeckId === 'B' ? deckB : null);
+            if (master && master.state.bpm) {
+                const masterEffectiveBpm = master.state.bpm * master.state.playbackRate;
+                [deckA, deckB].forEach(d => {
+                    // Check if valid reference
+                    if (!d || !d.state) return;
 
-        if (sourceDeck.state.bpm && targetDeck.state.bpm && sourceDeck.state.buffer && targetDeck.state.buffer) {
-            const targetOriginalBPM = targetDeck.state.bpm;
-            const sourceEffectiveBPM = sourceDeck.state.bpm * sourceDeck.state.playbackRate;
-            const newRate = sourceEffectiveBPM / targetOriginalBPM;
-            targetDeck.setRate(newRate);
-            targetDeck.setTempoBend(0.5);
-
-            const sourceTime = sourceDeck.state.currentTime;
-            const targetTime = targetDeck.state.currentTime;
-            const beatDuration = 60 / sourceEffectiveBPM;
-            const sourcePhase = (sourceTime % beatDuration) / beatDuration;
-            const targetPhase = (targetTime % beatDuration) / beatDuration;
-            let phaseDiff = (sourcePhase - targetPhase) * beatDuration;
-
-            if (phaseDiff > beatDuration / 2) phaseDiff -= beatDuration;
-            if (phaseDiff < -beatDuration / 2) phaseDiff += beatDuration;
-
-            targetDeck.seek(targetTime + phaseDiff);
-        }
+                    const isSlave = d !== master;
+                    // Only sync if Slave, Synced, and has BPM
+                    if (isSlave && d.state.isSynced && d.state.bpm) {
+                        const requiredRate = masterEffectiveBpm / d.state.bpm;
+                        if (Math.abs(d.state.playbackRate - requiredRate) > 0.0001) {
+                            d.setRate(requiredRate);
+                        }
+                    }
+                });
+            }
+            frame = requestAnimationFrame(syncLoop);
+        };
+        syncLoop();
+        return () => cancelAnimationFrame(frame);
     }, [deckA, deckB, masterDeckId]);
 
     // BPM Detection Helper

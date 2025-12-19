@@ -7,7 +7,8 @@ import { cn } from '@/lib/utils';
 interface TempoControlProps {
     pitch: number; // Current pitch/rate adjustment (e.g., 1.0 = normal)
     setPitch: (val: number) => void;
-    onStep?: (dir: 1 | -1) => void;
+    onStepDown?: (dir: 1 | -1) => void;
+    onStepUp?: () => void;
     onNudge: (dir: 'left' | 'right', active: boolean) => void;
     keyLock: boolean;
     setKeyLock: (lock: boolean) => void;
@@ -15,10 +16,11 @@ interface TempoControlProps {
 }
 
 export const TempoControl = ({
-    pitch, setPitch, onNudge, keyLock, setKeyLock, color, onStep
+    pitch, setPitch, onNudge, keyLock, setKeyLock, color, onStepDown, onStepUp
 }: TempoControlProps) => {
     const isCyan = color === 'cyan';
     const accentColor = isCyan ? 'text-cyan-500' : 'text-purple-500';
+    const glowClass = isCyan ? 'shadow-[0_0_10px_rgba(6,182,212,0.6)]' : 'shadow-[0_0_10px_rgba(168,85,247,0.6)]';
     const borderColor = isCyan ? 'border-cyan-500' : 'border-purple-500';
 
     const [showMenu, setShowMenu] = React.useState(false);
@@ -61,10 +63,16 @@ export const TempoControl = ({
             >
                 {/* Up Arrow (Fast/Increase) */}
                 <button
-                    className="text-neutral-500 hover:text-white active:scale-90 transition-transform"
-                    onClick={() => onStep?.(1)}
+                    className={cn(
+                        "transition-all active:scale-95 p-1 rounded-full hover:bg-white/5",
+                        accentColor,
+                        "hover:shadow-[0_0_8px_currentColor]"
+                    )}
+                    onMouseDown={() => onStepDown?.(1)}
+                    onMouseUp={() => onStepUp?.()}
+                    onMouseLeave={() => onStepUp?.()}
                 >
-                    <ChevronUp className="w-3 h-3" />
+                    <ChevronUp className="w-5 h-5 font-bold" strokeWidth={3} />
                 </button>
 
                 <div
@@ -85,10 +93,16 @@ export const TempoControl = ({
 
                 {/* Down Arrow (Slow/Decrease) */}
                 <button
-                    className="text-neutral-500 hover:text-white active:scale-90 transition-transform"
-                    onClick={() => onStep?.(-1)}
+                    className={cn(
+                        "transition-all active:scale-95 p-1 rounded-full hover:bg-white/5",
+                        accentColor,
+                        "hover:shadow-[0_0_8px_currentColor]"
+                    )}
+                    onMouseDown={() => onStepDown?.(-1)}
+                    onMouseUp={() => onStepUp?.()}
+                    onMouseLeave={() => onStepUp?.()}
                 >
-                    <ChevronDown className="w-3 h-3" />
+                    <ChevronDown className="w-5 h-5 font-bold" strokeWidth={3} />
                 </button>
 
                 {/* Center Detent Marker */}
