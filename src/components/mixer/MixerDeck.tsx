@@ -48,7 +48,14 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
     });
 
     // Track Name
-    const trackName = controls.state.meta?.title ? `${controls.state.meta.artist ? controls.state.meta.artist + ' - ' : ''}${controls.state.meta.title}` : null;
+    // Track Name
+    const meta = controls.state.meta;
+    let trackName = null;
+    if (meta?.title) {
+        trackName = meta.artist ? `${meta.artist} - ${meta.title}` : meta.title;
+    } else if (controls.state.buffer) {
+        trackName = "Unknown Track"; // Fallback if buffer loaded but no meta
+    }
 
     // Handle File Drop
     const handleDrop = async (e: React.DragEvent) => {
@@ -351,9 +358,9 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                         <button onClick={controls.loopOut} className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[9px] text-neutral-400 hover:text-white hover:bg-[#3f3f46] h-7 flex items-center justify-center">OUT</button>
                     </div>
 
-                    <div className="flex gap-1 mb-1">
-                        <button onClick={() => controls.loopShift('back')} className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[9px] text-neutral-400 hover:text-white hover:bg-[#3f3f46] h-7 flex items-center justify-center">&lt;</button>
-                        <button onClick={() => controls.loopShift('fwd')} className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[9px] text-neutral-400 hover:text-white hover:bg-[#3f3f46] h-7 flex items-center justify-center">&gt;</button>
+                    <div className="flex gap-1 mb-[2px] px-2">
+                        <button onClick={() => controls.loopShift('back')} className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[9px] text-neutral-400 hover:text-white hover:bg-[#3f3f46] h-5 flex items-center justify-center">&lt;</button>
+                        <button onClick={() => controls.loopShift('fwd')} className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[9px] text-neutral-400 hover:text-white hover:bg-[#3f3f46] h-5 flex items-center justify-center">&gt;</button>
                     </div>
 
                     <div className="grid grid-cols-2 gap-1 flex-1 min-h-0">
