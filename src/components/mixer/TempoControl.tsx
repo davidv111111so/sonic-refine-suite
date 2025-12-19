@@ -37,7 +37,7 @@ export const TempoControl = ({
     }, [showMenu]);
 
     return (
-        <div className="flex flex-col h-full w-12 bg-[#121212] border-l border-[#27272a] items-center py-2 gap-2 relative">
+        <div className="flex flex-col h-full w-10 bg-[#121212] border-l border-[#27272a] items-center py-2 gap-2 relative">
             {/* Key Lock */}
             <Button
                 variant="ghost"

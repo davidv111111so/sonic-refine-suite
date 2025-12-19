@@ -90,7 +90,7 @@ export const ChannelStrip = ({ deck, color, label, side, cue, onToggleCue }: Cha
                     orientation="vertical"
                     value={deck.state.volume}
                     onChange={(v) => deck.setVolume(v)}
-                    className="h-full w-8"
+                    className="h-full w-12"
                     thumbColor="#fff"
                 />
             </div>
