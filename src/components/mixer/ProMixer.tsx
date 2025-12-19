@@ -10,6 +10,16 @@ import { TransportProvider } from '@/contexts/TransportContext';
 import { toast } from 'sonner';
 import { LibraryProvider } from '@/contexts/LibraryContext';
 import { LibraryBrowser } from './library/LibraryBrowser';
+import { SyncProvider, useSync } from '@/contexts/SyncContext';
+import { Settings2, RefreshCw } from 'lucide-react';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Track {
     id: string;
@@ -24,7 +34,49 @@ interface Track {
 
 // ... imports preservation
 
-export const ProMixer = () => {
+const SyncSettingsButton = () => {
+    const { syncMode, setSyncMode } = useSync();
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-7 gap-2 text-[#666] hover:text-white border border-transparent hover:border-[#333]">
+                    <RefreshCw className={cn("w-3 h-3", syncMode === 'beat' ? "text-cyan-500" : "text-amber-500")} />
+                    <span className="text-[10px] font-bold uppercase">{syncMode} Sync</span>
+                    <Settings2 className="w-3 h-3 ml-1 opacity-50" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56 bg-[#1a1a1a] border-[#333] text-white">
+                <DropdownMenuLabel>Sync Mode</DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-[#333]" />
+                <DropdownMenuItem
+                    className="focus:bg-[#333] cursor-pointer flex flex-col items-start gap-1"
+                    onClick={() => setSyncMode('beat')}
+                >
+                    <div className="flex items-center gap-2 font-bold text-cyan-500">
+                        <RefreshCw className="w-3 h-3" /> BeatSync
+                    </div>
+                    <p className="text-[10px] text-[#888]">
+                        Locks Tempo & Phase. Snaps to Grid. Best for generic mixing.
+                    </p>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-[#333]" />
+                <DropdownMenuItem
+                    className="focus:bg-[#333] cursor-pointer flex flex-col items-start gap-1"
+                    onClick={() => setSyncMode('tempo')}
+                >
+                    <div className="flex items-center gap-2 font-bold text-amber-500">
+                        <RefreshCw className="w-3 h-3" /> TempoSync
+                    </div>
+                    <p className="text-[10px] text-[#888]">
+                        Locks Tempo only. Phase is free. Allows manual nudging/scratching.
+                    </p>
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+};
+
+const ProMixerContent = () => {
     const {
         deckA, deckB, crossfader, setCrossfader, nudgeCrossfader, autoFade,
         headphoneMix, setHeadphoneMix, headphoneVol, setHeadphoneVol,
@@ -60,7 +112,7 @@ export const ProMixer = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
-                        {/* Status or other top bar items can go here */}
+                        <SyncSettingsButton />
                     </div>
                 </div>
 
@@ -76,9 +128,12 @@ export const ProMixer = () => {
                             {deckA && (
                                 <MixerDeck
                                     id="A"
+                                    deck={deckA.state}
                                     controls={deckA}
                                     analyser={analysers.A}
                                     color="cyan"
+                                    accentColor="text-cyan-500"
+                                    showGrid={true}
                                     onSync={() => handleSync('A')}
                                     isMaster={masterDeckId === 'A'}
                                     onToggleMaster={() => setMaster('A')}
@@ -102,9 +157,12 @@ export const ProMixer = () => {
                             {deckB && (
                                 <MixerDeck
                                     id="B"
+                                    deck={deckB.state}
                                     controls={deckB}
                                     analyser={analysers.B}
                                     color="purple"
+                                    accentColor="text-purple-500"
+                                    showGrid={true}
                                     onSync={() => handleSync('B')}
                                     isMaster={masterDeckId === 'B'}
                                     onToggleMaster={() => setMaster('B')}
@@ -124,3 +182,9 @@ export const ProMixer = () => {
         </TransportProvider>
     );
 };
+
+export const ProMixer = () => (
+    <SyncProvider>
+        <ProMixerContent />
+    </SyncProvider>
+);

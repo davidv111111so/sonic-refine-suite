@@ -111,8 +111,10 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
     };
 
     const getPhaseOffset = () => {
-        // Mock phase offset logic or link to sync logic
-        return 0;
+        // Visualize Pitch Bend Action
+        // Map 0.5 (Center) to 0 offset
+        // Scale up for visibility
+        return (controls.state.tempoBend - 0.5) * 4;
     };
 
     return (
@@ -329,14 +331,14 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                         variant="ghost"
                         className={cn(
                             "h-9 w-12 rounded-sm border border-[#3f3f46] bg-[#27272a] hover:bg-[#3f3f46] flex flex-col items-center justify-center gap-0 p-0 transition-all",
-                            "active:scale-95"
+                            "active:scale-95",
+                            controls.state.isSynced && (isCyan
+                                ? "bg-cyan-500 text-black border-cyan-400 shadow-[0_0_12px_rgba(34,211,238,0.8)] hover:bg-cyan-400"
+                                : "bg-purple-500 text-white border-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.8)] hover:bg-purple-400")
                         )}
-                        onClick={() => {
-                            if (handleSync) handleSync();
-                            if (onSync) onSync();
-                        }}
+                        onClick={controls.toggleSync}
                     >
-                        <span className="text-[9px] font-bold text-neutral-400">SYNC</span>
+                        <span className={cn("text-[9px] font-bold", controls.state.isSynced ? (isCyan ? "text-black" : "text-white") : "text-neutral-400")}>SYNC</span>
                     </Button>
                 </div>
             </div>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { DeckControls } from '@/hooks/useWebAudio';
 import { TempoControl } from './TempoControl';
 
@@ -11,6 +11,7 @@ export const DeckPitchFader = ({ deck, color }: DeckPitchFaderProps) => {
     // Pitch Fader State (Visual 0-1, maps to +/-8%)
     // Center 0.5 = 0% Bend
     const [pitchFader, setPitchFader] = useState(0.5);
+    const decayRef = useRef<number>();
 
     useEffect(() => {
         // Sync fader to deck state (e.g. if Sync resets it)
@@ -39,11 +40,19 @@ export const DeckPitchFader = ({ deck, color }: DeckPitchFaderProps) => {
         }
     };
 
-    // Nudge/Step buttons on the UI (Fine Tune)
-    const handleStep = (dir: 1 | -1) => {
-        // Move fader by 0.5%
-        const newVal = Math.max(0, Math.min(1, pitchFader + (dir * 0.005)));
+    // Spring-Back Logic for Arrows
+    const handleArrowDown = (dir: 1 | -1) => {
+        if (decayRef.current) cancelAnimationFrame(decayRef.current);
+        // Step size: 5% visual change to be noticeable
+        const current = deck.state.tempoBend ?? 0.5;
+        const newVal = Math.max(0, Math.min(1, current + (dir * 0.05)));
         handlePitchChange(newVal);
+    };
+
+    const handleArrowUp = () => {
+        if (decayRef.current) cancelAnimationFrame(decayRef.current);
+        // Instant visual snap (Audio engine handles smoothing)
+        handlePitchChange(0.5);
     };
 
     return (
@@ -54,7 +63,8 @@ export const DeckPitchFader = ({ deck, color }: DeckPitchFaderProps) => {
             keyLock={deck.state.keyLock}
             setKeyLock={deck.setKeyLock}
             color={color}
-            onStep={handleStep}
+            onStepDown={handleArrowDown}
+            onStepUp={handleArrowUp}
         />
     );
 };

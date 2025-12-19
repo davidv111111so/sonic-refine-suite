@@ -6,6 +6,7 @@ export interface DeckState {
     buffer: AudioBuffer | null;
     stems: { [key: string]: AudioBuffer } | null;
     isPlaying: boolean;
+    isSynced: boolean;
     currentTime: number;
     duration: number;
     playbackRate: number;
@@ -44,6 +45,7 @@ export interface DeckControls {
     loopShift: (direction: 'fwd' | 'back') => void;
     setLoopPoints: (start: number, end: number) => void;
     quantizedLoop: (beats: number) => void;
+    toggleSync: () => void;
     loadTrack: (source: AudioBuffer | File | string, bpm?: number, key?: string, providedMeta?: { title?: string, artist?: string }) => void | Promise<void>;
     loadStems: (stems: { [key: string]: AudioBuffer }, bpm?: number) => void;
     setKeyLock: (lock: boolean) => void;
@@ -129,6 +131,7 @@ export const useDJDeck = (context: AudioContext | null): DeckControls => {
         buffer: null,
         stems: null,
         isPlaying: false,
+        isSynced: false,
         currentTime: 0,
         duration: 0,
         playbackRate: 1,
@@ -254,27 +257,39 @@ export const useDJDeck = (context: AudioContext | null): DeckControls => {
 
     // Update Playback Rate & Key Lock
     useEffect(() => {
+        if (!context) return;
+        const SMOOTHING = 0.08; // 80ms smoothing for vinyl-like feel
+
         if (nodes.current.sources.length > 0) {
             nodes.current.sources.forEach(source => {
-                source.playbackRate.value = state.playbackRate;
+                try {
+                    // Use setTargetAtTime for smooth physics-based transition
+                    source.playbackRate.setTargetAtTime(state.playbackRate, context.currentTime, SMOOTHING);
+                } catch (e) {
+                    // Fallback if setTargetAtTime fails (unlikely)
+                    source.playbackRate.value = state.playbackRate;
+                }
             });
         }
 
         // Update Time Stretch Worklet
         const ts = nodes.current.timeStretch;
-        if (ts && context) {
+        if (ts) {
             const lockParam = ts.parameters.get('isKeyLocked');
             const pitchParam = ts.parameters.get('pitchFactor');
 
             if (lockParam) lockParam.setValueAtTime(state.keyLock ? 1 : 0, context.currentTime);
 
-            if (pitchParam && state.keyLock) {
-                // If Locked, PitchFactor = 1 / Rate (to Cancel out Rate change)
-                // Avoid divide by zero
-                const rate = state.playbackRate || 0.001;
-                pitchParam.setValueAtTime(1 / rate, context.currentTime);
-            } else if (pitchParam) {
-                pitchParam.setValueAtTime(1.0, context.currentTime);
+            if (pitchParam) {
+                if (state.keyLock) {
+                    // Scenario B: Pitch Compensation
+                    // Smoothly adjust pitch factor to counteract rate change
+                    const targetFactor = state.playbackRate ? (1 / state.playbackRate) : 1;
+                    pitchParam.setTargetAtTime(targetFactor, context.currentTime, SMOOTHING);
+                } else {
+                    // Reset to 1.0 smoothly
+                    pitchParam.setTargetAtTime(1.0, context.currentTime, SMOOTHING);
+                }
             }
         }
 
@@ -694,6 +709,10 @@ export const useDJDeck = (context: AudioContext | null): DeckControls => {
         setState(prev => ({ ...prev, keyLock: lock }));
     }, []);
 
+    const toggleSync = useCallback(() => {
+        setState(prev => ({ ...prev, isSynced: !prev.isSynced }));
+    }, []);
+
     // Animation Loop for Time
     useEffect(() => {
         if (!state.isPlaying || !context) return;
@@ -710,7 +729,7 @@ export const useDJDeck = (context: AudioContext | null): DeckControls => {
     return {
         play, pause, cue, seek, setRate, setVolume, setTrim, setPitch, setEQ, toggleEQKill, setFilter, setStemVolume,
         toggleLoop, loopIn, loopOut, loopShift, setLoopPoints, quantizedLoop, loadTrack, loadStems,
-        setKeyLock, setTempoBend,
+        setKeyLock, setTempoBend, toggleSync,
         state,
         analyser: nodes.current.analyser,
         masterOutput: nodes.current.analyser, // Post-Fader Output
