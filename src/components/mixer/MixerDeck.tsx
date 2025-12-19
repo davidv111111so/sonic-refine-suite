@@ -48,11 +48,12 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
     });
 
     // Track Name
-    // Track Name
     const meta = controls.state.meta;
     let trackName = null;
     if (meta?.title) {
-        trackName = meta.artist ? `${meta.artist} - ${meta.title}` : meta.title;
+        // Only show artist if known
+        const artist = (meta.artist && meta.artist !== 'Unknown Artist' && meta.artist !== 'Unknown') ? meta.artist : null;
+        trackName = artist ? `${artist} - ${meta.title}` : meta.title;
     } else if (controls.state.buffer) {
         trackName = "Unknown Track"; // Fallback if buffer loaded but no meta
     }

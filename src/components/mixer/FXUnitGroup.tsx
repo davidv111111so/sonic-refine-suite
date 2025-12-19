@@ -43,7 +43,7 @@ const FXSlot = ({
     setOn: (v: boolean) => void;
 }) => {
     return (
-        <div className="flex flex-col items-center justify-between gap-2 flex-1 border-r border-[#27272a] last:border-r-0 px-3 py-4">
+        <div className="flex flex-col items-center justify-between gap-1 flex-1 border-r border-[#27272a] last:border-r-0 px-3 py-2">
             {/* FX Selector */}
             <div className="relative w-full">
                 <select
@@ -74,7 +74,7 @@ const FXSlot = ({
             {/* On/Off Button */}
             <button
                 className={cn(
-                    "w-full h-7 rounded-sm border text-[10px] font-bold tracking-wider transition-all flex items-center justify-center",
+                    "w-full h-6 rounded-sm border text-[10px] font-bold tracking-wider transition-all flex items-center justify-center",
                     isOn
                         ? "border-cyan-500 bg-cyan-500/20 text-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.4)]"
                         : "border-[#3f3f46] bg-[#18181b] text-[#71717a] hover:border-[#52525b]"

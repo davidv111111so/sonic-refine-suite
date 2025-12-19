@@ -6,11 +6,12 @@ interface FaderProps {
     onChange: (value: number) => void;
     orientation?: 'vertical' | 'horizontal';
     className?: string;
+    thumbClassName?: string;
     thumbColor?: string; // Hex or tailwind class
     onDragEnd?: () => void;
 }
 
-export const Fader = ({ value, onChange, orientation = 'vertical', className, thumbColor = '#e5e5e5', onDragEnd }: FaderProps) => {
+export const Fader = ({ value, onChange, orientation = 'vertical', className, thumbClassName, thumbColor = '#e5e5e5', onDragEnd }: FaderProps) => {
     const trackRef = useRef<HTMLDivElement>(null);
     const [isDragging, setIsDragging] = useState(false);
 
@@ -96,7 +97,8 @@ export const Fader = ({ value, onChange, orientation = 'vertical', className, th
             <div
                 className={cn(
                     "absolute bg-gradient-to-b from-[#444] to-[#111] border border-[#555] rounded-sm shadow-[0_4px_6px_rgba(0,0,0,0.5)] flex items-center justify-center z-10 hover:border-[#777] active:border-white transition-colors",
-                    orientation === 'vertical' ? "w-10 h-6 left-1/2 -translate-x-1/2" : "h-10 w-6 top-1/2 -translate-y-1/2"
+                    orientation === 'vertical' ? "w-10 h-6 left-1/2 -translate-x-1/2" : "h-10 w-6 top-1/2 -translate-y-1/2",
+                    thumbClassName
                 )}
                 style={{
                     [orientation === 'vertical' ? 'bottom' : 'left']: `${percent}%`,

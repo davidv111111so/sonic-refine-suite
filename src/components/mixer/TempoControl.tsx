@@ -78,6 +78,7 @@ export const TempoControl = ({
                         onChange={setPitch}
                         onDragEnd={() => setPitch(0.5)}
                         className="h-full w-full"
+                        thumbClassName="w-8 h-4"
                         thumbColor={isCyan ? "#06b6d4" : "#a855f7"}
                     />
                 </div>
