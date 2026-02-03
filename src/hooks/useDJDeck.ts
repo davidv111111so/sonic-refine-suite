@@ -20,6 +20,7 @@ export interface DeckState {
     filter: number; // 0.0 to 1.0, 0.5 = Neutral
     loop: { active: boolean; start: number; end: number };
     stemVolumes: { vocals: number; drums: number; bass: number; other: number };
+    isStemsActive: boolean;
     keyLock: boolean;
     key: string | null;
     meta?: { title?: string; artist?: string;[key: string]: any };
@@ -43,16 +44,19 @@ export interface DeckControls {
     toggleLoop: () => void;
     loopIn: () => void;
     loopOut: () => void;
+    loopHalf: () => void;
+    loopDouble: () => void;
     loopShift: (direction: 'fwd' | 'back') => void;
     setLoopPoints: (start: number, end: number) => void;
     quantizedLoop: (beats: number) => void;
     toggleSync: () => void;
+    toggleStems: () => void;
     loadTrack: (source: AudioBuffer | File | string, bpm?: number, key?: string, providedMeta?: { title?: string, artist?: string }) => void | Promise<void>;
     loadStems: (stems: { [key: string]: AudioBuffer }, bpm?: number) => void;
     setKeyLock: (lock: boolean) => void;
     setTempoBend: (val: number) => void;
     state: DeckState;
-    analyser: Tone.Analyser | null;
+    analyser: AnalyserNode | null;
     // Outputs
     masterOutput: Tone.ToneAudioNode | null; // Post-Fader
     cueOutput: Tone.Gain | null;    // Pre-Fader
@@ -82,8 +86,20 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         volume: Tone.Gain | null;
         cueGate: Tone.Gain | null;
         meter: Tone.Meter | null;
-        analyser: Tone.Analyser | null;
-        split: Tone.Split | null; // If needed, but Tone usually handles connection logic
+        analyser: AnalyserNode | null; // Native Node
+        split: Tone.Split | null;
+        stemFilters: {
+            drums: Tone.Filter;
+            bass: Tone.Filter;
+            vocals: Tone.Filter;
+            other: Tone.Filter;
+        } | null;
+        stemGains: {
+            drums: Tone.Gain;
+            bass: Tone.Gain;
+            vocals: Tone.Gain;
+            other: Tone.Gain;
+        } | null;
     }>({
         player: null,
         trim: null,
@@ -93,9 +109,12 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         cueGate: null,
         meter: null,
         analyser: null,
-        split: null
+        split: null,
+        stemFilters: null,
+        stemGains: null
     });
 
+    // ... (rest of fxMock) ...
     // We don't implement full FX chain prop logic for now as 'useGroupFXChain' is native. 
     // We assume we'll just expose nodes for mixer connection.
     // Or we should mock the FX controls to avoid breaking UI.
@@ -120,41 +139,49 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         duration: 0,
         playbackRate: 1,
         bpm: null,
-        volume: 0,
+        volume: 1.0, // Default to 100% so it sounds on play
         trim: 1,
         pitch: 0,
-        eq: { low: 0, mid: 0, high: 0 }, // Tone EQ3 is dB (-10 to 10 usually, or -Inf to 0)
-        // Wait, native was using GainNode.gain (0 to X). Tone.EQ3 uses dB.
-        // We'll need to map 0-1 inputs to dB.
+        eq: { low: 0.5, mid: 0.5, high: 0.5 },
         eqKills: { low: false, mid: false, high: false },
         filter: 0.5,
         loop: { active: false, start: 0, end: 0 },
         stemVolumes: { vocals: 1, drums: 1, bass: 1, other: 1 },
         keyLock: false,
         key: null,
+        isStemsActive: false,
         baseRate: 1,
         tempoBend: 0.5
     });
+
+    // Timing Refs (Robust Sync)
+    const startTime = useRef<number>(0);
+    const offsetTime = useRef<number>(0);
 
     // Initialize Tone Graph
     useEffect(() => {
         // Create Nodes
         const player = new Tone.Player();
         const trim = new Tone.Gain(1);
-        const eq = new Tone.EQ3(0, 0, 0); // Low, Mid, High in dB
+        const eq = new Tone.EQ3({
+            lowFrequency: 300,
+            highFrequency: 3200
+        });
+        eq.low.value = 0;
+        eq.mid.value = 0;
+        eq.high.value = 0;
 
-        // One-knob filter logic is complex, simpler to use discrete LP/HP or automation.
-        // Tone.Filter defaults to 'lowpass'. 
-        // We can use a LowPass and HighPass in series, bypassing one.
-        // Or specific 'autoFilter' etc.
-        // For simplicity: A single filter node that we reconfigure, or two.
-        // Let's use a standard Tone.Filter as LowPass for now (most common), 
-        // or a Biquad implementation via Tone.
         const filter = new Tone.Filter(20000, "lowpass");
 
         const volume = new Tone.Gain(0);
         const cueGate = new Tone.Gain(0);
-        const analyser = new Tone.Analyser("fft", 2048);
+
+        // Native Analyser for Visualizer Compatibility (Meter.tsx expects getByteFrequencyData)
+        // Access raw context from Tone
+        const rawCtx = Tone.getContext().rawContext as AudioContext;
+        const analyser = rawCtx.createAnalyser();
+        analyser.fftSize = 2048;
+
         const meter = new Tone.Meter();
 
         // Connect Chain: Player -> Trim -> EQ -> Filter -> Volume -> MasterOutput
@@ -169,9 +196,8 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         filter.connect(cueGate);
 
         // Analysis
+        // Tone.connect handles connecting Tone Node -> Native Node
         volume.connect(analyser);
-        volume.connect(meter);
-
         nodes.current = {
             player,
             trim,
@@ -181,10 +207,27 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
             cueGate,
             meter,
             analyser,
-            split: null
+            split: null,
+            stemFilters: {
+                drums: new Tone.Filter({ frequency: 250, type: "lowpass", Q: 1 }),
+                bass: new Tone.Filter({ frequency: 150, type: "lowpass", Q: 2 }),
+                vocals: new Tone.Filter({ frequency: 1200, type: "bandpass", Q: 1 }),
+                other: new Tone.Filter({ frequency: 3000, type: "highpass", Q: 1 })
+            },
+            stemGains: {
+                drums: new Tone.Gain(1),
+                bass: new Tone.Gain(1),
+                vocals: new Tone.Gain(1),
+                other: new Tone.Gain(1)
+            }
         };
 
+        // Stem Routing (Parallel)
+        // Player -> StemFilters -> StemGains -> Trim
+        // For now, we only connect them if stems are active. Default is direct.
+
         return () => {
+            // Dispose Tone nodes
             player.dispose();
             trim.dispose();
             eq.dispose();
@@ -192,7 +235,17 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
             volume.dispose();
             cueGate.dispose();
             meter.dispose();
-            analyser.dispose();
+
+            // Disconnect native node
+            try { analyser.disconnect(); } catch (e) { }
+
+            // Dispose stem nodes
+            if (nodes.current.stemFilters) {
+                Object.values(nodes.current.stemFilters).forEach(f => f.dispose());
+            }
+            if (nodes.current.stemGains) {
+                Object.values(nodes.current.stemGains).forEach(g => g.dispose());
+            }
         };
     }, []);
 
@@ -204,25 +257,37 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
 
     useEffect(() => {
         if (!nodes.current.volume) return;
-        nodes.current.volume.gain.rampTo(state.volume, 0.05);
+        // Enforce Gain Staging: Cap at 0.75 (-2.5dB) to provide headroom for summing
+        const cappedVolume = state.volume * 0.75;
+        nodes.current.volume.gain.rampTo(cappedVolume, 0.05);
     }, [state.volume]);
 
-    // EQ Logic (Mapping 0-1 UI to dB)
-    // Assumes UI sends 0 (kill) to 1.5 (boost), center 1.0?
-    // Native code was using GainNode: 1.0 = unity. 0.0 = silence (-Inf).
-    // Tone.EQ3: 0 dB = unity. -Infinity = silence.
-    // Map: 1.0 -> 0dB. 0.0 -> -60dB (virtual silence). 1.5 -> +6dB.
-    // Formula: 20 * log10(val)
+    // EQ Logic (Professional Logarithmic Curve)
+    // 0.5 -> 1.0 (Boost +6dB) - Linear for clarity
+    // 0.0 -> 0.5 (Cut -Inf) - Smooth Log for blending
     const mapToDB = (val: number) => {
-        if (val <= 0.01) return -Infinity; // Kill
-        return 20 * Math.log10(val);
+        if (val <= 0.02) return -Infinity; // Hard Kill
+        if (val === 0.5) return 0;
+
+        if (val > 0.5) {
+            // Map 0.5-1.0 to 0-6dB (Linear)
+            return (val - 0.5) * 12;
+        } else {
+            // Map 0.02-0.5 to -Inf to 0dB (Smooth Power-Log)
+            // Normalized 0 to 1
+            const norm = val / 0.5;
+            // curve: 40 * log10(norm ^ 1.2) for a slightly deeper mid-cut
+            return 48 * Math.log10(norm);
+        }
     };
 
     useEffect(() => {
         if (!nodes.current.eq) return;
-        nodes.current.eq.low.value = state.eqKills.low ? -Infinity : mapToDB(state.eq.low);
-        nodes.current.eq.mid.value = state.eqKills.mid ? -Infinity : mapToDB(state.eq.mid);
-        nodes.current.eq.high.value = state.eqKills.high ? -Infinity : mapToDB(state.eq.high);
+        // Faster, smoother ramp (0.1s)
+        const rampTime = 0.1;
+        nodes.current.eq.low.rampTo(state.eqKills.low ? -Infinity : mapToDB(state.eq.low), rampTime);
+        nodes.current.eq.mid.rampTo(state.eqKills.mid ? -Infinity : mapToDB(state.eq.mid), rampTime);
+        nodes.current.eq.high.rampTo(state.eqKills.high ? -Infinity : mapToDB(state.eq.high), rampTime);
     }, [state.eq, state.eqKills]);
 
     // Filter Logic
@@ -274,6 +339,7 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
 
         // Load buffer
         let buffer: Tone.ToneAudioBuffer | null = null;
+        let bufferDuration = 0;
 
         try {
             if (source instanceof AudioBuffer) {
@@ -285,12 +351,21 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
             }
 
             if (buffer) {
+                bufferDuration = buffer.duration;
                 nodes.current.player.buffer = buffer;
+
+                // Stop if previously playing
+                if (state.isPlaying) {
+                    nodes.current.player.stop();
+                }
+
+                // Internal State Reset
+                startTime.current = 0;
+                offsetTime.current = 0;
 
                 // BPM Detection
                 let detectedBPM = bpm || 0;
                 if (!detectedBPM) {
-                    // Detect...
                     try {
                         const nativeBuf = buffer.get();
                         const analysis = await detectBPMFromBuffer(nativeBuf);
@@ -301,10 +376,11 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
                 setState(prev => ({
                     ...prev,
                     buffer: buffer?.get() || null,
-                    duration: buffer?.duration || 0,
+                    duration: bufferDuration,
                     bpm: detectedBPM || null,
                     key: key || null,
                     currentTime: 0,
+                    isPlaying: false,
                     meta: providedMeta || { title: 'Unknown' },
                     playbackRate: 1,
                     baseRate: 1,
@@ -314,41 +390,50 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         } catch (e) {
             console.error("Load Track Error:", e);
         }
-    }, []);
+    }, [state.isPlaying]);
 
     const play = useCallback(async () => {
         if (!nodes.current.player || !nodes.current.player.loaded) return;
         await Tone.start();
 
-        // Start from current time
-        // Tone.Player.start arguments: time, offset, duration
-        // We use offset = state.currentTime
-        nodes.current.player.start(Tone.now(), state.currentTime);
+        // Precise Sync Logic
+        // We set 'startTime.current' to NOW.
+        // We tell player to start 'offsetTime.current' into the track.
+        startTime.current = Tone.now();
+
+        nodes.current.player.start(startTime.current, offsetTime.current);
         setState(prev => ({ ...prev, isPlaying: true }));
-    }, [state.currentTime]);
+    }, [state.currentTime]); // Using refs for internal logic, but state allows re-creation trigger?
 
     const pause = useCallback(() => {
-        if (!nodes.current.player) return;
+        if (!nodes.current.player || !state.isPlaying) return;
         nodes.current.player.stop();
-        // Tone.Player doesn't report current position easily when stopped?
-        // Actually, we must track time via loop or transport.
-        // For simplicity:
-        // nodes.current.player.stop() resets? Yes.
-        // We need to calculate elapsed.
-        // Or assume we track it in animation frame.
-        setState(prev => ({ ...prev, isPlaying: false }));
-    }, []);
+
+        // Calculate where we stopped
+        const now = Tone.now();
+        const elapsed = (now - startTime.current) * state.playbackRate;
+
+        offsetTime.current = offsetTime.current + elapsed;
+
+        // Bounds check
+        if (state.duration && offsetTime.current > state.duration) offsetTime.current = state.duration;
+
+        setState(prev => ({ ...prev, isPlaying: false, currentTime: offsetTime.current }));
+    }, [state.isPlaying, state.playbackRate, state.duration]);
 
     const cue = useCallback(() => {
-        pause();
-        setState(prev => ({ ...prev, currentTime: 0 }));
-    }, [pause]);
+        if (nodes.current.player) nodes.current.player.stop();
+        offsetTime.current = 0;
+        setState(prev => ({ ...prev, isPlaying: false, currentTime: 0 }));
+    }, []);
 
     const seek = useCallback((time: number) => {
         const wasPlaying = state.isPlaying;
+        offsetTime.current = time;
         if (wasPlaying) {
             nodes.current.player?.stop();
-            nodes.current.player?.start(Tone.now(), time);
+            startTime.current = Tone.now();
+            nodes.current.player?.start(startTime.current, offsetTime.current);
         }
         setState(prev => ({ ...prev, currentTime: time }));
     }, [state.isPlaying]);
@@ -356,30 +441,63 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
 
     // Loop Logic
     useEffect(() => {
-        if (!nodes.current.player) return;
-        nodes.current.player.loop = state.loop.active;
+        const player = nodes.current.player;
+        if (!player) return;
+
         if (state.loop.active) {
-            nodes.current.player.loopStart = state.loop.start;
-            nodes.current.player.loopEnd = state.loop.end;
+            // Set points FIRST
+            player.loopStart = state.loop.start;
+            player.loopEnd = state.loop.end;
+            player.loop = true;
+
+            // If we are currently playing and PAST the loop end, jump back to start
+            if (state.isPlaying && state.currentTime >= state.loop.end) {
+                seek(state.loop.start);
+            }
+        } else {
+            player.loop = false;
         }
-    }, [state.loop]);
+    }, [state.loop.active, state.loop.start, state.loop.end]); // Removed state.loop object to be more granular
 
     const toggleLoop = useCallback(() => setState(prev => ({ ...prev, loop: { ...prev.loop, active: !prev.loop.active } })), []);
 
     // UI Animation Loop (Update currentTime)
     useEffect(() => {
         let frame: number;
+
         const update = () => {
-            if (state.isPlaying && nodes.current.player) {
-                // Ideally use Transport, but for now approximate
-                // This is purely visual
-                // Real precision requires Transport.
+            if (nodes.current.player && state.isPlaying) {
+                const now = Tone.now();
+                // Formula: time = offset + (now - startTime) * rate
+                const elapsed = (now - startTime.current) * state.playbackRate;
+                let current = offsetTime.current + elapsed;
+
+                // Handle Loop Visual Wrap
+                if (state.loop.active && current >= state.loop.end) {
+                    const loopLen = state.loop.end - state.loop.start;
+                    if (loopLen > 0) {
+                        // Simple modulo for visual correctness
+                        current = state.loop.start + ((current - state.loop.start) % loopLen);
+                    }
+                }
+
+                // Bounds
+                if (current > state.duration && !state.loop.active) {
+                    current = state.duration;
+                    // Optional: auto-pause if not looping
+                }
+
+                setState(prev => ({ ...prev, currentTime: current }));
             }
             frame = requestAnimationFrame(update);
         };
-        update();
+
+        if (state.isPlaying) {
+            update();
+        }
+
         return () => cancelAnimationFrame(frame);
-    }, [state.isPlaying]);
+    }, [state.isPlaying, state.loop, state.duration, state.playbackRate]);
 
     // Simple Setters (boilerplates)
     const setRate = (r: number) => setState(p => ({ ...p, baseRate: r, playbackRate: r })); // Logic to combine bend needed
@@ -389,25 +507,178 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
     const setEQ = (b: any, v: number) => setState(p => ({ ...p, eq: { ...p.eq, [b]: v } }));
     const toggleEQKill = (b: any) => setState(p => ({ ...p, eqKills: { ...p.eqKills, [b]: !p.eqKills[b] } }));
     const setFilter = (v: number) => setState(p => ({ ...p, filter: v }));
-    const setStemVolume = () => { }; // Todo: Stem player not fully rewritten for Tone yet
-    const loopIn = () => { };
-    const loopOut = () => { };
-    const loopShift = () => { };
-    const setLoopPoints = () => { };
-    const quantizedLoop = () => { };
+
+
+    // Reactive Stem Routing
+    useEffect(() => {
+        const { player, trim, stemFilters, stemGains } = nodes.current;
+        if (!player || !trim || !stemFilters || !stemGains) return;
+
+        // Disconnect player from previous inputs to avoid duplicates or mixing
+        player.disconnect();
+
+        if (state.isStemsActive) {
+            // Connect Parallel Stem Filters -> Gains -> Trim
+            Object.keys(stemFilters).forEach((key) => {
+                const k = key as keyof typeof stemFilters;
+                player.connect(stemFilters[k]);
+                stemFilters[k].connect(stemGains[k]);
+                stemGains[k].connect(trim);
+            });
+        } else {
+            // Direct Route
+            player.connect(trim);
+        }
+    }, [state.isStemsActive]);
+
+    const setStemVolume = useCallback((stem: keyof DeckState['stemVolumes'], value: number) => {
+        setState(prev => ({
+            ...prev,
+            stemVolumes: { ...prev.stemVolumes, [stem]: value },
+            isStemsActive: true // Auto-activate stems when adjusting
+        }));
+        if (nodes.current.stemGains) {
+            nodes.current.stemGains[stem].gain.rampTo(value, 0.1);
+        }
+    }, []);
+
+    const toggleStems = useCallback(() => {
+        setState(prev => ({ ...prev, isStemsActive: !prev.isStemsActive }));
+    }, []);
+
+    const loopIn = useCallback(() => {
+        setState(prev => ({
+            ...prev,
+            loop: { ...prev.loop, start: prev.currentTime }
+        }));
+    }, []);
+
+    const loopOut = useCallback(() => {
+        setState(prev => {
+            if (prev.currentTime <= prev.loop.start) return prev; // Cannot end before start
+            return {
+                ...prev,
+                loop: { ...prev.loop, end: prev.currentTime, active: true }
+            };
+        });
+    }, []);
+
+    const loopHalf = useCallback(() => {
+        setState(prev => {
+            const currentLen = prev.loop.end - prev.loop.start;
+            if (currentLen <= 0.001) return prev;
+            const newLen = currentLen / 2;
+            return {
+                ...prev,
+                loop: { ...prev.loop, end: prev.loop.start + newLen }
+            };
+        });
+    }, []);
+
+    const loopDouble = useCallback(() => {
+        setState(prev => {
+            const currentLen = prev.loop.end - prev.loop.start;
+            if (currentLen <= 0) return prev;
+            const newLen = currentLen * 2;
+            const newEnd = Math.min(prev.duration || Infinity, prev.loop.start + newLen);
+            return {
+                ...prev,
+                loop: { ...prev.loop, end: newEnd }
+            };
+        });
+    }, []);
+
+    const loopShift = useCallback((direction: 'fwd' | 'back') => {
+        setState(prev => {
+            const loopLen = prev.loop.end - prev.loop.start;
+            if (loopLen <= 0) return prev;
+            const shift = direction === 'fwd' ? loopLen : -loopLen;
+            const newStart = Math.max(0, prev.loop.start + shift);
+            const newEnd = Math.min(prev.duration || Infinity, prev.loop.end + shift);
+            return {
+                ...prev,
+                loop: { ...prev.loop, start: newStart, end: newEnd }
+            };
+        });
+    }, []);
+
+    const setLoopPoints = useCallback((start: number, end: number) => {
+        setState(prev => ({
+            ...prev,
+            loop: { ...prev.loop, start, end, active: true }
+        }));
+    }, []);
+
+    const quantizedLoop = useCallback((beats: number) => {
+        setState(prev => {
+            if (!prev.bpm) return prev;
+            const beatDuration = 60 / (prev.bpm * prev.playbackRate);
+            const loopDuration = beats * beatDuration;
+            const start = prev.currentTime;
+            const end = Math.min(prev.duration || Infinity, start + loopDuration);
+            return {
+                ...prev,
+                loop: { active: true, start, end }
+            };
+        });
+    }, []);
     const toggleSync = () => { };
     const setKeyLock = (l: boolean) => setState(p => ({ ...p, keyLock: l }));
     const setTempoBend = (v: number) => setState(p => ({ ...p, tempoBend: v }));
 
 
+    // FX Chain Integration
+    const rawContext = Tone.getContext().rawContext as AudioContext;
+    const fxChain = useGroupFXChain(rawContext, null, null);
+
+    // Connect FX Chain dynamically
+    useEffect(() => {
+        const { filter, volume } = nodes.current;
+        const { inputNode, outputNode } = fxChain;
+
+        if (filter && volume && inputNode && outputNode) {
+            // Disconnect old Direct Path
+            try { filter.disconnect(volume); } catch (e) { }
+            try { filter.disconnect(nodes.current.cueGate); } catch (e) { } // cueGate was also connected to filter
+
+            // Route: Filter -> FX Input
+            filter.connect(inputNode);
+
+            // Route: FX Output -> Volume
+            const nativeVolInput = (volume as any).input || (volume as any)._gainNode || volume;
+            outputNode.connect(nativeVolInput);
+
+            // Cue Path: Filter -> CueGate (Pre-FX? or Post-FX?)
+            const nativeCueInput = (nodes.current.cueGate as any).input || (nodes.current.cueGate as any)._gainNode || nodes.current.cueGate;
+            outputNode.connect(nativeCueInput);
+
+        } else if (filter && volume) {
+            // Fallback if FX not ready
+        }
+
+        return () => {
+            // Cleanup connections?
+        };
+    }, [fxChain.inputNode, fxChain.outputNode]); // Re-run if FX nodes change (re-init)
+
     return {
         play, pause, cue, seek, setRate, setVolume, setTrim, setPitch, setEQ, toggleEQKill, setFilter, setStemVolume,
-        toggleLoop, loopIn, loopOut, loopShift, setLoopPoints, quantizedLoop, loadTrack, loadStems: () => { },
+        toggleLoop, loopIn, loopOut, loopHalf, loopDouble, loopShift, setLoopPoints, quantizedLoop, loadTrack, loadStems: () => { },
+        toggleStems,
         setKeyLock, setTempoBend, toggleSync,
         state,
         analyser: nodes.current.analyser,
         masterOutput: nodes.current.volume,
         cueOutput: nodes.current.cueGate,
-        fx: fxMock
+        fx: {
+            masterMix: fxChain.state.masterMix,
+            setMasterMix: fxChain.setMasterMix,
+            masterOn: fxChain.state.masterOn,
+            setMasterOn: fxChain.setMasterOn,
+            slots: fxChain.state.slots,
+            setSlotType: fxChain.setSlotType,
+            setSlotAmount: fxChain.setSlotAmount,
+            setSlotOn: fxChain.setSlotOn
+        }
     };
 };

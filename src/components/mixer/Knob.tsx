@@ -53,12 +53,13 @@ export const Knob = ({ value, min, max, onChange, label, color = "cyan", size = 
     }, [isDragging, min, max, onChange]);
 
     const handleWheel = (e: React.WheelEvent) => {
+        // Only prevent default if we're actually hovering/interacting to avoid scrolling the whole page
         e.preventDefault();
         e.stopPropagation();
 
         const range = max - min;
         // Fine tune step: 2% per click
-        const step = range * 0.02;
+        const step = range * 0.05; // 5% for faster knob rotation
 
         const delta = -Math.sign(e.deltaY);
         const newValue = Math.max(min, Math.min(max, value + delta * step));

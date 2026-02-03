@@ -1,0 +1,89 @@
+Based on the provided technical documentation, particularly the architectural design for a high-performance browser-based DJ application [1, 2] and the specifics of Web Audio API implementation [3, 4], here is the exact technical logic for 'Sync', the implementation guide, and the rules for VU Meters.
+
+### 1. The EXACT Technical Logic for 'Sync'
+
+The "Sync" function in a professional DJ mixer context relies on decoupling **playback speed** from **pitch** (Time-Stretching) and aligning the **playback timeline** of a "Follower" deck to a "Master" source.
+
+**The Logic:**
+1.  **Beat Grid Definition**: Every track is analyzed to establish a **Beat Grid**, defined by two constants:
+    *   `BPM`: Beats Per Minute.
+    *   `GridOffset`: The timestamp (in seconds) of the first downbeat [5].
+2.  **Master/Follower Relationship**:
+    *   **Master**: The reference clock. This can be another active deck or an internal Global Transport (e.g., Tone.js Transport) [6]. It provides the `TargetBPM` and `CurrentPhase`.
+    *   **Follower**: The deck requesting sync. It adjusts its internal `playbackRate` and `startTime` to match the Master.
+3.  **Tempo Sync**:
+    *   The system calculates a playback rate scalar: `Rate = MasterBPM / FollowerBPM`.
+    *   This rate is applied to the **Time-Stretcher** (e.g., Rubber Band Library running in WebAssembly), *not* the standard `playbackRate` of an `AudioBufferSourceNode` (which would alter pitch) [7].
+4.  **Phase Sync (Beat Alignment)**:
+    *   Ideally, beats must align. The system calculates the **Phase** of the Master:
+        `MasterPhase = (MasterCurrentTime - MasterGridOffset) % MasterBeatDuration`
+    *   The Follower adjusts its playback position so its own phase matches:
+        `FollowerPhase = (FollowerCurrentTime - FollowerGridOffset) % FollowerBeatDuration`
+    *   **Correction**: If the phases differ, the Follower momentarily accelerates/decelerates (nudging) or jumps (quantized seek) to minimize the delta between `MasterPhase` and `FollowerPhase`.
+
+### 2. Step-by-Step DJ Mixer Implementation Guide
+
+To implement this with professional latency (<20ms) [8], you must use an **Off-Main-Thread (OMT)** architecture [9].
+
+#### **Phase 1: Initialization & Analysis (Web Workers)**
+Do not block the UI. Perform heavy lifting in a dedicated Web Worker [10].
+
+1.  **Load & Decode**:
+    *   Use `ffmpeg.wasm` in a Web Worker to decode audio files (MP3/FLAC) into Linear PCM `AudioBuffer` [10, 11].
+    *   **Reason**: Browser native decoding is fast but limited in formats; Wasm ensures compatibility but requires asynchronous handling.
+2.  **Beat Detection (The Grid)**:
+    *   Inside the Worker, run the `BeatDetect.js` algorithm [12]:
+        1.  **Filter**: Apply a low-pass filter to isolate kick drums.
+        2.  **Peak Detect**: Identify signal peaks above a threshold.
+        3.  **Interval Grouping**: Calculate time intervals between peaks. Group them to find the most common interval (the tempo) [5].
+    *   **Output**: Return `BPM` and `FirstBeatOffset` to the Main Thread.
+
+#### **Phase 2: The Audio Engine (Audio Worklet)**
+Use `AudioWorklet` for the playback engine to guarantee glitch-free timing [13].
+
+3.  **DSP Setup**:
+    *   Instantiate a custom `AudioWorkletProcessor`.
+    *   Load a **Wasm Time-Stretcher** (like Rubber Band or Signalsmith Stretch) inside the Worklet [14, 15]. This allows you to change Tempo without changing Pitch.
+4.  **Transport Logic**:
+    *   Implement a `handleStart()` and `handleStop()` in the processor.
+    *   Use `currentTime` (AudioContext time) for sample-accurate scheduling, avoiding JavaScript timers (`setTimeout`) [3, 16].
+
+#### **Phase 3: The Sync Implementation**
+5.  **Calculate Sync Vectors**:
+    *   When the user presses "Sync" on Deck B (Follower):
+    *   **Get Master Info**: Retrieve `BPM_Master` and `Phase_Master` from Deck A (or Global Transport).
+    *   **Set Rate**: `DeckB.TimeStretcher.setRatio(BPM_Master / BPM_B)`.
+6.  **Phase Correction**:
+    *   Calculate the target start time `t` relative to `AudioContext.currentTime` to align the grid.
+    *   Execute `source.start(t)` ensuring `t` aligns with the next quantized beat of the Master [17, 18].
+
+#### **Phase 4: Visualization (Main Thread)**
+7.  **Render Waveforms**:
+    *   Receive analysis data from the Worker via Transferable Objects (Zero-copy transfer) [19].
+    *   Use **WebGL** (via Three.js) to render waveforms and beat grids on a `canvas` overlay. Sync this visual loop to the Audio Context time [20, 21].
+
+### 3. Rules for 'VU Meters'
+
+Professional VU (Volume Unit) meters in this architecture must follow specific signal processing rules to provide accurate, useful visual feedback without crashing the browser.
+
+**Rule 1: Calculation Must Happen in Audio Worklet**
+*   **Do not** analyze audio on the Main Thread.
+*   Perform the Root Mean Square (RMS) calculation inside the `AudioWorkletProcessor` to capture every sample [4].
+*   **Formula**: `RMS = Math.sqrt( Sum(sample^2) / BufferSize )` [22].
+
+**Rule 2: Implement "Fast Attack, Slow Release" Smoothing**
+*   Raw RMS jitters too much to be readable. Apply a smoothing factor (e.g., 0.9).
+*   **Logic**: `SmoothedVolume = Math.max(RMS, LastVolume * SmoothingFactor)` [22].
+*   This ensures the meter jumps up instantly for transients (drum hits) but fades down slowly, making it readable for the human eye.
+
+**Rule 3: Message Throttling**
+*   **Constraint**: The Audio Worklet runs fast (every ~3ms for 128 samples). sending a `postMessage` to the UI every block will freeze the browser [9].
+*   **Rule**: Accumulate values or use a timer inside the Worklet to send volume data to the Main Thread at a maximum of 60 times per second (60fps) [4].
+
+**Rule 4: Clip Detection**
+*   **Threshold**: Any sample value where `Math.abs(sample) >= 1.0` is a clip [22].
+*   **Hold Time**: If a clip is detected, the "Clip" indicator (red light) must stay lit for a minimum duration (e.g., 750ms) even if the audio drops immediately, so the DJ sees the error [4].
+
+**Rule 5: Measurement Types**
+*   **Peak**: Instantaneous max value (for avoiding distortion).
+*   **LUFS (Integrated)**: For perceived loudness matching (e.g., aiming for -14 LUFS for streaming standards) [23]. Use a sliding window (Momentary ~400ms, Short-term ~3s) for real-time metering [24].

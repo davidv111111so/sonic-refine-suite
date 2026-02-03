@@ -46,10 +46,10 @@
 
 ## Antigravity Agent Guidelines
 ### Core Philosophy
-- **Investigate & Review**: Thoroughly investigate issues and review all options before acting. Don't guess; verify.
-- **Best Approach**: Choose the most robust and scalable solution, not just the quickest fix.
-- **Refactor when Required**: If the existing code is brittle or messy, refactor it to meet high standards.
-- **Fix All Errors**: Proactively identify and fix errors, including console warnings and linter issues.
+- **Investigate & Review Options**: Thoroughly investigate issues and review all available options (including external research and internal code review) before taking action. Never guess.
+- **Take the Best Approach**: After reviewing options, choose the most robust, scalable, and elegant solution. Prioritize long-term code health over quick hacks.
+- **Refactor when Required**: If the existing code is brittle, messy, or does not meet modern standards, refactor it before or during the implementation of new features.
+- **Fix All Errors**: Proactively identify and fix all errors, including linting issues, console warnings, and logical bugs, even if they aren't the primary focus of the task.
 
 ### Workflow
 - **Verify First**: Before marking a task as complete, verify the implementation by reading the file or running the code.

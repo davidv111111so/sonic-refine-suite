@@ -18,15 +18,23 @@ export const useWebAudio = () => {
         masterBus: Tone.Gain | null;
         cueBus: Tone.Gain | null;
         cueVolume: Tone.Gain | null;
-        cueMix: Tone.CrossFade | null; // Mix between Cues and Master
+        cueMix: Tone.CrossFade | null;
+        splitMerger: Tone.Merge | null;
+        masterMono: Tone.Mono | null;
+        cueMono: Tone.Mono | null;
     }>({
         crossfade: null,
         limiter: null,
         masterBus: null,
         cueBus: null,
         cueVolume: null,
-        cueMix: null
+        cueMix: null,
+        splitMerger: null,
+        masterMono: null,
+        cueMono: null
     });
+
+    const [routingMode, setRoutingMode] = useState<'stereo' | 'split' | 'multichannel'>('stereo');
 
     // Initialize Tone Context & Mixer
     useEffect(() => {
@@ -38,7 +46,7 @@ export const useWebAudio = () => {
 
             // 1. Create Nodes
             const crossfade = new Tone.CrossFade(0.5);
-            const masterBus = new Tone.Gain(0.8);
+            const masterBus = new Tone.Gain(0.5); // Lowered from 0.8
             const limiter = new Tone.Limiter(-2); // Threshold -2dB
 
             const cueBus = new Tone.Gain(1); // Accumulates Cue Signals
@@ -62,13 +70,21 @@ export const useWebAudio = () => {
             cueMix.connect(cueVolume);
             cueVolume.toDestination(); // In browser, same output, but logic separates them
 
+            // 4. Advanced Routing Nodes
+            const splitMerger = new Tone.Merge();
+            const masterMono = new Tone.Mono();
+            const cueMono = new Tone.Mono();
+
             mixerRef.current = {
                 crossfade,
                 limiter,
                 masterBus,
                 cueBus,
                 cueVolume,
-                cueMix
+                cueMix,
+                splitMerger,
+                masterMono,
+                cueMono
             };
 
             isReadyRef.current = true;
@@ -115,6 +131,50 @@ export const useWebAudio = () => {
         }
 
     }, [deckA.masterOutput, deckB.masterOutput, deckA.cueOutput, deckB.cueOutput, isReady]);
+
+    // Handle Output Routing
+    useEffect(() => {
+        if (!isReady || !mixerRef.current.limiter || !mixerRef.current.cueVolume) return;
+        const { limiter, cueVolume, masterMono, cueMono, splitMerger } = mixerRef.current;
+
+        // Disconnect everything first
+        limiter.disconnect();
+        cueVolume.disconnect();
+        masterMono?.disconnect();
+        cueMono?.disconnect();
+        splitMerger?.disconnect();
+
+        if (routingMode === 'split') {
+            // Master -> Left (Channel 0)
+            limiter.connect(masterMono!);
+            masterMono!.connect(splitMerger!, 0, 0);
+
+            // Cue -> Right (Channel 1)
+            cueVolume.connect(cueMono!);
+            cueMono!.connect(splitMerger!, 0, 1);
+
+            splitMerger!.toDestination();
+        } else if (routingMode === 'multichannel') {
+            // Requires 4 channels. 
+            const rawCtx = Tone.getContext().rawContext as AudioContext;
+            const multichannel = rawCtx.createChannelMerger(4);
+
+            // Connect through native nodes
+            const limiterNative = (limiter as any).output || limiter;
+            const cueNative = (cueVolume as any).output || cueVolume;
+
+            limiterNative.connect(multichannel, 0, 0); // L
+            limiterNative.connect(multichannel, 0, 1); // R
+            cueNative.connect(multichannel, 0, 2); // Cue L
+            cueNative.connect(multichannel, 0, 3); // Cue R
+
+            multichannel.connect(rawCtx.destination);
+        } else {
+            // Normal Stereo (Both to 1-2)
+            limiter.toDestination();
+            cueVolume.toDestination();
+        }
+    }, [routingMode, isReady]);
 
     // Crossfader Logic
     const [crossfader, setCrossfader] = useState(0.5);
@@ -179,7 +239,27 @@ export const useWebAudio = () => {
     const { masterDeckId, setMasterDeckId } = useSync();
 
     // Pass context for visualizers if needed, though they should use Tone.Analyser from decks
-    const handleSync = () => { };
+    const handleSync = (deckId: 'A' | 'B') => {
+        if (!masterDeckId) return;
+        if (deckId === masterDeckId) return;
+
+        const targetDeck = deckId === 'A' ? deckA : deckB;
+        const masterDeck = masterDeckId === 'A' ? deckA : deckB;
+
+        if (!masterDeck.state.bpm || !targetDeck.state.bpm) return;
+
+        // Calculate Target BPM (Master)
+        const masterEffectiveBPM = masterDeck.state.bpm * masterDeck.state.playbackRate;
+
+        // Calculate required rate for Target
+        // Rate = TargetBPM / BaseBPM
+        const requiredRate = masterEffectiveBPM / targetDeck.state.bpm;
+
+        targetDeck.setRate(requiredRate);
+
+        // Optional: Phase Sync (requires Transport or precise seek)
+        // For now, we just match Tempo.
+    };
 
     // Cue Switch Logic handled in deck (gain gate)
     // We control the gate here
@@ -215,6 +295,8 @@ export const useWebAudio = () => {
         setCueA,
         cueB,
         setCueB,
+        routingMode,
+        setRoutingMode,
         analysers: { A: deckA.analyser, B: deckB.analyser },
         context: Tone.getContext().rawContext as AudioContext
     };

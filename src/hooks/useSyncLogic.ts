@@ -50,20 +50,26 @@ export const useSyncLogic = (
     const handleSync = useCallback(() => {
         if (!nativeBpm || !transport.masterBpm) return;
 
-        // 1. Tempo Match
+        // 1. Tempo Match immediately
         const targetRate = transport.masterBpm / nativeBpm;
         controls.setRate(targetRate);
 
-        // 2. Phase Alignment (Quantum Snap)
+        // 2. Phase Alignment (Professional Sync Logic)
         const beatDur = 60 / transport.masterBpm;
         const masterAnchor = transport.masterGridAnchor;
+
+        // Use more accurate timing if possible? 
+        // controls.state.currentTime might be slightly lagged from the UI loop.
+        // We calculate the target time relative to the master grid anchor.
         const myTime = controls.state.currentTime;
 
         const beatsFromAnchor = Math.round((myTime - masterAnchor) / beatDur);
         const targetTime = masterAnchor + (beatsFromAnchor * beatDur);
 
-        // Force Snap on Sync Press for tightness
+        // Immediate Seek to match phases
         controls.seek(targetTime);
+
+        console.log(`[Sync] Match immediate: ${targetRate}x, to ${targetTime}s`);
 
     }, [nativeBpm, transport.masterBpm, transport.masterGridAnchor, controls]);
 

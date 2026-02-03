@@ -2,7 +2,14 @@ import React, { useRef, useState } from 'react';
 import { useWebAudio } from '@/hooks/useWebAudio';
 import { MixerDeck } from './MixerDeck';
 import { MixerControls } from './MixerControls';
-import { ListMusic, FolderOpen, History, Upload, Search, Music } from 'lucide-react';
+import { MIDIHandler } from '@/utils/MIDIHandler';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Settings2, RefreshCw, Cpu, ListMusic, FolderOpen, History, Upload, Search, Music, Zap } from 'lucide-react';
 import { LevelLogo } from '@/components/LevelLogo';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -11,15 +18,6 @@ import { toast } from 'sonner';
 import { LibraryProvider } from '@/contexts/LibraryContext';
 import { LibraryBrowser } from './library/LibraryBrowser';
 import { SyncProvider, useSync } from '@/contexts/SyncContext';
-import { Settings2, RefreshCw } from 'lucide-react';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 interface Track {
     id: string;
@@ -32,44 +30,23 @@ interface Track {
     file?: File;
 }
 
-// ... imports preservation
-
 const SyncSettingsButton = () => {
     const { syncMode, setSyncMode } = useSync();
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-7 gap-2 text-[#666] hover:text-white border border-transparent hover:border-[#333]">
-                    <RefreshCw className={cn("w-3 h-3", syncMode === 'beat' ? "text-cyan-500" : "text-amber-500")} />
-                    <span className="text-[10px] font-bold uppercase">{syncMode} Sync</span>
-                    <Settings2 className="w-3 h-3 ml-1 opacity-50" />
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-neutral-400 hover:text-white">
+                    <Settings2 className="w-4 h-4" />
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56 bg-[#1a1a1a] border-[#333] text-white">
-                <DropdownMenuLabel>Sync Mode</DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-[#333]" />
-                <DropdownMenuItem
-                    className="focus:bg-[#333] cursor-pointer flex flex-col items-start gap-1"
-                    onClick={() => setSyncMode('beat')}
-                >
-                    <div className="flex items-center gap-2 font-bold text-cyan-500">
-                        <RefreshCw className="w-3 h-3" /> BeatSync
-                    </div>
-                    <p className="text-[10px] text-[#888]">
-                        Locks Tempo & Phase. Snaps to Grid. Best for generic mixing.
-                    </p>
+            <DropdownMenuContent align="end" className="w-48 bg-[#1e1e1e] border-[#333] text-white">
+                <div className="p-2 text-[10px] font-bold text-neutral-500 uppercase">Sync Mode</div>
+                <DropdownMenuItem onClick={() => setSyncMode('tempo')} className={cn(syncMode === 'tempo' && "text-cyan-400")}>
+                    Tempo Only (Vinyl)
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-[#333]" />
-                <DropdownMenuItem
-                    className="focus:bg-[#333] cursor-pointer flex flex-col items-start gap-1"
-                    onClick={() => setSyncMode('tempo')}
-                >
-                    <div className="flex items-center gap-2 font-bold text-amber-500">
-                        <RefreshCw className="w-3 h-3" /> TempoSync
-                    </div>
-                    <p className="text-[10px] text-[#888]">
-                        Locks Tempo only. Phase is free. Allows manual nudging/scratching.
-                    </p>
+                <DropdownMenuItem onClick={() => setSyncMode('beat')} className={cn(syncMode === 'beat' && "text-cyan-400")}>
+                    Beat Sync (Quantized)
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
@@ -81,11 +58,18 @@ const ProMixerContent = () => {
     const {
         deckA, deckB, crossfader, setCrossfader, nudgeCrossfader, autoFade,
         headphoneMix, setHeadphoneMix, headphoneVol, setHeadphoneVol,
-        analysers, handleSync, masterDeckId, setMaster, cueA, setCueA, cueB, setCueB
+        analysers, handleSync, masterDeckId, setMaster, cueA, setCueA, cueB, setCueB,
+        routingMode, setRoutingMode
     } = useWebAudio();
 
-    // CORS Proxy for potential external loads if we add them back later
-    // const CORS_PROXY = "https://corsproxy.io/?";
+    // MIDI Initialization
+    React.useEffect(() => {
+        if (deckA && deckB) {
+            const midi = MIDIHandler.getInstance();
+            midi.setDecks({ A: deckA, B: deckB });
+            midi.init();
+        }
+    }, [deckA, deckB]);
 
     const loadTrackToDeck = async (track: Track) => {
         const fileOrUrl = track.file || track.url;
@@ -108,13 +92,15 @@ const ProMixerContent = () => {
     };
 
     return (
-        // TransportProvider removed from here
         <div className="flex flex-col h-screen bg-[#0d0d0d] text-[#e0e0e0] overflow-hidden select-none font-sans">
-            {/* Header / Top Bar - Slim Traktor Style */}
-            <div className="h-10 bg-[#1e1e1e] border-b border-[#333] flex items-center justify-between px-4 shrink-0 z-20">
-                <div className="flex items-center gap-3">
-                    <LevelLogo size="sm" />
-                    <span className="text-xs font-bold text-[#666] uppercase tracking-widest">Mixer<span className="text-[#00deea]"> Lab</span></span>
+            {/* Header / Top Bar */}
+            <div className="h-14 flex-none bg-[#1e1e1e] border-b border-[#333] flex items-center justify-between px-6 z-50 relative">
+                <div className="flex items-center gap-4">
+                    <LevelLogo size="md" />
+                    <div className="flex flex-col">
+                        <span className="text-sm font-black text-white uppercase tracking-[0.2em] leading-none">Mixer<span className="text-[#00deea]"> Lab</span></span>
+                        <span className="text-[8px] font-bold text-[#666] uppercase tracking-widest mt-1">Sonic Refine Suite v2.0</span>
+                    </div>
                 </div>
 
                 {/* Master Clock / Auto Panel */}
@@ -139,19 +125,23 @@ const ProMixerContent = () => {
                     </button>
                 </div>
 
+                {/* Cloud Sync Status */}
+                <div className="flex items-center gap-2 text-[10px] text-[#666] font-mono">
+                    <Cpu className="w-3 h-3 text-cyan-500 animate-pulse" />
+                    <span>CLOUD SYNC ACTIVE</span>
+                </div>
+
                 <div className="flex items-center gap-2">
                     <SyncSettingsButton />
                 </div>
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col min-h-0 bg-[#0d0d0d]">
-
-                {/* Mixer / Decks Section - Fixed Height (Responsive) */}
-                <div className="flex-none h-[50vh] min-h-[450px] grid grid-cols-[1fr_320px_1fr] border-b border-[#333] overflow-hidden">
+            <div className="flex-1 flex flex-col min-h-0 bg-[#0d0d0d] relative pt-0 gap-0">
+                {/* Mixer / Decks Section - Increased height to prevent overlap and give components more room */}
+                <div className="flex-none h-[55vh] min-h-[550px] grid grid-cols-[1fr_320px_1fr] border-b border-[#333] overflow-hidden bg-[#0d0d0d]">
                     {/* Deck A */}
                     <div className="border-r border-[#333] bg-[#121212] relative">
-                        {/* Placeholder or component for Deck A */}
                         <div className="absolute top-2 left-2 text-[10px] font-bold text-[#00deea] uppercase bg-[#00deea]/10 px-1 border border-[#00deea]/30">Deck A</div>
                         {deckA && (
                             <MixerDeck
@@ -170,13 +160,16 @@ const ProMixerContent = () => {
                     </div>
 
                     {/* Center Mixer */}
-                    <div className="bg-[#1a1a1a] flex flex-col border-r border-[#333]">
-                        <MixerControls
-                            deckA={deckA} deckB={deckB} crossfader={crossfader} setCrossfader={setCrossfader}
-                            nudgeCrossfader={nudgeCrossfader} autoFade={autoFade} headphoneMix={headphoneMix}
-                            setHeadphoneMix={setHeadphoneMix} headphoneVol={headphoneVol} setHeadphoneVol={setHeadphoneVol}
-                            cueA={cueA} setCueA={setCueA} cueB={cueB} setCueB={setCueB} analysers={analysers}
-                        />
+                    <div className="bg-[#121212] flex flex-col border-r border-[#333] relative">
+                        <div className="flex-1 overflow-y-auto overflow-x-hidden pt-4">
+                            <MixerControls
+                                deckA={deckA} deckB={deckB} crossfader={crossfader} setCrossfader={setCrossfader}
+                                nudgeCrossfader={nudgeCrossfader} autoFade={autoFade} headphoneMix={headphoneMix}
+                                setHeadphoneMix={setHeadphoneMix} headphoneVol={headphoneVol} setHeadphoneVol={setHeadphoneVol}
+                                cueA={cueA} setCueA={setCueA} cueB={cueB} setCueB={setCueB} analysers={analysers}
+                                routingMode={routingMode} setRoutingMode={setRoutingMode}
+                            />
+                        </div>
                     </div>
 
                     {/* Deck B */}
@@ -199,7 +192,7 @@ const ProMixerContent = () => {
                     </div>
                 </div>
 
-                {/* Browser / Library Section - New Implementation */}
+                {/* Library Section */}
                 <div className="flex-1 flex flex-col min-h-0 bg-[#1e1e1e]">
                     <LibraryProvider>
                         <LibraryBrowser onLoadTrack={loadTrackToDeck} />
@@ -207,7 +200,6 @@ const ProMixerContent = () => {
                 </div>
             </div>
         </div>
-        // TransportProvider removed from here
     );
 };
 

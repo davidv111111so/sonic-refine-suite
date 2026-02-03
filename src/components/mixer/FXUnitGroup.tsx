@@ -19,16 +19,16 @@ interface FXUnitGroupProps {
 const FX_OPTIONS: { label: string; value: FXType }[] = [
     { label: 'No Effect', value: 'none' },
     { label: 'Filter: Highpass', value: 'filter' },
-    { label: 'Filter: LFO', value: 'filter-lfo' },
+    { label: 'Filter: LFO (Wah)', value: 'filter-lfo' },
     { label: 'Delay: Digital', value: 'delay' },
-    { label: 'Delay: Tape', value: 'tape-delay' },
-    { label: 'Reverb: Plate', value: 'reverb' },
-    { label: 'Flanger', value: 'flanger' },
-    { label: 'Phaser', value: 'phaser' },
-    { label: 'Tremolo', value: 'tremolo' },
-    { label: 'Ring Modulator', value: 'ringmod' },
-    { label: 'Distortion (Mulholland)', value: 'distortion' },
-    { label: 'Gater', value: 'gater' },
+    { label: 'Delay: Tape (Analog)', value: 'tape-delay' },
+    { label: 'Reverb: Deep Space', value: 'reverb' },
+    { label: 'Flanger: Jet', value: 'flanger' },
+    { label: 'Phaser: Sky', value: 'phaser' },
+    { label: 'Tremolo: Pulse', value: 'tremolo' },
+    { label: 'Ring Mod: Robotic', value: 'ringmod' },
+    { label: 'Distortion: Mulholland', value: 'distortion' },
+    { label: 'Gater: Chop', value: 'gater' },
 ];
 
 const FXSlot = ({
@@ -103,7 +103,7 @@ export const FXUnitGroup = ({
                 </div>
 
                 {/* 2. D/W Knob (Center) - Label on Right */}
-                <div className="flex items-center justify-center gap-2 -mt-1 h-full">
+                <div className="flex items-center justify-center gap-2 -mt-1 h-full scale-110">
                     <Knob
                         label=""
                         value={masterMix}
@@ -111,9 +111,9 @@ export const FXUnitGroup = ({
                         max={1}
                         onChange={setMasterMix}
                         color="cyan"
-                        size={42}
+                        size={48}
                     />
-                    <span className="text-[10px] font-bold text-cyan-500 whitespace-nowrap">DRY/WET</span>
+                    <span className="text-[10px] font-bold text-cyan-400 tracking-tighter uppercase">Dry / Wet</span>
                 </div>
 
                 {/* 3. Power Button (Right) */}

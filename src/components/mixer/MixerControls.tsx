@@ -20,6 +20,8 @@ interface MixerControlsProps {
     setCueA: (val: boolean) => void;
     cueB: boolean;
     setCueB: (val: boolean) => void;
+    routingMode: 'stereo' | 'split' | 'multichannel';
+    setRoutingMode: (mode: 'stereo' | 'split' | 'multichannel') => void;
     analysers: { A: AnalyserNode | null; B: AnalyserNode | null };
 }
 
@@ -36,6 +38,7 @@ export const MixerControls = ({
     headphoneMix, setHeadphoneMix,
     headphoneVol, setHeadphoneVol,
     cueA, setCueA, cueB, setCueB,
+    routingMode, setRoutingMode,
     analysers
 }: MixerControlsProps) => {
     return (
@@ -102,6 +105,29 @@ export const MixerControls = ({
                             size={24}
                         />
                         <Headphones className="w-4 h-4 text-neutral-500" />
+                    </div>
+
+                    <div className="w-full h-px bg-[#27272a]" />
+
+                    {/* Routing Selector */}
+                    <div className="flex flex-col items-center gap-1 w-full px-1">
+                        <span className="text-[7px] font-bold text-neutral-500 uppercase tracking-tighter">Output Mode</span>
+                        <div className="grid grid-cols-1 gap-1 w-full">
+                            {(['stereo', 'split', 'multichannel'] as const).map(mode => (
+                                <button
+                                    key={mode}
+                                    className={cn(
+                                        "h-4 rounded-[1px] text-[7px] font-bold uppercase transition-all border",
+                                        routingMode === mode
+                                            ? "bg-cyan-500/20 text-cyan-400 border-cyan-500 shadow-[0_0_5px_rgba(6,182,212,0.3)]"
+                                            : "bg-black/40 text-neutral-600 border-neutral-800 hover:border-neutral-700"
+                                    )}
+                                    onClick={() => setRoutingMode(mode)}
+                                >
+                                    {mode === 'multichannel' ? 'MULTI' : mode}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
 

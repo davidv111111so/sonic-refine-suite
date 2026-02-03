@@ -18,7 +18,7 @@ export const StripeOverview = ({
     duration,
     onSeek,
     color,
-    height = 32,
+    height = 48,
     cuePoint,
     loop
 }: StripeOverviewProps) => {
@@ -34,7 +34,7 @@ export const StripeOverview = ({
         }
 
         const channelData = buffer.getChannelData(0);
-        const samples = 400; // Fixed number of bars
+        const samples = 300; // Fixed number of bars
         const blockSize = Math.floor(channelData.length / samples);
         const calculatedPeaks: WaveformChunk[] = [];
 
@@ -42,11 +42,10 @@ export const StripeOverview = ({
             let max = 0;
             const start = i * blockSize;
             // Scan for max amp
-            for (let j = 0; j < blockSize; j += 10) { // Skip samples for speed
+            for (let j = 0; j < blockSize; j += 4) { // Higher fidelity scan
                 const val = Math.abs(channelData[start + j]);
                 if (val > max) max = val;
             }
-            // For overview, we just need Max/Min (no spectral)
             calculatedPeaks.push({ min: -max, max, rms: max, low: 0, midHigh: 0 });
         }
         setPeaks(calculatedPeaks);
@@ -71,17 +70,15 @@ export const StripeOverview = ({
         // Draw Waveform Stripes
         ctx.fillStyle = color === 'cyan' ? '#0891b2' : '#7c3aed'; // Cyan-600 / Violet-600
 
-        const barWidth = width / peaks.length;
-
         // Render bars
-        ctx.beginPath();
+        const barWidth = width / peaks.length;
         peaks.forEach((peak, i) => {
             const x = i * barWidth;
-            const barHeight = Math.max(1, peak.max * (h * 0.8));
-            // Draw Symmetric from center
-            ctx.rect(x, center - barHeight / 2, barWidth, barHeight);
+            const barHeight = Math.max(4, peak.max * (h * 0.95));
+            // Draw Symmetric from center with rounding or crisp lines
+            ctx.fillStyle = color === 'cyan' ? '#0891b2' : '#7c3aed';
+            ctx.fillRect(x, center - barHeight / 2, barWidth - 1, barHeight);
         });
-        ctx.fill();
 
         // Overlays
 
@@ -110,9 +107,9 @@ export const StripeOverview = ({
         if (duration > 0) {
             const playheadX = (currentTime / duration) * width;
             ctx.fillStyle = '#fff';
-            ctx.shadowColor = 'black';
-            ctx.shadowBlur = 2;
-            ctx.fillRect(playheadX, 0, 2, h);
+            ctx.shadowColor = (color === 'cyan' ? 'rgba(34,211,238,1)' : 'rgba(168,85,247,1)');
+            ctx.shadowBlur = 12;
+            ctx.fillRect(playheadX - 1.5, 0, 3, h);
             ctx.shadowBlur = 0;
         }
 

@@ -29,7 +29,7 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const workerRef = useRef<Worker | null>(null);
-    const [peaks, setPeaks] = useState<WaveformChunk[] | null>(null);
+    const [peaks, setPeaks] = useState<Float32Array | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const lastMouseX = useRef<number>(0);
 
@@ -44,6 +44,7 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
         workerRef.current = worker;
 
         const channelData = buffer.getChannelData(0);
+        // Copy for transfer (mandatory unless SharedArrayBuffer)
         const transferBuffer = new Float32Array(channelData);
 
         worker.postMessage({
@@ -53,8 +54,11 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
         }, [transferBuffer.buffer]);
 
         worker.onmessage = (e) => {
-            if (e.data.peaks) {
+            if (e.data.peaks && e.data.peaks instanceof Float32Array) {
                 setPeaks(e.data.peaks);
+            } else if (e.data.peaks) {
+                // Legacy fallback or error (shouldn't happen with new worker)
+                console.warn("Worker returned non-Float32Array", e.data.peaks);
             }
         };
 
@@ -136,15 +140,22 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
                 if (time < 0 || time > buffer.duration) continue;
 
                 const peakIndex = Math.floor(time * pixelsPerSecond_Data);
-                const peak = peaks[peakIndex];
+                const offset = peakIndex * 5;
 
-                if (peak) {
+                // Ensure bounds
+                if (offset + 4 < peaks.length) {
+                    // Unpack
+                    // [min, max, rms, low, midHigh]
+                    const lowVal = peaks[offset + 3];
+                    const midHighVal = peaks[offset + 4];
+                    const rmsVal = peaks[offset + 2];
+
                     // Spectral Logic
                     // Base: Low frequency (Dark)
-                    const lowH = peak.low * (height * 0.8);
+                    const lowH = lowVal * (height * 0.8);
 
                     // Detail: High frequency (Bright)
-                    const highH = peak.midHigh * (height * 0.6);
+                    const highH = midHighVal * (height * 0.6);
 
                     // Draw Low (Bass) Layer
                     ctx.strokeStyle = color === 'cyan' ? '#155e75' : '#581c87'; // Dark Cyan / Purple
@@ -157,7 +168,7 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
                     // Draw High (Treble) Layer (Overlaid, smaller)
                     ctx.strokeStyle = color === 'cyan' ? '#22d3ee' : '#d8b4fe'; // Bright Cyan / Lavender
                     ctx.globalAlpha = 0.8;
-                    const hDisp = highH + (peak.rms * 5); // Add some "pop"
+                    const hDisp = highH + (rmsVal * 5); // Add some "pop"
                     ctx.beginPath();
                     ctx.moveTo(x, center - hDisp);
                     ctx.lineTo(x, center + hDisp);

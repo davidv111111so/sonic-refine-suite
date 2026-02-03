@@ -38,7 +38,9 @@ type Action =
     | { type: 'SET_LOADING'; payload: boolean }
     | { type: 'SET_SEARCH'; payload: string }
     | { type: 'INCREMENT_ANALYZING' }
-    | { type: 'DECREMENT_ANALYZING' };
+    | { type: 'DECREMENT_ANALYZING' }
+    | { type: 'ADD_TRACKS'; payload: LibraryTrack[] }
+    | { type: 'UPDATE_TREE_NODE'; payload: { tree: FolderNode } };
 
 const initialState: LibraryState = {
     rootHandle: null,
@@ -54,6 +56,7 @@ const LibraryContext = createContext<{
     mountLibrary: () => Promise<void>;
     importFiles: () => Promise<void>;
     navigateToFolder: (handle: FileSystemDirectoryHandle) => Promise<void>;
+    toggleFolder: (node: FolderNode) => Promise<void>;
     setSearch: (query: string) => void;
 } | undefined>(undefined);
 
@@ -81,6 +84,13 @@ function libraryReducer(state: LibraryState, action: Action): LibraryState {
             return { ...state, analyzingCount: state.analyzingCount + 1 };
         case 'DECREMENT_ANALYZING':
             return { ...state, analyzingCount: Math.max(0, state.analyzingCount - 1) };
+        case 'UPDATE_TREE_NODE':
+            return { ...state, fileTree: action.payload.tree };
+        case 'ADD_TRACKS':
+            return {
+                ...state,
+                currentTracks: [...state.currentTracks, ...action.payload]
+            };
         default:
             return state;
     }
@@ -260,7 +270,6 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
             });
 
             dispatch({ type: 'SET_LOADING', payload: true });
-            dispatch({ type: 'SET_TRACKS', payload: [] });
 
             const newTracks: LibraryTrack[] = [];
 
@@ -284,7 +293,7 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 workerRef.current?.postMessage({ id, file });
             }
 
-            dispatch({ type: 'SET_TRACKS', payload: newTracks });
+            dispatch({ type: 'ADD_TRACKS', payload: newTracks });
             // Clear root handle as we are not in a folder anymore
             dispatch({ type: 'SET_ROOT', payload: { handle: null as any, tree: null as any } });
 
@@ -297,12 +306,45 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
     }, []);
 
+    const toggleFolder = useCallback(async (node: FolderNode) => {
+        if (!node.isOpen && node.children.length === 0) {
+            // Load children
+            const subFolders: FolderNode[] = [];
+            try {
+                // @ts-ignore
+                for await (const entry of node.handle.values()) {
+                    if (entry.kind === 'directory') {
+                        subFolders.push({
+                            name: entry.name,
+                            handle: entry,
+                            children: [],
+                            isOpen: false
+                        });
+                    }
+                }
+                node.children = subFolders.sort((a, b) => a.name.localeCompare(b.name));
+            } catch (e) {
+                console.error("Failed to load subfolders:", e);
+            }
+        }
+
+        node.isOpen = !node.isOpen;
+
+        // Force a tree update by creating a new root reference
+        if (state.fileTree) {
+            dispatch({ type: 'UPDATE_TREE_NODE', payload: { tree: { ...state.fileTree } } });
+        }
+
+        // Also navigate to it to show tracks
+        navigateToFolder(node.handle);
+    }, [state.fileTree, navigateToFolder]);
+
     const setSearch = useCallback((query: string) => {
         dispatch({ type: 'SET_SEARCH', payload: query });
     }, []);
 
     return (
-        <LibraryContext.Provider value={{ state, mountLibrary, importFiles, navigateToFolder, setSearch }}>
+        <LibraryContext.Provider value={{ state, mountLibrary, importFiles, navigateToFolder, toggleFolder, setSearch }}>
             {children}
         </LibraryContext.Provider>
     );

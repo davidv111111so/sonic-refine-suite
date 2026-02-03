@@ -22,7 +22,7 @@ export const ChannelStrip = ({ deck, color, label, side, cue, onToggleCue }: Cha
 
     return (
         <div className={cn(
-            "flex flex-col h-full bg-[#121212] px-1 py-1 relative gap-1 items-center min-w-[60px]",
+            "flex flex-col h-full bg-[#121212] px-1 py-1 relative gap-1 items-center min-w-[50px] w-[50px]",
             side === 'left' ? "border-r border-[#27272a]" : "border-l border-[#27272a]"
         )}>
             {/* EQ Section with Kills */}
@@ -72,7 +72,7 @@ export const ChannelStrip = ({ deck, color, label, side, cue, onToggleCue }: Cha
             </button>
 
             {/* Filter Knob */}
-            <div className="mt-1 mb-0">
+            <div className="mt-1 mb-2">
                 <Knob
                     label="FILTER"
                     value={deck.state.filter !== undefined ? deck.state.filter : 0.5}
@@ -85,12 +85,12 @@ export const ChannelStrip = ({ deck, color, label, side, cue, onToggleCue }: Cha
             </div>
 
             {/* Volume Fader (Flexible) */}
-            <div className="flex-1 w-full flex justify-center relative min-h-[0px]">
+            <div className="flex-1 w-full flex justify-center relative min-h-[100px] pt-4">
                 <Fader
                     orientation="vertical"
                     value={deck.state.volume}
                     onChange={(v) => deck.setVolume(v)}
-                    className="h-full w-8"
+                    className="h-full w-10 px-0"
                     thumbColor="#fff"
                 />
             </div>

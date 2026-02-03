@@ -549,6 +549,63 @@ def separate_audio_endpoint():
 
 
 
+@app.route('/api/analyze-bpm', methods=['POST', 'OPTIONS'])
+def analyze_bpm():
+    """Analyze BPM of an audio file using Librosa"""
+    if request.method == 'OPTIONS':
+        return '', 204
+    
+    # Verify Authentication
+    user = verify_auth_token(request)
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    if 'file' not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+    
+    file = request.files['file']
+    temp_path = None
+    
+    try:
+        # Save to temp file
+        ext = os.path.splitext(file.filename)[1].lower()
+        if not ext: ext = '.wav' # Default
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
+        file.save(temp_file.name)
+        temp_file.close()
+        temp_path = temp_file.name
+        
+        # Load and analyze
+        # Use Librosa for beat tracking
+        # sr=None preserves native sampling rate, but for BPM, standardizing to 22050 is faster/fine.
+        y, sr = librosa.load(temp_path, sr=22050)
+        
+        # Estimate tempo
+        tempo, beat_frames = librosa.beat.beat_track(y=y, sr=sr)
+        
+        # Tempo is usually a scalar, but can be array in older librosa
+        if hasattr(tempo, 'item'):
+             bpm = float(tempo.item())
+        else:
+             bpm = float(tempo)
+             
+        return jsonify({
+            "bpm": round(bpm, 2),
+            "confidence": 0.9, 
+            "method": "librosa_beat_track"
+        })
+        
+    except Exception as e:
+        print(f"❌ BPM Analysis error: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        # Cleanup
+        if temp_path and os.path.exists(temp_path):
+            try:
+                os.unlink(temp_path)
+            except:
+                pass
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8001))
     print(f"🚀 Starting AI Mastering Backend on port {port}...")

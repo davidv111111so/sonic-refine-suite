@@ -2,7 +2,13 @@ import json
 import sys
 from notebooklm_mcp.server import get_client
 
+import os
+
 def main():
+    # Set Cookie Explicitly
+    os.environ["NOTEBOOKLM_COOKIE"] = "g.a0005ghbsVBUCNjlRLy5tJycHtAGC-CQtnjfZbEgdU4oPfZASGyVaml0lQEeGdVzRpjNfq25kQACgYKAV8SARMSFQHGX2Mi1sBcX-LyiHotL3j0FIUTtxoVAUF8yKpaE9wjxdWs-VvKTEBNN3jh0076"
+    os.environ["GOOGLE_COOKIE"] = "g.a0005ghbsVBUCNjlRLy5tJycHtAGC-CQtnjfZbEgdU4oPfZASGyVaml0lQEeGdVzRpjNfq25kQACgYKAV8SARMSFQHGX2Mi1sBcX-LyiHotL3j0FIUTtxoVAUF8yKpaE9wjxdWs-VvKTEBNN3jh0076"
+    
     try:
         client = get_client()
         print("Authenticated.")
@@ -25,7 +31,7 @@ def main():
         if target_nb:
             print(f"Found Level Mixer: {target_nb.title}")
             # Query for context
-            query_text = "What are the current tech stack details, coding language, and target OS mentioned in this notebook? Also list any specific library constraints."
+            query_text = "Provide the EXACT technical logic for 'Sync' as described in this notebook. Does it use Phase Sync? Beat Grids? How should the Follower react to the Master? Also, are there any specific rules for the 'VU Meters' (e.g. Pre-Fader Listen)?"
             print(f"Querying: {query_text}")
             answer = client.query(level_mixer_id, query_text)
             results["query_response"] = answer.get("answer")

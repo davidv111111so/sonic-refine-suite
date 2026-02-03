@@ -69,14 +69,27 @@ export const Fader = ({ value, onChange, orientation = 'vertical', className, th
     // Calculate thumb position as percentage
     const percent = value * 100;
 
+    const handleWheel = (e: React.WheelEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // 5% per click - smoother faster jumps
+        const delta = -Math.sign(e.deltaY);
+        const step = 0.05;
+        const newValue = Math.max(0, Math.min(1, value + delta * step));
+
+        onChange(newValue);
+    };
+
     return (
         <div
             className={cn(
                 "relative select-none touch-none flex items-center justify-center cursor-pointer group",
-                orientation === 'vertical' ? "h-full w-12 py-4" : "w-full h-12 px-4",
+                orientation === 'vertical' ? "h-full w-10 py-4 px-0" : "w-full h-12 px-4",
                 className
             )}
             onMouseDown={handleMouseDown}
+            onWheel={handleWheel}
             ref={trackRef}
         >
             {/* Track Background */}
@@ -96,8 +109,9 @@ export const Fader = ({ value, onChange, orientation = 'vertical', className, th
             {/* Fader Cap (Thumb) */}
             <div
                 className={cn(
-                    "absolute bg-gradient-to-b from-[#444] to-[#111] border border-[#555] rounded-sm shadow-[0_4px_6px_rgba(0,0,0,0.5)] flex items-center justify-center z-10 hover:border-[#777] active:border-white transition-colors",
-                    orientation === 'vertical' ? "w-10 h-6 left-1/2 -translate-x-1/2" : "h-10 w-6 top-1/2 -translate-y-1/2",
+                    "absolute bg-gradient-to-b from-[#555] to-[#0a0a0a] border border-[#666] rounded-sm shadow-[0_4px_12px_rgba(0,0,0,0.8)] flex items-center justify-center z-10 transition-all",
+                    orientation === 'vertical' ? "w-11 h-7 left-1/2 -translate-x-1/2" : "h-11 w-7 top-1/2 -translate-y-1/2",
+                    isDragging ? "border-white brightness-125" : "hover:border-neutral-400 hover:brightness-110",
                     thumbClassName
                 )}
                 style={{
@@ -106,15 +120,15 @@ export const Fader = ({ value, onChange, orientation = 'vertical', className, th
                 }}
             >
                 {/* Cap Detail (Grip Lines) */}
-                <div className={cn(
-                    "bg-black/50",
-                    orientation === 'vertical' ? "w-full h-[1px]" : "h-full w-[1px]"
-                )} />
+                <div className="flex flex-col gap-[2px]">
+                    <div className={cn("bg-white/10", orientation === 'vertical' ? "w-6 h-[1px]" : "h-6 w-[1px]")} />
+                    <div className={cn("bg-white/10", orientation === 'vertical' ? "w-6 h-[1px]" : "h-6 w-[1px]")} />
+                </div>
 
                 {/* Indicator Line */}
                 <div
-                    className={cn("absolute bg-white", orientation === 'vertical' ? "w-full h-[2px]" : "h-[2px] w-full")}
-                    style={{ backgroundColor: thumbColor }}
+                    className={cn("absolute bg-white shadow-[0_0_8px_white]", orientation === 'vertical' ? "w-full h-[2px]" : "h-[2px] w-full")}
+                    style={{ backgroundColor: thumbColor, boxShadow: `0 0 10px ${thumbColor}` }}
                 />
             </div>
         </div>

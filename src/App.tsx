@@ -36,7 +36,7 @@ const App = () => (
       <AuthProvider>
         <LanguageProvider>
           <TooltipProvider>
-            <AudioContextInitializer />
+            {/* <AudioContextInitializer /> Removed to prevent conflict with Tone.js */}
             <Toaster />
             <Sonner />
             <PlayerProvider>

@@ -523,5 +523,9 @@ export const useGroupFXChain = (audioContext: AudioContext | null, sourceNode: A
         setSlotType: (index: number, type: FXType) => updateSlot(index, { ...state.slots[index], type }),
         setSlotAmount: (index: number, val: number) => updateSlot(index, { ...state.slots[index], amount: val }),
         setSlotOn: (index: number, val: boolean) => updateSlot(index, { ...state.slots[index], isOn: val }),
+
+        // Expose Nodes for manual routing
+        inputNode: graphRef.current?.input || null,
+        outputNode: graphRef.current?.output || null
     };
 };

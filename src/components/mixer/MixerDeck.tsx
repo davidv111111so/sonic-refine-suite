@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Square, Repeat, Music2, RotateCw, ZoomIn, ZoomOut, Save, Power, Activity, Disc, ChevronDown, Headphones, Mic2, Disc3 } from 'lucide-react';
+import { Play, Pause, Square, Repeat, Music2, RotateCw, ZoomIn, ZoomOut, Save, Power, Activity, Disc, ChevronDown, Headphones, Mic2, Disc3, Zap, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useDJDeck, DeckControls } from '../../hooks/useDJDeck';
 import { cn } from '@/lib/utils';
 import { SpectralWaveform } from './SpectralWaveform';
@@ -163,8 +163,8 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                 }}
             />
 
-            {/* 1. Header & Transport (Compacted h-14 -> h-[60px]) */}
-            <div className="h-[60px] px-2 flex items-center justify-between border-b border-[#27272a] bg-[#18181b] gap-2">
+            {/* 1. Header & Transport (Compacted h-[60px]) */}
+            <div className="h-[60px] px-2 pt-1 flex items-center justify-between border-b border-[#27272a] bg-[#18181b] gap-2">
 
                 {/* Deck ID */}
                 <div className="flex flex-col gap-1 w-12 shrink-0 h-full justify-center">
@@ -297,15 +297,15 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                 )}
             </div>
 
-            {/* 2.5 Overview Waveform (Compacted h-6) */}
-            <div className="h-6 bg-[#09090b] border-b border-[#27272a] relative">
+            {/* 2.5 Overview Waveform (Improved Definition) */}
+            <div className="h-10 bg-[#09090b] border-b border-[#27272a] relative">
                 <StripeOverview
                     buffer={controls.state.buffer}
                     currentTime={controls.state.currentTime}
                     duration={controls.state.duration}
                     onSeek={controls.seek}
                     color={color as 'cyan' | 'purple'}
-                    height={24}
+                    height={40}
                     cuePoint={cueLogic.cuePoint}
                     loop={controls.state.loop}
                 />
@@ -362,18 +362,18 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                                 ? "bg-cyan-500 text-black border-cyan-400 shadow-[0_0_12px_rgba(34,211,238,0.8)] hover:bg-cyan-400"
                                 : "bg-purple-500 text-white border-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.8)] hover:bg-purple-400")
                         )}
-                        onClick={controls.toggleSync}
+                        onClick={onSync}
                     >
                         <span className={cn("text-[9px] font-bold", controls.state.isSynced ? (isCyan ? "text-black" : "text-white") : "text-neutral-400")}>SYNC</span>
                     </Button>
                 </div>
             </div>
 
-            {/* 4. Loops & FX Panels (Fixed Height 160px) */}
-            <div className="flex-none flex bg-[#121212] h-[160px]">
-                {/* Loops Panel (w-32) */}
-                <div className="w-32 border-r border-[#27272a] p-2 flex flex-col gap-1">
-                    <div className="flex items-center justify-between text-[10px] font-bold text-neutral-500 mb-1">
+            {/* 4. Loops & FX Panels (Increased height to 210px to accommodate new buttons) */}
+            <div className="flex-none flex bg-[#121212] h-[210px]">
+                {/* Loops Panel (w-36) */}
+                <div className="w-36 border-r border-[#27272a] p-2 flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between text-[10px] font-bold text-neutral-500 mb-0.5">
                         <div className="flex items-center gap-1"><Repeat className="w-3 h-3" /> LOOPS</div>
                         <button
                             className={cn(
@@ -388,33 +388,47 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                         </button>
                     </div>
 
-                    {/* Manual Loop Controls (Large IN/OUT) */}
-                    <div className="flex gap-1 mb-1 h-8">
+                    {/* Loop Resizing Controls (Half/Double) */}
+                    <div className="flex gap-1 h-8">
                         <button
-                            onClick={controls.loopIn}
-                            className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[10px] font-bold text-neutral-400 hover:text-white hover:bg-[#3f3f46] flex items-center justify-center transition-all active:bg-[#39ff14] active:text-black"
+                            onClick={controls.loopHalf}
+                            className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[11px] font-black text-neutral-300 hover:text-white hover:bg-[#3f3f46] flex items-center justify-center transition-all active:scale-95"
+                            title="Half Loop Length"
                         >
-                            IN
+                            &lt;
                         </button>
                         <button
-                            onClick={controls.loopOut}
-                            className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[10px] font-bold text-neutral-400 hover:text-white hover:bg-[#3f3f46] flex items-center justify-center transition-all active:bg-[#ff003c] active:text-white"
+                            onClick={controls.loopDouble}
+                            className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[11px] font-black text-neutral-300 hover:text-white hover:bg-[#3f3f46] flex items-center justify-center transition-all active:scale-95"
+                            title="Double Loop Length"
                         >
-                            OUT
+                            &gt;
                         </button>
                     </div>
 
-                    <div className="flex gap-1 mb-[2px] px-2 hidden">
-                        {/* Shift buttons hidden to make space for grid or keep if needed? keeping hidden for now to match strict grid request */}
+                    {/* Fractional Loop Buttons (1/16, 1/32) */}
+                    <div className="flex gap-1 h-6">
+                        <button
+                            onClick={() => controls.quantizedLoop(1 / 16)}
+                            className="flex-1 bg-[#1a1a1a] border border-[#333] rounded-sm text-[9px] font-bold text-neutral-500 hover:text-white hover:bg-[#222] flex items-center justify-center transition-all"
+                        >
+                            1/16
+                        </button>
+                        <button
+                            onClick={() => controls.quantizedLoop(1 / 32)}
+                            className="flex-1 bg-[#1a1a1a] border border-[#333] rounded-sm text-[9px] font-bold text-neutral-500 hover:text-white hover:bg-[#222] flex items-center justify-center transition-all"
+                        >
+                            1/32
+                        </button>
                     </div>
 
-                    {/* Auto Loop Grid (1/4 to 32) */}
+                    {/* Auto Loop Grid (Larger buttons) */}
                     <div className="grid grid-cols-2 gap-1 flex-1 min-h-0">
                         {['1/4', '1/2', '1', '2', '4', '8', '16', '32'].map(val => (
                             <button
                                 key={val}
                                 className={cn(
-                                    "bg-[#27272a] border border-[#3f3f46] rounded-sm text-[9px] font-bold text-neutral-400 hover:text-white hover:bg-[#3f3f46] flex items-center justify-center transition-colors h-full",
+                                    "bg-[#27272a] border border-[#3f3f46] rounded-sm text-[10px] font-black text-neutral-400 hover:text-white hover:bg-[#3f3f46] flex items-center justify-center transition-colors h-full",
                                     controls.state.loop.active &&
                                         (Math.abs((controls.state.loop.end - controls.state.loop.start) - (parseFloat(eval(val)) * (60 / (controls.state.bpm || 120)))) < 0.1)
                                         ? "border-[#39ff14] text-[#39ff14]"
@@ -435,10 +449,28 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                             </button>
                         ))}
                     </div>
+
+                    {/* Loop Move / Shift (Newly Added) */}
+                    <div className="flex gap-1 h-8">
+                        <button
+                            onClick={() => controls.loopShift('back')}
+                            className="flex-1 bg-[#1a1a1a] border border-[#333] rounded-sm text-[10px] font-bold text-neutral-500 hover:text-white hover:bg-[#222] flex items-center justify-center gap-1 transition-all"
+                            title="Shift Loop Back"
+                        >
+                            <ChevronsLeft className="w-3 h-3" /> <span className="text-[8px] mt-[1px]">MOVE</span>
+                        </button>
+                        <button
+                            onClick={() => controls.loopShift('fwd')}
+                            className="flex-1 bg-[#1a1a1a] border border-[#333] rounded-sm text-[10px] font-bold text-neutral-500 hover:text-white hover:bg-[#222] flex items-center justify-center gap-1 transition-all"
+                            title="Shift Loop Forward"
+                        >
+                            <span className="text-[8px] mt-[1px]">MOVE</span> <ChevronsRight className="w-3 h-3" />
+                        </button>
+                    </div>
                 </div>
 
                 {/* FX Panel */}
-                <div className="flex-1 min-w-0 h-full">
+                <div className="flex-1 min-w-0 h-full border-r border-[#27272a]">
                     <FXUnitGroup
                         label={`FX UNIT ${id}`}
                         masterMix={controls.fx.masterMix}
@@ -450,6 +482,47 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                         setSlotAmount={controls.fx.setSlotAmount}
                         setSlotOn={controls.fx.setSlotOn}
                     />
+                </div>
+
+                {/* Brain Stems Panel (w-28) */}
+                <div className="w-28 bg-[#18181b] p-2 flex flex-col gap-2 border-l border-[#27272a]">
+                    <div className="text-[10px] font-black text-neutral-500 uppercase tracking-tighter flex items-center gap-1 mb-1">
+                        <Zap className="w-3 h-3 text-cyan-500" /> STEMS
+                    </div>
+                    {/* Stem Buttons */}
+                    {[
+                        { label: 'DRUMS', key: 'drums' as const, color: 'text-cyan-400' },
+                        { label: 'BASS', key: 'bass' as const, color: 'text-blue-400' },
+                        { label: 'VOCALS', key: 'vocals' as const, color: 'text-yellow-400' },
+                        { label: 'OTHER', key: 'other' as const, color: 'text-purple-400' }
+                    ].map(stem => (
+                        <button
+                            key={stem.key}
+                            className={cn(
+                                "flex-1 rounded-sm border text-[10px] font-black transition-all uppercase px-1",
+                                (controls.state as any).stemVolumes[stem.key] > 0.1
+                                    ? "bg-white/10 border-white/20 text-white shadow-[inset_0_0_10px_rgba(255,255,255,0.05)]"
+                                    : "bg-black/40 border-black/20 text-neutral-600 grayscale"
+                            )}
+                            onClick={() => {
+                                const current = (controls.state as any).stemVolumes[stem.key];
+                                controls.setStemVolume(stem.key, current > 0.1 ? 0 : 1);
+                            }}
+                        >
+                            {stem.label}
+                        </button>
+                    ))}
+                    <button
+                        className={cn(
+                            "h-8 rounded-sm border text-[10px] font-black uppercase transition-all mt-1",
+                            (controls.state as any).isStemsActive
+                                ? "bg-cyan-500 text-black border-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.4)]"
+                                : "bg-neutral-800 text-neutral-500 border-neutral-700"
+                        )}
+                        onClick={(controls as any).toggleStems}
+                    >
+                        {(controls.state as any).isStemsActive ? "AI ON" : "AI OFF"}
+                    </button>
                 </div>
             </div>
         </div>

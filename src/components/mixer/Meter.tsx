@@ -24,20 +24,49 @@ export const Meter = ({ active, analyser }: MeterProps) => {
 
         const bufferLength = analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
-        analyser.smoothingTimeConstant = 0.8;
+
+        // Use a more responsive smoothing internally
+        analyser.smoothingTimeConstant = 0.4;
 
         let animationId: number;
+        let lastLevel = 0;
+        let peakLevel = 0;
+        let peakHoldTime = 0;
 
         const draw = () => {
             animationId = requestAnimationFrame(draw);
             analyser.getByteFrequencyData(dataArray);
 
+            // Calculate RMS-like value from frequency data
             let sum = 0;
             for (let i = 0; i < bufferLength; i++) {
-                sum += dataArray[i];
+                sum += dataArray[i] * dataArray[i];
             }
-            const average = sum / bufferLength;
-            const level = (average / 255) * 30 * 2;
+            const rms = Math.sqrt(sum / bufferLength);
+
+            // Map 0-255 to 0-30 segments
+            // Map RMS to level (Responsive scaling)
+            const targetLevel = (rms / 255) * 30 * 4.0;
+
+            // Fast Attack, Slow Release logic
+            const attack = 0.8;
+            const release = 0.1;
+            let currentLevel;
+
+            if (targetLevel > lastLevel) {
+                currentLevel = lastLevel + (targetLevel - lastLevel) * attack;
+            } else {
+                currentLevel = lastLevel - (lastLevel - targetLevel) * release;
+            }
+            lastLevel = currentLevel;
+
+            // Clip Detection & Hold (Level > 28 is red/clip)
+            if (currentLevel >= 28) {
+                peakLevel = currentLevel;
+                peakHoldTime = Date.now() + 750; // Hold for 750ms as per research
+            }
+
+            const showClip = Date.now() < peakHoldTime;
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -45,20 +74,24 @@ export const Meter = ({ active, analyser }: MeterProps) => {
             const gap = 1;
 
             for (let i = 0; i < 30; i++) {
-                if (i < level) {
-                    let color = '#14532d';
-                    if (i > 18) color = '#7c2d12';
-                    if (i > 24) color = '#7f1d1d';
+                const isActive = i < currentLevel;
+                const isClipSegment = i >= 28;
 
-                    if (active) {
-                        color = '#22c55e';
-                        if (i > 18) color = '#f97316';
-                        if (i > 24) color = '#ef4444';
-                    }
+                // Base Colors (Dimmed)
+                let baseColor = '#1a1a1a';
+                if (i < 18) baseColor = '#064e3b'; // Very dark green
+                else if (i < 26) baseColor = '#451a03'; // Very dark orange
+                else baseColor = '#450a0a'; // Very dark red
 
-                    ctx.fillStyle = color;
-                    ctx.fillRect(0, canvas.height - ((i + 1) * segmentHeight) + gap, canvas.width, segmentHeight - gap);
+                let litColor = null;
+                if (isActive || (isClipSegment && showClip)) {
+                    if (i < 18) litColor = '#22c55e'; // Vibrant Green
+                    else if (i < 26) litColor = '#f97316'; // Vibrant Orange
+                    else litColor = '#ef4444'; // Vibrant Red (Clip)
                 }
+
+                ctx.fillStyle = litColor || baseColor;
+                ctx.fillRect(0, canvas.height - ((i + 1) * segmentHeight) + gap, canvas.width, segmentHeight - gap);
             }
         };
 
