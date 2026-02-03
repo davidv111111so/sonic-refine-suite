@@ -169,15 +169,49 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
             // Markers
 
             // Loop Region
-            if (loop && loop.active) {
+            // Loop Region
+            if (loop) {
                 const loopStartX = halfWidth + (loop.start - currentTime) * zoom;
                 const loopEndX = halfWidth + (loop.end - currentTime) * zoom;
 
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-                ctx.fillRect(loopStartX, 0, Math.max(1, loopEndX - loopStartX), height);
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(loopStartX, 0, Math.max(1, loopEndX - loopStartX), height);
+                // 1. In Marker (Always show if start is defined/non-zero contextually, or checking active loop)
+                // For 'Manual Loop IN' visualization: we usually want to see the marker if 'loop.start' was just set.
+                // Assuming loop.start defaults to 0, checks if it's > 0 or if likely intentional. 
+                // However, simpler to just draw it if it exists inside view.
+
+                if (loop.active) {
+                    // Active Overlay
+                    ctx.fillStyle = 'rgba(0, 255, 0, 0.2)'; // Green Overlay
+                    ctx.fillRect(loopStartX, 0, Math.max(1, loopEndX - loopStartX), height);
+
+                    // Out Marker (Red)
+                    ctx.strokeStyle = '#ff003c';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(loopEndX, 0);
+                    ctx.lineTo(loopEndX, height);
+                    ctx.stroke();
+                    // Label
+                    ctx.fillStyle = '#ff003c';
+                    ctx.font = '9px sans-serif';
+                    ctx.fillText("OUT", loopEndX + 2, height - 5);
+                }
+
+                // In Marker (Green) - Show if Active OR just "Start set" (user pressed IN)
+                // To distinguish "fresh" start vs default 0, we rely on usage. 
+                // Using loop.start > 0 check as basic filter
+                if (loop.active || loop.start > 0) {
+                    ctx.strokeStyle = '#39ff14'; // Neon Green
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(loopStartX, 0);
+                    ctx.lineTo(loopStartX, height);
+                    ctx.stroke();
+                    // Label
+                    ctx.fillStyle = '#39ff14';
+                    ctx.font = '9px sans-serif';
+                    ctx.fillText("IN", loopStartX + 2, 10);
+                }
             }
 
             // Cue Point

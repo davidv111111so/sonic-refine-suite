@@ -102,18 +102,18 @@ export const FXUnitGroup = ({
                     <span className="text-cyan-500 font-bold text-sm tracking-widest shadow-cyan-glow">{label}</span>
                 </div>
 
-                {/* 2. D/W Knob (Center) */}
-                <div className="flex items-center justify-center gap-2">
-                    <span className="text-[9px] text-neutral-500 font-bold">D/W</span>
+                {/* 2. D/W Knob (Center) - Label on Right */}
+                <div className="flex items-center justify-center gap-2 -mt-1 h-full">
                     <Knob
                         label=""
                         value={masterMix}
                         min={0}
                         max={1}
                         onChange={setMasterMix}
-                        color="white"
-                        size={32}
+                        color="cyan"
+                        size={42}
                     />
+                    <span className="text-[10px] font-bold text-cyan-500 whitespace-nowrap">DRY/WET</span>
                 </div>
 
                 {/* 3. Power Button (Right) */}
@@ -136,8 +136,8 @@ export const FXUnitGroup = ({
                 </div>
             </div>
 
-            {/* Slots Grid */}
-            <div className="flex flex-1 min-h-0">
+            {/* Slots Grid - More compact */}
+            <div className="flex flex-1 min-h-0 bg-[#0c0c0e]">
                 {slots.map((slot, i) => (
                     <FXSlot
                         key={i}

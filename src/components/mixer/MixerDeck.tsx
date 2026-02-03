@@ -55,7 +55,7 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
         const artist = (meta.artist && meta.artist !== 'Unknown Artist' && meta.artist !== 'Unknown') ? meta.artist : null;
         trackName = artist ? `${artist} - ${meta.title}` : meta.title;
     } else if (controls.state.buffer) {
-        trackName = "Unknown Track"; // Fallback if buffer loaded but no meta
+        trackName = meta?.title || "Unknown Track";
     }
 
     // Handle File Drop
@@ -71,6 +71,11 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                 const data = JSON.parse(jsonData);
                 console.log("MixerDeck: Internal drop detected", data);
                 const url = data.enhancedUrl || data.url;
+
+                // Robust Title Fallback
+                const titleToUse = data.title || (url ? url.split('/').pop().replace(/\.[^/.]+$/, "") : "Unknown Track");
+                const artistToUse = data.artist || "Unknown Artist";
+
                 if (url) {
                     setIsLoading(true);
                     try {
@@ -78,7 +83,7 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                             url,
                             data.bpm,
                             data.indicator || data.harmonicKey || data.key,
-                            { title: data.title, artist: data.artist }
+                            { title: titleToUse, artist: artistToUse }
                         );
                         console.log("MixerDeck: Internal track loaded successfully");
                     } catch (err) {
@@ -100,12 +105,33 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
             console.log("MixerDeck: File found, attempting to load", file.name);
             setIsLoading(true);
             try {
-                await controls.loadTrack(file);
+                await controls.loadTrack(file, undefined, undefined, {
+                    title: file.name.replace(/\.[^/.]+$/, "") // Clean extension
+                });
                 console.log("MixerDeck: Load track completed successfully");
             } catch (err) {
                 console.error("MixerDeck: Load track failed", err);
             } finally {
                 setIsLoading(false);
+            }
+        }
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            console.log("MixerDeck: File selected via input", file.name);
+            setIsLoading(true);
+            try {
+                await controls.loadTrack(file, undefined, undefined, {
+                    title: file.name.replace(/\.[^/.]+$/, "") // Clean extension
+                });
+                console.log("MixerDeck: Load input track completed");
+            } catch (err) {
+                console.error("MixerDeck: Load input track failed", err);
+            } finally {
+                setIsLoading(false);
+                if (fileInputRef.current) fileInputRef.current.value = '';
             }
         }
     };
@@ -156,13 +182,13 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                     <div className="flex items-center justify-between">
                         <span
                             className={cn(
-                                "font-bold text-xs truncate max-w-[150px] tracking-wide",
+                                "font-bold text-xs truncate max-w-[200px] tracking-wide",
                                 trackName ? "text-white" : "text-neutral-500"
                             )}
-                            title={trackName || ""}
+                            title={trackName || "No Track Loaded"}
                             style={{ textShadow: trackName ? (isCyan ? '0 0 8px rgba(34,211,238,0.6)' : '0 0 8px rgba(192,132,252,0.6)') : 'none' }}
                         >
-                            {trackName || "NO TRACK"}
+                            {trackName || "NO TRACK LOADED"}
                         </span>
 
                         {/* BPM */}
@@ -345,32 +371,55 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
 
             {/* 4. Loops & FX Panels (Fixed Height 160px) */}
             <div className="flex-none flex bg-[#121212] h-[160px]">
-                {/* Loops Panel (w-32, restored content) */}
+                {/* Loops Panel (w-32) */}
                 <div className="w-32 border-r border-[#27272a] p-2 flex flex-col gap-1">
                     <div className="flex items-center justify-between text-[10px] font-bold text-neutral-500 mb-1">
                         <div className="flex items-center gap-1"><Repeat className="w-3 h-3" /> LOOPS</div>
-                        <div
-                            className={cn("w-3 h-3 rounded-full border border-[#444] cursor-pointer transition-all", controls.state.loop.active && "bg-green-500 border-green-500")}
+                        <button
+                            className={cn(
+                                "text-[9px] px-2 py-[2px] rounded border border-[#3f3f46] transition-all font-bold",
+                                controls.state.loop.active
+                                    ? "bg-[#39ff14] border-[#39ff14] text-black shadow-[0_0_10px_#39ff14]"
+                                    : "bg-[#27272a] text-neutral-400 hover:text-white"
+                            )}
                             onClick={controls.toggleLoop}
-                        />
+                        >
+                            ACTIVE
+                        </button>
                     </div>
 
-                    {/* Loop Controls */}
-                    <div className="flex gap-1 mb-1">
-                        <button onClick={controls.loopIn} className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[9px] text-neutral-400 hover:text-white hover:bg-[#3f3f46] h-7 flex items-center justify-center">IN</button>
-                        <button onClick={controls.loopOut} className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[9px] text-neutral-400 hover:text-white hover:bg-[#3f3f46] h-7 flex items-center justify-center">OUT</button>
+                    {/* Manual Loop Controls (Large IN/OUT) */}
+                    <div className="flex gap-1 mb-1 h-8">
+                        <button
+                            onClick={controls.loopIn}
+                            className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[10px] font-bold text-neutral-400 hover:text-white hover:bg-[#3f3f46] flex items-center justify-center transition-all active:bg-[#39ff14] active:text-black"
+                        >
+                            IN
+                        </button>
+                        <button
+                            onClick={controls.loopOut}
+                            className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[10px] font-bold text-neutral-400 hover:text-white hover:bg-[#3f3f46] flex items-center justify-center transition-all active:bg-[#ff003c] active:text-white"
+                        >
+                            OUT
+                        </button>
                     </div>
 
-                    <div className="flex gap-1 mb-[2px] px-2">
-                        <button onClick={() => controls.loopShift('back')} className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[9px] text-neutral-400 hover:text-white hover:bg-[#3f3f46] h-5 flex items-center justify-center">&lt;</button>
-                        <button onClick={() => controls.loopShift('fwd')} className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[9px] text-neutral-400 hover:text-white hover:bg-[#3f3f46] h-5 flex items-center justify-center">&gt;</button>
+                    <div className="flex gap-1 mb-[2px] px-2 hidden">
+                        {/* Shift buttons hidden to make space for grid or keep if needed? keeping hidden for now to match strict grid request */}
                     </div>
 
+                    {/* Auto Loop Grid (1/4 to 32) */}
                     <div className="grid grid-cols-2 gap-1 flex-1 min-h-0">
-                        {['1/16', '1/8', '1/4', '1/2', '1', '2', '4', '8'].map(val => (
+                        {['1/4', '1/2', '1', '2', '4', '8', '16', '32'].map(val => (
                             <button
                                 key={val}
-                                className="bg-[#27272a] border border-[#3f3f46] rounded-sm text-[9px] font-bold text-neutral-400 hover:text-white hover:bg-[#3f3f46] flex items-center justify-center transition-colors h-full"
+                                className={cn(
+                                    "bg-[#27272a] border border-[#3f3f46] rounded-sm text-[9px] font-bold text-neutral-400 hover:text-white hover:bg-[#3f3f46] flex items-center justify-center transition-colors h-full",
+                                    controls.state.loop.active &&
+                                        (Math.abs((controls.state.loop.end - controls.state.loop.start) - (parseFloat(eval(val)) * (60 / (controls.state.bpm || 120)))) < 0.1)
+                                        ? "border-[#39ff14] text-[#39ff14]"
+                                        : ""
+                                )}
                                 onClick={() => {
                                     let beats = 4;
                                     if (val.includes('/')) {
@@ -388,7 +437,7 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                     </div>
                 </div>
 
-                {/* FX Panel (Flexible, full props) */}
+                {/* FX Panel */}
                 <div className="flex-1 min-w-0 h-full">
                     <FXUnitGroup
                         label={`FX UNIT ${id}`}

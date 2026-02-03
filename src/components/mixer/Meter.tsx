@@ -9,11 +9,18 @@ export const Meter = ({ active, analyser }: MeterProps) => {
     const canvasRef = React.useRef<HTMLCanvasElement>(null);
 
     React.useEffect(() => {
-        if (!analyser || !active) return;
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
+
+        if (!analyser || !active) {
+            // Clear canvas if inactive
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Draw empty/dim state?
+            // Just clear is fine for "0%"
+            return;
+        }
 
         const bufferLength = analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);

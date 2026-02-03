@@ -3,9 +3,11 @@ import { MasteringSettingsData } from '@/components/ai-mastering/MasteringSettin
 
 export class MasteringService {
   // Dynamic backend URL based on environment
-  private backendUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  // Dynamic backend URL based on environment
+  // We prioritize local proxy (empty string) when running on localhost to avoid CORS and production limits
+  private backendUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
     ? ""
-    : "https://sonic-refine-backend-azkp62xtaq-uc.a.run.app";
+    : (import.meta.env.VITE_PYTHON_BACKEND_URL || "https://sonic-refine-backend-azkp62xtaq-uc.a.run.app");
 
   /**
    * Get auth token from Supabase session

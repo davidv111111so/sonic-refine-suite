@@ -39,6 +39,7 @@ import { AIMasteringGuide } from "./AIMasteringGuide";
 import { saveReferenceTrack, getReferenceTrack } from "@/utils/referenceTrackStorage";
 import { masteringService } from "@/services/masteringService";
 import { LUFSDisplay, AudioAnalysisData } from "./LUFSDisplay";
+import { PermissiveControls } from "./PermissiveControls";
 
 interface AIMasteringTabProps {
   isProcessing?: boolean;
@@ -132,6 +133,9 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
   const [presetStatuses, setPresetStatuses] = useState<Record<string, boolean>>({});
   const adminInputRef = useRef<HTMLInputElement>(null);
   const [adminTargetPreset, setAdminTargetPreset] = useState<string | null>(null);
+
+  // Permissive Engine State
+  const [targetLufs, setTargetLufs] = useState<number>(-9.0);
 
   const checkPresetStatuses = async () => {
     const statuses: Record<string, boolean> = {};
@@ -444,7 +448,7 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
       const result = await masteringService.masterAudio(
         targetFile,
         referenceFileToUse,
-        convertedSettings,
+        { ...convertedSettings, target_lufs: targetLufs }, // Pass Target LUFS override
         (stage, percent) => {
           if (!isMounted.current || !isProcessingRef.current) return;
           setProgress(percent);
@@ -826,6 +830,14 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
                 </div>
               </CardContent>
             </Card>
+
+            {/* Permissive Controls (Fine Tune) */}
+            <PermissiveControls
+              targetLufs={targetLufs}
+              setTargetLufs={setTargetLufs}
+              targetAnalysis={audioAnalysis?.target}
+              referenceAnalysis={audioAnalysis?.reference}
+            />
 
             {/* Action Area */}
             <div className="space-y-6">

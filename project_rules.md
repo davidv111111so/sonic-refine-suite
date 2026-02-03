@@ -5,7 +5,14 @@
 - **Styling**: Tailwind CSS, Shadcn UI, Lucide React
 - **State Management**: React Context, Custom Hooks
 - **Routing**: React Router DOM
-- **Audio Processing**: Web Audio API
+- **Audio Processing**: Web Audio API (Native), Tone.js (Scheduling), Electron (Drivers)
+- **Backend (AI)**: Python (Flask), Librosa, Demucs (MIT Only)
+- **Desktop Wrapper**: Electron (Required for ASIO/WASAPI)
+
+## Licensing Constraints (STRICT)
+- **Permissive Only**: MIT, Apache 2.0, BSD, ISC.
+- **BANNED**: GPL, AGPL, Creative Commons Non-Commercial.
+- **Audit**: All new libraries must be license-checked before install.
 
 ## Coding Standards
 ### TypeScript
@@ -67,3 +74,14 @@
 - **Flexible Containers**: Use `flex-1` and `min-h-0` for main content areas to ensure they take up available space without overflowing.
 - **Scrollable Areas**: Explicitly define scrollable areas with `overflow-y-auto` and constrained heights (e.g., `h-[300px]` or `flex-1`).
 
+
+### Mixer Lab Rules (Strict)
+1.  **Tempo Master Logic**:
+    -   **Manual**: Assign via MASTER button on deck.
+    -   **Auto**: If enabled (AUTO button), starting playback makes a deck Master. If current Master stops/ends,Sync deck becomes Master. If no Sync deck, Master Clock becomes Master.
+    -   **Single Master**: Only one Tempo Master at a time.
+2.  **UI Aesthetics**:
+    -   **FX Knobs**: Dry/Wet knob must be large, stylish, and noticeable.
+    -   **Decks**: Always show "Artist - Title" in header if known. "Unknown Artist" is acceptable fallback but try to parse metadata.
+3.  **Real-Time Feedback**:
+    -   VU Meters must be responsive and accurate.

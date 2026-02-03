@@ -1,8 +1,10 @@
 import React, { useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import * as Tone from 'tone';
+
 interface AudioVisualizerProps {
-  analyserNode: AnalyserNode | null;
+  analyserNode: AnalyserNode | Tone.Analyser | null;
   isPlaying: boolean;
 }
 export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
@@ -23,11 +25,35 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    const bufferLength = analyserNode.frequencyBinCount;
+
+    // Handle Tone vs Native
+    const isTone = analyserNode instanceof Tone.Analyser;
+    const fftSize = isTone ? (analyserNode as Tone.Analyser).size : (analyserNode as AnalyserNode).fftSize;
+    const binCount = isTone ? fftSize : (analyserNode as AnalyserNode).frequencyBinCount;
+
+    // We only need a subset for viz usually, but let's match binCount
+    const bufferLength = binCount;
     const dataArray = new Uint8Array(bufferLength);
+
     const draw = () => {
       animationFrameRef.current = requestAnimationFrame(draw);
-      analyserNode.getByteFrequencyData(dataArray);
+
+      if (isTone) {
+        const vals = (analyserNode as Tone.Analyser).getValue();
+        // vals is Float32Array of dB (-Inf to 0 usually)
+        // Map to 0-255
+        for (let i = 0; i < bufferLength; i++) {
+          let db = vals[i] as number;
+          // Range: -100dB (silence) to 0dB (max)
+          if (db < -100) db = -100;
+          if (db > 0) db = 0;
+          // Norm 0-1
+          const norm = (db + 100) / 100;
+          dataArray[i] = Math.floor(norm * 255);
+        }
+      } else {
+        (analyserNode as AnalyserNode).getByteFrequencyData(dataArray);
+      }
 
       // Clear canvas with gradient background
       const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
@@ -66,46 +92,46 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
     };
   }, [analyserNode, isPlaying]);
   return <Card className="bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 p-6 space-y-4">
-      <h3 className="text-lg font-semibold text-cyan-400 flex items-center gap-2">
-        <span className="text-2xl">📊</span>
-        Real-time Analysis
-      </h3>
+    <h3 className="text-lg font-semibold text-cyan-400 flex items-center gap-2">
+      <span className="text-2xl">📊</span>
+      Real-time Analysis
+    </h3>
 
-      {/* Spectrum Analyzer */}
-      <div>
-        <label className="text-sm mb-2 block text-orange-300">Spectrum Analyzer</label>
-        <canvas ref={canvasRef} width={800} height={200} className="w-full rounded-lg border border-slate-700 shadow-inner" />
-      </div>
+    {/* Spectrum Analyzer */}
+    <div>
+      <label className="text-sm mb-2 block text-orange-300">Spectrum Analyzer</label>
+      <canvas ref={canvasRef} width={800} height={200} className="w-full rounded-lg border border-slate-700 shadow-inner" />
+    </div>
 
-      {/* dB Meters */}
-      <div className="space-y-3">
-        <label className="text-sm block text-orange-300">dB Meters</label>
-        
-        {/* Left Channel */}
-        <div className="space-y-1">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-white font-medium">L</span>
-            <span className="text-cyan-400 font-mono">{vuMeterLeftRef.current.toFixed(0)}%</span>
-          </div>
-          <div className="relative h-4 bg-slate-800 rounded-full overflow-hidden">
-            <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 transition-all duration-100" style={{
+    {/* dB Meters */}
+    <div className="space-y-3">
+      <label className="text-sm block text-orange-300">dB Meters</label>
+
+      {/* Left Channel */}
+      <div className="space-y-1">
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-white font-medium">L</span>
+          <span className="text-cyan-400 font-mono">{vuMeterLeftRef.current.toFixed(0)}%</span>
+        </div>
+        <div className="relative h-4 bg-slate-800 rounded-full overflow-hidden">
+          <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 transition-all duration-100" style={{
             width: `${vuMeterLeftRef.current}%`
           }} />
-          </div>
-        </div>
-
-        {/* Right Channel */}
-        <div className="space-y-1">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-white font-medium">R</span>
-            <span className="text-cyan-400 font-mono">{vuMeterRightRef.current.toFixed(0)}%</span>
-          </div>
-          <div className="relative h-4 bg-slate-800 rounded-full overflow-hidden">
-            <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 transition-all duration-100" style={{
-            width: `${vuMeterRightRef.current}%`
-          }} />
-          </div>
         </div>
       </div>
-    </Card>;
+
+      {/* Right Channel */}
+      <div className="space-y-1">
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-white font-medium">R</span>
+          <span className="text-cyan-400 font-mono">{vuMeterRightRef.current.toFixed(0)}%</span>
+        </div>
+        <div className="relative h-4 bg-slate-800 rounded-full overflow-hidden">
+          <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 transition-all duration-100" style={{
+            width: `${vuMeterRightRef.current}%`
+          }} />
+        </div>
+      </div>
+    </div>
+  </Card>;
 };

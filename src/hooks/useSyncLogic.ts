@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { DeckControls } from './useDJDeck';
 import { useTransport } from '@/contexts/TransportContext';
 
@@ -12,6 +12,14 @@ export const useSyncLogic = (
 
     // Broadcast Master State (Grid Anchor)
     useEffect(() => {
+        // AUTO Mode Logic
+        if (transport.autoMasterMode && controls.state.isPlaying && !stateRef.current.wasPlaying) {
+            // We just started playing. Take Master.
+            if (nativeBpm) {
+                setMaster(deckId, nativeBpm * controls.state.playbackRate, controls.state.currentTime);
+            }
+        }
+
         if (isMaster && nativeBpm && controls.state.isPlaying) {
             const effectiveBpm = nativeBpm * controls.state.playbackRate;
             const beatDuration = 60 / effectiveBpm;
@@ -31,7 +39,13 @@ export const useSyncLogic = (
             // Actually, we should just update master clock if Rate changes.
             updateMasterClock(effectiveBpm, controls.state.currentTime);
         }
-    }, [isMaster, nativeBpm, controls.state.playbackRate, controls.state.isPlaying, updateMasterClock]);
+    }, [isMaster, nativeBpm, controls.state.playbackRate, controls.state.isPlaying, updateMasterClock, transport.autoMasterMode, deckId, setMaster]);
+
+    // Ref to track previous play state for edge detection
+    const stateRef = useRef({ wasPlaying: false });
+    useEffect(() => {
+        stateRef.current.wasPlaying = controls.state.isPlaying;
+    }, [controls.state.isPlaying]);
 
     const handleSync = useCallback(() => {
         if (!nativeBpm || !transport.masterBpm) return;
