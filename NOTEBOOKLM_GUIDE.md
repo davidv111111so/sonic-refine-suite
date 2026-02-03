@@ -10,7 +10,7 @@ The agent has access to the following tools via the `notebooklm` server:
 - **`notebook_list`**: View all your notebooks. Use this to find the `notebook_id` for a specific project.
 - **`notebook_create`**: Start a new notebook for a task or topic.
 - **`notebook_describe`**: Get an AI-generated summary and suggested topics for a notebook.
-- **`notebook_rename` / **`notebook_delete`**: Manage your workspace.
+- **`notebook_rename` / `notebook_delete`**: Manage your workspace.
 
 ### 🧠 Knowledge & Querying
 - **`notebook_query`**: The most powerful tool. Ask questions based *strictly* on the sources in a specific notebook.
@@ -30,7 +30,7 @@ The agent has access to the following tools via the `notebooklm` server:
 
 ## 2. Best Prompts for the Agent
 
-When asking the agent to help you, use these patterns to get the best results.
+When asking the agent to help you, use these patterns to get the best results from NotebookLM.
 
 ### 🏗️ Getting Project Architecture / Rules
 If you have a notebook with technical documentation (like "Level Mixer"):
@@ -53,7 +53,7 @@ If you have API docs in a notebook:
 
 ## 3. Independent Project Configuration
 
-To use NotebookLM effectively across multiple projects:
+To use NotebookLM effectively across multiple projects (e.g., "Level" vs "BluePrint"):
 
 1.  **One Server, Multiple Notebooks:** The MCP server connects to your *Google Account*. It sees *all* your notebooks.
 2.  **Context Switching:**
@@ -86,3 +86,7 @@ If you see an **"Authentication expired"** error:
 2.  Run the command: `notebooklm-mcp-auth`
 3.  Follow the prompts in the browser to sign in and refresh your tokens.
 4.  Tell the agent to `refresh_auth` to pick up the new tokens.
+
+---
+
+*Verified Installation: February 2026*

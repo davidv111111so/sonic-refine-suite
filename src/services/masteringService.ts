@@ -5,7 +5,7 @@ export class MasteringService {
   // Use Supabase Edge Function proxy to bypass CORS
   private useProxy = true;
   private directBackendUrl = "https://sonic-refine-backend-azkp62xtaq-uc.a.run.app";
-  
+
   private getProxyUrl(endpoint: string): string {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://lyymcpiujrnlwsbyrseh.supabase.co";
     return `${supabaseUrl}/functions/v1/audio-proxy?endpoint=${encodeURIComponent(endpoint)}`;
@@ -54,10 +54,10 @@ export class MasteringService {
       if (onProgress) onProgress('Uploading files to backend...', 10);
 
       // Use proxy or direct URL
-      const url = this.useProxy 
+      const url = this.useProxy
         ? this.getProxyUrl('/api/master-audio')
         : `${this.directBackendUrl}/api/master-audio`;
-      
+
       console.log('📤 Sending to:', url);
 
       const response = await fetch(url, {
@@ -109,10 +109,10 @@ export class MasteringService {
       console.log(`🔍 Analyzing audio: ${file.name} (${file.type}, ${file.size} bytes)`);
 
       // Use proxy or direct URL
-      const url = this.useProxy 
+      const url = this.useProxy
         ? this.getProxyUrl('/api/analyze-audio')
         : `${this.directBackendUrl}/api/analyze-audio`;
-      
+
       console.log('📤 Sending to:', url);
 
       const response = await fetch(url, {

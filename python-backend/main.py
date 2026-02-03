@@ -11,7 +11,8 @@ import magic
 import hashlib
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
-import matchering as mg
+# import matchering as mg # Removed for GPL compliance
+from mastering_engine import MasteringEngine
 import soundfile as sf
 import librosa
 from supabase import create_client, Client
@@ -82,7 +83,8 @@ def verify_auth_token(request):
     token = auth_header.split(' ')[1]
     
     # Allow dev bypass token for local development
-    if token == "dev-bypass-token":
+    dev_token = os.environ.get("DEV_BYPASS_TOKEN", "dev-bypass-token")
+    if token == dev_token:
         print("⚠️ Using DEV BYPASS TOKEN")
         return {"id": "dev-user", "email": "dev@example.com"}
 
@@ -92,6 +94,44 @@ def verify_auth_token(request):
     except Exception as e:
         print(f"❌ Auth verification failed: {str(e)}")
         return None
+
+@app.route('/api/payment/payu-signature', methods=['POST', 'OPTIONS'])
+def payu_signature():
+    """Generate PayU Latam signature"""
+    if request.method == 'OPTIONS':
+        return '', 204
+        
+    try:
+        data = request.get_json()
+        reference_code = data.get('referenceCode')
+        amount = data.get('amount')
+        currency = data.get('currency')
+        
+        if not all([reference_code, amount, currency]):
+            return jsonify({"error": "Missing required fields"}), 400
+            
+        # PayU Sandbox Credentials (Loaded from Env)
+        API_KEY = os.environ.get("PAYU_API_KEY")
+        MERCHANT_ID = os.environ.get("PAYU_MERCHANT_ID")
+        ACCOUNT_ID = os.environ.get("PAYU_ACCOUNT_ID")
+        
+        if not all([API_KEY, MERCHANT_ID, ACCOUNT_ID]):
+             return jsonify({"error": "Server configuration error: PayU keys missing"}), 500
+        
+        # Signature format: "ApiKey~merchantId~referenceCode~amount~currency"
+        signature_str = f"{API_KEY}~{MERCHANT_ID}~{reference_code}~{amount}~{currency}"
+        signature = hashlib.md5(signature_str.encode('utf-8')).hexdigest()
+        
+        return jsonify({
+            "signature": signature,
+            "merchantId": MERCHANT_ID,
+            "accountId": ACCOUNT_ID,
+            "test": 1 # 1 for Sandbox, 0 for Production
+        })
+        
+    except Exception as e:
+        print(f"❌ Payment signature error: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 def convert_to_wav(input_path, output_path):
     """Convert any audio format to WAV using librosa and soundfile"""
@@ -206,49 +246,27 @@ def master_audio():
         output_path = temp_output.name
         temp_files.append(output_path)
         
-        # Process with Matchering
-        print(f"🎵 Starting Matchering processing...")
-        print(f"   Target: {target_path} ({target_ext})")
-        print(f"   Reference: {reference_path} ({reference_ext})")
+        # Process with MasteringEngine (Permissive)
+        print(f"🎵 Starting Permissive Mastering...")
+        print(f"   Target: {target_path}")
+        print(f"   Reference: {reference_path}")
         
         try:
-            # Configure Matchering
-            config = mg.Config()
+            # Initialize Engine
+            engine = MasteringEngine()
             
-            # Map supported settings
-            if 'threshold' in settings:
-                config.threshold = float(settings['threshold'])
-            if 'epsilon' in settings:
-                config.min_value = float(settings['epsilon'])
-            if 'fft_size' in settings:
-                config.fft_size = int(settings['fft_size'])
-            if 'max_piece_length' in settings:
-                # Convert seconds to samples (assuming 44100 Hz default)
-                config.max_piece_size = int(float(settings['max_piece_length']) * 44100)
+            # Determine processing settings
+            # We can parse 'settings' JSON here if needed for custom EQ/Loudness overrides
+            target_lufs_val = settings.get('target_lufs')
+            target_lufs = float(target_lufs_val) if target_lufs_val is not None else None
             
-            # Configure output bit depth
-            output_bits = settings.get('output_bits', '16') # Default to 16 string if missing
+            # Param: target_lufs passed from UI
+            result = engine.process(target_path, reference_path, output_path, target_lufs=target_lufs)
             
-            # Handle "32 (IEEE float)" and other string variations
-            if str(output_bits).startswith('32'):
-                result_format = mg.pcm32(output_path)
-            elif str(output_bits) == '24':
-                result_format = mg.pcm24(output_path)
-            else:
-                result_format = mg.pcm16(output_path)
-            
-            # Process with Matchering
-            mg.process(
-                target=target_path,
-                reference=reference_path,
-                results=[result_format],
-                config=config
-            )
-            
-            print(f"✅ Matchering processing complete!")
+            print(f"✅ Mastering complete! Ref LUFS: {result['ref_lufs']}, Final LUFS: {result['target_lufs']}")
             
         except Exception as e:
-            print(f"❌ Matchering error: {str(e)}")
+            print(f"❌ Mastering error: {str(e)}")
             import traceback
             traceback.print_exc()
             # Cleanup temp files
@@ -258,7 +276,7 @@ def master_audio():
                         os.unlink(path)
                 except:
                     pass
-            return jsonify({"error": f"Matchering processing failed: {str(e)}"}), 500
+            return jsonify({"error": f"Mastering processing failed: {str(e)}"}), 500
         
         # Read the output file
         try:
@@ -529,44 +547,7 @@ def separate_audio_endpoint():
         print(f"❌ Separation endpoint error: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/payment/payu-signature', methods=['POST', 'OPTIONS'])
-def payu_signature():
-    """Generate PayU Latam signature"""
-    if request.method == 'OPTIONS':
-        return '', 204
-        
-    try:
-        data = request.get_json()
-        reference_code = data.get('referenceCode')
-        amount = data.get('amount')
-        currency = data.get('currency')
-        
-        if not all([reference_code, amount, currency]):
-            return jsonify({"error": "Missing required fields"}), 400
-            
-        # PayU Sandbox Credentials
-        API_KEY = "4Vj8eK4rloUd272L48hsrarnUA"
-        MERCHANT_ID = "508029"
-        ACCOUNT_ID = "512321"
-        
-        # Signature format: "ApiKey~merchantId~referenceCode~amount~currency"
-        # Note: amount must be formatted correctly (e.g. no decimals for COP if needed, but PayU usually handles standard float string)
-        # For safety, ensure amount ends with .0 or .00 if it's an integer, but PayU is picky.
-        # Best practice: Use the exact string that will be sent to the form.
-        
-        signature_str = f"{API_KEY}~{MERCHANT_ID}~{reference_code}~{amount}~{currency}"
-        signature = hashlib.md5(signature_str.encode('utf-8')).hexdigest()
-        
-        return jsonify({
-            "signature": signature,
-            "merchantId": MERCHANT_ID,
-            "accountId": ACCOUNT_ID,
-            "test": 1 # 1 for Sandbox, 0 for Production
-        })
-        
-    except Exception as e:
-        print(f"❌ Payment signature error: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8001))

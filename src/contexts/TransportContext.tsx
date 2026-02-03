@@ -5,6 +5,7 @@ interface TransportState {
     masterBpm: number;
     masterGridAnchor: number;
     isPlaying: boolean;
+    autoMasterMode: boolean;
 }
 
 interface TransportContextType {
@@ -12,6 +13,7 @@ interface TransportContextType {
     setMaster: (deckId: 'A' | 'B' | null, bpm: number, anchor: number) => void;
     updateMasterClock: (bpm: number, anchor: number) => void;
     togglePlay: () => void;
+    toggleAutoMaster: () => void;
 }
 
 const TransportContext = createContext<TransportContextType | undefined>(undefined);
@@ -21,7 +23,8 @@ export const TransportProvider = ({ children }: { children: ReactNode }) => {
         masterDeckId: null,
         masterBpm: 128,
         masterGridAnchor: 0,
-        isPlaying: false
+        isPlaying: false,
+        autoMasterMode: false // Default to false or true? Requirement says "enabling AUTO mode using the AUTO button". Default off.
     });
 
     const setMaster = useCallback((deckId: 'A' | 'B' | null, bpm: number, anchor: number) => {
@@ -45,8 +48,12 @@ export const TransportProvider = ({ children }: { children: ReactNode }) => {
         setState(prev => ({ ...prev, isPlaying: !prev.isPlaying }));
     }, []);
 
+    const toggleAutoMaster = useCallback(() => {
+        setState(prev => ({ ...prev, autoMasterMode: !prev.autoMasterMode }));
+    }, []);
+
     return (
-        <TransportContext.Provider value={{ state, setMaster, updateMasterClock, togglePlay }}>
+        <TransportContext.Provider value={{ state, setMaster, updateMasterClock, togglePlay, toggleAutoMaster }}>
             {children}
         </TransportContext.Provider>
     );

@@ -52,7 +52,7 @@ export class BackendAudioService {
 
   // Start backend processing
   async enhanceAudio(
-    fileId: string, 
+    fileId: string,
     settings: any
   ): Promise<{ jobId: string }> {
     const response = await fetch(`${this.config.baseUrl}/api/enhance`, {
@@ -120,7 +120,7 @@ export class BackendAudioService {
     if (typeof window !== 'undefined' && 'WebSocket' in window) {
       const wsUrl = this.config.baseUrl.replace('http', 'ws') + '/progress';
       this.socket = new WebSocket(wsUrl);
-      
+
       this.socket.onmessage = (event) => {
         const update = JSON.parse(event.data);
         onProgress(update);
@@ -130,7 +130,7 @@ export class BackendAudioService {
 
   // Batch processing
   async processBatch(
-    fileIds: string[], 
+    fileIds: string[],
     settings: any
   ): Promise<{ batchId: string; jobs: string[] }> {
     const response = await fetch(`${this.config.baseUrl}/api/batch-enhance`, {
@@ -154,11 +154,11 @@ export class BackendAudioService {
 
   private getAuthHeaders(): Record<string, string> {
     const headers: Record<string, string> = {};
-    
+
     if (this.config.apiKey) {
       headers['Authorization'] = `Bearer ${this.config.apiKey}`;
     }
-    
+
     return headers;
   }
 
@@ -173,13 +173,21 @@ export class BackendAudioService {
 export const getBackendConfig = (): BackendConfig => {
   // Use import.meta.env for Vite (not process.env)
   const isDev = import.meta.env.DEV;
-  const backendUrl = import.meta.env.VITE_PYTHON_BACKEND_URL;
+  const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
-  // En desarrollo, usar siempre backend local
+  // En desarrollo/local, usar siempre backend local (via proxy)
+  if (isLocal) {
+    return {
+      baseUrl: '', // Use relative path for proxy
+      timeout: 120000 // 2 minutes
+    };
+  }
+
+  const backendUrl = import.meta.env.VITE_PYTHON_BACKEND_URL;
   if (isDev) {
     return {
       baseUrl: backendUrl || 'http://localhost:8000',
-      timeout: 120000 // 2 minutes
+      timeout: 120000
     };
   }
 
@@ -196,12 +204,12 @@ export const isBackendAvailable = async (): Promise<boolean> => {
     const config = getBackendConfig();
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
-    
+
     const response = await fetch(`${config.baseUrl}/health`, {
       method: 'GET',
       signal: controller.signal
     });
-    
+
     clearTimeout(timeoutId);
     return response.ok;
   } catch {
