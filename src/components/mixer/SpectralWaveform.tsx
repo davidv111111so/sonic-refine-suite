@@ -23,9 +23,10 @@ interface SpectralWaveformProps {
     onPlay?: () => void;
     onPause?: () => void;
     isPlaying?: boolean;
+    playbackRate?: number;
 }
 
-export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, height = 150, showGrid = true, bpm = 128, onSeek, loop, cuePoint, onPlay, onPause, isPlaying }: SpectralWaveformProps) => {
+export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, height = 150, showGrid = true, bpm = 128, onSeek, loop, cuePoint, onPlay, onPause, isPlaying, playbackRate = 1 }: SpectralWaveformProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const workerRef = useRef<Worker | null>(null);
@@ -97,7 +98,7 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
             if (showGrid && bpm > 0) {
                 ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
                 ctx.lineWidth = 1;
-                const beatDuration = 60 / bpm;
+                const beatDuration = 60 / (bpm * playbackRate);
                 const pixelsPerBeat = beatDuration * zoom;
                 const offsetTime = currentTime % beatDuration;
                 const offsetPixels = offsetTime * zoom;
@@ -144,35 +145,50 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
 
                 // Ensure bounds
                 if (offset + 4 < peaks.length) {
-                    // Unpack
-                    // [min, max, rms, low, midHigh]
+                    // Unpack: [min, max, rms, low, midHigh]
                     const lowVal = peaks[offset + 3];
                     const midHighVal = peaks[offset + 4];
                     const rmsVal = peaks[offset + 2];
 
-                    // Spectral Logic
-                    // Base: Low frequency (Dark)
-                    const lowH = lowVal * (height * 0.8);
+                    // Calculations
+                    const lowH = lowVal * (height * 0.85);
+                    const highH = midHighVal * (height * 0.65);
+                    const midH = rmsVal * (height * 0.4);
 
-                    // Detail: High frequency (Bright)
-                    const highH = midHighVal * (height * 0.6);
+                    const highIntensity = Math.min(1, midHighVal * 1.8);
+                    const lowIntensity = Math.min(1, lowVal * 2.2);
 
-                    // Draw Low (Bass) Layer
-                    ctx.strokeStyle = color === 'cyan' ? '#155e75' : '#581c87'; // Dark Cyan / Purple
-                    ctx.globalAlpha = 1.0;
+                    // 1. Draw Bass (Blue/Indigo)
+                    ctx.strokeStyle = color === 'cyan' ? '#1e40af' : '#4c1d95'; // Darker base for contrast
+                    ctx.lineWidth = 2.5;
                     ctx.beginPath();
                     ctx.moveTo(x, center - lowH);
                     ctx.lineTo(x, center + lowH);
                     ctx.stroke();
 
-                    // Draw High (Treble) Layer (Overlaid, smaller)
-                    ctx.strokeStyle = color === 'cyan' ? '#22d3ee' : '#d8b4fe'; // Bright Cyan / Lavender
-                    ctx.globalAlpha = 0.8;
-                    const hDisp = highH + (rmsVal * 5); // Add some "pop"
+                    // 2. Draw Mid Range (Cyan/Green or Purple/Lavender)
+                    ctx.strokeStyle = color === 'cyan' ? '#06b6d4' : '#a855f7';
+                    ctx.lineWidth = 1.5;
+                    ctx.globalAlpha = 0.7;
+                    ctx.beginPath();
+                    ctx.moveTo(x, center - midH);
+                    ctx.lineTo(x, center + midH);
+                    ctx.stroke();
+
+                    // 3. Draw High Frequencies / Transients (Bright Orange/Red for Cyan, Pink/Yellow for Purple)
+                    // This makes the SNAPHOT/HATS pop
+                    ctx.strokeStyle = color === 'cyan'
+                        ? `rgba(255, ${150 + highIntensity * 105}, 0, ${highIntensity * 0.9 + 0.1})`
+                        : `rgba(255, 0, ${255 - highIntensity * 155}, ${highIntensity * 0.9 + 0.1})`;
+
+                    ctx.lineWidth = 1;
+                    const hDisp = highH + (rmsVal * 4);
                     ctx.beginPath();
                     ctx.moveTo(x, center - hDisp);
                     ctx.lineTo(x, center + hDisp);
                     ctx.stroke();
+
+                    ctx.globalAlpha = 1.0;
                 }
             }
             ctx.globalAlpha = 1.0;
@@ -254,7 +270,7 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
 
         render();
         return () => cancelAnimationFrame(animationFrame);
-    }, [buffer, peaks, currentTime, zoom, height, showGrid, bpm, color, loop, cuePoint]);
+    }, [buffer, peaks, currentTime, zoom, height, showGrid, bpm, color, loop, cuePoint, playbackRate]);
 
     // Zoom Handling (Wheel)
     const handleWheel = (e: React.WheelEvent) => {

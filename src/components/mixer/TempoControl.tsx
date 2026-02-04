@@ -77,14 +77,13 @@ export const TempoControl = ({
 
                 <div
                     className="h-full w-8"
-                    onMouseLeave={() => setPitch(0.5)}
-                    onTouchEnd={() => setPitch(0.5)}
+                    onDoubleClick={() => setPitch(0.5)}
+                    title="Double-click to reset (0%)"
                 >
                     <Fader
                         orientation="vertical"
                         value={pitch}
                         onChange={setPitch}
-                        onDragEnd={() => setPitch(0.5)}
                         className="h-full w-full"
                         thumbClassName="w-8 h-4"
                         thumbColor={isCyan ? "#06b6d4" : "#a855f7"}

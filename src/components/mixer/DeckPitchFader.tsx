@@ -8,63 +8,43 @@ interface DeckPitchFaderProps {
 }
 
 export const DeckPitchFader = ({ deck, color }: DeckPitchFaderProps) => {
-    // Pitch Fader State (Visual 0-1, maps to +/-8%)
-    // Center 0.5 = 0% Bend
-    const [pitchFader, setPitchFader] = useState(0.5);
-    const decayRef = useRef<number>();
+    // Persistent Slider Position
+    const [sliderPos, setSliderPos] = useState(0.5);
 
     useEffect(() => {
-        // Sync fader to deck state (e.g. if Sync resets it)
-        // If deck.state.tempoBend is defined, use it. Default 0.5.
-        // We use slightly loose comparison or fallback for safety
-        const currentBend = deck.state.tempoBend ?? 0.5;
-        setPitchFader(currentBend);
-    }, [deck.state.tempoBend]);
+        // Sync visual fader to deck state if changed externally (e.g. initial load)
+        if (deck.state.tempoBend !== undefined) {
+            setSliderPos(deck.state.tempoBend);
+        }
+    }, []);
 
-    const handlePitchChange = (val: number) => {
-        setPitchFader(val);
+    const handleSliderChange = (val: number) => {
+        setSliderPos(val);
         deck.setTempoBend(val);
     };
 
-    const handleNudge = (dir: 'left' | 'right', active: boolean) => {
-        if (!active) {
-            // Return to fader position
-            deck.setTempoBend(pitchFader);
-        } else {
-            // Apply Bend (Nudge)
-            const delta = dir === 'left' ? -0.02 : 0.02; // Small nudge
-            // We apply it to the underlying bend state
-            // Logic: current bend + delta.
-            // Note: This changes the effective rate but not the base rate.
-            deck.setTempoBend(pitchFader + delta);
-        }
+    // Momentary Nudge (Arrows)
+    const handleNudgeDown = (dir: 1 | -1) => {
+        // Apply temporary offset to the current fader position
+        const nudgeAmount = dir * 0.02;
+        deck.setTempoBend(sliderPos + nudgeAmount);
     };
 
-    // Spring-Back Logic for Arrows
-    const handleArrowDown = (dir: 1 | -1) => {
-        if (decayRef.current) cancelAnimationFrame(decayRef.current);
-        // Step size: 5% visual change to be noticeable
-        const current = deck.state.tempoBend ?? 0.5;
-        const newVal = Math.max(0, Math.min(1, current + (dir * 0.05)));
-        handlePitchChange(newVal);
-    };
-
-    const handleArrowUp = () => {
-        if (decayRef.current) cancelAnimationFrame(decayRef.current);
-        // Instant visual snap (Audio engine handles smoothing)
-        handlePitchChange(0.5);
+    const handleNudgeUp = () => {
+        // Return to the persistent fader position
+        deck.setTempoBend(sliderPos);
     };
 
     return (
         <TempoControl
-            pitch={pitchFader}
-            setPitch={handlePitchChange}
-            onNudge={handleNudge}
+            pitch={sliderPos}
+            setPitch={handleSliderChange}
+            onNudge={() => { }} // Not used by TempoControl directly
             keyLock={deck.state.keyLock}
             setKeyLock={deck.setKeyLock}
             color={color}
-            onStepDown={handleArrowDown}
-            onStepUp={handleArrowUp}
+            onStepDown={handleNudgeDown}
+            onStepUp={handleNudgeUp}
         />
     );
 };

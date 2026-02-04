@@ -238,28 +238,44 @@ export const useWebAudio = () => {
     // Sync Helper
     const { masterDeckId, setMasterDeckId } = useSync();
 
-    // Pass context for visualizers if needed, though they should use Tone.Analyser from decks
-    const handleSync = (deckId: 'A' | 'B') => {
+    const handleSync = useCallback((deckId: 'A' | 'B') => {
         if (!masterDeckId) return;
         if (deckId === masterDeckId) return;
 
         const targetDeck = deckId === 'A' ? deckA : deckB;
         const masterDeck = masterDeckId === 'A' ? deckA : deckB;
 
-        if (!masterDeck.state.bpm || !targetDeck.state.bpm) return;
+        if (!masterDeck.state.bpm || !targetDeck.state.bpm || !masterDeck.state.buffer) return;
 
-        // Calculate Target BPM (Master)
+        // 1. Tempo Sync
         const masterEffectiveBPM = masterDeck.state.bpm * masterDeck.state.playbackRate;
-
-        // Calculate required rate for Target
-        // Rate = TargetBPM / BaseBPM
         const requiredRate = masterEffectiveBPM / targetDeck.state.bpm;
 
-        targetDeck.setRate(requiredRate);
+        // 2. Phase Sync (Beat Alignment)
+        // We calculate where the Master is within its beat and force the Target to match.
+        const beatDuration = 60 / masterEffectiveBPM;
+        const masterTime = masterDeck.state.currentTime;
+        const followerTime = targetDeck.state.currentTime;
 
-        // Optional: Phase Sync (requires Transport or precise seek)
-        // For now, we just match Tempo.
-    };
+        // How far into the beat is the master? (0 to beatDuration)
+        const masterPhase = masterTime % beatDuration;
+
+        // Where should the follower be to match?
+        // Since we are matching BPM, beatDuration is now the same for both.
+        let targetTime = Math.floor(followerTime / beatDuration) * beatDuration + masterPhase;
+
+        // If the jump is too far (> 0.5 beat), move it to the closest beat
+        if (Math.abs(targetTime - followerTime) > beatDuration / 2) {
+            if (targetTime > followerTime) targetTime -= beatDuration;
+            else targetTime += beatDuration;
+        }
+
+        // Apply both simultaneously
+        targetDeck.setRate(requiredRate);
+        targetDeck.seek(Math.max(0, targetTime));
+
+        console.log(`[Sync] Deck ${deckId} matched to ${masterEffectiveBPM.toFixed(2)} BPM. Phase shifted by ${(targetTime - followerTime).toFixed(3)}s`);
+    }, [masterDeckId, deckA, deckB]);
 
     // Cue Switch Logic handled in deck (gain gate)
     // We control the gate here

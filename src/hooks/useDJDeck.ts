@@ -158,6 +158,22 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
     const startTime = useRef<number>(0);
     const offsetTime = useRef<number>(0);
 
+    // Sync Playback Rate with BaseRate and TempoBend
+    useEffect(() => {
+        if (!nodes.current.player) return;
+
+        // Sensitivity: +/- 8% range for nudge
+        const Sensitivity = 0.08;
+        const bendFactor = 1 + (state.tempoBend - 0.5) * Sensitivity * 2;
+        const finalRate = state.baseRate * bendFactor;
+
+        // Apply to Tone player
+        nodes.current.player.playbackRate = finalRate;
+
+        // Sync state playbackRate for timing calculations
+        setState(p => ({ ...p, playbackRate: finalRate }));
+    }, [state.baseRate, state.tempoBend]);
+
     // Initialize Tone Graph
     useEffect(() => {
         // Create Nodes
@@ -500,7 +516,7 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
     }, [state.isPlaying, state.loop, state.duration, state.playbackRate]);
 
     // Simple Setters (boilerplates)
-    const setRate = (r: number) => setState(p => ({ ...p, baseRate: r, playbackRate: r })); // Logic to combine bend needed
+    const setRate = (r: number) => setState(p => ({ ...p, baseRate: r })); // We let the update effect handle playbackRate calculation
     const setVolume = (v: number) => setState(p => ({ ...p, volume: v }));
     const setTrim = (v: number) => setState(p => ({ ...p, trim: v }));
     const setPitch = (c: number) => setState(p => ({ ...p, pitch: c }));

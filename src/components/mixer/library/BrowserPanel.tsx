@@ -5,19 +5,28 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 export const BrowserPanel = () => {
-    const { state, importFiles, toggleFolder } = useLibrary();
+    const { state, importFiles, toggleFolder, mountLibrary } = useLibrary();
 
     return (
         <div className="h-full flex flex-col overflow-hidden">
-            {/* Import Button */}
-            <div className="p-2 border-b border-[#333]">
+            {/* Import Controls */}
+            <div className="p-2 border-b border-[#333] flex flex-col gap-1">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => mountLibrary()}
+                    className="w-full justify-start text-[10px] uppercase font-bold bg-[#121212] border-[#00deea]/30 hover:bg-[#00deea]/10 text-[#00deea]"
+                >
+                    <FolderOpen className="w-3 h-3 mr-2 text-[#00deea]" />
+                    Mount Folder
+                </Button>
                 <Button
                     variant="outline"
                     size="sm"
                     onClick={importFiles}
                     className="w-full justify-start text-[10px] uppercase font-bold bg-[#222] border-[#444] hover:bg-[#333] text-[#ccc]"
                 >
-                    <HardDrive className="w-3 h-3 mr-2 text-[#00deea]" />
+                    <HardDrive className="w-3 h-3 mr-2 text-neutral-500" />
                     Import Files
                 </Button>
             </div>

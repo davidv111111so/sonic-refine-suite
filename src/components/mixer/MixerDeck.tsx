@@ -264,6 +264,7 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                     onPlay={controls.play}
                     onPause={controls.pause}
                     isPlaying={controls.state.isPlaying}
+                    playbackRate={controls.state.playbackRate}
                 />
 
                 {/* Zoom Controls Overlay */}
@@ -410,13 +411,13 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                     <div className="flex gap-1 h-6">
                         <button
                             onClick={() => controls.quantizedLoop(1 / 16)}
-                            className="flex-1 bg-[#1a1a1a] border border-[#333] rounded-sm text-[9px] font-bold text-neutral-500 hover:text-white hover:bg-[#222] flex items-center justify-center transition-all"
+                            className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[9px] font-black text-neutral-400 hover:text-white hover:bg-[#3f3f46] flex items-center justify-center transition-all"
                         >
                             1/16
                         </button>
                         <button
                             onClick={() => controls.quantizedLoop(1 / 32)}
-                            className="flex-1 bg-[#1a1a1a] border border-[#333] rounded-sm text-[9px] font-bold text-neutral-500 hover:text-white hover:bg-[#222] flex items-center justify-center transition-all"
+                            className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[9px] font-black text-neutral-400 hover:text-white hover:bg-[#3f3f46] flex items-center justify-center transition-all"
                         >
                             1/32
                         </button>
@@ -525,6 +526,6 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                     </button>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };

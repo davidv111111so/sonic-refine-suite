@@ -44,9 +44,9 @@ export const Meter = ({ active, analyser }: MeterProps) => {
             }
             const rms = Math.sqrt(sum / bufferLength);
 
-            // Map 0-255 to 0-30 segments
-            // Map RMS to level (Responsive scaling)
-            const targetLevel = (rms / 255) * 30 * 4.0;
+            // Map RMS to level (Improved non-linear scaling for better visibility)
+            // Using a power scale (0.5) makes it feel more like a real VU meter
+            const targetLevel = Math.pow(rms / 255, 0.6) * 35;
 
             // Fast Attack, Slow Release logic
             const attack = 0.8;
