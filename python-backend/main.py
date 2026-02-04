@@ -35,9 +35,9 @@ ALLOWED_ORIGINS = [
     "http://localhost:8081",
     "http://localhost:8085",
     "http://127.0.0.1:8080",
-    "https://*.lovable.app",
-    "https://*.lovableproject.com",
-    "https://7d506715-84dc-4abb-95cb-4ef4492a151b.lovableproject.com"
+    # Add your production domain(s) here:
+    # "https://your-app.netlify.app",
+    # "https://your-custom-domain.com",
 ]
 
 CORS(app, resources={

@@ -27,3 +27,6 @@ dist-ssr
 python-backend/.env
 __pycache__/
 *.pyc
+
+# Local Netlify folder
+.netlify

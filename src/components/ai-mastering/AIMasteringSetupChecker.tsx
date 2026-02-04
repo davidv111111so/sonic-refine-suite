@@ -118,7 +118,7 @@ export const AIMasteringSetupChecker = () => {
             status: 'error',
             message: 'Edge Function connection error',
             details: 'Cannot reach Edge Function. It may not be deployed or there is a network issue.',
-            fix: '1. Deploy Edge Function in Lovable Cloud > Edge Functions\n2. Check your internet connection\n3. Verify SUPABASE_URL is correct',
+            fix: '1. Deploy Edge Function in Supabase Dashboard > Edge Functions\n2. Check your internet connection\n3. Verify SUPABASE_URL is correct',
           };
         }
 
@@ -138,7 +138,7 @@ export const AIMasteringSetupChecker = () => {
             status: 'error',
             message: 'Edge Function configuration error',
             details: error.message,
-            fix: 'Configure Google Cloud secrets in Lovable Cloud:\n- GOOGLE_CLOUD_PROJECT_ID\n- GOOGLE_CLOUD_BUCKET_NAME\n- GOOGLE_APPLICATION_CREDENTIALS_JSON',
+            fix: 'Configure Google Cloud secrets in Supabase Dashboard:\n- GOOGLE_CLOUD_PROJECT_ID\n- GOOGLE_CLOUD_BUCKET_NAME\n- GOOGLE_APPLICATION_CREDENTIALS_JSON',
           };
         }
 
@@ -147,7 +147,7 @@ export const AIMasteringSetupChecker = () => {
           status: 'error',
           message: 'Edge Function error',
           details: error.message || 'Unknown error occurred',
-          fix: 'Check Edge Function logs in Lovable Cloud > Edge Functions > generate-upload-url > Logs',
+          fix: 'Check Edge Function logs in Supabase Dashboard > Edge Functions > generate-upload-url > Logs',
         };
       }
 
@@ -170,7 +170,7 @@ export const AIMasteringSetupChecker = () => {
         status: 'error',
         message: 'Failed to call Edge Function',
         details: error instanceof Error ? error.message : 'Unknown error',
-        fix: '1. Ensure Edge Function is deployed in Lovable Cloud\n2. Check browser console for detailed errors\n3. Verify SUPABASE_URL and SUPABASE_ANON_KEY are correct',
+        fix: '1. Ensure Edge Function is deployed in Supabase Dashboard\n2. Check browser console for detailed errors\n3. Verify SUPABASE_URL and SUPABASE_ANON_KEY are correct',
       };
     }
   };
@@ -330,7 +330,7 @@ export const AIMasteringSetupChecker = () => {
             status: 'error',
             message: 'GCS credentials not configured',
             details: error.message,
-            fix: 'Configure Google Cloud secrets in Lovable Cloud:\n- GOOGLE_CLOUD_PROJECT_ID\n- GOOGLE_CLOUD_BUCKET_NAME\n- GOOGLE_APPLICATION_CREDENTIALS_JSON',
+            fix: 'Configure Google Cloud secrets in Supabase Dashboard:\n- GOOGLE_CLOUD_PROJECT_ID\n- GOOGLE_CLOUD_BUCKET_NAME\n- GOOGLE_APPLICATION_CREDENTIALS_JSON',
           };
         }
 
@@ -339,7 +339,7 @@ export const AIMasteringSetupChecker = () => {
             status: 'error',
             message: 'Cannot reach Edge Function',
             details: 'Edge Function may not be deployed or there is a network issue',
-            fix: '1. Deploy Edge Function in Lovable Cloud\n2. Check your internet connection',
+            fix: '1. Deploy Edge Function in Supabase Dashboard\n2. Check your internet connection',
           };
         }
 
@@ -347,7 +347,7 @@ export const AIMasteringSetupChecker = () => {
           status: 'error',
           message: 'GCS configuration error',
           details: error.message || 'Unknown error',
-          fix: 'Check Edge Function logs in Lovable Cloud > Edge Functions > generate-upload-url > Logs',
+          fix: 'Check Edge Function logs in Supabase Dashboard > Edge Functions > generate-upload-url > Logs',
         };
       }
 

@@ -191,7 +191,7 @@ export const getBackendConfig = (): BackendConfig => {
     };
   }
 
-  // Producción (Lovable) - usar siempre Cloud Run backend
+  // Producción (Production) - usar siempre Cloud Run backend
   return {
     baseUrl: backendUrl || 'https://mastering-backend-azkp62xtaq-uc.a.run.app',
     timeout: 300000 // 5 minutes for large files
