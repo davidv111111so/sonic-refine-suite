@@ -18,11 +18,18 @@ import librosa
 from supabase import create_client, Client
 from dotenv import load_dotenv
 from audio_analysis import analyze_lufs, is_reference_suitable
+from payment_webhooks import payment_bp
 
 # Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
+
+# Configure max file upload size (500MB)
+app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB in bytes
+
+# Register payment webhook blueprint
+app.register_blueprint(payment_bp)
 
 # Initialize Supabase Client
 url: str = os.environ.get("SUPABASE_URL")
@@ -35,25 +42,24 @@ ALLOWED_ORIGINS = [
     "http://localhost:8081",
     "http://localhost:8085",
     "http://127.0.0.1:8080",
-    # Add your production domain(s) here:
-    # "https://your-app.netlify.app",
-    # "https://your-custom-domain.com",
+    "http://localhost:5173",
+    "https://level-audio-app.netlify.app",
 ]
 
+# CORS Configuration - Allow all origins for development simplicity
 CORS(app, resources={
     r"/api/*": {
-        "origins": ALLOWED_ORIGINS,
-        "methods": ["POST", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"],
-        "expose_headers": ["Content-Type", "Content-Length", "Content-Disposition", "X-Audio-Analysis"],
-        "supports_credentials": True
-    },
-    r"/health": {
-        "origins": "*",
+        "origins": "*",  # Allow all origins for easier dev
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
         "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
         "expose_headers": ["Content-Type", "Content-Length", "Content-Disposition", "X-Audio-Analysis"],
-        "supports_credentials": False  # Changed to False to allow '*' origin
+        "supports_credentials": False  # Must be False when origins is *
+    },
+    r"/health": {
+        "origins": "*",
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": False
     }
 })
 
@@ -490,13 +496,21 @@ def separate_audio_endpoint():
     """Start audio separation task"""
     if request.method == 'OPTIONS':
         return '', 204
+    
+    # Debug logging
+    print(f"📩 /api/separate-audio called")
+    print(f"   Content-Type: {request.content_type}")
+    print(f"   Files: {list(request.files.keys())}")
+    print(f"   Form: {list(request.form.keys())}")
         
     # Verify Authentication
     user = verify_auth_token(request)
     if not user:
+        print("   ❌ Auth failed")
         return jsonify({"error": "Unauthorized"}), 401
         
     if 'file' not in request.files:
+        print("   ❌ No file in request")
         return jsonify({"error": "No file provided"}), 400
         
     file = request.files['file']
@@ -555,18 +569,28 @@ def analyze_bpm():
     if request.method == 'OPTIONS':
         return '', 204
     
+    # Debug logging
+    print(f"📩 /api/analyze-bpm called")
+    print(f"   Content-Type: {request.content_type}")
+    print(f"   Files: {list(request.files.keys())}")
+    
     # Verify Authentication
     user = verify_auth_token(request)
     if not user:
+        print("   ❌ Auth failed")
         return jsonify({"error": "Unauthorized"}), 401
 
     if 'file' not in request.files:
+        print("   ❌ No file in request")
         return jsonify({"error": "No file provided"}), 400
     
     file = request.files['file']
     temp_path = None
+    wav_path = None
     
     try:
+        print(f"   📁 Processing file: {file.filename}")
+        
         # Save to temp file
         ext = os.path.splitext(file.filename)[1].lower()
         if not ext: ext = '.wav' # Default
@@ -575,12 +599,27 @@ def analyze_bpm():
         temp_file.close()
         temp_path = temp_file.name
         
-        # Load and analyze
-        # Use Librosa for beat tracking
-        # sr=None preserves native sampling rate, but for BPM, standardizing to 22050 is faster/fine.
-        y, sr = librosa.load(temp_path, sr=22050)
+        # Convert to WAV if needed using pydub (more robust than librosa for weird formats)
+        file_to_analyze = temp_path
+        if ext.lower() not in ['.wav']:
+            try:
+                from pydub import AudioSegment
+                print(f"   🔄 Converting {ext} to WAV for analysis...")
+                audio = AudioSegment.from_file(temp_path)
+                wav_file = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
+                audio.export(wav_file.name, format='wav')
+                wav_file.close()
+                wav_path = wav_file.name
+                file_to_analyze = wav_path
+            except Exception as conv_err:
+                print(f"   ⚠️ Conversion failed, trying direct load: {conv_err}")
+        
+        # Load and analyze with Librosa
+        print(f"   🎵 Loading audio with librosa...")
+        y, sr = librosa.load(file_to_analyze, sr=22050, duration=60)  # Limit to 60s for speed
         
         # Estimate tempo
+        print(f"   🥁 Detecting BPM...")
         tempo, beat_frames = librosa.beat.beat_track(y=y, sr=sr)
         
         # Tempo is usually a scalar, but can be array in older librosa
@@ -588,6 +627,8 @@ def analyze_bpm():
              bpm = float(tempo.item())
         else:
              bpm = float(tempo)
+        
+        print(f"   ✅ BPM detected: {bpm}")
              
         return jsonify({
             "bpm": round(bpm, 2),
@@ -596,15 +637,18 @@ def analyze_bpm():
         })
         
     except Exception as e:
+        import traceback
         print(f"❌ BPM Analysis error: {str(e)}")
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
     finally:
         # Cleanup
-        if temp_path and os.path.exists(temp_path):
-            try:
-                os.unlink(temp_path)
-            except:
-                pass
+        for path in [temp_path, wav_path]:
+            if path and os.path.exists(path):
+                try:
+                    os.unlink(path)
+                except:
+                    pass
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8001))

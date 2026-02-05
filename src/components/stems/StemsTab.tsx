@@ -14,6 +14,7 @@ import { StemPlayer } from './StemPlayer';
 import WaveSurfer from 'wavesurfer.js';
 import { StemsGuide } from './StemsGuide';
 import { saveAs } from 'file-saver';
+import { masteringService } from '@/services/masteringService';
 
 interface StemsTabProps {
     audioFiles: AudioFile[];
@@ -159,25 +160,13 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
 
     const pollStatus = async (taskId: string, authToken: string) => {
         try {
-            const response = await fetch(`/api/task-status/${taskId}`);
-
-            if (response.status === 404) {
-                if (pollingInterval.current) clearInterval(pollingInterval.current);
-                throw new Error('Task expired. Please try again.');
-            }
-
-            if (!response.ok) {
-                throw new Error('Server error');
-            }
-
-            const data = await response.json();
+            const data = await masteringService.getTaskStatus(taskId);
 
             if (data.status === 'completed') {
                 if (pollingInterval.current) clearInterval(pollingInterval.current);
 
                 // Get result
-                const resultResponse = await fetch(`/api/task-result/${taskId}`);
-                const blob = await resultResponse.blob();
+                const blob = await masteringService.getTaskResult(taskId);
                 const url = URL.createObjectURL(blob);
                 setResults(url);
 
@@ -272,23 +261,8 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
 
             setProcessingStage('Uploading and starting separation...');
 
-            // Call backend to start task
-            const backendUrl = '/api/separate-audio';
-
-            const response = await fetch(backendUrl, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${authToken}`,
-                },
-                body: formData,
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Separation failed to start');
-            }
-
-            const data = await response.json();
+            // Call backend via centralized service
+            const data = await masteringService.separateAudio(fileBlob as File, stemCount);
             const taskId = data.task_id;
 
             // Start polling

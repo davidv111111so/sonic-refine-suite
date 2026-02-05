@@ -30,3 +30,9 @@ __pycache__/
 
 # Local Netlify folder
 .netlify
+
+# Supabase
+supabase/.temp/
+supabase/setup_new_project.sql
+supabase/migrations/*.zip
+supabase/migrations/*.sql

@@ -22,7 +22,7 @@ import {
   Info,
   ChevronLeft
 } from "lucide-react";
-import { DetailWaveform } from "../mixer/DetailWaveform";
+import { SpectralWaveform } from "../mixer/SpectralWaveform";
 import {
   getAudioContext,
 } from "@/utils/audioContextManager";
@@ -249,21 +249,56 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
 
   // Load & Decode Audio for Waveform
   useEffect(() => {
-    if (!currentFile || !audioContextRef.current) return;
+    if (!currentFile) {
+      setDebugInfo("No file selected");
+      return;
+    }
+
+    // Initialize AudioContext if needed
+    if (!audioContextRef.current) {
+      try {
+        audioContextRef.current = getAudioContext();
+        setDebugInfo("AudioContext created");
+      } catch (e) {
+        setDebugInfo("Failed to create AudioContext");
+        setBufferError("AudioContext unavailable");
+        return;
+      }
+    }
 
     const loadAudio = async () => {
       try {
         const url = currentFile.enhancedUrl || currentFile.originalUrl;
-        if (!url) return;
+        if (!url) {
+          setDebugInfo("No URL available");
+          return;
+        }
 
+        setIsBufferLoading(true);
+        setBufferError(null);
         setAudioBuffer(null); // Reset while loading
+        setDebugInfo("Fetching audio...");
 
         const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`Fetch failed: ${response.status}`);
+        }
+
+        setDebugInfo("Decoding audio...");
         const arrayBuffer = await response.arrayBuffer();
+
+        // Resume AudioContext if suspended (browser autoplay policy)
+        if (audioContextRef.current!.state === 'suspended') {
+          setDebugInfo("Resuming AudioContext...");
+          await audioContextRef.current!.resume();
+        }
+
         const decodedBuffer = await audioContextRef.current!.decodeAudioData(arrayBuffer);
 
         setAudioBuffer(decodedBuffer);
         setDuration(decodedBuffer.duration);
+        setIsBufferLoading(false);
+        setDebugInfo(`Loaded: ${decodedBuffer.duration.toFixed(1)}s`);
 
         if (shouldAutoPlayRef.current) {
           videoRef.current?.play().catch(console.error);
@@ -272,6 +307,9 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
 
       } catch (error) {
         console.error("Failed to decode audio:", error);
+        setIsBufferLoading(false);
+        setBufferError(error instanceof Error ? error.message : "Unknown error");
+        setDebugInfo(`Error: ${error}`);
       }
     };
 
@@ -835,45 +873,72 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
             </div>
           )}
 
-          {/* WaveSurfer Container (Overlay) */}
-          {/* Detail Waveform (Overlay) */}
           {/* Detail Waveform (Overlay) */}
           <div className={cn(
             "absolute bottom-0 left-0 right-0 h-[100px] z-30 pointer-events-auto transition-opacity bg-black/20 border-t border-white/10",
             isVideo && "hidden"
           )}>
-            {/* DEBUG OVERLAY - REMOVE AFTER FIX */}
-            <div className="absolute top-0 left-0 bg-red-900/80 text-white text-[10px] p-1 z-50 pointer-events-none max-w-sm">
-              DEBUG: {debugInfo}<br />
-              IsVideo: {String(isVideo)}<br />
-              Controls: {String(showControls)}
-            </div>
-
             {isBufferLoading && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-cyan-400 text-xs font-mono animate-pulse">
-                DECODING AUDIO...
+                LOADING WAVEFORM...
               </div>
             )}
 
             {bufferError && (
               <div className="absolute inset-0 flex items-center justify-center bg-red-900/80 text-white text-xs font-mono">
-                FAILED: {bufferError}
+                {bufferError}
               </div>
             )}
 
-            <DetailWaveform
+            {/* Show a simple progress bar if waveform not loaded yet */}
+            {!audioBuffer && !isBufferLoading && !bufferError && currentFile && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/80">
+                <div className="w-full max-w-2xl px-8">
+                  <div className="h-1 bg-slate-700 rounded-full mb-2">
+                    <div
+                      className="h-full bg-cyan-500 rounded-full transition-all duration-100"
+                      style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+                    />
+                  </div>
+                  <p className="text-slate-400 text-xs text-center">Click to initialize waveform</p>
+                </div>
+              </div>
+            )}
+
+            <SpectralWaveform
               buffer={audioBuffer}
               currentTime={currentTime}
               zoom={waveformZoom}
               setZoom={setWaveformZoom}
               color="cyan"
-              height={100}
+              height={150}
               showGrid={true}
+              bpm={currentFile?.bpm || 128}
+              isPlaying={isPlaying}
               onSeek={(time) => {
                 if (videoRef.current) videoRef.current.currentTime = time;
               }}
             />
           </div>
+
+          {/* Permanent seekable progress bar below waveform */}
+          {currentFile && !isVideo && (
+            <div className="absolute bottom-[100px] left-0 right-0 z-35 px-4 py-2 bg-slate-900/80 border-t border-white/5">
+              <div className="flex items-center gap-3 text-xs font-mono text-slate-300">
+                <span className="w-12 text-right">{formatTime(currentTime)}</span>
+                <Slider
+                  value={[currentTime]}
+                  max={duration || 100}
+                  step={0.1}
+                  onValueChange={(v) => {
+                    if (videoRef.current) videoRef.current.currentTime = v[0];
+                  }}
+                  className="flex-1 cursor-pointer"
+                />
+                <span className="w-12">{formatTime(duration)}</span>
+              </div>
+            </div>
+          )}
 
           {/* Empty State */}
           {!currentFile && (

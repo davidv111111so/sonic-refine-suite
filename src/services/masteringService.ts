@@ -1,13 +1,26 @@
 import { supabase } from '@/integrations/supabase/client';
 import { MasteringSettingsData } from '@/components/ai-mastering/MasteringSettings';
 
+console.log("🚨 MASTERING SERVICE LOADED - v2.0 - PROXY DISABLED 🚨");
+
 export class MasteringService {
-  // Use Supabase Edge Function proxy to bypass CORS
-  private useProxy = true;
+  // DISABLED: Supabase proxy has 10MB limit, use direct backend instead
+  private useProxy = false;
   private directBackendUrl = "https://sonic-refine-backend-azkp62xtaq-uc.a.run.app";
+  private localBackendUrl = "http://localhost:8001";
+  private isDev = window.location.hostname === 'localhost';
+
+  constructor() {
+    console.log("🔧 MasteringService initialized:", {
+      useProxy: this.useProxy,
+      isDev: this.isDev,
+      hostname: window.location.hostname,
+      willUse: this.isDev ? this.localBackendUrl : this.directBackendUrl
+    });
+  }
 
   private getProxyUrl(endpoint: string): string {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://lyymcpiujrnlwsbyrseh.supabase.co";
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://nhulnikqfphofqpnmdba.supabase.co";
     return `${supabaseUrl}/functions/v1/audio-proxy?endpoint=${encodeURIComponent(endpoint)}`;
   }
 
@@ -15,12 +28,14 @@ export class MasteringService {
    * Get auth token from Supabase session
    */
   private async getAuthToken(): Promise<string> {
+    // For localhost development, always use dev bypass token
+    if (this.isDev) {
+      console.log("🔧 Using dev bypass token for localhost");
+      return "dev-bypass-token";
+    }
+
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) {
-      // For dev bypass mode, return a dummy token
-      if (localStorage.getItem("dev_bypass") === "true") {
-        return "dev-bypass-token";
-      }
       throw new Error('No authentication token available. Please log in.');
     }
 
@@ -53,10 +68,15 @@ export class MasteringService {
 
       if (onProgress) onProgress('Uploading files to backend...', 10);
 
-      // Use proxy or direct URL
-      const url = this.useProxy
-        ? this.getProxyUrl('/api/master-audio')
-        : `${this.directBackendUrl}/api/master-audio`;
+      // Use proxy, local backend (dev), or direct URL (production)
+      let url: string;
+      if (this.useProxy) {
+        url = this.getProxyUrl('/api/master-audio');
+      } else if (this.isDev) {
+        url = `${this.localBackendUrl}/api/master-audio`;
+      } else {
+        url = `${this.directBackendUrl}/api/master-audio`;
+      }
 
       console.log('📤 Sending to:', url);
 
@@ -108,10 +128,15 @@ export class MasteringService {
 
       console.log(`🔍 Analyzing audio: ${file.name} (${file.type}, ${file.size} bytes)`);
 
-      // Use proxy or direct URL
-      const url = this.useProxy
-        ? this.getProxyUrl('/api/analyze-audio')
-        : `${this.directBackendUrl}/api/analyze-audio`;
+      // Use proxy, local backend (dev), or direct URL (production)
+      let url: string;
+      if (this.useProxy) {
+        url = this.getProxyUrl('/api/analyze-audio');
+      } else if (this.isDev) {
+        url = `${this.localBackendUrl}/api/analyze-audio`;
+      } else {
+        url = `${this.directBackendUrl}/api/analyze-audio`;
+      }
 
       console.log('📤 Sending to:', url);
 
@@ -134,6 +159,108 @@ export class MasteringService {
       return data;
     } catch (error) {
       console.error("❌ analyzeAudio error:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Stem Separation: Send file directly to Python backend
+   */
+  async separateAudio(
+    file: File,
+    stemCount: string = '4',
+    onProgress?: (stage: string, percent: number) => void
+  ): Promise<{ task_id: string }> {
+    try {
+      console.log('🚀 Starting stem separation...');
+      const token = await this.getAuthToken();
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('stem_count', stemCount);
+      formData.append('library', 'demucs');
+      formData.append('model_name', stemCount === '6' ? 'htdemucs_6s' : 'htdemucs');
+
+      if (onProgress) onProgress('Uploading file for separation...', 5);
+
+      let url: string;
+      if (this.useProxy) {
+        url = this.getProxyUrl('/api/separate-audio');
+      } else if (this.isDev) {
+        url = `${this.localBackendUrl}/api/separate-audio`;
+      } else {
+        url = `${this.directBackendUrl}/api/separate-audio`;
+      }
+
+      console.log('📤 Sending to:', url);
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Separation failed (${response.status}): ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log("✅ Separation task started:", data.task_id);
+      return data;
+    } catch (error) {
+      console.error("❌ separateAudio error:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get task status for long-running processes (Stems)
+   */
+  async getTaskStatus(taskId: string): Promise<any> {
+    try {
+      let url: string;
+      if (this.useProxy) {
+        url = this.getProxyUrl(`/api/task-status/${taskId}`);
+      } else if (this.isDev) {
+        url = `${this.localBackendUrl}/api/task-status/${taskId}`;
+      } else {
+        url = `${this.directBackendUrl}/api/task-status/${taskId}`;
+      }
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to get status (${response.status})`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("❌ getTaskStatus error:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get task result (ZIP or audio blob)
+   */
+  async getTaskResult(taskId: string): Promise<Blob> {
+    try {
+      let url: string;
+      if (this.useProxy) {
+        url = this.getProxyUrl(`/api/task-result/${taskId}`);
+      } else if (this.isDev) {
+        url = `${this.localBackendUrl}/api/task-result/${taskId}`;
+      } else {
+        url = `${this.directBackendUrl}/api/task-result/${taskId}`;
+      }
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to get result (${response.status})`);
+      }
+      return await response.blob();
+    } catch (error) {
+      console.error("❌ getTaskResult error:", error);
       throw error;
     }
   }
