@@ -18,7 +18,7 @@ export const DetailWaveform = ({ buffer, currentTime, zoom, setZoom, color, heig
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const workerRef = useRef<Worker | null>(null);
-    const [peaks, setPeaks] = useState<WaveformChunk[] | null>(null);
+    const [peaks, setPeaks] = useState<Float32Array | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const lastMouseX = useRef<number>(0);
@@ -120,7 +120,7 @@ export const DetailWaveform = ({ buffer, currentTime, zoom, setZoom, color, heig
             const startTime = currentTime - halfWindowSeconds;
             const endTime = currentTime + halfWindowSeconds;
 
-            const totalPeaks = peaks.length;
+            const totalPeaks = peaks.length / 5;
             const duration = buffer.duration;
 
             // Indices
@@ -144,23 +144,27 @@ export const DetailWaveform = ({ buffer, currentTime, zoom, setZoom, color, heig
             const baseColor = color === 'cyan' ? '0, 255, 255' : '168, 85, 247';
 
             for (let i = startIndex; i <= endIndex; i++) {
-                const peak = peaks[i];
+                const offset = i * 5;
+                const min = peaks[offset];
+                const max = peaks[offset + 1];
                 const peakTime = i * peakDuration;
                 const timeDiff = peakTime - currentTime;
                 const x = (width / 2) + (timeDiff * pixelsPerSecond);
 
                 // Height scaling
-                const amplitude = Math.max(Math.abs(peak.min), Math.abs(peak.max));
+                const amplitude = Math.max(Math.abs(min), Math.abs(max));
                 const barHeight = amplitude * (h * 0.8); // 80% height max
 
                 // Color Logic
-                if (peak.isBass) {
+                // Note: isBass and lowSum was used in worker previously
+                const lowIntensity = peaks[offset + 3];
+                if (lowIntensity > 0.6) {
                     ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)'; // White for bass
                     ctx.shadowBlur = 0;
                 } else {
                     // Spectral coloring based on intensity?
                     // Or just standard color
-                    const alpha = Math.min(1, (peak.rms ?? 0.5) * 2 + 0.5);
+                    const alpha = Math.min(1, (peaks[offset + 2] ?? 0.5) * 2 + 0.5);
                     ctx.strokeStyle = `rgba(${baseColor}, ${alpha})`;
                     ctx.shadowBlur = 0;
                 }

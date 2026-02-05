@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 // WaveSurfer removed
 import { DetailWaveform } from "../mixer/DetailWaveform";
+import { SpectralWaveform } from "../mixer/SpectralWaveform";
 import {
   getAudioContext,
 } from "@/utils/audioContextManager";
@@ -689,7 +690,7 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
                 </div>
               )}
 
-              <DetailWaveform
+              <SpectralWaveform
                 buffer={audioBuffer}
                 currentTime={currentTime || 0}
                 zoom={waveformZoom}
@@ -698,7 +699,9 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
                 height={150}
                 showGrid={true}
                 onSeek={handleWaveformSeek}
-                audioElement={audioElement}
+                isPlaying={isPlaying}
+                onPlay={playPause}
+                onPause={playPause}
               />
 
               {/* Zoom Controls Overlay */}

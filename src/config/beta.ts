@@ -6,7 +6,8 @@
  */
 export const BETA_CONFIG = {
   // Set to true for private/invite-only mode, false for public launch
-  BETA_MODE_ENABLED: true,
+  // NOTE: Set to true AFTER running the SQL migration in Supabase
+  BETA_MODE_ENABLED: false,
 
   // Admin emails that bypass beta restrictions (always have access)
   ADMIN_EMAILS: [

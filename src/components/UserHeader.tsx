@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { LogOut, User as UserIcon, Shield, Trash2 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { LogOut, User as UserIcon, Shield, Trash2, Zap, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { ProfileModal } from '@/components/ProfileModal';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,70 +25,9 @@ interface UserHeaderProps {
 
 export const UserHeader = ({ onLogout }: UserHeaderProps) => {
   const navigate = useNavigate();
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { profile, isAdmin, isPremium, signOut } = useAuth();
   const [showProfile, setShowProfile] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-
-  useEffect(() => {
-    // Check for dev bypass
-    if (localStorage.getItem("dev_bypass") === "true") {
-      setUser({ email: "dev@local.test" });
-      setProfile({ full_name: "Dev User" });
-      setIsAdmin(true);
-      return;
-    }
-
-    // Get current session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setUser(session.user);
-        fetchProfile(session.user.id);
-        checkAdmin(session.user.id);
-      } else {
-        navigate('/auth');
-      }
-    });
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        setUser(session.user);
-        fetchProfile(session.user.id);
-        checkAdmin(session.user.id);
-      } else if (localStorage.getItem("dev_bypass") !== "true") {
-        navigate('/auth');
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  const fetchProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-
-    if (data) {
-      setProfile(data);
-    }
-  };
-
-  const checkAdmin = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId)
-      .eq('role', 'admin')
-      .single();
-
-    setIsAdmin(!!data);
-  };
 
   const handleLogout = async () => {
     try {
@@ -98,7 +38,7 @@ export const UserHeader = ({ onLogout }: UserHeaderProps) => {
       // Clear dev bypass flag
       localStorage.removeItem("dev_bypass");
 
-      await supabase.auth.signOut();
+      await signOut();
       toast.success('Signed out successfully');
       navigate('/auth');
     } catch (error: any) {
@@ -119,41 +59,61 @@ export const UserHeader = ({ onLogout }: UserHeaderProps) => {
       setShowDeleteDialog(false);
 
       // Sign out after requesting deletion
-      await supabase.auth.signOut();
+      await signOut();
       navigate('/auth');
     } catch (error: any) {
       toast.error('Error requesting account deletion: ' + error.message);
     }
   };
 
-  if (!user) {
+  if (!profile) {
     return null;
   }
 
-  const initials = profile?.full_name
-    ? profile.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase()
-    : user.email?.[0].toUpperCase() || 'U';
+  const initials = profile.full_name
+    ? (profile.full_name as string).split(' ').map((n: string) => n[0]).join('').toUpperCase()
+    : profile.email?.[0].toUpperCase() || 'U';
 
   return (
     <>
       <div className="flex items-center gap-4">
+        {!isPremium && (
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => setShowProfile(true)}
+            className="hidden sm:flex bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold h-9 px-4 rounded-full border-none shadow-[0_0_15px_rgba(59,130,246,0.3)] animate-pulse"
+          >
+            <Zap className="mr-2 h-4 w-4 fill-white" />
+            Go Pro
+          </Button>
+        )}
+
         <div className="text-right hidden md:block">
           <p className="text-sm font-medium text-cyan-300 brightness-125">
-            {profile?.full_name || user.email}
+            {profile.full_name || profile.email}
           </p>
-          {isAdmin && (
-            <p className="text-xs text-yellow-400 flex items-center gap-1 justify-end">
-              <Shield className="h-3 w-3" />
-              Admin
-            </p>
-          )}
+          <div className="flex items-center gap-2 justify-end">
+            {isAdmin && (
+              <p className="text-[10px] bg-yellow-400/10 text-yellow-400 px-1.5 py-0.5 rounded border border-yellow-400/30 flex items-center gap-1 font-bold">
+                <Shield className="h-2.5 w-2.5" />
+                ADMIN
+              </p>
+            )}
+            {isPremium && !isAdmin && (
+              <p className="text-[10px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded border border-blue-500/30 flex items-center gap-1 font-bold">
+                <Sparkles className="h-2.5 w-2.5" />
+                PREMIUM
+              </p>
+            )}
+          </div>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">
               <Avatar className="h-10 w-10 border-2 border-cyan-500">
                 <AvatarFallback className="bg-gradient-to-r from-cyan-500 to-purple-500 text-white font-bold">
-                  {initials}
+                  {profile.email?.[0].toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
             </Button>
@@ -167,7 +127,10 @@ export const UserHeader = ({ onLogout }: UserHeaderProps) => {
               <span>Profile</span>
             </DropdownMenuItem>
             {isAdmin && (
-              <DropdownMenuItem className="text-yellow-400 hover:bg-slate-800 cursor-pointer">
+              <DropdownMenuItem
+                onClick={() => navigate('/admin')}
+                className="text-yellow-400 hover:bg-slate-800 cursor-pointer"
+              >
                 <Shield className="mr-2 h-4 w-4" />
                 <span>Admin Panel</span>
               </DropdownMenuItem>
@@ -193,7 +156,6 @@ export const UserHeader = ({ onLogout }: UserHeaderProps) => {
       <ProfileModal
         open={showProfile}
         onOpenChange={setShowProfile}
-        user={user}
         profile={profile}
         isAdmin={isAdmin}
       />

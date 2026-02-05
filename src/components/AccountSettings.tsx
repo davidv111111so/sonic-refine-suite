@@ -26,21 +26,22 @@ export function AccountSettings() {
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
         throw new Error('No user found');
       }
 
       // Call edge function to delete all user data
       const { error: deleteError } = await supabase.functions.invoke('delete-account');
-      
+
       if (deleteError) throw deleteError;
 
       toast.success('Account and all data deleted successfully.');
       navigate('/auth');
 
-    } catch (error: any) {
-      toast.error(error.message || 'Error deleting account');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Error deleting account';
+      toast.error(message);
       setLoading(false);
     }
   };
@@ -56,11 +57,11 @@ export function AccountSettings() {
             <AlertTriangle className="h-6 w-6 text-red-500" />
             <h3 className="text-lg font-semibold text-red-400">Danger Zone</h3>
           </div>
-          
+
           <p className="text-sm text-slate-300 mb-4">
             Once you delete your account, there is no going back. This action cannot be undone.
           </p>
-          
+
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" className="w-full sm:w-auto">

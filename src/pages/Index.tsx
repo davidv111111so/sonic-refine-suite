@@ -11,7 +11,7 @@ import { LevelTabs } from '@/components/LevelTabs';
 import { IntroAnimation } from '@/components/IntroAnimation';
 import { useToast } from '@/hooks/use-toast';
 import { useFileManagement } from '@/hooks/useFileManagement';
-import { useAdvancedAudioProcessing } from '@/hooks/useAdvancedAudioProcessing';
+import { useWebWorkerAudioProcessing } from '@/hooks/useWebWorkerAudioProcessing';
 import { useEnhancementHistory } from '@/hooks/useEnhancementHistory';
 import { AudioFile, AudioStats } from '@/types/audio';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,7 +25,7 @@ import { SubscriptionModal } from '@/components/payment/SubscriptionModal';
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { profile, loading } = useAuth();
 
   const [showIntro, setShowIntro] = useState(() => {
     const introShown = sessionStorage.getItem('introShown');
@@ -60,7 +60,7 @@ const Index = () => {
     processAudioFile,
     isProcessing,
     setIsProcessing
-  } = useAdvancedAudioProcessing();
+  } = useWebWorkerAudioProcessing();
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -122,36 +122,42 @@ const Index = () => {
     };
     for (let i = 0; i < filesToProcess.length; i++) {
       const file = filesToProcess[i];
+      console.log(`Processing file ${i + 1}/${filesToProcess.length}: ${file.name}`);
+      console.log('Using settings:', enhancedSettings);
+
       setAudioFiles(prev => prev.map(f => f.id === file.id ? {
         ...f,
         status: 'processing' as const,
         progress: 0,
         processingStage: `Processing ${i + 1} of ${filesToProcess.length}...`
       } : f));
+
       try {
         if (i > 0) {
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
-        const defaultSettings: Record<string, any> = {
-          outputFormat: 'wav',
-          sampleRate: 44100,
-          bitDepth: 16,
-          ...enhancedSettings
+
+        // Ensure we respect the output format from settings, defaulting to wav
+        const outputFormat = (enhancedSettings as any).outputFormat || 'wav';
+
+        const processSettings = {
+          ...enhancedSettings,
+          outputFormat: outputFormat,
+          sampleRate: (enhancedSettings as any).sampleRate || 48000,
+          bitDepth: (enhancedSettings as any).bitDepth || 16
         };
-        const fileExtension = file.name.toLowerCase().split('.').pop();
-        if (fileExtension === 'mp3') {
-          defaultSettings.outputFormat = 'mp3';
-        }
-        const enhancedBlob = await processAudioFile(file, defaultSettings, (progress, stage) => {
+
+        const enhancedBlob = await processAudioFile(file, processSettings, (progress, stage) => {
           setAudioFiles(prev => prev.map(f => f.id === file.id ? {
             ...f,
             progress: Math.round(progress),
             processingStage: `${stage} (${i + 1}/${filesToProcess.length})`
           } : f));
         });
+
         const enhancedUrl = URL.createObjectURL(enhancedBlob);
-        const extension = defaultSettings.outputFormat || 'mp3';
-        const enhancedFilename = `${file.name.replace(/\.[^.]+$/, '')}_enhanced.${extension}`;
+        const actualExtension = outputFormat.toLowerCase();
+        const enhancedFilename = `${file.name.replace(/\.[^.]+$/, '')}_enhanced.${actualExtension}`;
         addToHistory({
           fileName: file.name,
           settings: enhancedSettings,
@@ -161,6 +167,8 @@ const Index = () => {
         });
         const enhancedFile = {
           ...file,
+          name: enhancedFilename,
+          size: enhancedBlob.size,
           status: 'enhanced' as const,
           progress: 100,
           processingStage: 'Enhancement complete - Downloaded!',
@@ -239,7 +247,8 @@ const Index = () => {
         const blob = await response.blob();
         // Default to wav as requested
         const extension = 'wav';
-        saveAs(blob, `enhanced_${file.name.replace(/\.[^.]+$/, '')}.${extension}`);
+        const fileName = file.name.includes('_enhanced') ? file.name : `enhanced_${file.name.replace(/\.[^.]+$/, '')}.${extension}`;
+        saveAs(blob, fileName);
       } catch (error) {
         console.error('Download error:', error);
         toast({
@@ -330,8 +339,8 @@ const Index = () => {
         if (file.enhancedUrl) {
           const response = await fetch(file.enhancedUrl);
           const blob = await response.blob();
-          const extension = file.enhancedUrl.includes('.mp3') ? 'mp3' : 'wav';
-          const fileName = `enhanced_${file.name.replace(/\.[^.]+$/, '')}.${extension}`;
+          const extension = file.name.split('.').pop() || 'wav';
+          const fileName = file.name.includes('_enhanced') ? file.name : `enhanced_${file.name.replace(/\.[^.]+$/, '')}.${extension}`;
           zip.file(fileName, blob);
         }
       }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,51 +81,14 @@ export default function Auth() {
       clearTimeout(removeTimer);
     };
   }, []);
+  const { profile, loading: authLoading } = useAuth();
+
   useEffect(() => {
-    // Admin email whitelist for local development
-    const ADMIN_EMAILS = ['davidv111111@gmail.com', 'santiagov.t068@gmail.com'];
-
-    // Check if user is already logged in
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session) {
-        const userEmail = session.user.email?.toLowerCase();
-
-        // Check if user is in admin whitelist
-        if (userEmail && ADMIN_EMAILS.includes(userEmail)) {
-          console.log(`✅ Admin access granted for: ${userEmail}`);
-          navigate("/");
-        } else {
-          // Not an admin - sign out
-          await supabase.auth.signOut();
-          toast.error("Access Restricted", {
-            description: "Access is limited to authorized admin users only.",
-          });
-        }
-      }
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session) {
-        const userEmail = session.user.email?.toLowerCase();
-
-        // Check if user is in admin whitelist
-        if (userEmail && ADMIN_EMAILS.includes(userEmail)) {
-          console.log(`✅ Admin access granted for: ${userEmail}`);
-          navigate("/");
-        } else {
-          // Not an admin - sign out and show error
-          await supabase.auth.signOut();
-          toast.error("Access Restricted", {
-            description: "Access is limited to authorized admin users only.",
-          });
-        }
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+    if (!authLoading && profile) {
+      console.log("🔍 User already logged in, redirecting to home");
+      navigate("/");
+    }
+  }, [profile, authLoading, navigate]);
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);

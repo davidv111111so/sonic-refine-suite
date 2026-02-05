@@ -23,9 +23,10 @@ export const DetailWaveform = ({ buffer, currentTime, zoom, setZoom, color, heig
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const workerRef = useRef<Worker | null>(null);
-    const [peaks, setPeaks] = useState<WaveformChunk[] | null>(null);
+    const [peaks, setPeaks] = useState<Float32Array | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
+    const [workerError, setWorkerError] = useState<string | null>(null);
 
     // Refs for Loop
     const currentTimeRef = useRef(currentTime);
@@ -38,45 +39,104 @@ export const DetailWaveform = ({ buffer, currentTime, zoom, setZoom, color, heig
     useEffect(() => { zoomRef.current = zoom; }, [zoom]);
     useEffect(() => { isDraggingRef.current = isDragging; }, [isDragging]);
 
-    // 1. Analyze Audio (Worker)
+    // Fallback: Inline peak extraction (no worker)
+    const extractPeaksInline = (audioBuffer: AudioBuffer, samplesPerPixel: number): Float32Array => {
+        const channelData = audioBuffer.getChannelData(0);
+        const totalSamples = channelData.length;
+        const numChunks = Math.ceil(totalSamples / samplesPerPixel);
+        const result = new Float32Array(numChunks * 5);
+
+        for (let i = 0; i < numChunks; i++) {
+            const start = i * samplesPerPixel;
+            const end = Math.min(start + samplesPerPixel, totalSamples);
+            let min = 0, max = 0;
+            let rmsSum = 0;
+            for (let j = start; j < end; j++) {
+                const val = channelData[j];
+                if (val < min) min = val;
+                if (val > max) max = val;
+                rmsSum += val * val;
+            }
+            const offset = i * 5;
+            result[offset] = min;
+            result[offset + 1] = max;
+            result[offset + 2] = Math.sqrt(rmsSum / (end - start));
+            result[offset + 3] = 0; // low (fallback)
+            result[offset + 4] = 0; // midHigh (fallback)
+        }
+        return result;
+    };
+
+    // 1. Analyze Audio (Worker with Fallback)
     useEffect(() => {
         if (!buffer) {
             setPeaks(null);
+            setWorkerError(null);
             return;
         }
 
         setIsAnalyzing(true);
+        setWorkerError(null);
 
-        // Initialize Worker
-        const worker = new Worker(new URL('../../workers/waveformAnalysis.worker.ts', import.meta.url), { type: 'module' });
+        // Try Worker first
+        try {
+            const worker = new Worker(new URL('../../workers/waveformAnalysis.worker.ts', import.meta.url), { type: 'module' });
 
-        worker.onerror = (err) => {
-            console.error("Waveform Worker Error:", err);
-            setIsAnalyzing(false);
-        };
-
-        workerRef.current = worker;
-
-        const channelData = buffer.getChannelData(0);
-        // Create a copy to transfer to worker
-        const transferBuffer = new Float32Array(channelData);
-
-        worker.postMessage({
-            channelData: transferBuffer,
-            sampleRate: buffer.sampleRate,
-            samplesPerPixel: 512 // Resolution
-        }, [transferBuffer.buffer]);
-
-        worker.onmessage = (e) => {
-            if (e.data.peaks) {
-                setPeaks(e.data.peaks);
+            worker.onerror = (err) => {
+                console.error("Waveform Worker Error:", err);
+                // Fallback to inline extraction
+                console.log("Using inline fallback for waveform...");
+                try {
+                    const fallbackPeaks = extractPeaksInline(buffer, 512);
+                    setPeaks(fallbackPeaks);
+                    setWorkerError(null);
+                } catch (e) {
+                    setWorkerError("Failed to analyze waveform");
+                }
                 setIsAnalyzing(false);
-            }
-        };
+            };
 
-        return () => {
-            worker.terminate();
-        };
+            workerRef.current = worker;
+
+            const channelData = buffer.getChannelData(0);
+            // Create a copy to transfer to worker
+            const transferBuffer = new Float32Array(channelData);
+
+            worker.postMessage({
+                channelData: transferBuffer,
+                sampleRate: buffer.sampleRate,
+                samplesPerPixel: 512 // Resolution
+            }, [transferBuffer.buffer]);
+
+            worker.onmessage = (e) => {
+                if (e.data.peaks) {
+                    setPeaks(e.data.peaks);
+                    setIsAnalyzing(false);
+                }
+            };
+
+            // Timeout fallback - if worker takes too long
+            const timeout = setTimeout(() => {
+                if (!peaks) {
+                    console.log("Worker timeout, using inline fallback...");
+                    worker.terminate();
+                    const fallbackPeaks = extractPeaksInline(buffer, 512);
+                    setPeaks(fallbackPeaks);
+                    setIsAnalyzing(false);
+                }
+            }, 5000);
+
+            return () => {
+                clearTimeout(timeout);
+                worker.terminate();
+            };
+        } catch (e) {
+            // Worker failed to initialize, use fallback immediately
+            console.error("Worker initialization failed, using fallback:", e);
+            const fallbackPeaks = extractPeaksInline(buffer, 512);
+            setPeaks(fallbackPeaks);
+            setIsAnalyzing(false);
+        }
     }, [buffer]);
 
     // 2. Rendering Loop
@@ -181,7 +241,7 @@ export const DetailWaveform = ({ buffer, currentTime, zoom, setZoom, color, heig
                 const startT = renderTime - halfWindow;
                 const endT = renderTime + halfWindow;
 
-                const totalPeaks = peaks.length;
+                const totalPeaks = peaks.length / 5;
                 const duration = buffer.duration;
 
                 if (duration > 0) {
@@ -194,10 +254,12 @@ export const DetailWaveform = ({ buffer, currentTime, zoom, setZoom, color, heig
 
                     ctx.beginPath();
                     for (let i = startIdx; i <= endIdx; i++) {
-                        const peak = peaks[i];
+                        const offset = i * 5;
+                        const min = peaks[offset];
+                        const max = peaks[offset + 1];
                         const x = (width / 2) + (((i * peakDuration) - renderTime) * currentZoom);
 
-                        const amplitude = Math.max(Math.abs(peak.min), Math.abs(peak.max));
+                        const amplitude = Math.max(Math.abs(min), Math.abs(max));
                         const barHeight = amplitude * (h * 0.8);
 
                         ctx.moveTo(x, center - barHeight / 2);
@@ -303,6 +365,12 @@ export const DetailWaveform = ({ buffer, currentTime, zoom, setZoom, color, heig
             {isAnalyzing && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-xs text-white font-mono pointer-events-none">
                     ANALYZING WAVEFORM...
+                </div>
+            )}
+
+            {workerError && (
+                <div className="absolute inset-0 flex items-center justify-center bg-red-900/50 text-xs text-white font-mono pointer-events-none">
+                    {workerError}
                 </div>
             )}
         </div>

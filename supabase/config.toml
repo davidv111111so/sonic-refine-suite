@@ -1,7 +1,7 @@
-project_id = "lyymcpiujrnlwsbyrseh"
+project_id = "nhulnikqfphofqpnmdba"
 
 [functions]
-enabled = true
+# No separate enabled key in newer CLI, it figures it out from directory
 
 [functions.generate-upload-url]
 verify_jwt = true
@@ -11,6 +11,9 @@ verify_jwt = true
 
 [functions.get-job-status]
 verify_jwt = true
+
+[functions.audio-proxy]
+verify_jwt = false
 
 [functions.delete-account]
 verify_jwt = true

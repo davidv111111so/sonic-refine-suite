@@ -12,3 +12,7 @@ supabase
 python-magic-bin
 demucs
 spleeter
+pydub
+torch
+torchvision
+torchaudio

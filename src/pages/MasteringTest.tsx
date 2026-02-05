@@ -7,9 +7,9 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export const MasteringTest = () => {
   const { user } = useAuth();
-  
+
   const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://mastering-backend-857351913435.us-central1.run.app';
-  
+
   const [healthStatus, setHealthStatus] = React.useState<'checking' | 'ok' | 'error'>('checking');
   const [healthData, setHealthData] = React.useState<any>(null);
 
@@ -49,7 +49,7 @@ export const MasteringTest = () => {
                 {healthStatus === 'error' && <XCircle className="w-5 h-5 text-red-500" />}
                 {healthStatus === 'checking' && <AlertCircle className="w-5 h-5 text-yellow-500 animate-spin" />}
               </h3>
-              
+
               <div className="bg-muted/50 p-4 rounded-lg">
                 <p className="text-sm font-mono mb-2">Backend URL:</p>
                 <code className="text-xs bg-background p-2 rounded block">{backendUrl}</code>
@@ -73,8 +73,8 @@ export const MasteringTest = () => {
             <div className="space-y-3">
               <h3 className="text-lg font-semibold">Test URLs (Admin Only)</h3>
               <div className="grid gap-2">
-                <a 
-                  href="/" 
+                <a
+                  href="/"
                   target="_blank"
                   className="flex items-center gap-2 p-3 bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors"
                 >

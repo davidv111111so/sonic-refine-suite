@@ -36,3 +36,11 @@ supabase/.temp/
 supabase/setup_new_project.sql
 supabase/migrations/*.zip
 supabase/migrations/*.sql
+
+# Large files and build outputs
+deploy-*/
+backend/venv/
+*.mp3
+*.wav
+*.flac
+temp_files/

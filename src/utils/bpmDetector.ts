@@ -14,58 +14,30 @@ export interface BPMAnalysis {
 
 /**
  * Detect BPM from an audio file
+ * Uses Web Audio API directly for fast analysis
  * @param file Audio file to analyze
  * @returns BPM analysis result
  */
 export async function detectBPMFromFile(file: File): Promise<BPMAnalysis> {
-  const formData = new FormData();
-  formData.append('file', file);
-
   try {
     const start = Date.now();
-    // Quick Auth Mock (Fallback to "dev-bypass-token" for development)
-    const token = localStorage.getItem('sb-access-token') || "dev-bypass-token";
 
-    // Try Backend First (Librosa is more accurate than web-audio-beat-detector)
-    const response = await fetch('http://localhost:8001/api/analyze-bpm', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      },
-      body: formData
-    });
+    // Use Web Audio directly for faster analysis
+    const audioContext = getAudioContext();
+    const arrayBuffer = await file.arrayBuffer();
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+    const tempo = await analyze(audioBuffer);
 
-    if (!response.ok) {
-      throw new Error(`Backend analysis failed: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    console.log(`✅ Backend BPM Detection: ${data.bpm} BPM (${Date.now() - start}ms)`);
+    console.log(`✅ BPM Detection: ${Math.round(tempo)} BPM (${Date.now() - start}ms)`);
 
     return {
-      bpm: data.bpm,
-      confidence: data.confidence,
+      bpm: Math.round(tempo),
+      confidence: 0.8,
       offset: 0
     };
-
   } catch (error) {
-    console.warn('⚠️ Backend BPM failed, falling back to Web Audio:', error);
-
-    // Fallback to local audio context method (Web Audio Beat Detector)
-    try {
-      const audioContext = getAudioContext();
-      const arrayBuffer = await file.arrayBuffer();
-      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-      const tempo = await analyze(audioBuffer);
-      return {
-        bpm: Math.round(tempo),
-        confidence: 0.6,
-        offset: 0
-      };
-    } catch (localError) {
-      console.error('❌ All BPM detection methods failed:', localError);
-      return { bpm: 120, confidence: 0, offset: 0 };
-    }
+    console.error('❌ BPM detection failed:', error);
+    return { bpm: 120, confidence: 0, offset: 0 }; // Fallback to 120 BPM
   }
 }
 

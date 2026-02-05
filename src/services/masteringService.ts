@@ -1,41 +1,24 @@
 import { supabase } from '@/integrations/supabase/client';
 import { MasteringSettingsData } from '@/components/ai-mastering/MasteringSettings';
 
-console.log("🚨 MASTERING SERVICE LOADED - v2.0 - PROXY DISABLED 🚨");
-
 export class MasteringService {
-  // DISABLED: Supabase proxy has 10MB limit, use direct backend instead
-  private useProxy = false;
-  private directBackendUrl = "https://sonic-refine-backend-azkp62xtaq-uc.a.run.app";
-  private localBackendUrl = "http://localhost:8001";
-  private isDev = window.location.hostname === 'localhost';
-
-  constructor() {
-    console.log("🔧 MasteringService initialized:", {
-      useProxy: this.useProxy,
-      isDev: this.isDev,
-      hostname: window.location.hostname,
-      willUse: this.isDev ? this.localBackendUrl : this.directBackendUrl
-    });
-  }
-
-  private getProxyUrl(endpoint: string): string {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://nhulnikqfphofqpnmdba.supabase.co";
-    return `${supabaseUrl}/functions/v1/audio-proxy?endpoint=${encodeURIComponent(endpoint)}`;
-  }
+  // Dynamic backend URL based on environment
+  // Dynamic backend URL based on environment
+  // We prioritize local proxy (empty string) when running on localhost to avoid CORS and production limits
+  private backendUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? ""
+    : (import.meta.env.VITE_PYTHON_BACKEND_URL || "https://sonic-refine-backend-azkp62xtaq-uc.a.run.app");
 
   /**
    * Get auth token from Supabase session
    */
   private async getAuthToken(): Promise<string> {
-    // For localhost development, always use dev bypass token
-    if (this.isDev) {
-      console.log("🔧 Using dev bypass token for localhost");
-      return "dev-bypass-token";
-    }
-
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) {
+      // For dev bypass mode, return a dummy token
+      if (localStorage.getItem("dev_bypass") === "true") {
+        return "dev-bypass-token";
+      }
       throw new Error('No authentication token available. Please log in.');
     }
 
@@ -68,19 +51,8 @@ export class MasteringService {
 
       if (onProgress) onProgress('Uploading files to backend...', 10);
 
-      // Use proxy, local backend (dev), or direct URL (production)
-      let url: string;
-      if (this.useProxy) {
-        url = this.getProxyUrl('/api/master-audio');
-      } else if (this.isDev) {
-        url = `${this.localBackendUrl}/api/master-audio`;
-      } else {
-        url = `${this.directBackendUrl}/api/master-audio`;
-      }
-
-      console.log('📤 Sending to:', url);
-
-      const response = await fetch(url, {
+      // Send to Python backend
+      const response = await fetch(`${this.backendUrl}/api/master-audio`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -128,19 +100,7 @@ export class MasteringService {
 
       console.log(`🔍 Analyzing audio: ${file.name} (${file.type}, ${file.size} bytes)`);
 
-      // Use proxy, local backend (dev), or direct URL (production)
-      let url: string;
-      if (this.useProxy) {
-        url = this.getProxyUrl('/api/analyze-audio');
-      } else if (this.isDev) {
-        url = `${this.localBackendUrl}/api/analyze-audio`;
-      } else {
-        url = `${this.directBackendUrl}/api/analyze-audio`;
-      }
-
-      console.log('📤 Sending to:', url);
-
-      const response = await fetch(url, {
+      const response = await fetch(`${this.backendUrl}/api/analyze-audio`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -182,18 +142,7 @@ export class MasteringService {
 
       if (onProgress) onProgress('Uploading file for separation...', 5);
 
-      let url: string;
-      if (this.useProxy) {
-        url = this.getProxyUrl('/api/separate-audio');
-      } else if (this.isDev) {
-        url = `${this.localBackendUrl}/api/separate-audio`;
-      } else {
-        url = `${this.directBackendUrl}/api/separate-audio`;
-      }
-
-      console.log('📤 Sending to:', url);
-
-      const response = await fetch(url, {
+      const response = await fetch(`${this.backendUrl}/api/separate-audio`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -220,16 +169,7 @@ export class MasteringService {
    */
   async getTaskStatus(taskId: string): Promise<any> {
     try {
-      let url: string;
-      if (this.useProxy) {
-        url = this.getProxyUrl(`/api/task-status/${taskId}`);
-      } else if (this.isDev) {
-        url = `${this.localBackendUrl}/api/task-status/${taskId}`;
-      } else {
-        url = `${this.directBackendUrl}/api/task-status/${taskId}`;
-      }
-
-      const response = await fetch(url);
+      const response = await fetch(`${this.backendUrl}/api/task-status/${taskId}`);
       if (!response.ok) {
         throw new Error(`Failed to get status (${response.status})`);
       }
@@ -245,16 +185,7 @@ export class MasteringService {
    */
   async getTaskResult(taskId: string): Promise<Blob> {
     try {
-      let url: string;
-      if (this.useProxy) {
-        url = this.getProxyUrl(`/api/task-result/${taskId}`);
-      } else if (this.isDev) {
-        url = `${this.localBackendUrl}/api/task-result/${taskId}`;
-      } else {
-        url = `${this.directBackendUrl}/api/task-result/${taskId}`;
-      }
-
-      const response = await fetch(url);
+      const response = await fetch(`${this.backendUrl}/api/task-result/${taskId}`);
       if (!response.ok) {
         throw new Error(`Failed to get result (${response.status})`);
       }

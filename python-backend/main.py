@@ -25,9 +25,6 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Configure max file upload size (500MB)
-app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB in bytes
-
 # Register payment webhook blueprint
 app.register_blueprint(payment_bp)
 
@@ -42,24 +39,25 @@ ALLOWED_ORIGINS = [
     "http://localhost:8081",
     "http://localhost:8085",
     "http://127.0.0.1:8080",
-    "http://localhost:5173",
-    "https://level-audio-app.netlify.app",
+    "https://*.lovable.app",
+    "https://*.lovableproject.com",
+    "https://7d506715-84dc-4abb-95cb-4ef4492a151b.lovableproject.com"
 ]
 
-# CORS Configuration - Allow all origins for development simplicity
 CORS(app, resources={
     r"/api/*": {
-        "origins": "*",  # Allow all origins for easier dev
-        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
-        "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
+        "origins": ALLOWED_ORIGINS,
+        "methods": ["POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
         "expose_headers": ["Content-Type", "Content-Length", "Content-Disposition", "X-Audio-Analysis"],
-        "supports_credentials": False  # Must be False when origins is *
+        "supports_credentials": True
     },
     r"/health": {
         "origins": "*",
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"],
-        "supports_credentials": False
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
+        "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
+        "expose_headers": ["Content-Type", "Content-Length", "Content-Disposition", "X-Audio-Analysis"],
+        "supports_credentials": False  # Changed to False to allow '*' origin
     }
 })
 
@@ -496,21 +494,13 @@ def separate_audio_endpoint():
     """Start audio separation task"""
     if request.method == 'OPTIONS':
         return '', 204
-    
-    # Debug logging
-    print(f"📩 /api/separate-audio called")
-    print(f"   Content-Type: {request.content_type}")
-    print(f"   Files: {list(request.files.keys())}")
-    print(f"   Form: {list(request.form.keys())}")
         
     # Verify Authentication
     user = verify_auth_token(request)
     if not user:
-        print("   ❌ Auth failed")
         return jsonify({"error": "Unauthorized"}), 401
         
     if 'file' not in request.files:
-        print("   ❌ No file in request")
         return jsonify({"error": "No file provided"}), 400
         
     file = request.files['file']
@@ -562,93 +552,6 @@ def separate_audio_endpoint():
         return jsonify({"error": str(e)}), 500
 
 
-
-@app.route('/api/analyze-bpm', methods=['POST', 'OPTIONS'])
-def analyze_bpm():
-    """Analyze BPM of an audio file using Librosa"""
-    if request.method == 'OPTIONS':
-        return '', 204
-    
-    # Debug logging
-    print(f"📩 /api/analyze-bpm called")
-    print(f"   Content-Type: {request.content_type}")
-    print(f"   Files: {list(request.files.keys())}")
-    
-    # Verify Authentication
-    user = verify_auth_token(request)
-    if not user:
-        print("   ❌ Auth failed")
-        return jsonify({"error": "Unauthorized"}), 401
-
-    if 'file' not in request.files:
-        print("   ❌ No file in request")
-        return jsonify({"error": "No file provided"}), 400
-    
-    file = request.files['file']
-    temp_path = None
-    wav_path = None
-    
-    try:
-        print(f"   📁 Processing file: {file.filename}")
-        
-        # Save to temp file
-        ext = os.path.splitext(file.filename)[1].lower()
-        if not ext: ext = '.wav' # Default
-        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
-        file.save(temp_file.name)
-        temp_file.close()
-        temp_path = temp_file.name
-        
-        # Convert to WAV if needed using pydub (more robust than librosa for weird formats)
-        file_to_analyze = temp_path
-        if ext.lower() not in ['.wav']:
-            try:
-                from pydub import AudioSegment
-                print(f"   🔄 Converting {ext} to WAV for analysis...")
-                audio = AudioSegment.from_file(temp_path)
-                wav_file = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
-                audio.export(wav_file.name, format='wav')
-                wav_file.close()
-                wav_path = wav_file.name
-                file_to_analyze = wav_path
-            except Exception as conv_err:
-                print(f"   ⚠️ Conversion failed, trying direct load: {conv_err}")
-        
-        # Load and analyze with Librosa
-        print(f"   🎵 Loading audio with librosa...")
-        y, sr = librosa.load(file_to_analyze, sr=22050, duration=60)  # Limit to 60s for speed
-        
-        # Estimate tempo
-        print(f"   🥁 Detecting BPM...")
-        tempo, beat_frames = librosa.beat.beat_track(y=y, sr=sr)
-        
-        # Tempo is usually a scalar, but can be array in older librosa
-        if hasattr(tempo, 'item'):
-             bpm = float(tempo.item())
-        else:
-             bpm = float(tempo)
-        
-        print(f"   ✅ BPM detected: {bpm}")
-             
-        return jsonify({
-            "bpm": round(bpm, 2),
-            "confidence": 0.9, 
-            "method": "librosa_beat_track"
-        })
-        
-    except Exception as e:
-        import traceback
-        print(f"❌ BPM Analysis error: {str(e)}")
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
-    finally:
-        # Cleanup
-        for path in [temp_path, wav_path]:
-            if path and os.path.exists(path):
-                try:
-                    os.unlink(path)
-                except:
-                    pass
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8001))

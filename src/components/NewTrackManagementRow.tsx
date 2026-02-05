@@ -107,24 +107,24 @@ export const NewTrackManagementRow = ({
     switch (status) {
       case 'uploaded':
         return <Badge className="bg-blue-600 text-white border-blue-500">
-            <Clock className="h-3 w-3 mr-1" />
-            Queue
-          </Badge>;
+          <Clock className="h-3 w-3 mr-1" />
+          Queue
+        </Badge>;
       case 'processing':
         return <Badge className="bg-orange-600 text-white border-orange-500">
-            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-            Processing
-          </Badge>;
+          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+          Processing
+        </Badge>;
       case 'enhanced':
         return <Badge className="bg-green-600 text-white border-green-500">
-            <CheckCircle className="h-3 w-3 mr-1" />
-            Ready
-          </Badge>;
+          <CheckCircle className="h-3 w-3 mr-1" />
+          Ready
+        </Badge>;
       case 'error':
         return <Badge className="bg-red-600 text-white border-red-500">
-            <AlertTriangle className="h-3 w-3 mr-1" />
-            Error
-          </Badge>;
+          <AlertTriangle className="h-3 w-3 mr-1" />
+          Error
+        </Badge>;
       default:
         return null;
     }
@@ -166,93 +166,93 @@ export const NewTrackManagementRow = ({
   };
   const audioUrl = file.originalFile ? URL.createObjectURL(file.originalFile) : file.enhancedUrl || '';
   return <div className="grid grid-cols-8 gap-4 p-4 bg-gradient-to-br from-slate-800/30 to-slate-900/50 border border-slate-600 rounded-lg hover:from-slate-700/40 hover:to-slate-800/60 transition-all duration-300">
-      {/* Song Name with Mini Player */}
-      <div className="col-span-2 flex flex-col min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-lg flex-shrink-0">{getFileTypeIcon(fileType)}</span>
-          <div className="flex-1 min-w-0 overflow-hidden">
-            <div className="bg-gradient-to-r from-cyan-200 via-blue-200 to-purple-200 bg-clip-text text-transparent font-bold break-words" style={{
+    {/* Song Name with Mini Player */}
+    <div className="col-span-2 flex flex-col min-w-0">
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-lg flex-shrink-0">{getFileTypeIcon(fileType)}</span>
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <div className="bg-gradient-to-r from-cyan-200 via-blue-200 to-purple-200 bg-clip-text text-transparent font-bold break-words" style={{
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
             wordBreak: 'break-word'
           }} title={file.name}>
-              {file.name}
-            </div>
+            {file.name}
           </div>
         </div>
-        
-        {/* Mini Player - No Seek Control */}
-        {audioUrl && <div className="flex items-center gap-2 mt-1">
-            <Button size="sm" variant="outline" onClick={togglePlayPause} className="h-7 w-7 p-0 border-slate-500 bg-zinc-950 hover:bg-zinc-800">
-              {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
-            </Button>
-            <audio ref={audioRef} src={audioUrl} preload="auto" />
-            <span className="text-xs font-medium text-orange-200">
-              {file.artist || 'Unknown Artist'}
-            </span>
-          </div>}
       </div>
 
-      {/* Key Analysis */}
-      <div className="flex flex-col justify-center">
-        <span className="text-xs mb-1 text-emerald-400">Key</span>
-        <Badge variant="outline" className="text-xs w-fit bg-purple-700/30 text-purple-200 border-purple-500/50">
-          {file.harmonicKey || 'N/A'}
-        </Badge>
-      </div>
-
-      {/* BPM Analysis */}
-      <div className="flex flex-col justify-center">
-        <span className="text-xs mb-1 text-emerald-400">BPM</span>
-        {file.bpm ? <Badge variant="outline" className="text-xs w-fit bg-cyan-700/30 text-cyan-200 border-cyan-500/50 font-mono">
-            {file.bpm}
-          </Badge> : <Badge variant="outline" className="text-xs w-fit bg-slate-700/30 text-slate-400 border-slate-500/50">
-            -
-          </Badge>}
-      </div>
-
-      {/* File Size */}
-      <div className="flex flex-col justify-center">
-        <span className="text-sm font-mono font-bold drop-shadow-lg text-amber-500">
-          {formatFileSize(file.size)}
+      {/* Mini Player - No Seek Control */}
+      {audioUrl && <div className="flex items-center gap-2 mt-1">
+        <Button size="sm" variant="outline" onClick={togglePlayPause} className="h-7 w-7 p-0 border-slate-500 bg-zinc-950 hover:bg-zinc-800">
+          {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+        </Button>
+        <audio ref={audioRef} src={audioUrl} preload="auto" />
+        <span className="text-xs font-medium text-orange-200">
+          {file.artist || 'Unknown Artist'}
         </span>
-      </div>
+      </div>}
+    </div>
 
-      {/* Status */}
-      <div className="flex flex-col justify-center">
-        {getStatusBadge(file.status)}
-        {file.progress !== undefined && file.status === 'processing' && <div className="mt-1 w-full bg-slate-700 rounded-full h-2">
-            <div className="bg-orange-500 h-2 rounded-full transition-all duration-300" style={{
+    {/* Key Analysis */}
+    <div className="flex flex-col justify-center">
+      <span className="text-xs mb-1 text-emerald-400">Key</span>
+      <Badge variant="outline" className="text-xs w-fit bg-purple-700/30 text-purple-200 border-purple-500/50">
+        {file.harmonicKey || 'N/A'}
+      </Badge>
+    </div>
+
+    {/* BPM Analysis */}
+    <div className="flex flex-col justify-center">
+      <span className="text-xs mb-1 text-emerald-400">BPM</span>
+      {file.bpm ? <Badge variant="outline" className="text-xs w-fit bg-cyan-700/30 text-cyan-200 border-cyan-500/50 font-mono">
+        {file.bpm}
+      </Badge> : <Badge variant="outline" className="text-xs w-fit bg-slate-700/30 text-slate-400 border-slate-500/50">
+        -
+      </Badge>}
+    </div>
+
+    {/* File Size */}
+    <div className="flex flex-col justify-center">
+      <span className="text-sm font-mono font-bold drop-shadow-lg text-amber-500">
+        {formatFileSize(file.size)}
+      </span>
+    </div>
+
+    {/* Status */}
+    <div className="flex flex-col justify-center">
+      {getStatusBadge(file.status)}
+      {file.progress !== undefined && file.status === 'processing' && <div className="mt-1 w-full bg-slate-700 rounded-full h-2">
+        <div className="bg-orange-500 h-2 rounded-full transition-all duration-300" style={{
           width: `${file.progress}%`
         }} />
-          </div>}
-      </div>
+      </div>}
+    </div>
 
-      {/* Conversion */}
-      <div className="flex flex-col justify-center gap-1">
-        {file.status === 'uploaded' ? <div className="flex flex-wrap gap-1">
-            {getConversionOptions().map(option => <Button key={option.format} variant="outline" size="sm" onClick={() => onConvert(file, option.format)} className="text-xs px-2 py-1 h-7 bg-slate-700 border-slate-500 hover:bg-slate-600 text-white" title={`Convert to ${option.label}`}>
-                <RefreshCw className="h-3 w-3 mr-1" />
-                {option.label}
-              </Button>)}
-          </div> : <Badge variant="outline" className="text-xs w-fit bg-green-700/30 text-green-200 border-green-500/50">
-            {processingSettings?.outputFormat?.toUpperCase() || 'WAV'}
-          </Badge>}
-      </div>
+    {/* Conversion */}
+    <div className="flex flex-col justify-center gap-1">
+      {file.status === 'uploaded' ? <div className="flex flex-wrap gap-1">
+        {getConversionOptions().map(option => <Button key={option.format} variant="outline" size="sm" onClick={() => onConvert(file, option.format)} className="text-xs px-2 py-1 h-7 bg-slate-700 border-slate-500 hover:bg-slate-600 text-white" title={`Convert to ${option.label}`}>
+          <RefreshCw className="h-3 w-3 mr-1" />
+          {option.label}
+        </Button>)}
+      </div> : <Badge variant="outline" className="text-xs w-fit bg-green-700/30 text-green-200 border-green-500/50">
+        {file.status === 'enhanced' ? fileType.toUpperCase() : (processingSettings?.outputFormat?.toUpperCase() || 'WAV')}
+      </Badge>}
+    </div>
 
-      {/* Actions */}
-      <div className="flex items-center gap-1 pr-2">
-        {onFileInfo && <Button variant="outline" size="sm" onClick={() => onFileInfo(file)} className="h-7 w-7 p-0 bg-slate-700 border-slate-500 hover:bg-slate-600 text-orange-400">
-            <Info className="h-3 w-3" />
-          </Button>}
-        <Button variant="outline" size="sm" disabled={file.status !== 'enhanced'} onClick={() => onDownload(file)} className="h-7 w-7 p-0 bg-green-700 border-green-500 hover:bg-green-600 text-white disabled:bg-slate-700 disabled:border-slate-500 disabled:text-slate-400">
-          <Download className="h-3 w-3" />
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => onRemove(file.id)} className="h-7 w-7 p-0 bg-red-700/50 border-red-500 hover:bg-red-600 text-red-200">
-          <X className="h-3 w-3" />
-        </Button>
-      </div>
-    </div>;
+    {/* Actions */}
+    <div className="flex items-center gap-1 pr-2">
+      {onFileInfo && <Button variant="outline" size="sm" onClick={() => onFileInfo(file)} className="h-7 w-7 p-0 bg-slate-700 border-slate-500 hover:bg-slate-600 text-orange-400">
+        <Info className="h-3 w-3" />
+      </Button>}
+      <Button variant="outline" size="sm" disabled={file.status !== 'enhanced'} onClick={() => onDownload(file)} className="h-7 w-7 p-0 bg-green-700 border-green-500 hover:bg-green-600 text-white disabled:bg-slate-700 disabled:border-slate-500 disabled:text-slate-400">
+        <Download className="h-3 w-3" />
+      </Button>
+      <Button variant="outline" size="sm" onClick={() => onRemove(file.id)} className="h-7 w-7 p-0 bg-red-700/50 border-red-500 hover:bg-red-600 text-red-200">
+        <X className="h-3 w-3" />
+      </Button>
+    </div>
+  </div>;
 };
