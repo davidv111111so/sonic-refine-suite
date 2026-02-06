@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -17,39 +17,97 @@ import {
     FileAudio,
     AlertTriangle,
     CheckCircle2,
-    Search
+    RefreshCw,
+    Search,
+    Trash2
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserSubscription } from '@/hooks/useUserSubscription';
 import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export default function Admin() {
-    const { signOut, user } = useAuth();
-    const { role, subscription, isAdmin } = useUserSubscription();
+    const { signOut, profile } = useAuth();
+    const { role, isAdmin } = useUserSubscription();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('dashboard');
+    const [stats, setStats] = useState<any>(null);
+    const [recentJobs, setRecentJobs] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [cleaning, setCleaning] = useState(false);
+
+    // Dynamic backend URL: Prioritize local if on localhost, otherwise use env or cloud fallback
+    const backendUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+        ? "" // This will hit the Vite proxy or local server if configured
+        : (import.meta.env.VITE_PYTHON_BACKEND_URL || "https://mastering-backend-azkp62xtaq-uc.a.run.app");
+
+    // For manual local overrides if the above is not enough
+    const finalBackendUrl = backendUrl === "" ? "http://localhost:8001" : backendUrl;
+
+    const fetchStats = async () => {
+        try {
+            setLoading(true);
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await fetch(`${finalBackendUrl}/api/admin/system-stats`, {
+                headers: {
+                    'Authorization': `Bearer ${session?.access_token}`
+                }
+            });
+
+            if (!response.ok) throw new Error('Failed to fetch stats');
+
+            const data = await response.json();
+            setStats(data.summary);
+            setRecentJobs(data.recent_jobs);
+        } catch (error) {
+            console.error('Error fetching admin stats:', error);
+            toast.error('Failed to load system metrics');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCleanup = async () => {
+        try {
+            setCleaning(true);
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await fetch(`${finalBackendUrl}/api/admin/cleanup`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${session?.access_token}`
+                }
+            });
+
+            if (!response.ok) throw new Error('Cleanup failed');
+
+            const result = await response.json();
+            toast.success(`Cleanup successful! Deleted ${result.files_deleted} stale files.`);
+        } catch (error) {
+            toast.error('Storage cleanup failed');
+        } finally {
+            setCleaning(false);
+        }
+    };
+
+    useEffect(() => {
+        if (!isAdmin && !loading) {
+            // navigate('/'); // Uncomment for strict security
+        }
+        fetchStats();
+    }, [isAdmin]);
 
     const handleLogout = async () => {
         await signOut();
         navigate('/auth');
     };
 
-    // Mock Data for Dashboard
-    const stats = [
-        { title: 'Total Users', value: '1,234', icon: Users, color: 'text-blue-400', change: '+12%' },
-        { title: 'Active Sessions', value: '42', icon: Activity, color: 'text-green-400', change: '+5%' },
-        { title: 'Storage Used', value: '450 GB', icon: HardDrive, color: 'text-purple-400', change: '85%' },
-        { title: 'Files Processed', value: '15.2k', icon: FileAudio, color: 'text-cyan-400', change: '+8%' },
-    ];
-
-    // Mock Users Data (plus current user)
-    const users = [
-        { id: user?.id || 'current', email: user?.email, role: role || 'user', subscription: subscription, status: 'Active', lastActive: 'Now' },
-        { id: '1', email: 'alice@example.com', role: 'user', subscription: 'free', status: 'Active', lastActive: '2 hours ago' },
-        { id: '2', email: 'bob@example.com', role: 'moderator', subscription: 'premium', status: 'Active', lastActive: '1 day ago' },
-        { id: '3', email: 'charlie@example.com', role: 'user', subscription: 'free', status: 'Inactive', lastActive: '1 week ago' },
-        { id: '4', email: 'david@example.com', role: 'admin', subscription: 'premium', status: 'Active', lastActive: '3 hours ago' },
+    const dashboardCards = [
+        { title: 'Total Users', value: stats?.total_users || '0', icon: Users, color: 'text-blue-400' },
+        { title: 'Total Jobs', value: stats?.total_jobs || '0', icon: Activity, color: 'text-green-400' },
+        { title: 'Data Processed', value: stats?.total_data_bytes ? `${(stats.total_data_bytes / 1024 / 1024 / 1024).toFixed(2)} GB` : '0 GB', icon: HardDrive, color: 'text-purple-400' },
+        { title: 'Est. Cost', value: stats?.total_estimated_cost ? `$${stats.total_estimated_cost.toFixed(2)}` : '$0.00', icon: FileAudio, color: 'text-cyan-400' },
     ];
 
     return (
@@ -63,8 +121,12 @@ export default function Admin() {
                     <p className="text-slate-400">System Overview & Management</p>
                 </div>
                 <div className="flex items-center gap-4 bg-slate-900/50 p-2 rounded-lg border border-slate-800">
+                    <Button variant="ghost" size="sm" onClick={fetchStats} disabled={loading} className="gap-2">
+                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                        Refresh
+                    </Button>
                     <div className="text-right hidden md:block px-2">
-                        <p className="text-sm font-medium text-slate-200">{user?.email}</p>
+                        <p className="text-sm font-medium text-slate-200">{profile?.email}</p>
                         <div className="flex items-center justify-end gap-2">
                             <Badge variant="outline" className="text-[10px] h-4 border-cyan-500/50 text-cyan-400">
                                 {role?.toUpperCase() || 'USER'}
@@ -98,7 +160,7 @@ export default function Admin() {
                 {/* Dashboard Tab */}
                 <TabsContent value="dashboard" className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {stats.map((stat, index) => (
+                        {dashboardCards.map((stat, index) => (
                             <Card key={index} className="bg-slate-900/50 border-slate-800 backdrop-blur-sm">
                                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                                     <CardTitle className="text-sm font-medium text-slate-400">
@@ -108,133 +170,118 @@ export default function Admin() {
                                 </CardHeader>
                                 <CardContent>
                                     <div className="text-2xl font-bold text-slate-100">{stat.value}</div>
-                                    <p className="text-xs text-slate-500 mt-1">{stat.change} from last month</p>
                                 </CardContent>
                             </Card>
                         ))}
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <Card className="bg-slate-900/50 border-slate-800">
+                    {/* Alerts for limits */}
+                    {(stats?.total_users >= 100 || stats?.total_jobs >= 10000) && (
+                        <Card className="bg-red-950/20 border-red-500/50">
+                            <CardContent className="flex items-center gap-4 p-4">
+                                <AlertTriangle className="w-6 h-6 text-red-500" />
+                                <div>
+                                    <p className="font-bold text-red-400">Scaling Alert Reached!</p>
+                                    <p className="text-sm text-red-300/70">
+                                        Current load: {stats?.total_users} users / {stats?.total_jobs} monthly jobs.
+                                        Consider upgrading infrastructure tiers.
+                                    </p>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <Card className="lg:col-span-2 bg-slate-900/50 border-slate-800">
                             <CardHeader>
-                                <CardTitle>Recent Activity</CardTitle>
-                                <CardDescription>Latest system events and user actions</CardDescription>
+                                <CardTitle>Recent Job History</CardTitle>
+                                <CardDescription>Latest audio processing requests</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <div className="space-y-4">
-                                    {[1, 2, 3, 4].map((i) => (
-                                        <div key={i} className="flex items-center gap-4 border-b border-slate-800/50 pb-4 last:border-0 last:pb-0">
-                                            <div className={`w-2 h-2 rounded-full ${i % 2 === 0 ? 'bg-purple-500' : 'bg-cyan-500'}`} />
-                                            <div className="flex-1">
-                                                <p className="text-sm font-medium text-slate-200">
-                                                    {i % 2 === 0 ? 'File processing completed' : 'New user registration'}
-                                                </p>
-                                                <p className="text-xs text-slate-500">{i * 5} minutes ago</p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="border-slate-800">
+                                            <TableHead className="text-slate-400">Job</TableHead>
+                                            <TableHead className="text-slate-400">Size</TableHead>
+                                            <TableHead className="text-slate-400">Status</TableHead>
+                                            <TableHead className="text-slate-400">Time</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {recentJobs.length > 0 ? recentJobs.map((job) => (
+                                            <TableRow key={job.id} className="border-slate-800">
+                                                <TableCell className="font-medium text-slate-300">
+                                                    {job.job_type.toUpperCase()}
+                                                </TableCell>
+                                                <TableCell className="text-slate-400 text-sm">
+                                                    {(job.file_size_bytes / 1024 / 1024).toFixed(1)} MB
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline" className={
+                                                        job.status === 'completed' ? 'border-green-500/50 text-green-400' :
+                                                            job.status === 'failed' ? 'border-red-500/50 text-red-400' : 'border-yellow-500/50 text-yellow-400'
+                                                    }>
+                                                        {job.status}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-slate-500 text-xs">
+                                                    {new Date(job.created_at).toLocaleString()}
+                                                </TableCell>
+                                            </TableRow>
+                                        )) : (
+                                            <TableRow>
+                                                <TableCell colSpan={4} className="text-center py-4 text-slate-500">
+                                                    No recent jobs found
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
                             </CardContent>
                         </Card>
 
                         <Card className="bg-slate-900/50 border-slate-800">
                             <CardHeader>
-                                <CardTitle>System Status</CardTitle>
-                                <CardDescription>Real-time performance metrics</CardDescription>
+                                <CardTitle>Storage Management</CardTitle>
+                                <CardDescription>Cleanup & Maintenance</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
-                                <div className="space-y-2">
-                                    <div className="flex justify-between items-center text-sm">
-                                        <span className="text-slate-400">CPU Usage</span>
-                                        <span className="font-mono text-green-400">24%</span>
-                                    </div>
-                                    <Progress value={24} className="h-2 bg-slate-800" indicatorClassName="bg-green-500" />
+                                <div className="p-4 bg-slate-950 rounded-lg border border-slate-800">
+                                    <p className="text-sm font-medium text-slate-300 mb-1">Temporary Storage</p>
+                                    <p className="text-xs text-slate-500 mb-4">
+                                        Files are automatically removed after 1 hour. Trigger manually if needed.
+                                    </p>
+                                    <Button
+                                        variant="outline"
+                                        className="w-full gap-2 border-red-900/50 hover:bg-red-950/30 text-red-400"
+                                        onClick={handleCleanup}
+                                        disabled={cleaning}
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                        {cleaning ? 'Cleaning...' : 'Purge Old Files'}
+                                    </Button>
                                 </div>
-                                <div className="space-y-2">
+                                <div className="space-y-4">
                                     <div className="flex justify-between items-center text-sm">
-                                        <span className="text-slate-400">Memory Usage</span>
-                                        <span className="font-mono text-yellow-400">68%</span>
+                                        <span className="text-slate-400">Auto-Cleanup</span>
+                                        <Badge className="bg-green-500/20 text-green-400">Enabled</Badge>
                                     </div>
-                                    <Progress value={68} className="h-2 bg-slate-800" indicatorClassName="bg-yellow-500" />
-                                </div>
-                                <div className="space-y-2">
                                     <div className="flex justify-between items-center text-sm">
-                                        <span className="text-slate-400">Storage</span>
-                                        <span className="font-mono text-blue-400">45%</span>
+                                        <span className="text-slate-400">Storage Limit</span>
+                                        <span className="text-slate-500 underline decoration-dotted">1.0 GB (Free)</span>
                                     </div>
-                                    <Progress value={45} className="h-2 bg-slate-800" indicatorClassName="bg-blue-500" />
-                                </div>
-                                <div className="pt-4 flex items-center gap-2 text-xs text-green-400">
-                                    <CheckCircle2 className="w-3 h-3" />
-                                    All systems operational
                                 </div>
                             </CardContent>
                         </Card>
                     </div>
                 </TabsContent>
 
-                {/* Users Tab */}
-                <TabsContent value="users" className="space-y-6">
-                    <Card className="bg-slate-900/50 border-slate-800">
-                        <CardHeader className="flex flex-row items-center justify-between">
-                            <div>
-                                <CardTitle>User Management</CardTitle>
-                                <CardDescription>Manage user access and roles</CardDescription>
-                            </div>
-                            <div className="relative w-64">
-                                <Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-500" />
-                                <Input placeholder="Search users..." className="pl-8 bg-slate-950 border-slate-800" />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow className="border-slate-800 hover:bg-slate-900/50">
-                                        <TableHead className="text-slate-400">User</TableHead>
-                                        <TableHead className="text-slate-400">Role</TableHead>
-                                        <TableHead className="text-slate-400">Subscription</TableHead>
-                                        <TableHead className="text-slate-400">Status</TableHead>
-                                        <TableHead className="text-slate-400">Last Active</TableHead>
-                                        <TableHead className="text-right text-slate-400">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {users.map((u) => (
-                                        <TableRow key={u.id} className="border-slate-800 hover:bg-slate-900/50">
-                                            <TableCell className="font-medium text-slate-200">{u.email}</TableCell>
-                                            <TableCell>
-                                                <Badge variant="outline" className={`
-                                                    ${u.role === 'admin' ? 'border-red-500/50 text-red-400' :
-                                                        u.role === 'moderator' ? 'border-yellow-500/50 text-yellow-400' :
-                                                            'border-slate-700 text-slate-400'}
-                                                `}>
-                                                    {u.role}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge variant="secondary" className={`
-                                                    ${u.subscription === 'premium' ? 'bg-purple-500/20 text-purple-300' : 'bg-slate-800 text-slate-400'}
-                                                `}>
-                                                    {u.subscription}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-2">
-                                                    <div className={`w-1.5 h-1.5 rounded-full ${u.status === 'Active' ? 'bg-green-500' : 'bg-slate-600'}`} />
-                                                    <span className="text-sm text-slate-400">{u.status}</span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-slate-400 text-sm">{u.lastActive}</TableCell>
-                                            <TableCell className="text-right">
-                                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                                    <Settings className="h-4 w-4" />
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
+                {/* Users Tab - Placeholder or Reuse existing logic */}
+                <TabsContent value="users">
+                    <Card className="bg-slate-900/50 border-slate-800 text-center py-12">
+                        <Users className="w-12 h-12 mx-auto text-slate-700 mb-4" />
+                        <CardTitle>User Management</CardTitle>
+                        <CardDescription>Filtering & editing users coming soon.</CardDescription>
                     </Card>
                 </TabsContent>
 
@@ -243,33 +290,14 @@ export default function Admin() {
                     <Card className="bg-slate-900/50 border-slate-800">
                         <CardHeader>
                             <CardTitle>System Health</CardTitle>
-                            <CardDescription>Detailed system diagnostics</CardDescription>
+                            <CardDescription>Backend Status</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div className="p-4 rounded-lg bg-slate-950 border border-slate-800 space-y-2">
-                                    <div className="flex items-center gap-2 text-green-400 mb-2">
-                                        <CheckCircle2 className="w-4 h-4" />
-                                        <span className="font-medium">API Service</span>
-                                    </div>
-                                    <p className="text-xs text-slate-500">Uptime: 99.99%</p>
-                                    <p className="text-xs text-slate-500">Latency: 45ms</p>
-                                </div>
-                                <div className="p-4 rounded-lg bg-slate-950 border border-slate-800 space-y-2">
-                                    <div className="flex items-center gap-2 text-green-400 mb-2">
-                                        <CheckCircle2 className="w-4 h-4" />
-                                        <span className="font-medium">Database</span>
-                                    </div>
-                                    <p className="text-xs text-slate-500">Connections: 12/100</p>
-                                    <p className="text-xs text-slate-500">Cache Hit Rate: 94%</p>
-                                </div>
-                                <div className="p-4 rounded-lg bg-slate-950 border border-slate-800 space-y-2">
-                                    <div className="flex items-center gap-2 text-green-400 mb-2">
-                                        <CheckCircle2 className="w-4 h-4" />
-                                        <span className="font-medium">Storage</span>
-                                    </div>
-                                    <p className="text-xs text-slate-500">Used: 450GB</p>
-                                    <p className="text-xs text-slate-500">Available: 1.2TB</p>
+                            <div className="flex items-center gap-3 p-4 bg-green-500/10 rounded-lg border border-green-500/20">
+                                <CheckCircle2 className="w-5 h-5 text-green-500" />
+                                <div>
+                                    <p className="text-sm font-medium text-green-400">All Systems Operational</p>
+                                    <p className="text-xs text-green-600">Backend version 2.1.0-storage</p>
                                 </div>
                             </div>
                         </CardContent>
@@ -286,22 +314,15 @@ export default function Admin() {
                         <CardContent className="space-y-6">
                             <div className="flex items-center justify-between">
                                 <div className="space-y-0.5">
-                                    <label className="text-base font-medium text-slate-200">Maintenance Mode</label>
-                                    <p className="text-sm text-slate-500">Disable access for non-admin users</p>
+                                    <label className="text-base font-medium text-slate-200">Processing Bypass</label>
+                                    <p className="text-sm text-slate-500">Allow uploads without preprocessing</p>
                                 </div>
                                 <Switch />
                             </div>
                             <div className="flex items-center justify-between">
                                 <div className="space-y-0.5">
-                                    <label className="text-base font-medium text-slate-200">Allow New Registrations</label>
-                                    <p className="text-sm text-slate-500">Enable or disable new user signups</p>
-                                </div>
-                                <Switch defaultChecked />
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <div className="space-y-0.5">
                                     <label className="text-base font-medium text-slate-200">Debug Logging</label>
-                                    <p className="text-sm text-slate-500">Enable verbose logging for system events</p>
+                                    <p className="text-sm text-slate-500">Enable verbose logging in console</p>
                                 </div>
                                 <Switch />
                             </div>

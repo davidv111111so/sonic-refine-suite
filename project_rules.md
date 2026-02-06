@@ -48,8 +48,9 @@
 ### Core Philosophy
 - **Investigate & Review Options**: Thoroughly investigate issues and review all available options (including external research and internal code review) before taking action. Never guess.
 - **Take the Best Approach**: After reviewing options, choose the most robust, scalable, and elegant solution. Prioritize long-term code health over quick hacks.
-- **Refactor when Required**: If the existing code is brittle, messy, or does not meet modern standards, refactor it before or during the implementation of new features.
-- **Fix All Errors**: Proactively identify and fix all errors, including linting issues, console warnings, and logical bugs, even if they aren't the primary focus of the task.
+- **Refactor when Required**: If the existing code is brittle, messy, or does not meet modern standards, refactor it before or during the implementation of new features. Optimize for readability and performance.
+- **Fix All Errors**: Proactively identify and fix all errors, including linting issues, console warnings, and logical bugs, even if they aren't the primary focus of the task. A clean console is a healthy app.
+- **Automate Deployment Checks**: Always verify backend health and frontend builds after making significant infrastructure changes.
 
 ### Workflow
 - **Verify First**: Before marking a task as complete, verify the implementation by reading the file or running the code.
@@ -74,6 +75,11 @@
 - **Flexible Containers**: Use `flex-1` and `min-h-0` for main content areas to ensure they take up available space without overflowing.
 - **Scrollable Areas**: Explicitly define scrollable areas with `overflow-y-auto` and constrained heights (e.g., `h-[300px]` or `flex-1`).
 
+
+### Network & API Rules
+- **Avoid 413 Errors**: Direct file uploads to the backend should be avoided for files larger than 20MB. Use cloud storage (Supabase/Firebase) as an intermediary.
+- **CORS Management**: Never manually handle `OPTIONS` requests if using a CORS middleware (like `Flask-CORS`). Let the middleware handle preflight.
+- **Robust Retries**: Implement exponential backoff for network requests that are prone to intermittent failure.
 
 ### Mixer Lab Rules (Strict)
 1.  **Tempo Master Logic**:

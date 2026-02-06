@@ -15,14 +15,58 @@ export class MasteringService {
   private async getAuthToken(): Promise<string> {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) {
-      // For dev bypass mode, return a dummy token
       if (localStorage.getItem("dev_bypass") === "true") {
         return "dev-bypass-token";
       }
       throw new Error('No authentication token available. Please log in.');
     }
-
     return session.access_token;
+  }
+
+  /**
+   * Upload file to Supabase Storage and get a public/signed URL
+   */
+  private async uploadToProcessingBucket(file: File, folder: string = 'uploads'): Promise<string> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user && localStorage.getItem("dev_bypass") !== "true") {
+        throw new Error('Authenticated user required for upload');
+      }
+
+      const userId = user?.id || 'dev-user';
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+      const filePath = `${userId}/${folder}/${fileName}`;
+
+      console.log(`☁️ Uploading ${file.name} to storage: ${filePath}`);
+
+      const { data, error } = await supabase.storage
+        .from('audio-processing')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        if (error.message.includes('bucket not found')) {
+          console.error("❌ Bucket 'audio-processing' not found. Please create it in Supabase dashboard.");
+          throw new Error("Storage bucket 'audio-processing' does not exist. Contact administrator.");
+        }
+        throw error;
+      }
+
+      // Get public URL (assuming the bucket is public or we use signed URLs)
+      // For simplicity in this step, we use getPublicUrl. 
+      // If private, we would need createSignedUrl
+      const { data: { publicUrl } } = supabase.storage
+        .from('audio-processing')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('❌ Storage upload error:', error);
+      throw error;
+    }
   }
 
   /**
@@ -39,25 +83,26 @@ export class MasteringService {
 
       const authToken = await this.getAuthToken();
 
-      // Create FormData with both files
-      const formData = new FormData();
-      formData.append('target', targetFile);
-      formData.append('reference', referenceFile);
+      if (onProgress) onProgress('Uploading target file to secure storage...', 10);
+      const targetUrl = await this.uploadToProcessingBucket(targetFile, 'mastering/target');
 
-      // Add settings if provided
-      if (settings) {
-        formData.append('settings', JSON.stringify(settings));
-      }
+      if (onProgress) onProgress('Uploading reference file to secure storage...', 25);
+      const referenceUrl = await this.uploadToProcessingBucket(referenceFile, 'mastering/reference');
 
-      if (onProgress) onProgress('Uploading files to backend...', 10);
+      if (onProgress) onProgress('Processing with AI Backend...', 40);
 
-      // Send to Python backend
+      // Send URLs to Python backend
       const response = await fetch(`${this.backendUrl}/api/master-audio`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
         },
-        body: formData
+        body: JSON.stringify({
+          target_url: targetUrl,
+          reference_url: referenceUrl,
+          settings: settings
+        })
       });
 
       if (!response.ok) {
@@ -95,17 +140,17 @@ export class MasteringService {
   async analyzeAudio(file: File): Promise<any> {
     try {
       const token = await this.getAuthToken();
-      const formData = new FormData();
-      formData.append('file', file);
 
-      console.log(`🔍 Analyzing audio: ${file.name} (${file.type}, ${file.size} bytes)`);
+      console.log(`🔍 Analyzing audio: ${file.name} (Directing via storage)`);
+      const fileUrl = await this.uploadToProcessingBucket(file, 'analysis');
 
       const response = await fetch(`${this.backendUrl}/api/analyze-audio`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
-        body: formData,
+        body: JSON.stringify({ file_url: fileUrl }),
       });
 
       if (!response.ok) {
@@ -132,22 +177,26 @@ export class MasteringService {
     onProgress?: (stage: string, percent: number) => void
   ): Promise<{ task_id: string }> {
     try {
-      console.log('🚀 Starting stem separation...');
+      console.log('🚀 Starting stem separation via storage...');
       const token = await this.getAuthToken();
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('stem_count', stemCount);
-      formData.append('library', 'demucs');
-      formData.append('model_name', stemCount === '6' ? 'htdemucs_6s' : 'htdemucs');
 
       if (onProgress) onProgress('Uploading file for separation...', 5);
+      const fileUrl = await this.uploadToProcessingBucket(file, 'stems');
+
+      if (onProgress) onProgress('Queueing separation task...', 20);
 
       const response = await fetch(`${this.backendUrl}/api/separate-audio`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
-        body: formData,
+        body: JSON.stringify({
+          file_url: fileUrl,
+          stem_count: stemCount,
+          library: 'demucs',
+          model_name: stemCount === '6' ? 'htdemucs_6s' : 'htdemucs'
+        }),
       });
 
       if (!response.ok) {

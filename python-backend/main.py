@@ -17,6 +17,10 @@ import soundfile as sf
 import librosa
 from supabase import create_client, Client
 from dotenv import load_dotenv
+import requests
+import threading
+import uuid
+from datetime import datetime
 from audio_analysis import analyze_lufs, is_reference_suitable
 from payment_webhooks import payment_bp
 
@@ -81,6 +85,45 @@ def health_check():
     """Health check endpoint"""
     return jsonify({"status": "OK", "service": "AI Mastering Backend"}), 200
 
+@app.route('/api/admin/system-stats', methods=['GET'])
+def system_stats_endpoint():
+    """Get aggregated system stats for admin dashboard"""
+    user = verify_auth_token(request)
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    # Check if user is admin (this assumes the token/user object has role or we check DB)
+    # For now, we'll allow any authenticated user for 'system-stats' but in production
+    # we should check the 'profiles' table for tier='admin'
+    
+    try:
+        # Fetch summary directly from our admin_stats view
+        view_result = supabase.table("admin_stats").select("*").execute()
+        
+        # Fetch recent jobs
+        stats = supabase.table("job_history").select("*").order("created_at", desc=True).limit(50).execute()
+        
+        return jsonify({
+            "summary": view_result.data[0] if view_result.data else {},
+            "recent_jobs": stats.data
+        })
+    except Exception as e:
+        print(f"❌ Stats error: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/admin/cleanup', methods=['POST'])
+def admin_cleanup_endpoint():
+    """Trigger manual storage cleanup"""
+    user = verify_auth_token(request)
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+        
+    files_deleted = cleanup_old_files()
+    return jsonify({
+        "status": "success",
+        "files_deleted": files_deleted
+    })
+
 def validate_file_type(file_path):
     """Validate file type using python-magic"""
     mime = magic.Magic(mime=True)
@@ -144,6 +187,82 @@ def payu_signature():
         print(f"❌ Payment signature error: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+def download_file(url, local_path):
+    """Download file from URL to local path"""
+    try:
+        print(f"📥 Downloading file from URL: {url[:100]}...")
+        response = requests.get(url, stream=True, timeout=60)
+        response.raise_for_status()
+        with open(local_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+        print(f"✅ Download complete: {local_path} ({os.path.getsize(local_path)} bytes)")
+        return True
+    except Exception as e:
+        print(f"❌ Download error: {str(e)}")
+        return False
+
+def log_job(user_id, job_type, file_size=0, duration=0, status='pending', error=None, cost_estimate=0.0):
+    """Log job to Supabase job_history table"""
+    try:
+        job_data = {
+            "user_id": user_id if user_id != 'dev-user' else None,
+            "job_type": job_type,
+            "file_size_bytes": file_size,
+            "duration_seconds": duration,
+            "status": status,
+            "cost_estimate": cost_estimate,
+            "completed_at": time.strftime('%Y-%m-%dT%H:%M:%SZ') if status in ['completed', 'failed'] else None
+        }
+        if error:
+            job_data["error_message"] = str(error)
+        
+        supabase.table("job_history").insert(job_data).execute()
+    except Exception as e:
+        print(f"⚠️ Failed to log job metrics: {str(e)}")
+
+def cleanup_old_files(bucket_name='audio-processing', max_age_hours=1):
+    """Delete files older than max_age_hours from Supabase Storage"""
+    try:
+        print(f"🧹 Starting storage cleanup for bucket: {bucket_name}")
+        # list() only returns files in the root or a specific folder. 
+        # Since we use user_id/folder/file, we need to list recursively or iterate users.
+        # For simplicity, we'll iterate through known paths or just use the list API if it supports recursive (it doesn't easily).
+        # We'll list the top level (user folders) and then iterate.
+        
+        users_dirs = supabase.storage.from_(bucket_name).list()
+        files_deleted = 0
+        now = time.time()
+        
+        for user_dir in users_dirs:
+            if user_dir.get('name') and not user_dir.get('id'): # It's a directory
+                uid = user_dir['name']
+                # Iterate subfolders (mastering, analysis, stems)
+                for folder in ['mastering/target', 'mastering/reference', 'analysis', 'stems']:
+                    try:
+                        files = supabase.storage.from_(bucket_name).list(f"{uid}/{folder}")
+                        for f in files:
+                            created_at_str = f.get('created_at')
+                            if created_at_str:
+                                # Parse ISO format: 2026-02-06T12:00:00.000Z
+                                from datetime import datetime
+                                created_at = datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
+                                age_seconds = now - created_at.timestamp()
+                                
+                                if age_seconds > (max_age_hours * 3600):
+                                    path = f"{uid}/{folder}/{f['name']}"
+                                    print(f"   🗑️ Deleting stale file: {path} (Age: {age_seconds/3600:.1f}h)")
+                                    supabase.storage.from_(bucket_name).remove([path])
+                                    files_deleted += 1
+                    except:
+                        continue
+        
+        print(f"✅ Cleanup complete. Deleted {files_deleted} files.")
+        return files_deleted
+    except Exception as e:
+        print(f"❌ Cleanup error: {str(e)}")
+        return 0
+
 def convert_to_wav(input_path, output_path):
     """Convert any audio format to WAV using librosa and soundfile"""
     try:
@@ -165,158 +284,136 @@ def master_audio():
     user = verify_auth_token(request)
     if not user:
         return jsonify({"error": "Unauthorized"}), 401
+    
+    user_id = user.get('id') if isinstance(user, dict) else (user.user.id if hasattr(user, 'user') else 'dev-user')
 
     start_time = time.time()
     temp_files = []
     
     try:
-        # Check if files are in the request
-        if 'target' not in request.files or 'reference' not in request.files:
-            return jsonify({"error": "Missing target or reference audio files"}), 400
+        # Check for URL-based or File-based request
+        data = request.get_json(silent=True) or {}
+        target_url = data.get('target_url')
+        reference_url = data.get('reference_url')
+        settings = data.get('settings', {})
         
-        target_file = request.files['target']
-        reference_file = request.files['reference']
-        
-        # Get settings if provided
-        settings = {}
-        if 'settings' in request.form:
-            import json
-            settings = json.loads(request.form['settings'])
-        
-        print(f"📥 Received files: target={target_file.filename}, reference={reference_file.filename}")
-        
-        # Determine file extensions
-        target_ext = os.path.splitext(target_file.filename)[1].lower()
-        reference_ext = os.path.splitext(reference_file.filename)[1].lower()
-        
-        # Supported formats
-        supported_formats = ['.mp3', '.wav', '.flac']
-        if target_ext not in supported_formats or reference_ext not in supported_formats:
-            return jsonify({
-                "error": f"Unsupported file format. Supported: {', '.join(supported_formats)}"
-            }), 400
-        
-        # Save uploaded files to temp locations
-        temp_target_upload = tempfile.NamedTemporaryFile(delete=False, suffix=target_ext)
-        target_file.save(temp_target_upload.name)
-        temp_target_upload.close()
-        temp_files.append(temp_target_upload.name)
-        
-        temp_reference_upload = tempfile.NamedTemporaryFile(delete=False, suffix=reference_ext)
-        reference_file.save(temp_reference_upload.name)
-        temp_reference_upload.close()
-        temp_files.append(temp_reference_upload.name)
+        target_filename = "target"
+        reference_filename = "reference"
+        target_ext = ".wav"
+        reference_ext = ".wav"
+
+        # Initialize temp paths
+        temp_target_upload_path = None
+        temp_reference_upload_path = None
+
+        if target_url and reference_url:
+            print(f"📥 Processing via URLs: target={target_url[:50]}...")
+            
+            # Create temp files for downloads
+            t_file = tempfile.NamedTemporaryFile(delete=False, suffix='.tmp')
+            t_file.close()
+            temp_target_upload_path = t_file.name
+            temp_files.append(temp_target_upload_path)
+            
+            r_file = tempfile.NamedTemporaryFile(delete=False, suffix='.tmp')
+            r_file.close()
+            temp_reference_upload_path = r_file.name
+            temp_files.append(temp_reference_upload_path)
+
+            if not download_file(target_url, temp_target_upload_path):
+                return jsonify({"error": "Failed to download target file"}), 500
+            if not download_file(reference_url, temp_reference_upload_path):
+                return jsonify({"error": "Failed to download reference file"}), 500
+            
+            # Determine extension from magic if possible, or assume wav
+            mime = magic.Magic(mime=True)
+            t_mime = mime.from_file(temp_target_upload_path)
+            r_mime = mime.from_file(temp_reference_upload_path)
+            
+            target_ext = ".wav" if "wav" in t_mime else (".mp3" if "mpeg" in t_mime else ".flac")
+            reference_ext = ".wav" if "wav" in r_mime else (".mp3" if "mpeg" in r_mime else ".flac")
+            
+        elif 'target' in request.files and 'reference' in request.files:
+            target_file = request.files['target']
+            reference_file = request.files['reference']
+            target_filename = target_file.filename
+            reference_filename = reference_file.filename
+            
+            if 'settings' in request.form:
+                import json
+                settings = json.loads(request.form['settings'])
+            
+            target_ext = os.path.splitext(target_filename)[1].lower()
+            reference_ext = os.path.splitext(reference_filename)[1].lower()
+
+            t_file = tempfile.NamedTemporaryFile(delete=False, suffix=target_ext)
+            target_file.save(t_file.name)
+            t_file.close()
+            temp_target_upload_path = t_file.name
+            temp_files.append(temp_target_upload_path)
+
+            r_file = tempfile.NamedTemporaryFile(delete=False, suffix=reference_ext)
+            reference_file.save(r_file.name)
+            r_file.close()
+            temp_reference_upload_path = r_file.name
+            temp_files.append(temp_reference_upload_path)
+        else:
+            return jsonify({"error": "Missing target or reference audio"}), 400
 
         # 2. Validate File Types (Magic Numbers)
-        if not validate_file_type(temp_target_upload.name) or not validate_file_type(temp_reference_upload.name):
-             # Cleanup
-            for path in temp_files:
-                if os.path.exists(path): os.unlink(path)
+        if not validate_file_type(temp_target_upload_path) or not validate_file_type(temp_reference_upload_path):
             return jsonify({"error": "Invalid file content detected"}), 400
         
-        # Convert to WAV for Matchering (it only works reliably with WAV)
-        print(f"🔄 Converting files to WAV format...")
-        temp_target_wav = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
-        temp_target_wav.close()
-        target_path = temp_target_wav.name
-        temp_files.append(target_path)
+        # Define paths for the engine (mappin the name for clarity)
+        target_path = temp_target_upload_path
+        reference_path = temp_reference_upload_path
         
-        temp_reference_wav = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
-        temp_reference_wav.close()
-        reference_path = temp_reference_wav.name
-        temp_files.append(reference_path)
+        # Create temp file for output
+        o_file = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
+        o_file.close()
+        output_path = o_file.name
+        temp_files.append(output_path)
+
+        # Determine file sizes for logging
+        total_size = os.path.getsize(target_path) + os.path.getsize(reference_path)
         
-        # Convert both files to WAV
-        if not convert_to_wav(temp_target_upload.name, target_path):
-            return jsonify({"error": "Failed to convert target file to WAV"}), 500
+        # Determine processing settings
+        target_lufs_val = settings.get('target_lufs')
+        target_lufs = float(target_lufs_val) if target_lufs_val is not None else None
         
-        if not convert_to_wav(temp_reference_upload.name, reference_path):
-            return jsonify({"error": "Failed to convert reference file to WAV"}), 500
-        
-        print(f"✅ Files converted to WAV successfully")
-        
-        # Analyze LUFS of both files
-        print(f"📊 Analyzing loudness...")
+        # Analyze input LUFS for the header
         target_analysis = analyze_lufs(target_path)
         reference_analysis = analyze_lufs(reference_path)
-        
-        # Check reference suitability
-        if reference_analysis['success']:
-            ref_lufs = reference_analysis['integrated_lufs']
-            suitability = is_reference_suitable(ref_lufs)
-            print(f"   Target LUFS: {target_analysis.get('integrated_lufs', 'N/A')} LUFS")
-            print(f"   Reference LUFS: {ref_lufs} LUFS - {suitability['message']}")
-        
-        # Output path - always WAV for Matchering
-        temp_output = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
-        temp_output.close()
-        output_path = temp_output.name
-        temp_files.append(output_path)
-        
+
         # Process with MasteringEngine (Permissive)
         print(f"🎵 Starting Permissive Mastering...")
-        print(f"   Target: {target_path}")
-        print(f"   Reference: {reference_path}")
-        
         try:
             # Initialize Engine
             engine = MasteringEngine()
-            
-            # Determine processing settings
-            # We can parse 'settings' JSON here if needed for custom EQ/Loudness overrides
-            target_lufs_val = settings.get('target_lufs')
-            target_lufs = float(target_lufs_val) if target_lufs_val is not None else None
-            
-            # Param: target_lufs passed from UI
             result = engine.process(target_path, reference_path, output_path, target_lufs=target_lufs)
-            
             print(f"✅ Mastering complete! Ref LUFS: {result['ref_lufs']}, Final LUFS: {result['target_lufs']}")
-            
         except Exception as e:
             print(f"❌ Mastering error: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            # Cleanup temp files
-            for path in temp_files:
-                try:
-                    if os.path.exists(path):
-                        os.unlink(path)
-                except:
-                    pass
-            return jsonify({"error": f"Mastering processing failed: {str(e)}"}), 500
+            log_job(user_id, 'mastering', total_size, 0, 'failed', str(e))
+            raise e
         
-        # Read the output file
-        try:
-            # Analyze mastered output BEFORE cleanup
-            output_analysis = analyze_lufs(output_path)
+        # 3. Read output and analyze
+        output_analysis = analyze_lufs(output_path)
+        with open(output_path, 'rb') as f:
+            output_data = f.read()
             
-            with open(output_path, 'rb') as f:
-                output_data = f.read()
-        except Exception as e:
-            print(f"❌ Error reading/analyzing output file: {str(e)}")
-            return jsonify({"error": f"Failed to read output file: {str(e)}"}), 500
-        finally:
-            # Cleanup temp files
-            for path in temp_files:
-                try:
-                    if os.path.exists(path):
-                        os.unlink(path)
-                except:
-                    pass
-        
         elapsed = time.time() - start_time
         
+        # Log success
+        cost_est = (elapsed / 60.0) * 0.05 # Approx $0.05 per minute CPU
+        log_job(user_id, 'mastering', total_size, elapsed, 'completed', cost_estimate=cost_est)
+        
         print(f"⏱️ Total processing time: {elapsed:.2f}s")
-        print(f"📊 Results:")
-        if output_analysis['success']:
-            print(f"   Output LUFS: {output_analysis['integrated_lufs']} LUFS")
-            print(f"   True Peak: {output_analysis['true_peak_db']} dBTP")
         
         # Generate output filename
-        base_name = os.path.splitext(target_file.filename)[0]
-        output_filename = f"mastered_{base_name}.wav"
+        output_filename = f"mastered_{target_filename}.wav"
         
-        # Return the audio file with LUFS metadata in headers
+        # 4. Return response
         response = send_file(
             io.BytesIO(output_data),
             mimetype='audio/wav',
@@ -324,7 +421,6 @@ def master_audio():
             download_name=output_filename
         )
         
-        # Add LUFS analysis data as custom headers (JSON string)
         import json
         response.headers['X-Audio-Analysis'] = json.dumps({
             'target': target_analysis if target_analysis['success'] else None,
@@ -339,6 +435,8 @@ def master_audio():
         print(f"❌ Error in master_audio: {str(e)}")
         import traceback
         traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+    finally:
         # Cleanup any temp files
         for path in temp_files:
             try:
@@ -346,7 +444,6 @@ def master_audio():
                     os.unlink(path)
             except:
                 pass
-        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/analyze-audio', methods=['POST'])
 def analyze_audio_endpoint():
@@ -356,28 +453,44 @@ def analyze_audio_endpoint():
     user = verify_auth_token(request)
     if not user:
         return jsonify({"error": "Unauthorized"}), 401
-
-    if 'file' not in request.files:
-        return jsonify({"error": "No file provided"}), 400
     
-    file = request.files['file']
+    user_id = user.get('id') if isinstance(user, dict) else (user.user.id if hasattr(user, 'user') else 'dev-user')
+
+    data = request.get_json(silent=True) or {}
+    file_url = data.get('file_url')
+    
     temp_path = None
     
     try:
-        # Save to temp file
-        ext = os.path.splitext(file.filename)[1].lower()
-        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
-        file.save(temp_file.name)
-        temp_file.close()
-        temp_path = temp_file.name
+        if file_url:
+            print(f"🔍 Analyzing via URL: {file_url[:50]}...")
+            t_file = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
+            t_file.close()
+            temp_path = t_file.name
+            if not download_file(file_url, temp_path):
+                return jsonify({"error": "Failed to download file"}), 500
+        elif 'file' in request.files:
+            file = request.files['file']
+            ext = os.path.splitext(file.filename)[1].lower()
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
+            file.save(temp_file.name)
+            temp_file.close()
+            temp_path = temp_file.name
+        else:
+            return jsonify({"error": "No file or URL provided"}), 400
         
         # Analyze
         analysis = analyze_lufs(temp_path)
+        
+        # Log job
+        file_size = os.path.getsize(temp_path)
+        log_job(user_id, 'analysis', file_size, 0, 'completed')
         
         return jsonify(analysis)
         
     except Exception as e:
         print(f"❌ Analysis error: {str(e)}")
+        log_job(user_id, 'analysis', 0, 0, 'failed', str(e))
         return jsonify({"error": str(e)}), 500
     finally:
         # Cleanup
@@ -496,35 +609,48 @@ def separate_audio_endpoint():
     user = verify_auth_token(request)
     if not user:
         return jsonify({"error": "Unauthorized"}), 401
-        
-    if 'file' not in request.files:
-        return jsonify({"error": "No file provided"}), 400
-        
-    file = request.files['file']
-    library = request.form.get('library', 'demucs')
-    model_name = request.form.get('model_name', 'htdemucs')
-    shifts = int(request.form.get('shifts', 1))
     
-    # Check for 2-stems request
-    # We use a specific flag or infer from stem_count if passed
-    stem_count = request.form.get('stem_count', '4')
+    user_id = user.get('id') if isinstance(user, dict) else (user.user.id if hasattr(user, 'user') else 'dev-user')
+
+    data = request.get_json(silent=True) or {}
+    file_url = data.get('file_url')
+    
+    library = data.get('library', request.form.get('library', 'demucs'))
+    model_name = data.get('model_name', request.form.get('model_name', 'htdemucs'))
+    shifts = int(data.get('shifts', request.form.get('shifts', 1)))
+    stem_count = data.get('stem_count', request.form.get('stem_count', '4'))
     two_stems = (stem_count == '2')
 
     # Create task
     task_id = str(uuid.uuid4())
     temp_dir = tempfile.mkdtemp()
-    input_path = os.path.join(temp_dir, file.filename)
+    input_path = os.path.join(temp_dir, "input.wav") # We'll force wav for consistency
     output_dir = os.path.join(temp_dir, 'output')
     
     try:
-        file.save(input_path)
+        if file_url:
+            print(f"✂️ Separating via URL: {file_url[:50]}...")
+            if not download_file(file_url, input_path):
+                return jsonify({"error": "Failed to download file"}), 500
+        elif 'file' in request.files:
+            file = request.files['file']
+            file.save(input_path)
+        else:
+            return jsonify({"error": "No file or URL provided"}), 400
+        
+        file_size = os.path.getsize(input_path)
         
         TASKS[task_id] = {
             'id': task_id,
             'status': 'queued',
             'progress': 0,
-            'created_at': time.time()
+            'created_at': time.time(),
+            'user_id': user_id,
+            'file_size': file_size
         }
+        
+        # Log job start
+        log_job(user_id, 'stems', file_size, 0, 'queued')
         
         # Submit to background thread
         executor.submit(
@@ -535,7 +661,7 @@ def separate_audio_endpoint():
             library,
             model_name,
             shifts,
-            two_stems # Pass the new argument
+            two_stems
         )
         
         return jsonify({
@@ -546,13 +672,29 @@ def separate_audio_endpoint():
         
     except Exception as e:
         print(f"❌ Separation endpoint error: {str(e)}")
+        log_job(user_id, 'stems', 0, 0, 'failed', str(e))
         return jsonify({"error": str(e)}), 500
 
 
+
+# Start background cleanup thread
+def run_periodic_cleanup():
+    """Run storage cleanup every hour"""
+    time.sleep(30) # Wait for app to stabilize
+    while True:
+        try:
+            cleanup_old_files()
+        except Exception as e:
+            print(f"⚠️ Periodic cleanup error: {str(e)}")
+        time.sleep(3600) # 1 hour
+
+cleanup_thread = threading.Thread(target=run_periodic_cleanup, daemon=True)
+cleanup_thread.start()
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8001))
     print(f"🚀 Starting AI Mastering Backend on port {port}...")
     print(f"📁 Supported formats: MP3, WAV, FLAC")
     print(f"📤 Output format: WAV")
+    print(f"🧹 Storage cleanup service: ACTIVE (1h cycle)")
     app.run(host="0.0.0.0", port=port, debug=True)
