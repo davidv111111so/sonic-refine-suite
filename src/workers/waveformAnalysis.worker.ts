@@ -14,14 +14,18 @@ self.onmessage = (e: MessageEvent) => {
         return;
     }
 
-    const peaks: WaveformChunk[] = [];
     const len = channelData.length;
+    const numChunks = Math.ceil(len / samplesPerPixel);
+
+    // Create Float32Array with 5 values per chunk: min, max, rms, low, midHigh
+    const peaks = new Float32Array(numChunks * 5);
 
     // Simple 1-pole LowPass Filter state
     let lastOut = 0;
     const alpha = 0.15; // Cutoff coefficient (~100-200Hz depending on sample rate)
 
     // Process in chunks
+    let chunkIndex = 0;
     for (let i = 0; i < len; i += samplesPerPixel) {
         let min = 0;
         let max = 0;
@@ -51,16 +55,19 @@ self.onmessage = (e: MessageEvent) => {
             count++;
         }
 
-        peaks.push({
-            min,
-            max,
-            rms: Math.sqrt(rmsSum / count),
-            low: Math.sqrt(lowSum / count),
-            midHigh: Math.sqrt(midHighSum / count)
-        });
+        // Store in interleaved Float32Array format
+        const baseIndex = chunkIndex * 5;
+        peaks[baseIndex] = min;
+        peaks[baseIndex + 1] = max;
+        peaks[baseIndex + 2] = Math.sqrt(rmsSum / count);
+        peaks[baseIndex + 3] = Math.sqrt(lowSum / count);
+        peaks[baseIndex + 4] = Math.sqrt(midHighSum / count);
+
+        chunkIndex++;
     }
 
-    self.postMessage({ peaks });
+    // Transfer the Float32Array to avoid copying
+    self.postMessage({ peaks }, [peaks.buffer]);
 };
 
 export { };

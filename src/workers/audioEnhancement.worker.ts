@@ -473,17 +473,28 @@ function applyCompression(data: Float32Array, ratio: number) {
   }
 }
 
-// Encode to high-quality WAV format
+// Encode to WAV format with user-specified settings
 function encodeToWAV(audioBuffer: SimpleAudioBuffer, settings: any): ArrayBuffer {
-  const sampleRate = audioBuffer.sampleRate;
+  // Use settings for sample rate and bit depth, falling back to source values
+  const outputSampleRate = settings.sampleRate || audioBuffer.sampleRate;
+  const outputBitDepth = settings.bitDepth || 24;
+
   const channels = audioBuffer.numberOfChannels;
-  const bitsPerSample = 24; // High quality
+  const bitsPerSample = outputBitDepth;
   const length = audioBuffer.length;
+
+  // If sample rate differs, we need to resample
+  let finalLength = length;
+  let resampleRatio = 1;
+  if (outputSampleRate !== audioBuffer.sampleRate) {
+    resampleRatio = outputSampleRate / audioBuffer.sampleRate;
+    finalLength = Math.floor(length * resampleRatio);
+  }
 
   const bytesPerSample = bitsPerSample / 8;
   const blockAlign = channels * bytesPerSample;
-  const byteRate = sampleRate * blockAlign;
-  const dataSize = length * blockAlign;
+  const byteRate = outputSampleRate * blockAlign;
+  const dataSize = finalLength * blockAlign;
   const headerSize = 44;
   const totalSize = headerSize + dataSize;
 
@@ -504,7 +515,7 @@ function encodeToWAV(audioBuffer: SimpleAudioBuffer, settings: any): ArrayBuffer
   view.setUint32(offset, 16, true); offset += 4;
   view.setUint16(offset, 1, true); offset += 2; // PCM
   view.setUint16(offset, channels, true); offset += 2;
-  view.setUint32(offset, sampleRate, true); offset += 4;
+  view.setUint32(offset, outputSampleRate, true); offset += 4;
   view.setUint32(offset, byteRate, true); offset += 4;
   view.setUint16(offset, blockAlign, true); offset += 2;
   view.setUint16(offset, bitsPerSample, true); offset += 2;
@@ -513,18 +524,43 @@ function encodeToWAV(audioBuffer: SimpleAudioBuffer, settings: any): ArrayBuffer
   view.setUint32(offset, 0x64617461, false); offset += 4; // "data"
   view.setUint32(offset, dataSize, true); offset += 4;
 
-  // Write audio data (24-bit)
+  // Write audio data with optional resampling
   let sampleIndex = 0;
-  for (let i = 0; i < length; i++) {
-    for (let channel = 0; channel < channels; channel++) {
-      const sample = audioBuffer.getChannelData(channel)[i];
-      // Convert float (-1 to 1) to 24-bit integer
-      const intSample = Math.max(-8388608, Math.min(8388607, Math.round(sample * 8388607)));
 
-      // Write 24-bit little-endian
-      samples[sampleIndex++] = intSample & 0xFF;
-      samples[sampleIndex++] = (intSample >> 8) & 0xFF;
-      samples[sampleIndex++] = (intSample >> 16) & 0xFF;
+  for (let i = 0; i < finalLength; i++) {
+    // Calculate source position for resampling
+    const srcPos = resampleRatio !== 1 ? i / resampleRatio : i;
+    const srcIndex = Math.floor(srcPos);
+    const frac = srcPos - srcIndex;
+
+    for (let channel = 0; channel < channels; channel++) {
+      const channelData = audioBuffer.getChannelData(channel);
+
+      // Linear interpolation for resampling
+      let sample: number;
+      if (resampleRatio !== 1 && srcIndex + 1 < length) {
+        sample = channelData[srcIndex] * (1 - frac) + channelData[srcIndex + 1] * frac;
+      } else {
+        sample = channelData[Math.min(srcIndex, length - 1)];
+      }
+
+      // Write based on bit depth
+      if (bitsPerSample === 24) {
+        const intSample = Math.max(-8388608, Math.min(8388607, Math.round(sample * 8388607)));
+        samples[sampleIndex++] = intSample & 0xFF;
+        samples[sampleIndex++] = (intSample >> 8) & 0xFF;
+        samples[sampleIndex++] = (intSample >> 16) & 0xFF;
+      } else if (bitsPerSample === 16) {
+        const intSample = Math.max(-32768, Math.min(32767, Math.round(sample * 32767)));
+        samples[sampleIndex++] = intSample & 0xFF;
+        samples[sampleIndex++] = (intSample >> 8) & 0xFF;
+      } else if (bitsPerSample === 32) {
+        const intSample = Math.max(-2147483648, Math.min(2147483647, Math.round(sample * 2147483647)));
+        samples[sampleIndex++] = intSample & 0xFF;
+        samples[sampleIndex++] = (intSample >> 8) & 0xFF;
+        samples[sampleIndex++] = (intSample >> 16) & 0xFF;
+        samples[sampleIndex++] = (intSample >> 24) & 0xFF;
+      }
     }
   }
 
