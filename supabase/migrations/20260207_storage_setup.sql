@@ -1,7 +1,15 @@
--- 1. Create the bucket (with public access for easy processing)
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('audio-processing', 'audio-processing', true)
-ON CONFLICT (id) DO NOTHING;
+-- 1. Create the bucket (with public access for easy processing and 500MB limit)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+    'audio-processing', 
+    'audio-processing', 
+    true, 
+    524288000, -- 500MB in bytes
+    '{audio/wav,audio/mpeg,audio/flac,audio/x-wav,audio/mp3}'
+)
+ON CONFLICT (id) DO UPDATE SET 
+    file_size_limit = EXCLUDED.file_size_limit,
+    allowed_mime_types = EXCLUDED.allowed_mime_types;
 
 -- 2. Allow all users (including anon/dev) to upload to this temporary bucket
 -- Since files are automatically purged after 1 hour, we allow this for simplicity in AI processing.
