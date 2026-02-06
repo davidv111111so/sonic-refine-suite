@@ -7,7 +7,7 @@ import { Play, Pause, SkipBack, SkipForward, Maximize2, X } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 export const FloatingMiniPlayer = () => {
-    const { currentTrack, isPlaying, playPause, playNext, playPrevious, volume, setVolume, currentTime, duration } = usePlayer();
+    const { currentTrack, isPlaying, playPause, playNext, playPrevious, stop, volume, setVolume, currentTime, duration } = usePlayer();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -40,17 +40,7 @@ export const FloatingMiniPlayer = () => {
                             size="icon"
                             className="h-6 w-6 text-slate-400 hover:text-white hover:bg-red-500/20 hover:text-red-400"
                             onClick={() => {
-                                if (isPlaying) playPause(); // Stop playback
-                                // We can't easily "close" it permanently without global state, 
-                                // but stopping it and maybe clearing current track would hide it?
-                                // The user said "stop this media player".
-                                // If we clear current track, it returns null and hides.
-                                // But we need access to clearTrack or similar.
-                                // For now, let's just pause. 
-                                // Actually, the component returns null if !currentTrack.
-                                // So if we want to "close" it, we should probably clear the current track in context.
-                                // But PlayerContext doesn't expose 'clearCurrentTrack' directly, only 'setCurrentTrack' via 'loadTrack' or 'clearPlaylist'.
-                                // Let's check PlayerContext again.
+                                stop();
                             }}
                         >
                             <X className="h-3 w-3" />

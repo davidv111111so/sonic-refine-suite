@@ -56,11 +56,9 @@ def verify_paddle_signature(payload: bytes, signature: str) -> bool:
         return False
 
 
-@payment_bp.route('/api/webhooks/paddle', methods=['POST', 'OPTIONS'])
+@payment_bp.route('/api/webhooks/paddle', methods=['POST'])
 def paddle_webhook():
     """Handle Paddle Billing subscription events"""
-    if request.method == 'OPTIONS':
-        return '', 204
     
     # Verify signature
     signature = request.headers.get('Paddle-Signature', '')
@@ -270,11 +268,9 @@ def verify_coinbase_signature(payload: bytes, signature: str) -> bool:
         return False
 
 
-@payment_bp.route('/api/webhooks/coinbase', methods=['POST', 'OPTIONS'])
+@payment_bp.route('/api/webhooks/coinbase', methods=['POST'])
 def coinbase_webhook():
     """Handle Coinbase Commerce payment events"""
-    if request.method == 'OPTIONS':
-        return '', 204
     
     # Verify signature
     signature = request.headers.get('X-CC-Webhook-Signature', '')
@@ -379,11 +375,9 @@ def handle_coinbase_charge_failed(supabase: Client, charge: dict):
 # CRYPTO CHARGE CREATION ENDPOINT
 # ============================================
 
-@payment_bp.route('/api/create-crypto-charge', methods=['POST', 'OPTIONS'])
+@payment_bp.route('/api/create-crypto-charge', methods=['POST'])
 def create_crypto_charge():
     """Create a Coinbase Commerce charge for crypto payment"""
-    if request.method == 'OPTIONS':
-        return '', 204
     
     try:
         data = request.json

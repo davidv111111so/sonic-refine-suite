@@ -44,3 +44,10 @@ backend/venv/
 *.wav
 *.flac
 temp_files/
+deploy-*.zip
+*.json.bak
+eslint-report.json
+lint_*.txt
+test_output.txt
+notebook_results.txt
+*.log

@@ -33,6 +33,8 @@ url: str = os.environ.get("SUPABASE_URL")
 key: str = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(url, key)
 
+import re
+
 # Configure CORS - Restrict to known domains
 ALLOWED_ORIGINS = [
     "http://localhost:8080",
@@ -40,28 +42,33 @@ ALLOWED_ORIGINS = [
     "http://localhost:8085",
     "http://127.0.0.1:8080",
     "https://level-audio-app.netlify.app",
-    "https://*.netlify.app",
-    "https://*.lovable.app",
-    "https://*.lovableproject.com",
-    "https://7d506715-84dc-4abb-95cb-4ef4492a151b.lovableproject.com"
+    re.compile(r"https://.*\.netlify\.app"),
+    re.compile(r"https://.*\.lovable\.app"),
+    re.compile(r"https://.*\.lovableproject\.com")
 ]
 
 CORS(app, resources={
     r"/api/*": {
         "origins": ALLOWED_ORIGINS,
-        "methods": ["POST", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"],
+        "methods": ["POST", "OPTIONS", "GET"],
+        "allow_headers": ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
         "expose_headers": ["Content-Type", "Content-Length", "Content-Disposition", "X-Audio-Analysis"],
-        "supports_credentials": True
+        "supports_credentials": True,
+        "max_age": 3600
     },
     r"/health": {
         "origins": "*",
-        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
-        "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
-        "expose_headers": ["Content-Type", "Content-Length", "Content-Disposition", "X-Audio-Analysis"],
-        "supports_credentials": False  # Changed to False to allow '*' origin
+        "methods": ["GET", "OPTIONS"]
     }
 })
+
+@app.before_request
+def log_request():
+    if request.path != '/health':
+        print(f"--- Incoming {request.method} request ---")
+        print(f"Origin: {request.origin}")
+        print(f"Path: {request.path}")
+        print(f"Headers: {dict(request.headers)}")
 
 @app.errorhandler(Exception)
 def handle_exception(e):
@@ -101,11 +108,9 @@ def verify_auth_token(request):
         print(f"❌ Auth verification failed: {str(e)}")
         return None
 
-@app.route('/api/payment/payu-signature', methods=['POST', 'OPTIONS'])
+@app.route('/api/payment/payu-signature', methods=['POST'])
 def payu_signature():
     """Generate PayU Latam signature"""
-    if request.method == 'OPTIONS':
-        return '', 204
         
     try:
         data = request.get_json()
@@ -153,13 +158,9 @@ def convert_to_wav(input_path, output_path):
         traceback.print_exc()
         return False
 
-@app.route('/api/master-audio', methods=['POST', 'OPTIONS'])
+@app.route('/api/master-audio', methods=['POST'])
 def master_audio():
     """Process audio files with Matchering - supports MP3, WAV, FLAC"""
-    # Handle CORS preflight
-    if request.method == 'OPTIONS':
-        return '', 204
-    
     # 1. Verify Authentication
     user = verify_auth_token(request)
     if not user:
@@ -347,11 +348,9 @@ def master_audio():
                 pass
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/analyze-audio', methods=['POST', 'OPTIONS'])
+@app.route('/api/analyze-audio', methods=['POST'])
 def analyze_audio_endpoint():
     """Analyze a single audio file for LUFS, True Peak, etc."""
-    if request.method == 'OPTIONS':
-        return '', 204
     
     # Verify Authentication
     user = verify_auth_token(request)
@@ -391,11 +390,9 @@ def analyze_audio_endpoint():
 from stems_separation import separate_audio, estimate_processing_time
 import shutil
 
-@app.route('/api/estimate-time', methods=['POST', 'OPTIONS'])
+@app.route('/api/estimate-time', methods=['POST'])
 def estimate_time_endpoint():
     """Estimate processing time for stems separation"""
-    if request.method == 'OPTIONS':
-        return '', 204
         
     try:
         data = request.get_json()
@@ -491,11 +488,9 @@ def get_task_result(task_id):
         download_name=f"stems_{task_id}.zip"
     )
 
-@app.route('/api/separate-audio', methods=['POST', 'OPTIONS'])
+@app.route('/api/separate-audio', methods=['POST'])
 def separate_audio_endpoint():
     """Start audio separation task"""
-    if request.method == 'OPTIONS':
-        return '', 204
         
     # Verify Authentication
     user = verify_auth_token(request)

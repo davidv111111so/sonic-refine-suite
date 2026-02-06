@@ -23,12 +23,13 @@ interface PlayerContextType {
     playNext: () => void;
     playPrevious: () => void;
     setIsDirectOutputEnabled: (enabled: boolean) => void;
+    stop: () => void;
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
 
 export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { user } = useAuth();
+    const { profile } = useAuth();
     const [currentTrack, setCurrentTrack] = useState<AudioFile | null>(null);
     const [playlist, setPlaylist] = useState<AudioFile[]>([]);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -43,7 +44,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // Clear playlist and stop playback when user logs out
     useEffect(() => {
-        if (!user) {
+        if (!profile) {
             console.log("🔒 User logged out - Clearing player state");
             setPlaylist([]);
             setCurrentTrack(null);
@@ -53,7 +54,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 audioRef.current.src = '';
             }
         }
-    }, [user]);
+    }, [profile]);
 
     // Initial Audio Setup
     useEffect(() => {
@@ -285,6 +286,15 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
     }, [currentTrack, playlist, loadTrack]);
 
+    const stop = useCallback(() => {
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.src = '';
+        }
+        setCurrentTrack(null);
+        setIsPlaying(false);
+    }, []);
+
     return (
         <PlayerContext.Provider value={{
             currentTrack,
@@ -304,7 +314,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             clearPlaylist,
             playNext,
             playPrevious,
-            setIsDirectOutputEnabled
+            setIsDirectOutputEnabled,
+            stop
         }}>
             {children}
         </PlayerContext.Provider>
