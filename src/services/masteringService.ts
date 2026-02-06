@@ -7,7 +7,7 @@ export class MasteringService {
   // We prioritize local proxy (empty string) when running on localhost to avoid CORS and production limits
   private backendUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
     ? ""
-    : (import.meta.env.VITE_PYTHON_BACKEND_URL || "https://sonic-refine-backend-azkp62xtaq-uc.a.run.app");
+    : (import.meta.env.VITE_PYTHON_BACKEND_URL || "https://mastering-backend-azkp62xtaq-uc.a.run.app");
 
   /**
    * Get auth token from Supabase session
