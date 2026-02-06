@@ -2,16 +2,14 @@ Flask>=3.0.0
 Flask-CORS>=4.0.0
 python-magic
 python-dotenv
-numpy>=1.24.0
-scipy>=1.10.0
+numpy<2.0.0
+scipy
 soundfile
 librosa
 pyloudnorm
 gunicorn
 supabase
-python-magic-bin; sys_platform == 'win32'
 demucs
-spleeter
 pydub
 torch
 torchvision

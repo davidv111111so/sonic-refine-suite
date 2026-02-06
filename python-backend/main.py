@@ -39,6 +39,8 @@ ALLOWED_ORIGINS = [
     "http://localhost:8081",
     "http://localhost:8085",
     "http://127.0.0.1:8080",
+    "https://level-audio-app.netlify.app",
+    "https://*.netlify.app",
     "https://*.lovable.app",
     "https://*.lovableproject.com",
     "https://7d506715-84dc-4abb-95cb-4ef4492a151b.lovableproject.com"
