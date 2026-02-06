@@ -201,6 +201,13 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const playPause = useCallback(() => {
         if (!audioRef.current) return;
+
+        // Ensure AudioContext is resumed (browser policy)
+        const ctx = getAudioContext();
+        if (ctx && ctx.state === 'suspended') {
+            ctx.resume();
+        }
+
         if (audioRef.current.paused) {
             audioRef.current.play();
         } else {
