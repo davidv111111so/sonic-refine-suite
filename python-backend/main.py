@@ -188,18 +188,35 @@ def payu_signature():
         return jsonify({"error": str(e)}), 500
 
 def download_file(url, local_path):
-    """Download file from URL to local path"""
+    """Download file from URL to local path with 200MB safety limit"""
+    MAX_SIZE = 200 * 1024 * 1024 # 200MB
     try:
         print(f"📥 Downloading file from URL: {url[:100]}...")
+        # Start download with stream=True to check headers
         response = requests.get(url, stream=True, timeout=60)
         response.raise_for_status()
+        
+        # Check content length if available
+        cl = response.headers.get('Content-Length')
+        if cl and int(cl) > MAX_SIZE:
+             print(f"❌ File too large: {cl} bytes (Max: {MAX_SIZE})")
+             return False
+
+        downloaded = 0
         with open(local_path, 'wb') as f:
             for chunk in response.iter_content(chunk_size=8192):
+                downloaded += len(chunk)
+                if downloaded > MAX_SIZE:
+                    print(f"❌ File exceeded 200MB limit during download")
+                    f.close()
+                    if os.path.exists(local_path): os.unlink(local_path)
+                    return False
                 f.write(chunk)
         print(f"✅ Download complete: {local_path} ({os.path.getsize(local_path)} bytes)")
         return True
     except Exception as e:
         print(f"❌ Download error: {str(e)}")
+        if os.path.exists(local_path): os.unlink(local_path)
         return False
 
 def log_job(user_id, job_type, file_size=0, duration=0, status='pending', error=None, cost_estimate=0.0):

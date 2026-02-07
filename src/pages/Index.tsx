@@ -16,12 +16,16 @@ import { useEnhancementHistory } from '@/hooks/useEnhancementHistory';
 import { AudioFile, AudioStats } from '@/types/audio';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { AnimatedTitle } from '@/components/AnimatedTitle';
-import Orb from '@/components/ui/Orb';
-import { saveAs } from 'file-saver';
 import { Button } from '@/components/ui/button';
-import { Crown } from 'lucide-react';
+import { Crown, Menu } from 'lucide-react';
 import { SubscriptionModal } from '@/components/payment/SubscriptionModal';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -458,7 +462,9 @@ const Index = () => {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <AnimatedTitle />
-          <div className="flex items-center gap-3">
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-3">
             <Button
               onClick={() => setIsPremiumModalOpen(true)}
               className="bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-white border-0 shadow-lg shadow-amber-900/20 group"
@@ -470,6 +476,55 @@ const Index = () => {
             <LanguageToggle />
             <Guide />
             <ThemeToggle />
+          </div>
+
+          {/* Mobile Navigation */}
+          <div className="flex md:hidden items-center gap-2">
+            <UserHeader onLogout={handleLogoutCleanup} />
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="text-white hover:bg-slate-800">
+                  <Menu className="h-6 w-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="bg-slate-950/95 border-slate-800 text-white w-[280px] sm:w-[350px]">
+                <SheetHeader className="text-left border-b border-slate-800 pb-4 mb-4">
+                  <SheetTitle className="text-cyan-400 flex items-center gap-2">
+                    Menu
+                  </SheetTitle>
+                </SheetHeader>
+                <div className="flex flex-col gap-6 py-4">
+                  <Button
+                    onClick={() => {
+                      setIsPremiumModalOpen(true);
+                      // Sheet closes automatically when clicking outside, or we could handle close state
+                    }}
+                    className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-white border-0 py-6 text-lg"
+                  >
+                    <Crown className="h-5 w-5 mr-3" />
+                    Go Premium
+                  </Button>
+
+                  <div className="space-y-4">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-2">Settings & info</p>
+                    <div className="grid grid-cols-1 gap-2">
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900/50 border border-slate-800">
+                        <span className="text-sm font-medium">Appearance</span>
+                        <ThemeToggle />
+                      </div>
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900/50 border border-slate-800">
+                        <span className="text-sm font-medium">Language</span>
+                        <LanguageToggle />
+                      </div>
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900/50 border border-slate-800">
+                        <span className="text-sm font-medium">User Guide</span>
+                        <Guide />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
 
