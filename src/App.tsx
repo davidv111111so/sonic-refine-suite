@@ -18,6 +18,7 @@ import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
 import { ProMixer } from "@/components/mixer/ProMixer";
 import { initAudioContextOnInteraction } from "@/utils/audioContextManager";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const queryClient = new QueryClient();
 
@@ -40,30 +41,32 @@ const App = () => (
             <Toaster />
             <Sonner />
             <PlayerProvider>
-              <BrowserRouter>
-                <FloatingMiniPlayer />
-                <Routes>
-                  <Route path="/player" element={<PlayerPage />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/terms" element={<TermsAndConditions />} />
-                  <Route path="/admin" element={
-                    <BetaGate>
-                      <Admin />
-                    </BetaGate>
-                  } />
-                  <Route path="/" element={
-                    <BetaGate>
-                      <Index />
-                    </BetaGate>
-                  } />
-                  <Route path="/mixer" element={<ProMixer />} />
-                  <Route path="*" element={
-                    <BetaGate>
-                      <NotFound />
-                    </BetaGate>
-                  } />
-                </Routes>
-              </BrowserRouter>
+              <ErrorBoundary>
+                <BrowserRouter>
+                  <FloatingMiniPlayer />
+                  <Routes>
+                    <Route path="/player" element={<PlayerPage />} />
+                    <Route path="/auth" element={<Auth />} />
+                    <Route path="/terms" element={<TermsAndConditions />} />
+                    <Route path="/admin" element={
+                      <BetaGate>
+                        <Admin />
+                      </BetaGate>
+                    } />
+                    <Route path="/" element={
+                      <BetaGate>
+                        <Index />
+                      </BetaGate>
+                    } />
+                    <Route path="/mixer" element={<ProMixer />} />
+                    <Route path="*" element={
+                      <BetaGate>
+                        <NotFound />
+                      </BetaGate>
+                    } />
+                  </Routes>
+                </BrowserRouter>
+              </ErrorBoundary>
             </PlayerProvider>
           </TooltipProvider>
         </LanguageProvider>

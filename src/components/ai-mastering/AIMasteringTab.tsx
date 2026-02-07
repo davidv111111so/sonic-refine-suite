@@ -83,6 +83,12 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
     const file = type === 'target' ? targetFile : referenceFile;
     if (!file) return;
 
+    console.log(`🧪 Starting analysis for ${type}:`, {
+      name: file.name,
+      size: file.size,
+      type: file.type
+    });
+
     setIsAnalyzing(true);
     try {
       const analysis = await masteringService.analyzeAudio(file);
@@ -93,7 +99,7 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
       toast.success(`${type === 'target' ? 'Target' : 'Reference'} analyzed successfully`);
     } catch (error) {
       console.error("Analysis failed:", error);
-      toast.error("Analysis failed");
+      toast.error(`${type === 'target' ? 'Target' : 'Reference'} analysis failed. Check console for details.`);
     } finally {
       setIsAnalyzing(false);
     }
@@ -795,6 +801,20 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
                         </p>
                         <p className="text-sm text-purple-400/60">Genre Preset Selected</p>
                       </div>
+
+                      {referenceFile && (
+                        <div className="flex justify-center gap-3 pt-2">
+                          <Button
+                            size="sm"
+                            onClick={(e) => { e.stopPropagation(); handleAnalyze('reference'); }}
+                            disabled={isAnalyzing}
+                            className="bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30"
+                          >
+                            {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                            {audioAnalysis?.reference ? "Re-analyze Style" : "Analyze Style"}
+                          </Button>
+                        </div>
+                      )}
                       <Button
                         size="icon"
                         variant="ghost"

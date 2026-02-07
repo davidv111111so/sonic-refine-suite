@@ -22,15 +22,19 @@ def analyze_lufs(file_path: str) -> dict:
             - duration_seconds: File duration
     """
     try:
-        # Load audio file
-        data, rate = sf.read(file_path)
+        # Load audio file (supports MP3, FLAC, WAV, etc.)
+        # Using librosa for better compatibility with more formats
+        import librosa
+        data, rate = librosa.load(file_path, sr=None, mono=False)
         
-        # Handle mono/stereo
+        # Handle mono/stereo and transpose for pyloudnorm (samples, channels)
         if len(data.shape) == 1:
             data = data.reshape(-1, 1)
-        
+        else:
+            data = data.T # librosa returns (channels, samples)
+            
         # Calculate duration
-        duration = len(data) / rate
+        duration = data.shape[0] / rate
         
         # Initialize loudness meter (ITU-R BS.1770-4)
         meter = pyln.Meter(rate)

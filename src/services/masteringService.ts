@@ -5,7 +5,13 @@ export class MasteringService {
   // Dynamic backend URL based on environment
   // Dynamic backend URL based on environment
   // We prioritize local proxy (empty string) when running on localhost to avoid CORS and production limits
-  private backendUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  private backendUrl = (
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname.includes('192.168.') ||
+    window.location.hostname.includes('10.') ||
+    window.location.hostname.includes('172.')
+  )
     ? ""
     : (import.meta.env.VITE_PYTHON_BACKEND_URL || "https://mastering-backend-azkp62xtaq-uc.a.run.app");
 
@@ -42,7 +48,8 @@ export class MasteringService {
       }
 
       const userId = user?.id || 'dev-user';
-      const fileExt = file.name.split('.').pop();
+      const originalName = file.name || 'audio-file';
+      const fileExt = originalName.includes('.') ? originalName.split('.').pop() : 'wav';
       const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
       const filePath = `${userId}/${folder}/${fileName}`;
 
@@ -165,8 +172,9 @@ export class MasteringService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`❌ Analysis failed (${response.status}): ${errorText}`);
-        throw new Error(`Analysis failed: ${response.statusText} - ${errorText}`);
+        console.error(`❌ Analysis failed | Status: ${response.status} | URL: ${this.backendUrl}/api/analyze-audio`);
+        console.error(`❌ Error Details: ${errorText}`);
+        throw new Error(`Analysis failed: ${response.status} - ${errorText || 'Internal Server Error'}`);
       }
 
       const data = await response.json();
@@ -225,18 +233,31 @@ export class MasteringService {
 
   /**
    * Get task status for long-running processes (Stems)
+   * Includes built-in retry logic for transient connection failures
    */
-  async getTaskStatus(taskId: string): Promise<any> {
-    try {
-      const response = await fetch(`${this.backendUrl}/api/task-status/${taskId}`);
-      if (!response.ok) {
-        throw new Error(`Failed to get status (${response.status})`);
+  async getTaskStatus(taskId: string, retries: number = 3): Promise<any> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const response = await fetch(`${this.backendUrl}/api/task-status/${taskId}`);
+        if (!response.ok) {
+          throw new Error(`Failed to get status (${response.status})`);
+        }
+        return await response.json();
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        console.warn(`⚠️ getTaskStatus attempt ${attempt}/${retries} failed:`, error);
+
+        if (attempt < retries) {
+          // Exponential backoff: 500ms, 1000ms, 2000ms...
+          await new Promise(resolve => setTimeout(resolve, 500 * Math.pow(2, attempt - 1)));
+        }
       }
-      return await response.json();
-    } catch (error) {
-      console.error("❌ getTaskStatus error:", error);
-      throw error;
     }
+
+    console.error("❌ getTaskStatus failed after all retries:", lastError);
+    throw lastError;
   }
 
   /**

@@ -48,7 +48,10 @@ ALLOWED_ORIGINS = [
     "https://level-audio-app.netlify.app",
     re.compile(r"https://.*\.netlify\.app"),
     re.compile(r"https://.*\.lovable\.app"),
-    re.compile(r"https://.*\.lovableproject\.com")
+    re.compile(r"https://.*\.lovableproject\.com"),
+    re.compile(r"http://192\.168\..*:808\d"),
+    re.compile(r"http://127\.0\.0\.1:.*"),
+    re.compile(r"http://localhost:.*")
 ]
 
 CORS(app, resources={
@@ -501,8 +504,11 @@ def analyze_audio_endpoint():
         
         # Log job
         file_size = os.path.getsize(temp_path)
-        log_job(user_id, 'analysis', file_size, 0, 'completed')
+        log_job(user_id, 'analysis', file_size, 0, 'completed' if analysis.get('success') else 'failed', error=analysis.get('error'))
         
+        if not analysis.get('success'):
+            return jsonify(analysis), 400
+            
         return jsonify(analysis)
         
     except Exception as e:

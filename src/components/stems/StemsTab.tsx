@@ -158,9 +158,16 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
         wavesurfersRef.current = [];
     };
 
+    // Retry counter for polling - survives across poll intervals
+    const retryCountRef = useRef(0);
+    const MAX_POLL_RETRIES = 5;
+
     const pollStatus = async (taskId: string, authToken: string) => {
         try {
             const data = await masteringService.getTaskStatus(taskId);
+
+            // Reset retry count on success
+            retryCountRef.current = 0;
 
             if (data.status === 'completed') {
                 if (pollingInterval.current) clearInterval(pollingInterval.current);
@@ -190,15 +197,22 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                 setProcessingStage(`Processing... ${data.progress}%`);
             }
         } catch (error) {
-            if (pollingInterval.current) clearInterval(pollingInterval.current);
-            setIsProcessing(false);
-            setProcessingStage('');
-            console.error('Polling error:', error);
-            toast({
-                title: "Separation Failed",
-                description: error instanceof Error ? error.message : "An error occurred",
-                variant: "destructive"
-            });
+            retryCountRef.current++;
+            console.warn(`⚠️ Polling attempt ${retryCountRef.current}/${MAX_POLL_RETRIES} failed:`, error);
+
+            if (retryCountRef.current >= MAX_POLL_RETRIES) {
+                // Only stop after multiple consecutive failures
+                if (pollingInterval.current) clearInterval(pollingInterval.current);
+                setIsProcessing(false);
+                setProcessingStage('');
+                console.error('Polling failed after max retries:', error);
+                toast({
+                    title: "Separation Failed",
+                    description: "Connection lost. Please try again.",
+                    variant: "destructive"
+                });
+            }
+            // Otherwise, continue polling - don't clear interval
         }
     };
 

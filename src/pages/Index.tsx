@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { saveAs } from 'file-saver';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -8,6 +9,8 @@ import { LanguageToggle } from '@/components/LanguageToggle';
 import { CopyrightNotice } from '@/components/CopyrightNotice';
 import { UserHeader } from '@/components/UserHeader';
 import { LevelTabs } from '@/components/LevelTabs';
+import Orb from '@/components/ui/Orb';
+import { AnimatedTitle } from '@/components/AnimatedTitle';
 import { IntroAnimation } from '@/components/IntroAnimation';
 import { useToast } from '@/hooks/use-toast';
 import { useFileManagement } from '@/hooks/useFileManagement';
@@ -31,10 +34,7 @@ const Index = () => {
   const navigate = useNavigate();
   const { profile, loading } = useAuth();
 
-  const [showIntro, setShowIntro] = useState(() => {
-    const introShown = sessionStorage.getItem('introShown');
-    return !introShown;
-  });
+  const [showIntro, setShowIntro] = useState(false);
 
   const handleIntroComplete = () => {
     sessionStorage.setItem('introShown', 'true');
