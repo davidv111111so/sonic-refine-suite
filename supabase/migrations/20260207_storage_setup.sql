@@ -4,7 +4,7 @@ VALUES (
     'audio-processing', 
     'audio-processing', 
     true, 
-    209715200, -- 200MB in bytes
+    1073741824, -- 1GB in bytes
     '{audio/wav,audio/mpeg,audio/flac,audio/x-wav,audio/mp3}'
 )
 ON CONFLICT (id) DO UPDATE SET 

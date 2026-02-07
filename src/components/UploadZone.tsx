@@ -32,12 +32,12 @@ export const UploadZone = ({ onFilesUploaded }: UploadZoneProps) => {
     onFilesUploaded(audioFiles);
   }, [onFilesUploaded]);
 
-  const {getRootProps, getInputProps, isDragActive} = useDropzone({
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
       'audio/*': ['.mp3', '.wav', '.flac', '.m4a']
     },
-    maxSize: 200 * 1024 * 1024, // 200MB
+    maxSize: 1024 * 1024 * 1024, // 1GB
     multiple: true,
     onDropRejected: (rejectedFiles) => {
       const file = rejectedFiles[0];
@@ -45,7 +45,7 @@ export const UploadZone = ({ onFilesUploaded }: UploadZoneProps) => {
         if (file.errors && file.errors.length > 0) {
           const error = file.errors[0];
           if (error.code === 'file-too-large') {
-            setErrorMessage(`File "${file.file.name}" is too large. Maximum size is 200MB.`);
+            setErrorMessage(`File "${file.file.name}" is too large. Maximum size is 1GB.`);
           } else if (error.code === 'file-invalid-type') {
             setErrorMessage(`File "${file.file.name}" has an invalid file type. Only audio files are allowed.`);
           } else {
@@ -71,7 +71,7 @@ export const UploadZone = ({ onFilesUploaded }: UploadZoneProps) => {
               <div className="flex flex-col items-center">
                 <Upload className="h-6 w-6 text-slate-400 mb-2" />
                 <p className="text-slate-400">Drag 'n' drop some audio files here, or click to select files</p>
-                <p className="text-xs text-slate-500 mt-1">Supported formats: mp3, wav, flac, m4a (Max 200MB)</p>
+                <p className="text-xs text-slate-500 mt-1">Supported formats: mp3, wav, flac, m4a (Max 1GB)</p>
               </div>
           }
         </div>

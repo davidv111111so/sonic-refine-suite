@@ -9,6 +9,8 @@ import { AudioFile } from '@/types/audio';
 import { supabase } from '@/integrations/supabase/client';
 import { Progress } from '@/components/ui/progress';
 import { useDropzone } from 'react-dropzone';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 import JSZip from 'jszip';
 import { StemPlayer } from './StemPlayer';
 import WaveSurfer from 'wavesurfer.js';
@@ -49,21 +51,35 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
     // Dropzone logic
     const onDrop = useCallback((acceptedFiles: File[]) => {
         if (acceptedFiles.length > 0) {
-            const newFiles: AudioFile[] = acceptedFiles.map(file => ({
-                id: crypto.randomUUID(),
-                name: file.name,
-                size: file.size,
-                type: file.type,
-                originalFile: file,
-                status: 'uploaded',
-            }));
-            onFilesUploaded(newFiles);
-            // Auto-select the first uploaded file
-            if (newFiles.length > 0) {
-                setSelectedFileId(newFiles[0].id);
+            const validFiles = acceptedFiles.filter(file => {
+                if (file.size > 1024 * 1024 * 1024) {
+                    toast({
+                        title: "File too large",
+                        description: `"${file.name}" exceeds the 1GB limit.`,
+                        variant: "destructive"
+                    });
+                    return false;
+                }
+                return true;
+            });
+
+            if (validFiles.length > 0) {
+                const newFiles: AudioFile[] = validFiles.map(file => ({
+                    id: crypto.randomUUID(),
+                    name: file.name,
+                    size: file.size,
+                    type: file.type,
+                    originalFile: file,
+                    status: 'uploaded',
+                }));
+                onFilesUploaded(newFiles);
+                // Auto-select the first uploaded file
+                if (newFiles.length > 0) {
+                    setSelectedFileId(newFiles[0].id);
+                }
             }
         }
-    }, [onFilesUploaded]);
+    }, [onFilesUploaded, toast]);
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
@@ -234,6 +250,22 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
         setStems([]);
 
         try {
+            // Get the file content
+            let fileBlob: Blob;
+            if (file.originalFile) {
+                fileBlob = file.originalFile;
+            } else if (file.originalUrl) {
+                const response = await fetch(file.originalUrl);
+                fileBlob = await response.blob();
+            } else {
+                throw new Error("File content not available");
+            }
+
+            // Size validation
+            if (fileBlob.size > 1024 * 1024 * 1024) {
+                throw new Error(`File is too large (${(fileBlob.size / 1024 / 1024).toFixed(1)}MB). Maximum allowed is 1GB.`);
+            }
+
             // Get auth token
             const { data: { session } } = await supabase.auth.getSession();
             if (!session?.access_token) {
@@ -244,16 +276,8 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
 
             const authToken = session?.access_token || "dev-bypass-token";
 
-            // 1. Get the file blob
-            let fileBlob: Blob;
-            if (file.originalFile) {
-                fileBlob = file.originalFile;
-            } else if (file.originalUrl) {
-                const response = await fetch(file.originalUrl);
-                fileBlob = await response.blob();
-            } else {
-                throw new Error("File content not available");
-            }
+            // Removal of duplicate blob fetching - moved to top
+            const fileBlobToUse = fileBlob;
 
             const formData = new FormData();
             formData.append('file', fileBlob, file.name);
@@ -353,6 +377,13 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
+            <Alert className="bg-cyan-950/20 border-cyan-500/50 text-cyan-200">
+                <AlertCircle className="h-4 w-4 text-cyan-400" />
+                <AlertTitle>Stems Upload Limit: 1GB</AlertTitle>
+                <AlertDescription className="text-sm opacity-90">
+                    High-quality stems separation supports audio files up to 1GB.
+                </AlertDescription>
+            </Alert>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Left Column: Input & Options */}
                 <div className="md:col-span-1 space-y-6">
@@ -375,6 +406,7 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                                 <p className="text-sm text-slate-400">
                                     {isDragActive ? "Drop the audio file here" : "Drag & drop or click to upload"}
                                 </p>
+                                <p className="text-[10px] text-slate-500 uppercase tracking-tighter mt-1">MAX 1GB • .WAV, .MP3, .FLAC</p>
                             </div>
 
                             {audioFiles.length > 0 && (

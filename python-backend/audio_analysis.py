@@ -53,11 +53,11 @@ def analyze_lufs(file_path: str) -> dict:
         dynamic_range_db = true_peak_db - rms_db
         
         return {
-            "integrated_lufs": round(integrated_lufs, 2),
-            "true_peak_db": round(true_peak_db, 2),
-            "dynamic_range_db": round(dynamic_range_db, 2),
-            "sample_rate": rate,
-            "duration_seconds": round(duration, 2),
+            "integrated_lufs": float(round(integrated_lufs, 2)),
+            "true_peak_db": float(round(true_peak_db, 2)),
+            "dynamic_range_db": float(round(dynamic_range_db, 2)),
+            "sample_rate": int(rate),
+            "duration_seconds": float(round(duration, 2)),
             "success": True
         }
         

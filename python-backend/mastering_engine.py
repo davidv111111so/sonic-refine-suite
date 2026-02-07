@@ -131,7 +131,7 @@ class MasteringEngine:
         
         return {
             "status": "success",
-            "ref_lufs": ref_stats['lufs'],
-            "target_lufs": final_lufs,
+            "ref_lufs": float(ref_stats['lufs']),
+            "target_lufs": float(final_lufs),
             "output_path": output_path
         }

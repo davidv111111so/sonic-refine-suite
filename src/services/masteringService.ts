@@ -33,12 +33,12 @@ export class MasteringService {
    * Upload file to Supabase Storage and get a public/signed URL
    */
   private async uploadToProcessingBucket(file: File, folder: string = 'uploads'): Promise<string> {
-    const MAX_SIZE_MB = 200;
+    const MAX_SIZE_MB = 1024; // Increased to 1GB for professional tracks
     const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 
     if (file.size > MAX_SIZE_BYTES) {
       console.error(`❌ File too large: ${file.name} (${(file.size / 1024 / 1024).toFixed(1)}MB). Max allowed: ${MAX_SIZE_MB}MB`);
-      throw new Error(`File "${file.name}" exceeds the ${MAX_SIZE_MB}MB limit. Please upload a smaller file.`);
+      throw new Error(`File "${file.name}" exceeds the ${MAX_SIZE_MB}MB limit. Please provide a smaller file.`);
     }
 
     try {
@@ -69,7 +69,7 @@ export class MasteringService {
         }
         if (error.message.includes('exceeded the maximum allowed size')) {
           console.error(`❌ Storage limit error. Bucket limit may be too low. Required: ${(file.size / 1024 / 1024).toFixed(1)}MB`);
-          throw new Error(`The file is too large for the storage provider. Max limit is ${MAX_SIZE_MB}MB.`);
+          throw new Error(`Upload rejected: File exceeds the maximum allowed size (1GB) for the 'audio-processing' storage bucket.`);
         }
         throw error;
       }

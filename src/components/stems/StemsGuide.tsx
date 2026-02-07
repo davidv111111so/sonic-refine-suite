@@ -67,7 +67,7 @@ export const StemsGuide = () => {
                                     </div>
                                     <div>
                                         <span className="font-medium text-slate-200">Storage:</span>
-                                        <p className="text-slate-400">~500MB per song for temporary files</p>
+                                        <p className="text-slate-400">~1GB per song for temporary files</p>
                                     </div>
                                 </div>
                             </div>

@@ -15,8 +15,10 @@ import {
   CheckCircle,
   Zap,
   FileAudio,
-  RotateCcw
+  RotateCcw,
+  AlertCircle
 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { saveAs } from 'file-saver';
 import { useUserSubscription } from "@/hooks/useUserSubscription";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -366,6 +368,14 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
   ) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 1024 * 1024 * 1024) {
+        toast.error("File is too large", {
+          description: `The maximum allowed file size is 1GB. Your file is ${(file.size / 1024 / 1024).toFixed(1)}MB.`
+        });
+        if (e.target) e.target.value = "";
+        return;
+      }
+
       if (type === "target") {
         setTargetFile(file);
         setTargetFileInfo({ name: file.name, size: file.size });
@@ -595,6 +605,14 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
           settings={advancedSettings}
           onSettingsChange={setAdvancedSettings}
         />
+
+        <Alert className="bg-blue-950/20 border-blue-500/50 text-blue-200">
+          <AlertCircle className="h-4 w-4 text-blue-400" />
+          <AlertTitle>AI Mastering Limit: 1GB</AlertTitle>
+          <AlertDescription className="text-sm opacity-90">
+            Professional system supports high-fidelity audio files up to 1GB.
+          </AlertDescription>
+        </Alert>
         <AIMasteringGuide open={showGuide} onOpenChange={setShowGuide} />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -831,6 +849,7 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
                     <div className="flex flex-col items-center gap-2 py-2">
                       <Upload className="h-8 w-8 text-slate-500" />
                       <p className="text-slate-400 font-medium">Upload Reference Track</p>
+                      <p className="text-[10px] text-slate-500 uppercase tracking-tighter">MAX 1GB • .WAV, .MP3, .FLAC</p>
                     </div>
                   )}
                   <input

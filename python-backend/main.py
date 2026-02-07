@@ -192,7 +192,7 @@ def payu_signature():
 
 def download_file(url, local_path):
     """Download file from URL to local path with 200MB safety limit"""
-    MAX_SIZE = 200 * 1024 * 1024 # 200MB
+    MAX_SIZE = 1024 * 1024 * 1024 # 1GB
     try:
         print(f"📥 Downloading file from URL: {url[:100]}...")
         # Start download with stream=True to check headers
