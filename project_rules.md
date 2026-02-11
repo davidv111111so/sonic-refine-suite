@@ -44,39 +44,44 @@
 - Commit often with descriptive messages.
 - Review code before merging.
 
-## Antigravity Agent Guidelines
-### Core Philosophy
+### Antigravity Agent Guidelines
+#### Core Philosophy
 - **Investigate & Review Options**: Thoroughly investigate issues and review all available options (including external research and internal code review) before taking action. Never guess.
 - **Take the Best Approach**: After reviewing options, choose the most robust, scalable, and elegant solution. Prioritize long-term code health over quick hacks.
 - **Refactor when Required**: If the existing code is brittle, messy, or does not meet modern standards, refactor it before or during the implementation of new features. Optimize for readability and performance.
 - **Fix All Errors**: Proactively identify and fix all errors, including linting issues, console warnings, and logical bugs, even if they aren't the primary focus of the task. A clean console is a healthy app.
 - **Automate Deployment Checks**: Always verify backend health and frontend builds after making significant infrastructure changes.
 
-### Workflow
+#### Workflow
 - **Verify First**: Before marking a task as complete, verify the implementation by reading the file or running the code.
 - **Atomic Changes**: Make small, focused changes. Avoid massive file rewrites unless necessary.
 - **Preserve Functionality**: Never remove existing features or logic unless explicitly requested. If a refactor is needed, ensure feature parity.
+- **Health & Security First**: 
+    - Always test for health of frontend and backend.
+    - Ensure servers are running and accessible.
+    - Conduct security checks for vulnerabilities and penetration issues regularly.
+    - Fix all identified security issues immediately.
 
-### UI & Design
+#### UI & Design
 - **Visual Consistency**: Always adhere to the `Slate-950` (background) and `Cyan-500`/`Purple-500` (accent) theme.
 - **Responsive**: Ensure all new UI components are responsive and mobile-friendly.
 - **Feedback**: Provide immediate visual feedback for user actions (loading states, toasts, hover effects).
 
-### Error Handling
+#### Error Handling
 - **Graceful Degradation**: If a feature fails (e.g., 3D visualizer), fallback to a simpler version (e.g., 2D canvas) rather than crashing.
 - **User Notification**: Use `sonner` toasts to inform users of errors or success states.
 
-### Media Handling
+#### Media Handling
 - **Event-Driven State**: Always rely on media events (`play`, `pause`, `ended`, `timeupdate`) to update UI state (`isPlaying`, `currentTime`). Do not manually toggle state in handlers, as this leads to desync.
 - **Robust Playback**: Always handle promises returned by `play()` and catch potential errors (e.g., "The play() request was interrupted").
 - **Cleanup**: Ensure audio contexts and media elements are properly cleaned up or paused when components unmount.
 
-### Layout & Responsiveness
+#### Layout & Responsiveness
 - **Flexible Containers**: Use `flex-1` and `min-h-0` for main content areas to ensure they take up available space without overflowing.
 - **Scrollable Areas**: Explicitly define scrollable areas with `overflow-y-auto` and constrained heights (e.g., `h-[300px]` or `flex-1`).
 
 
-### Network & API Rules
+#### Network & API Rules
 - **Avoid 413 Errors**: Direct file uploads to the backend should be avoided for files larger than 20MB. Use cloud storage (Supabase/Firebase) as an intermediary.
 - **CORS Management**: Never manually handle `OPTIONS` requests if using a CORS middleware (like `Flask-CORS`). Let the middleware handle preflight.
 - **Robust Retries**: Implement exponential backoff for network requests that are prone to intermittent failure.

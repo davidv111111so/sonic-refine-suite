@@ -18,7 +18,8 @@ $IMAGE_NAME = "gcr.io/$PROJECT_ID/$SERVICE_NAME"
 try {
     $gcloudVersion = gcloud --version 2>&1 | Select-Object -First 1
     Write-Host "OK: gcloud encontrado: $gcloudVersion"
-} catch {
+}
+catch {
     Write-Host "ERROR: gcloud no esta instalado"
     exit 1
 }
@@ -54,7 +55,7 @@ gcloud run deploy $SERVICE_NAME `
     --region $REGION `
     --allow-unauthenticated `
     --set-env-vars "$envString" `
-    --memory 2Gi `
+    --memory 4Gi `
     --cpu 2
 
 if ($LASTEXITCODE -eq 0) {
@@ -66,7 +67,8 @@ if ($LASTEXITCODE -eq 0) {
     # Obtener URL
     $url = gcloud run services describe $SERVICE_NAME --platform managed --region $REGION --format 'value(status.url)'
     Write-Host "URL del servicio: $url"
-} else {
+}
+else {
     Write-Host ""
     Write-Host "❌ Error en el despliegue"
     exit 1

@@ -90,35 +90,40 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
             progress_callback(20) # Audio loaded
 
         # Add batch dimension: [channels, length] -> [1, channels, length]
+        if wav.shape[0] == 1:
+            print("   Converting mono to stereo for Demucs stability...")
+            wav = torch.cat([wav, wav], dim=0)
+            
         wav = wav.unsqueeze(0)
 
+        # Move to device (ensure consistency)
+        device = "cpu" # Default to CPU as seen in line 65
+        wav = wav.to(device)
+
         # Separate
-        print(f"   Separating...")
+        print(f"   Separating (tensor shape: {wav.shape})...")
         ref = wav.mean(0)
-        wav = (wav - ref.mean()) / ref.std()
+        # Avoid division by zero for silent files
+        std = ref.std()
+        if std == 0:
+            std = 1.0
+        wav = (wav - ref.mean()) / std
         
         # Start simulated progress thread for the separation phase
-        # Demucs separation can take time, and we don't have a direct callback.
-        # We'll simulate progress from 15 to 85 over an estimated duration.
         stop_progress = threading.Event()
         
         def simulate_progress():
             current_progress = 15.0
             target_progress = 85.0
-            # Estimate: 2 minutes (120s) for a typical song on CPU
-            # We want to move smoothly.
-            fps = 10 # updates per second
-            duration = 120 # seconds
+            fps = 5 # updates per second
+            duration = 180 # seconds (increased estimate for CPU)
             step = (target_progress - current_progress) / (duration * fps)
             
             while not stop_progress.is_set() and current_progress < target_progress:
                 time.sleep(1.0 / fps)
                 current_progress += step
-                
-                # Non-linear slowdown as we approach the end to avoid "hanging" at 100%
-                if current_progress > 70:
-                    step *= 0.995
-                
+                if current_progress > 75:
+                    step *= 0.99
                 if progress_callback:
                     progress_callback(int(current_progress))
         
@@ -128,11 +133,25 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
 
         try:
             # Apply model
-            sources = apply_model(model, wav, shifts=shifts, overlap=overlap)[0]
-            sources = sources * ref.std() + ref.mean()
+            print("   Applying Demucs model...")
+            # We use a try-except here to catch the specific AssertionError some versions of demucs throw
+            try:
+                sources = apply_model(model, wav, shifts=shifts, overlap=overlap)[0]
+            except AssertionError as ae:
+                print(f"⚠️ Demucs internal assertion error: {ae}. Retrying with simplified parameters...")
+                # Try with 0 shifts and no overlap if it failed
+                sources = apply_model(model, wav, shifts=0, overlap=0.1)[0]
+                
+            sources = sources * std + ref.mean()
+        except Exception as inner_e:
+            print(f"❌ Core separation failed: {str(inner_e)}")
+            raise inner_e
         finally:
             stop_progress.set()
-            progress_thread.join(timeout=1)
+            try:
+                progress_thread.join(timeout=1)
+            except:
+                pass
 
         if progress_callback:
             progress_callback(90) # Separation done

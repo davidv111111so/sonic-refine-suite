@@ -299,8 +299,13 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
 
             setProcessingStage('Uploading and starting separation...');
 
+            // Convert blob to proper File object with the correct name
+            const fileToSend = fileBlob instanceof File
+                ? fileBlob
+                : new File([fileBlob], file.name || 'audio.wav', { type: fileBlob.type || 'audio/wav' });
+
             // Call backend via centralized service
-            const data = await masteringService.separateAudio(fileBlob as File, stemCount);
+            const data = await masteringService.separateAudio(fileToSend, stemCount);
             const taskId = data.task_id;
 
             // Start polling

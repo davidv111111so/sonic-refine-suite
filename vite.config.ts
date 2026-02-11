@@ -15,7 +15,19 @@ export default defineConfig(({ mode }) => ({
         secure: false,
       }
     },
-
+  },
+  worker: {
+    format: 'es',
+  },
+  build: {
+    target: 'esnext',
+    outDir: 'dist',
+    rollupOptions: {
+      output: {
+        format: 'es',
+        manualChunks: undefined,
+      }
+    }
   },
   plugins: [
     react(),
@@ -26,6 +38,7 @@ export default defineConfig(({ mode }) => ({
     },
   },
   esbuild: {
-    drop: mode === 'production' ? ['console', 'debugger'] : [],
+    // Temporarily disabled for debugging - re-enable after fixing stem separation
+    // drop: mode === 'production' ? ['console', 'debugger'] : [],
   },
 }));
