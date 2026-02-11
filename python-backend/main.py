@@ -69,74 +69,23 @@ CORS(app, resources={
     }
 })
 
-@app.before_request
-def log_request():
-    if request.path != '/health':
-        print(f"--- Incoming {request.method} request ---")
-        print(f"Origin: {request.origin}")
-        print(f"Path: {request.path}")
-        print(f"Headers: {dict(request.headers)}")
-
-@app.errorhandler(Exception)
-def handle_exception(e):
-    import traceback
-    traceback.print_exc()
-    return jsonify({"error": str(e), "trace": traceback.format_exc()}), 500
-
-@app.route('/health', methods=['GET'])
-def health_check():
-    """Health check endpoint"""
-    return jsonify({"status": "OK", "service": "AI Mastering Backend"}), 200
-
-@app.route('/api/admin/system-stats', methods=['GET'])
-def system_stats_endpoint():
-    """Get aggregated system stats for admin dashboard"""
-    user = verify_auth_token(request)
-    if not user:
-        return jsonify({"error": "Unauthorized"}), 401
-    
-    # Check if user is admin (this assumes the token/user object has role or we check DB)
-    # For now, we'll allow any authenticated user for 'system-stats' but in production
-    # we should check the 'profiles' table for tier='admin'
-    
-    try:
-        # Fetch summary directly from our admin_stats view
-        view_result = supabase.table("admin_stats").select("*").execute()
-        
-        # Fetch recent jobs
-        stats = supabase.table("job_history").select("*").order("created_at", desc=True).limit(50).execute()
-        
-        return jsonify({
-            "summary": view_result.data[0] if view_result.data else {},
-            "recent_jobs": stats.data
-        })
-    except Exception as e:
-        print(f"❌ Stats error: {str(e)}")
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/admin/cleanup', methods=['POST'])
-def admin_cleanup_endpoint():
-    """Trigger manual storage cleanup"""
-    user = verify_auth_token(request)
-    if not user:
-        return jsonify({"error": "Unauthorized"}), 401
-        
-    files_deleted = cleanup_old_files()
-    return jsonify({
-        "status": "success",
-        "files_deleted": files_deleted
-    })
-
-def validate_file_type(file_path):
-    """Validate file type using python-magic"""
-    mime = magic.Magic(mime=True)
-    file_type = mime.from_file(file_path)
-    return file_type.startswith('audio/') or file_type == 'application/octet-stream'
+@app.after_request
+def after_request(response):
+    """Ensure CORS headers are present on all responses"""
+    origin = request.headers.get('Origin')
+    if origin and (origin in ALLOWED_ORIGINS or any(pattern.match(origin) for pattern in ALLOWED_ORIGINS if hasattr(pattern, 'match'))):
+        response.headers.add('Access-Control-Allow-Origin', origin)
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With,Accept')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        response.headers.add('Access-Control-Expose-Headers', 'Content-Type,Content-Length,Content-Disposition,X-Audio-Analysis')
+    return response
 
 def verify_auth_token(request):
     """Verify Supabase Auth Token"""
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
+        print("❌ Auth failed: No Bearer token")
         return None
     
     token = auth_header.split(' ')[1]
@@ -148,10 +97,16 @@ def verify_auth_token(request):
         return {"id": "dev-user", "email": "dev@example.com"}
 
     try:
+        # Log partial token for debugging (security: only last 6 chars)
+        print(f"🔐 Verifying token ending in ...{token[-6:] if len(token) > 6 else token}")
         user = supabase.auth.get_user(token)
+        print(f"✅ Auth success for user: {user.user.id if hasattr(user, 'user') else 'unknown'}")
         return user
     except Exception as e:
         print(f"❌ Auth verification failed: {str(e)}")
+        # Check if Supabase client is healthy
+        if not os.environ.get("SUPABASE_URL") or not os.environ.get("SUPABASE_KEY"):
+            print("❌ Start-up Error: SUPABASE_URL or SUPABASE_KEY missing in env")
         return None
 
 @app.route('/api/payment/payu-signature', methods=['POST'])

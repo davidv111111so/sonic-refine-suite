@@ -98,8 +98,7 @@ export class MasteringService {
   }
 
   /**
-   * Complete mastering flow: Send files directly to Python backend via FormData
-   * (bypasses Supabase Storage to avoid bucket size limits on large files)
+   * Complete mastering flow: Upload to Storage -> Send URLs to Python backend
    */
   async masterAudio(
     targetFile: File,
@@ -108,31 +107,33 @@ export class MasteringService {
     onProgress?: (stage: string, percent: number) => void
   ): Promise<{ blob: Blob; analysis: any | null }> {
     try {
-      console.log('🚀 Starting real Matchering mastering...');
-
+      console.log('🚀 Starting Mastering Flow...');
       const authToken = await this.getAuthToken();
 
-      if (onProgress) onProgress('Uploading files to AI backend...', 10);
+      // 1. Upload files to Storage
+      if (onProgress) onProgress('Uploading files to cloud storage...', 10);
 
-      // Send files directly to backend via multipart/form-data
-      const formData = new FormData();
-      formData.append('target', targetFile, targetFile.name);
-      formData.append('reference', referenceFile, referenceFile.name);
-      if (settings) {
-        formData.append('settings', JSON.stringify(settings));
-      }
+      const targetUrl = await this.uploadToProcessingBucket(targetFile, 'mastering/target');
+      const referenceUrl = await this.uploadToProcessingBucket(referenceFile, 'mastering/reference');
 
-      console.log(`📤 Sending target (${(targetFile.size / 1024 / 1024).toFixed(1)}MB) + reference (${(referenceFile.size / 1024 / 1024).toFixed(1)}MB) directly to backend...`);
+      console.log(`✅ Files uploaded. Target: ${targetUrl}, Ref: ${referenceUrl}`);
 
+      // 2. Call Backend with URLs
       if (onProgress) onProgress('Processing with AI Backend...', 30);
+
+      const payload: any = {
+        target_url: targetUrl,
+        reference_url: referenceUrl,
+        settings: settings || {}
+      };
 
       const response = await fetch(`${this.backendUrl}/api/master-audio`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${authToken}`
-          // Do NOT set Content-Type — browser will set multipart boundary automatically
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
         },
-        body: formData
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
@@ -171,25 +172,24 @@ export class MasteringService {
     try {
       const token = await this.getAuthToken();
 
-      console.log(`🔍 Analyzing audio: ${file.name} (direct upload)`);
+      console.log(`🔍 Analyzing audio: ${file.name} (via storage)`);
 
-      // Send file directly to backend via multipart/form-data
-      const formData = new FormData();
-      formData.append('file', file, file.name);
+      // 1. Upload to Storage
+      const fileUrl = await this.uploadToProcessingBucket(file, 'analysis');
 
+      // 2. Call Backend
       const response = await fetch(`${this.backendUrl}/api/analyze-audio`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`
-          // Do NOT set Content-Type — browser will set multipart boundary automatically
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
-        body: formData,
+        body: JSON.stringify({ file_url: fileUrl }),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`❌ Analysis failed | Status: ${response.status} | URL: ${this.backendUrl}/api/analyze-audio`);
-        console.error(`❌ Error Details: ${errorText}`);
+        console.error(`❌ Analysis failed | Status: ${response.status}`);
         throw new Error(`Analysis failed: ${response.status} - ${errorText || 'Internal Server Error'}`);
       }
 
@@ -203,8 +203,7 @@ export class MasteringService {
   }
 
   /**
-   * Stem Separation: Send file directly to Python backend via FormData
-   * (bypasses Supabase Storage to avoid bucket size limits)
+   * Stem Separation: Upload to Storage -> Send URL to Python backend
    */
   async separateAudio(
     file: File,
@@ -212,31 +211,35 @@ export class MasteringService {
     onProgress?: (stage: string, percent: number) => void
   ): Promise<{ task_id: string }> {
     try {
-      console.log('🚀 Starting stem separation (direct upload)...');
+      console.log('🚀 Starting stem separation (via storage)...');
       const token = await this.getAuthToken();
 
       if (onProgress) onProgress('Uploading file for separation...', 5);
 
+      // 1. Upload to Storage
+      const fileUrl = await this.uploadToProcessingBucket(file, 'stems');
+
+      console.log(`✅ File uploaded: ${fileUrl}`);
+
       const modelName = stemCount === '6' ? 'htdemucs_6s' : 'htdemucs';
 
-      // Send file directly to the backend via multipart/form-data
-      const formData = new FormData();
-      formData.append('file', file, file.name);
-      formData.append('stem_count', stemCount);
-      formData.append('library', 'demucs');
-      formData.append('model_name', modelName);
-
-      console.log(`📤 Sending ${file.name} (${(file.size / 1024 / 1024).toFixed(1)}MB) directly to backend...`);
-
+      // 2. Call Backend
       if (onProgress) onProgress('Queueing separation task...', 15);
+
+      const payload = {
+        file_url: fileUrl,
+        stem_count: stemCount,
+        library: 'demucs',
+        model_name: modelName
+      };
 
       const response = await fetch(`${this.backendUrl}/api/separate-audio`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`
-          // Do NOT set Content-Type — browser will set multipart boundary automatically
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
-        body: formData,
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
