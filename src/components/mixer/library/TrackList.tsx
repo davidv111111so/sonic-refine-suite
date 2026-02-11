@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLibrary, LibraryTrack } from '@/contexts/LibraryContext';
 import { cn } from '@/lib/utils';
-import { Clock, Disc } from 'lucide-react';
+import { Clock, Disc, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface TrackListProps {
@@ -9,7 +9,7 @@ interface TrackListProps {
 }
 
 export const TrackList: React.FC<TrackListProps> = ({ onLoadTrack }) => {
-    const { state } = useLibrary();
+    const { state, removeTrack } = useLibrary();
 
     const filteredTracks = React.useMemo(() => {
         if (!state.searchQuery) return state.currentTracks;
@@ -24,6 +24,7 @@ export const TrackList: React.FC<TrackListProps> = ({ onLoadTrack }) => {
         // Custom data format compatible with ProMixer 'drop' logic
         e.dataTransfer.setData('application/json', JSON.stringify({
             type: 'track',
+            id: track.id,
             title: track.title,
             artist: track.artist,
             url: track.url,
@@ -47,14 +48,15 @@ export const TrackList: React.FC<TrackListProps> = ({ onLoadTrack }) => {
             <table className="w-full text-left border-collapse table-fixed">
                 <thead className="sticky top-0 bg-[#1a1a1a] z-10 text-[9px] font-bold text-[#888] uppercase shadow-sm">
                     <tr>
-                        <th className="w-10 px-2 py-1 border-r border-[#333] border-b">#</th>
+                        <th className="w-8 px-2 py-1 border-r border-[#333] border-b">#</th>
                         <th className="px-2 py-1 border-r border-[#333] border-b">Title</th>
-                        <th className="px-2 py-1 border-r border-[#333] border-b">Artist</th>
-                        <th className="w-16 px-2 py-1 border-r border-[#333] border-b text-center">BPM</th>
-                        <th className="w-16 px-2 py-1 border-r border-[#333] border-b text-center">Key</th>
-                        <th className="w-16 px-2 py-1 border-b border-[#333] text-center">
+                        <th className="px-2 py-1 border-r border-[#333] border-b w-32">Artist</th>
+                        <th className="w-12 px-2 py-1 border-r border-[#333] border-b text-center">BPM</th>
+                        <th className="w-12 px-2 py-1 border-r border-[#333] border-b text-center">Key</th>
+                        <th className="w-14 px-2 py-1 border-r border-[#333] border-b text-center">
                             <Clock className="w-3 h-3 mx-auto" />
                         </th>
+                        <th className="w-8 px-2 py-1 border-b border-[#333] text-center"></th>
                     </tr>
                 </thead>
                 <tbody className="text-[11px] font-medium text-[#ccc]">
@@ -74,7 +76,19 @@ export const TrackList: React.FC<TrackListProps> = ({ onLoadTrack }) => {
                             <td className="px-2 py-1 border-r border-[#1a1a1a] text-[#888] truncate">{track.artist}</td>
                             <td className="px-2 py-1 border-r border-[#1a1a1a] text-center font-mono text-[#00deea]">{track.bpm || '-'}</td>
                             <td className="px-2 py-1 border-r border-[#1a1a1a] text-center font-mono text-[#a855f7]">{track.key}</td>
-                            <td className="px-2 py-1 text-center font-mono text-[#666]">{track.time}</td>
+                            <td className="px-2 py-1 border-r border-[#1a1a1a] text-center font-mono text-[#666]">{track.time}</td>
+                            <td className="px-2 py-1 text-center">
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        removeTrack(track.id);
+                                    }}
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-500/10 rounded-sm"
+                                    title="Remove from collection"
+                                >
+                                    <Trash2 className="w-3 h-3 text-red-500/60 hover:text-red-500" />
+                                </button>
+                            </td>
                         </tr>
                     ))}
                     {filteredTracks.length === 0 && (

@@ -22,7 +22,7 @@ export const ChannelStrip = ({ deck, color, label, side, cue, onToggleCue }: Cha
 
     return (
         <div className={cn(
-            "flex flex-col h-full bg-[#121212] px-1 py-1 relative gap-1 items-center min-w-[50px] w-[50px]",
+            "flex flex-col h-full bg-[#121212] px-1 py-1 relative gap-1 items-center min-w-[46px] w-[46px]",
             side === 'left' ? "border-r border-[#27272a]" : "border-l border-[#27272a]"
         )}>
             {/* EQ Section with Kills */}
@@ -34,7 +34,7 @@ export const ChannelStrip = ({ deck, color, label, side, cue, onToggleCue }: Cha
                     kill={deck.state.eqKills?.high || false}
                     onToggleKill={() => deck.toggleEQKill('high')}
                     color={knobColor}
-                    size={36}
+                    size={32}
                 />
                 <EQKnobWithKill
                     label="MID"
@@ -43,7 +43,7 @@ export const ChannelStrip = ({ deck, color, label, side, cue, onToggleCue }: Cha
                     kill={deck.state.eqKills?.mid || false}
                     onToggleKill={() => deck.toggleEQKill('mid')}
                     color={knobColor}
-                    size={36}
+                    size={32}
                 />
                 <EQKnobWithKill
                     label="LOW"
@@ -52,7 +52,7 @@ export const ChannelStrip = ({ deck, color, label, side, cue, onToggleCue }: Cha
                     kill={deck.state.eqKills?.low || false}
                     onToggleKill={() => deck.toggleEQKill('low')}
                     color={knobColor}
-                    size={36}
+                    size={32}
                 />
             </div>
 
@@ -61,14 +61,14 @@ export const ChannelStrip = ({ deck, color, label, side, cue, onToggleCue }: Cha
             {/* CUE Button */}
             <button
                 className={cn(
-                    "w-8 h-5 rounded-sm border flex items-center justify-center transition-all mt-0",
+                    "w-8 h-4 rounded-sm border flex items-center justify-center transition-all mt-0",
                     cue
                         ? "border-yellow-500 bg-yellow-500/20 text-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.4)]"
                         : "border-[#3f3f46] bg-[#18181b] text-[#71717a] hover:border-[#52525b] hover:text-[#a1a1aa]"
                 )}
                 onClick={onToggleCue}
             >
-                <Headphones className="w-3 h-3" />
+                <Headphones className="w-2.5 h-2.5" />
             </button>
 
             {/* Filter Knob */}
@@ -80,7 +80,7 @@ export const ChannelStrip = ({ deck, color, label, side, cue, onToggleCue }: Cha
                     max={1}
                     onChange={(v) => deck.setFilter(v)}
                     color={knobColor}
-                    size={36}
+                    size={32}
                 />
             </div>
 

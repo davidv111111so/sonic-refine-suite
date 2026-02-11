@@ -379,21 +379,31 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
                 startTime.current = 0;
                 offsetTime.current = 0;
 
-                // BPM Detection
-                let detectedBPM = bpm || 0;
+                // BPM Detection: Prioritize provided BPM (from Library/Tags)
+                let detectedBPM = (bpm && bpm > 0) ? bpm : 0;
+
                 if (!detectedBPM) {
+                    console.log(`🔍 No BPM provided, analyzing audio buffer...`);
                     try {
                         const nativeBuf = buffer.get();
                         const analysis = await detectBPMFromBuffer(nativeBuf);
                         detectedBPM = analysis.bpm;
-                    } catch (e) { console.error(e); }
+                        console.log(`✅ Analyzed BPM: ${detectedBPM}`);
+                    } catch (e) {
+                        console.error("Analysis failed, using fallback 120", e);
+                        detectedBPM = 120;
+                    }
+                } else {
+                    console.log(`🎯 Using provided BPM: ${detectedBPM}`);
                 }
+
+                const roundedBPM = Math.round(detectedBPM * 100) / 100;
 
                 setState(prev => ({
                     ...prev,
                     buffer: buffer?.get() || null,
                     duration: bufferDuration,
-                    bpm: detectedBPM || null,
+                    bpm: roundedBPM,
                     key: key || null,
                     currentTime: 0,
                     isPlaying: false,

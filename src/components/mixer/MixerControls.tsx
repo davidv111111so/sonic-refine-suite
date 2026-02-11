@@ -42,7 +42,7 @@ export const MixerControls = ({
     analysers
 }: MixerControlsProps) => {
     return (
-        <div className="flex flex-col h-full bg-[#09090b] border border-[#27272a] rounded-md p-[2px] relative w-full max-w-[500px] mx-auto">
+        <div className="flex flex-col h-full bg-[#09090b] border border-[#27272a] rounded-sm p-[1px] relative w-full max-w-[500px] mx-auto">
             <div className="flex-1 flex justify-center gap-[2px] min-h-0 relative">
                 {/* Deck A Pitch */}
                 <DeckPitchFader deck={deckA} color="cyan" />
@@ -50,10 +50,10 @@ export const MixerControls = ({
                 <ChannelStrip deck={deckA} color="cyan" label="A" side="left" cue={cueA} onToggleCue={() => setCueA(!cueA)} />
 
                 {/* Center Section */}
-                <div className="w-24 bg-[#121212] flex flex-col items-center py-1 gap-1 border-x border-[#27272a]">
+                <div className="w-24 bg-[#121212] flex flex-col items-center py-0 gap-0.5 border-x border-[#27272a]">
 
                     {/* GAIN Knobs (Moved to Center) */}
-                    <div className="flex gap-2 mb-0">
+                    <div className="flex gap-2 mt-1 mb-0">
                         <Knob
                             label="GAIN A"
                             value={deckA.state.trim || 1}
@@ -77,7 +77,7 @@ export const MixerControls = ({
                     <div className="w-full h-px bg-[#27272a]" />
 
                     {/* Meters */}
-                    <div className="flex gap-1 h-24 px-[2px] w-full justify-center">
+                    <div className="flex gap-1 h-20 px-[2px] w-full justify-center">
                         <Meter active={deckA.state.isPlaying} analyser={analysers.A} />
                         <Meter active={deckB.state.isPlaying} analyser={analysers.B} />
                     </div>
@@ -137,8 +137,8 @@ export const MixerControls = ({
                 <DeckPitchFader deck={deckB} color="purple" />
             </div>
 
-            {/* Crossfader Section (Flex Layout) */}
-            <div className="flex-none h-12 bg-[#121212] border-t border-[#27272a] flex items-center justify-between px-2 z-10 mx-1 rounded-sm gap-1 mb-1">
+            {/* Crossfader Section (Reduced Height) */}
+            <div className="flex-none h-10 bg-[#121212] border-t border-[#27272a] flex items-center justify-between px-2 z-10 mx-1 rounded-sm gap-1 mb-1">
 
                 {/* Auto Fade Left */}
                 <button

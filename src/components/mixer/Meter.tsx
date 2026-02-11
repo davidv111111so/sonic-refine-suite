@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 
 interface MeterProps {
     active?: boolean;
@@ -6,93 +6,109 @@ interface MeterProps {
 }
 
 export const Meter = ({ active, analyser }: MeterProps) => {
-    const canvasRef = React.useRef<HTMLCanvasElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const lastLevelRef = useRef(0);
+    const peakLevelRef = useRef(0);
+    const peakHoldTimeRef = useRef(0);
 
-    React.useEffect(() => {
+    useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
         if (!analyser || !active) {
-            // Clear canvas if inactive
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            // Draw empty/dim state?
-            // Just clear is fine for "0%"
+            // Draw dimmed background segments
+            const segments = 24;
+            const gap = 2;
+            const segH = (canvas.height - (segments * gap)) / segments;
+            for (let i = 0; i < segments; i++) {
+                ctx.fillStyle = '#111';
+                ctx.fillRect(0, canvas.height - ((i + 1) * (segH + gap)), canvas.width, segH);
+            }
             return;
         }
 
         const bufferLength = analyser.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-
-        // Use a more responsive smoothing internally
-        analyser.smoothingTimeConstant = 0.4;
+        const dataArray = new Float32Array(bufferLength);
 
         let animationId: number;
-        let lastLevel = 0;
-        let peakLevel = 0;
-        let peakHoldTime = 0;
 
         const draw = () => {
             animationId = requestAnimationFrame(draw);
-            analyser.getByteFrequencyData(dataArray);
+            analyser.getFloatTimeDomainData(dataArray);
 
-            // Calculate RMS-like value from frequency data
-            let sum = 0;
+            // Calculate Peak Level (0 to 1)
+            let peak = 0;
             for (let i = 0; i < bufferLength; i++) {
-                sum += dataArray[i] * dataArray[i];
+                const abs = Math.abs(dataArray[i]);
+                if (abs > peak) peak = abs;
             }
-            const rms = Math.sqrt(sum / bufferLength);
 
-            // Map RMS to level (Improved non-linear scaling for better visibility)
-            // Using a power scale (0.5) makes it feel more like a real VU meter
-            const targetLevel = Math.pow(rms / 255, 0.6) * 35;
+            // Convert to dB-like scale for more natural movement
+            // 0.0 to 1.0 mapped to 0 to 24 segments
+            // We use a log-like scale: level = log10(peak * 10 + 1) normalized or similar
+            // For DJ mixer look, we want it to move fast up and slow down
+            const targetLevel = peak * 24;
 
-            // Fast Attack, Slow Release logic
-            const attack = 0.8;
-            const release = 0.1;
+            // Smooth the level (Attack/Release)
+            const attack = 0.95;
+            const release = 0.15;
             let currentLevel;
-
-            if (targetLevel > lastLevel) {
-                currentLevel = lastLevel + (targetLevel - lastLevel) * attack;
+            if (targetLevel > lastLevelRef.current) {
+                currentLevel = lastLevelRef.current + (targetLevel - lastLevelRef.current) * attack;
             } else {
-                currentLevel = lastLevel - (lastLevel - targetLevel) * release;
+                currentLevel = lastLevelRef.current - (lastLevelRef.current - targetLevel) * release;
             }
-            lastLevel = currentLevel;
+            lastLevelRef.current = currentLevel;
 
-            // Clip Detection & Hold (Level > 28 is red/clip)
-            if (currentLevel >= 28) {
-                peakLevel = currentLevel;
-                peakHoldTime = Date.now() + 750; // Hold for 750ms as per research
+            // Peak Hold logic
+            if (currentLevel > peakLevelRef.current) {
+                peakLevelRef.current = currentLevel;
+                peakHoldTimeRef.current = Date.now() + 1000; // Hold for 1 second
+            } else if (Date.now() > peakHoldTimeRef.current) {
+                peakLevelRef.current *= 0.95; // Decay peak
             }
 
-            const showClip = Date.now() < peakHoldTime;
-
+            // Rendering
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            const segmentHeight = canvas.height / 30;
-            const gap = 1;
+            const segments = 24;
+            const gap = 2;
+            const segH = (canvas.height - (segments * gap)) / segments;
 
-            for (let i = 0; i < 30; i++) {
-                const isActive = i < currentLevel;
-                const isClipSegment = i >= 28;
+            for (let i = 0; i < segments; i++) {
+                const isActive = i <= currentLevel;
+                const isPeak = Math.floor(peakLevelRef.current) === i;
 
-                // Base Colors (Dimmed)
-                let baseColor = '#1a1a1a';
-                if (i < 18) baseColor = '#064e3b'; // Very dark green
-                else if (i < 26) baseColor = '#451a03'; // Very dark orange
-                else baseColor = '#450a0a'; // Very dark red
-
-                let litColor = null;
-                if (isActive || (isClipSegment && showClip)) {
-                    if (i < 18) litColor = '#22c55e'; // Vibrant Green
-                    else if (i < 26) litColor = '#f97316'; // Vibrant Orange
-                    else litColor = '#ef4444'; // Vibrant Red (Clip)
+                // Colors
+                let color = '#111'; // Off
+                if (isActive || isPeak) {
+                    if (i < 16) color = '#00f2ff'; // Cyan (Safe)
+                    else if (i < 21) color = '#ffdf00'; // Yellow (Caution)
+                    else color = '#ff0040'; // Red (Clip)
                 }
 
-                ctx.fillStyle = litColor || baseColor;
-                ctx.fillRect(0, canvas.height - ((i + 1) * segmentHeight) + gap, canvas.width, segmentHeight - gap);
+                // Add glass/glow effect for active segments
+                if (isActive) {
+                    ctx.shadowBlur = 4;
+                    ctx.shadowColor = color;
+                } else if (isPeak) {
+                    ctx.shadowBlur = 8;
+                    ctx.shadowColor = color;
+                } else {
+                    ctx.shadowBlur = 0;
+                }
+
+                ctx.fillStyle = color;
+                ctx.fillRect(0, canvas.height - ((i + 1) * (segH + gap)), canvas.width, segH);
             }
+
+            // Draw a subtle overlay for "professional" look
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = 'rgba(255,255,255,0.05)';
+            ctx.fillRect(0, 0, canvas.width / 2, canvas.height);
         };
 
         draw();
@@ -100,8 +116,15 @@ export const Meter = ({ active, analyser }: MeterProps) => {
     }, [active, analyser]);
 
     return (
-        <div className="flex-1 w-3 bg-[#09090b] rounded-sm p-[1px] relative overflow-hidden border border-[#27272a]">
-            <canvas ref={canvasRef} width={12} height={200} className="w-full h-full" />
+        <div className="flex-1 w-2.5 bg-black/60 rounded-[1px] p-[1.5px] relative overflow-hidden ring-1 ring-white/5 shadow-inner">
+            <canvas ref={canvasRef} width={10} height={150} className="w-full h-full" />
+
+            {/* Legend/Ticks */}
+            <div className="absolute inset-0 pointer-events-none flex flex-col justify-between py-1 px-[0.5px]">
+                {[...Array(5)].map((_, i) => (
+                    <div key={i} className="w-full h-[1px] bg-white/10" />
+                ))}
+            </div>
         </div>
     );
 };

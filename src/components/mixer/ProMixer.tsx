@@ -93,28 +93,28 @@ const ProMixerContent = () => {
 
     return (
         <div className="flex flex-col h-screen bg-[#0d0d0d] text-[#e0e0e0] overflow-hidden select-none font-sans">
-            {/* Header / Top Bar */}
-            <div className="h-14 flex-none bg-[#1e1e1e] border-b border-[#333] flex items-center justify-between px-6 z-50 relative">
+            {/* Header / Top Bar (Reduced to h-12) */}
+            <div className="h-12 flex-none bg-[#1e1e1e] border-b border-[#333] flex items-center justify-between px-6 z-50 relative">
                 <div className="flex items-center gap-4">
-                    <LevelLogo size="md" />
+                    <LevelLogo size="sm" />
                     <div className="flex flex-col">
-                        <span className="text-sm font-black text-white uppercase tracking-[0.2em] leading-none">Mixer<span className="text-[#00deea]"> Lab</span></span>
-                        <span className="text-[8px] font-bold text-[#666] uppercase tracking-widest mt-1">Sonic Refine Suite v2.0</span>
+                        <span className="text-xs font-black text-white uppercase tracking-[0.2em] leading-none">Mixer<span className="text-[#00deea]"> Lab</span></span>
+                        <span className="text-[7px] font-bold text-[#666] uppercase tracking-widest mt-1">Sonic Refine Suite v2.0</span>
                     </div>
                 </div>
 
                 {/* Master Clock / Auto Panel */}
                 <div className="flex items-center gap-4 bg-[#121212] px-3 py-1 rounded-full border border-[#333]">
                     <div className="flex flex-col items-center leading-none">
-                        <span className="text-[8px] font-bold text-[#666] uppercase">Master</span>
-                        <span className="text-sm font-mono font-bold text-[#00deea]">
+                        <span className="text-[7px] font-bold text-[#666] uppercase">Master</span>
+                        <span className="text-xs font-mono font-bold text-[#00deea]">
                             {transportState.masterBpm.toFixed(2)}
                         </span>
                     </div>
-                    <div className="h-6 w-px bg-[#333]" />
+                    <div className="h-5 w-px bg-[#333]" />
                     <button
                         className={cn(
-                            "text-[10px] font-bold px-2 py-1 rounded border transition-all",
+                            "text-[9px] font-bold px-2 py-0.5 rounded border transition-all",
                             transportState.autoMasterMode
                                 ? "bg-[#00deea] text-black border-[#00deea] shadow-[0_0_10px_rgba(0,222,234,0.4)]"
                                 : "bg-[#222] text-[#666] border-[#444] hover:text-white"
@@ -126,8 +126,8 @@ const ProMixerContent = () => {
                 </div>
 
                 {/* Cloud Sync Status */}
-                <div className="flex items-center gap-2 text-[10px] text-[#666] font-mono">
-                    <Cpu className="w-3 h-3 text-cyan-500 animate-pulse" />
+                <div className="flex items-center gap-2 text-[9px] text-[#666] font-mono">
+                    <Cpu className="w-2.5 h-2.5 text-cyan-500 animate-pulse" />
                     <span>CLOUD SYNC ACTIVE</span>
                 </div>
 
@@ -138,8 +138,8 @@ const ProMixerContent = () => {
 
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col min-h-0 bg-[#0d0d0d] relative pt-0 gap-0">
-                {/* Mixer / Decks Section - Increased height to prevent overlap and give components more room */}
-                <div className="flex-none h-[55vh] min-h-[550px] grid grid-cols-[1fr_320px_1fr] border-b border-[#333] overflow-hidden bg-[#0d0d0d]">
+                {/* Mixer / Decks Section - Height tuned for perfect fit and no overlaps (49vh / 480px min) */}
+                <div className="flex-none h-[49vh] min-h-[480px] grid grid-cols-[1fr_320px_1fr] border-b border-[#333] overflow-hidden bg-[#0d0d0d]">
                     {/* Deck A */}
                     <div className="border-r border-[#333] bg-[#121212] relative">
                         <div className="absolute top-2 left-2 text-[10px] font-bold text-[#00deea] uppercase bg-[#00deea]/10 px-1 border border-[#00deea]/30">Deck A</div>
@@ -161,7 +161,7 @@ const ProMixerContent = () => {
 
                     {/* Center Mixer */}
                     <div className="bg-[#121212] flex flex-col border-r border-[#333] relative">
-                        <div className="flex-1 overflow-y-auto overflow-x-hidden pt-4">
+                        <div className="flex-1 overflow-hidden">
                             <MixerControls
                                 deckA={deckA} deckB={deckB} crossfader={crossfader} setCrossfader={setCrossfader}
                                 nudgeCrossfader={nudgeCrossfader} autoFade={autoFade} headphoneMix={headphoneMix}

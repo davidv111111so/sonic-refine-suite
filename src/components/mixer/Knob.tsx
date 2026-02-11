@@ -11,7 +11,7 @@ interface KnobProps {
     size?: number;
 }
 
-export const Knob = ({ value, min, max, onChange, label, color = "cyan", size = 60 }: KnobProps) => {
+export const Knob = ({ value, min, max, onChange, label, color = "cyan", size = 54 }: KnobProps) => {
     const [isDragging, setIsDragging] = useState(false);
     const startY = useRef<number>(0);
     const startValue = useRef<number>(0);
@@ -115,7 +115,7 @@ export const Knob = ({ value, min, max, onChange, label, color = "cyan", size = 
                     <div className="absolute top-[10%] left-1/2 -translate-x-1/2 w-1 h-[20%] bg-white rounded-full shadow-md" />
                 </div>
             </div>
-            <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">{label}</span>
+            <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-wider">{label}</span>
         </div>
     );
 };

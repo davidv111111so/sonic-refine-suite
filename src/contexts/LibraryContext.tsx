@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useReducer, useCallback } from 'react';
+import { saveAllTracksToDB, loadTracksFromDB } from '@/utils/libraryPersistence';
 
 // Types
 export interface LibraryTrack {
@@ -40,7 +41,9 @@ type Action =
     | { type: 'INCREMENT_ANALYZING' }
     | { type: 'DECREMENT_ANALYZING' }
     | { type: 'ADD_TRACKS'; payload: LibraryTrack[] }
-    | { type: 'UPDATE_TREE_NODE'; payload: { tree: FolderNode } };
+    | { type: 'UPDATE_TREE_NODE'; payload: { tree: FolderNode } }
+    | { type: 'REMOVE_TRACK'; payload: string }
+    | { type: 'CLEAR_LIBRARY' };
 
 const initialState: LibraryState = {
     rootHandle: null,
@@ -58,6 +61,8 @@ const LibraryContext = createContext<{
     navigateToFolder: (handle: FileSystemDirectoryHandle) => Promise<void>;
     toggleFolder: (node: FolderNode) => Promise<void>;
     setSearch: (query: string) => void;
+    removeTrack: (id: string) => void;
+    clearLibrary: () => void;
 } | undefined>(undefined);
 
 // Reducer
@@ -91,47 +96,27 @@ function libraryReducer(state: LibraryState, action: Action): LibraryState {
                 ...state,
                 currentTracks: [...state.currentTracks, ...action.payload]
             };
+        case 'REMOVE_TRACK':
+            return {
+                ...state,
+                currentTracks: state.currentTracks.filter(t => t.id !== action.payload)
+            };
+        case 'CLEAR_LIBRARY':
+            return {
+                ...state,
+                currentTracks: []
+            };
         default:
             return state;
     }
 }
 
-// Helper: Worker Factory - using inline worker to avoid build issues
+// Helper: Worker Factory
 const createWorker = () => {
-    const workerCode = `
-        self.onmessage = async (e) => {
-            const { id, file } = e.data;
-            try {
-                const arrayBuffer = await file.arrayBuffer();
-                const audioCtx = new OfflineAudioContext(2, 44100 * 10, 44100);
-                const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-                const duration = audioBuffer.duration;
-                const minutes = Math.floor(duration / 60);
-                const seconds = Math.floor(duration % 60);
-                self.postMessage({
-                    type: 'success',
-                    payload: {
-                        id,
-                        title: file.name.replace(/\\.[^/.]+$/, ""),
-                        artist: 'Unknown Artist',
-                        bpm: 120,
-                        key: '-',
-                        time: minutes + ':' + (seconds < 10 ? '0' : '') + seconds,
-                        duration
-                    }
-                });
-            } catch (err) {
-                self.postMessage({ type: 'error', payload: { id, error: err.message } });
-            }
-        };
-    `;
-    const blob = new Blob([workerCode], { type: 'application/javascript' });
-    return new Worker(URL.createObjectURL(blob));
+    return new Worker(new URL('../workers/metadata.worker.ts', import.meta.url), { type: 'module' });
 };
 
-import { saveAllTracksToDB, loadTracksFromDB } from '@/utils/libraryPersistence';
 
-// ...
 
 export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [state, dispatch] = useReducer(libraryReducer, initialState);
@@ -151,10 +136,24 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
                         metadata: {
                             title: payload.title,
                             artist: payload.artist,
-                            bpm: payload.bpm,
-                            key: payload.key,
+                            bpm: payload.bpm || 0,
+                            key: payload.key || '?',
                             time: payload.time,
                             duration: payload.duration
+                        }
+                    }
+                });
+            } else if (type === 'error') {
+                // If analysis fails, stop the loading dots and show basic info
+                dispatch({
+                    type: 'UPDATE_TRACK_METADATA',
+                    payload: {
+                        id: payload.id,
+                        metadata: {
+                            artist: 'Analyzed (Error)',
+                            bpm: 0,
+                            key: '?',
+                            time: '0:00'
                         }
                     }
                 });
@@ -343,8 +342,18 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
         dispatch({ type: 'SET_SEARCH', payload: query });
     }, []);
 
+    const removeTrack = useCallback((id: string) => {
+        dispatch({ type: 'REMOVE_TRACK', payload: id });
+    }, []);
+
+    const clearLibrary = useCallback(() => {
+        if (window.confirm("Are you sure you want to clear your entire library collection?")) {
+            dispatch({ type: 'CLEAR_LIBRARY' });
+        }
+    }, []);
+
     return (
-        <LibraryContext.Provider value={{ state, mountLibrary, importFiles, navigateToFolder, toggleFolder, setSearch }}>
+        <LibraryContext.Provider value={{ state, mountLibrary, importFiles, navigateToFolder, toggleFolder, setSearch, removeTrack, clearLibrary }}>
             {children}
         </LibraryContext.Provider>
     );

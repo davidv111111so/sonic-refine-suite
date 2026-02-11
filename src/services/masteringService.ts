@@ -63,15 +63,26 @@ export class MasteringService {
         });
 
       if (error) {
-        if (error.message.includes('bucket not found')) {
+        console.error('❌ Storage upload error details:', {
+          message: error.message,
+          name: (error as any).name,
+          statusCode: (error as any).statusCode,
+          error: error
+        });
+
+        if (error.message.includes('bucket not found') || error.message.includes('Bucket not found')) {
           console.error("❌ Bucket 'audio-processing' not found. Please create it in Supabase dashboard.");
-          throw new Error("Storage bucket 'audio-processing' does not exist. Contact administrator.");
+          throw new Error("Storage bucket 'audio-processing' does not exist. Please contact administrator to create it in Supabase.");
         }
         if (error.message.includes('exceeded the maximum allowed size')) {
           console.error(`❌ Storage limit error. Bucket limit may be too low. Required: ${(file.size / 1024 / 1024).toFixed(1)}MB`);
           throw new Error(`Upload rejected: File exceeds the maximum allowed size (1GB) for the 'audio-processing' storage bucket.`);
         }
-        throw error;
+        if (error.message.includes('permission denied') || error.message.includes('Unauthorized') || error.message.includes('row-level security')) {
+          console.error("❌ Storage permission error. RLS policies may not be configured correctly.");
+          throw new Error("Storage upload permission denied. Please ensure you're logged in or contact administrator.");
+        }
+        throw new Error(`Storage upload failed: ${error.message}`);
       }
 
       // Get public URL
@@ -87,7 +98,8 @@ export class MasteringService {
   }
 
   /**
-   * Complete mastering flow: Send files directly to Python backend
+   * Complete mastering flow: Send files directly to Python backend via FormData
+   * (bypasses Supabase Storage to avoid bucket size limits on large files)
    */
   async masterAudio(
     targetFile: File,
@@ -100,26 +112,27 @@ export class MasteringService {
 
       const authToken = await this.getAuthToken();
 
-      if (onProgress) onProgress('Uploading target file to secure storage...', 10);
-      const targetUrl = await this.uploadToProcessingBucket(targetFile, 'mastering/target');
+      if (onProgress) onProgress('Uploading files to AI backend...', 10);
 
-      if (onProgress) onProgress('Uploading reference file to secure storage...', 25);
-      const referenceUrl = await this.uploadToProcessingBucket(referenceFile, 'mastering/reference');
+      // Send files directly to backend via multipart/form-data
+      const formData = new FormData();
+      formData.append('target', targetFile, targetFile.name);
+      formData.append('reference', referenceFile, referenceFile.name);
+      if (settings) {
+        formData.append('settings', JSON.stringify(settings));
+      }
 
-      if (onProgress) onProgress('Processing with AI Backend...', 40);
+      console.log(`📤 Sending target (${(targetFile.size / 1024 / 1024).toFixed(1)}MB) + reference (${(referenceFile.size / 1024 / 1024).toFixed(1)}MB) directly to backend...`);
 
-      // Send URLs to Python backend
+      if (onProgress) onProgress('Processing with AI Backend...', 30);
+
       const response = await fetch(`${this.backendUrl}/api/master-audio`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json'
+          'Authorization': `Bearer ${authToken}`
+          // Do NOT set Content-Type — browser will set multipart boundary automatically
         },
-        body: JSON.stringify({
-          target_url: targetUrl,
-          reference_url: referenceUrl,
-          settings: settings
-        })
+        body: formData
       });
 
       if (!response.ok) {
@@ -158,16 +171,19 @@ export class MasteringService {
     try {
       const token = await this.getAuthToken();
 
-      console.log(`🔍 Analyzing audio: ${file.name} (Directing via storage)`);
-      const fileUrl = await this.uploadToProcessingBucket(file, 'analysis');
+      console.log(`🔍 Analyzing audio: ${file.name} (direct upload)`);
+
+      // Send file directly to backend via multipart/form-data
+      const formData = new FormData();
+      formData.append('file', file, file.name);
 
       const response = await fetch(`${this.backendUrl}/api/analyze-audio`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Authorization': `Bearer ${token}`
+          // Do NOT set Content-Type — browser will set multipart boundary automatically
         },
-        body: JSON.stringify({ file_url: fileUrl }),
+        body: formData,
       });
 
       if (!response.ok) {
@@ -187,7 +203,8 @@ export class MasteringService {
   }
 
   /**
-   * Stem Separation: Send file directly to Python backend
+   * Stem Separation: Send file directly to Python backend via FormData
+   * (bypasses Supabase Storage to avoid bucket size limits)
    */
   async separateAudio(
     file: File,
@@ -195,26 +212,31 @@ export class MasteringService {
     onProgress?: (stage: string, percent: number) => void
   ): Promise<{ task_id: string }> {
     try {
-      console.log('🚀 Starting stem separation via storage...');
+      console.log('🚀 Starting stem separation (direct upload)...');
       const token = await this.getAuthToken();
 
       if (onProgress) onProgress('Uploading file for separation...', 5);
-      const fileUrl = await this.uploadToProcessingBucket(file, 'stems');
 
-      if (onProgress) onProgress('Queueing separation task...', 20);
+      const modelName = stemCount === '6' ? 'htdemucs_6s' : 'htdemucs';
+
+      // Send file directly to the backend via multipart/form-data
+      const formData = new FormData();
+      formData.append('file', file, file.name);
+      formData.append('stem_count', stemCount);
+      formData.append('library', 'demucs');
+      formData.append('model_name', modelName);
+
+      console.log(`📤 Sending ${file.name} (${(file.size / 1024 / 1024).toFixed(1)}MB) directly to backend...`);
+
+      if (onProgress) onProgress('Queueing separation task...', 15);
 
       const response = await fetch(`${this.backendUrl}/api/separate-audio`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Authorization': `Bearer ${token}`
+          // Do NOT set Content-Type — browser will set multipart boundary automatically
         },
-        body: JSON.stringify({
-          file_url: fileUrl,
-          stem_count: stemCount,
-          library: 'demucs',
-          model_name: stemCount === '6' ? 'htdemucs_6s' : 'htdemucs'
-        }),
+        body: formData,
       });
 
       if (!response.ok) {

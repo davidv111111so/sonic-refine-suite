@@ -137,9 +137,6 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
     };
 
     const getPhaseOffset = () => {
-        // Visualize Pitch Bend Action
-        // Map 0.5 (Center) to 0 offset
-        // Scale up for visibility
         return (controls.state.tempoBend - 0.5) * 4;
     };
 
@@ -163,10 +160,8 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                 }}
             />
 
-            {/* 1. Header & Transport (Compacted h-[60px]) */}
-            <div className="h-[60px] px-2 pt-1 flex items-center justify-between border-b border-[#27272a] bg-[#18181b] gap-2">
-
-                {/* Deck ID */}
+            {/* 1. Header & Transport */}
+            <div className="h-[52px] px-2 pt-1 flex items-center justify-between border-b border-[#27272a] bg-[#18181b] gap-2">
                 <div className="flex flex-col gap-1 w-12 shrink-0 h-full justify-center">
                     <div className={cn(
                         "w-full h-6 flex items-center justify-center font-bold text-black text-xs rounded-[2px]",
@@ -176,9 +171,7 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                     </div>
                 </div>
 
-                {/* Info Display */}
                 <div className="flex-1 flex flex-col min-w-0 gap-1 justify-center h-full pr-2">
-                    {/* Track Info */}
                     <div className="flex items-center justify-between">
                         <span
                             className={cn(
@@ -191,7 +184,6 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                             {trackName || "NO TRACK LOADED"}
                         </span>
 
-                        {/* BPM */}
                         <div className="flex items-center gap-2">
                             <button
                                 className="w-4 h-4 bg-[#27272a] border border-[#3f3f46] rounded-sm flex items-center justify-center text-neutral-400 hover:text-white"
@@ -208,7 +200,7 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                                 -
                             </button>
                             <span
-                                className={cn("text-lg font-black tracking-tighter leading-none w-16 text-center font-mono", accentColor)}
+                                className={cn("text-base font-black tracking-tighter leading-none w-16 text-center font-mono", accentColor)}
                                 style={{ textShadow: isCyan ? '0 0 10px rgba(34,211,238,0.5)' : '0 0 10px rgba(192,132,252,0.5)' }}
                             >
                                 {controls.state.bpm ? (controls.state.bpm * controls.state.playbackRate).toFixed(2) : "0.00"}
@@ -230,21 +222,19 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                         </div>
                     </div>
 
-                    {/* Phase Meter */}
                     <PhaseMeter active={controls.state.isPlaying} offset={getPhaseOffset()} />
 
-                    {/* Time & Key */}
-                    <div className="flex items-center justify-between text-xs font-bold text-neutral-400 uppercase tracking-widest leading-none">
-                        <span className="font-mono text-sm">{controls.state.buffer ? (controls.state.duration / 60).toFixed(2).replace('.', ':') : "00:00"}</span>
+                    <div className="flex items-center justify-between text-[10px] font-bold text-neutral-400 uppercase tracking-widest leading-none">
+                        <span className="font-mono text-xs">{controls.state.buffer ? (controls.state.duration / 60).toFixed(2).replace('.', ':') : "00:00"}</span>
                         <span className={cn(isCyan ? "text-cyan-200" : "text-purple-200", "font-mono")}>{controls.state.key || "--"}</span>
                     </div>
                 </div>
             </div>
 
-            {/* 2. Detail Waveform Area (Flexible, max-h-150) */}
+            {/* 2. Detail Waveform Area */}
             <div
                 ref={containerRef}
-                className="flex-1 relative bg-[#09090b] group min-h-[40px] max-h-[150px] border-b border-[#27272a]"
+                className="flex-1 relative bg-[#09090b] group min-h-[40px] max-h-[120px] border-b border-[#27272a]"
                 onDragOver={(e) => { e.preventDefault(); setIsHovering(true); }}
                 onDragLeave={() => setIsHovering(false)}
                 onDrop={handleDrop}
@@ -267,7 +257,6 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                     playbackRate={controls.state.playbackRate}
                 />
 
-                {/* Zoom Controls Overlay */}
                 <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                     <div className="pointer-events-auto flex flex-col gap-1">
                         <Button variant="secondary" size="icon" className="h-6 w-6 bg-black/50 hover:bg-black/80 text-white border border-white/10" onClick={(e) => { e.stopPropagation(); setZoom(Math.min(zoom * 1.5, 2000)); }}>
@@ -298,8 +287,8 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                 )}
             </div>
 
-            {/* 2.5 Overview Waveform (Improved Definition) */}
-            <div className="h-10 bg-[#09090b] border-b border-[#27272a] relative">
+            {/* 2.5 Overview Waveform */}
+            <div className="h-8 bg-[#09090b] border-b border-[#27272a] relative">
                 <StripeOverview
                     buffer={controls.state.buffer}
                     currentTime={controls.state.currentTime}
@@ -312,8 +301,8 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                 />
             </div>
 
-            {/* 3. Transport Strip (Compacted h-10) */}
-            <div className="h-10 bg-[#18181b] border-b border-[#27272a] flex items-center px-3 gap-3 justify-between">
+            {/* 3. Transport Strip */}
+            <div className="h-9 bg-[#18181b] border-b border-[#27272a] flex items-center px-3 gap-3 justify-between">
                 <div className="flex items-center gap-2">
                     <Button
                         variant="ghost"
@@ -370,9 +359,8 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                 </div>
             </div>
 
-            {/* 4. Loops & FX Panels (Increased height to 210px to accommodate new buttons) */}
-            <div className="flex-none flex bg-[#121212] h-[210px]">
-                {/* Loops Panel (w-36) */}
+            {/* 4. Loops & FX Panels */}
+            <div className="flex-none flex bg-[#121212] h-[185px]">
                 <div className="w-36 border-r border-[#27272a] p-2 flex flex-col gap-1.5">
                     <div className="flex items-center justify-between text-[10px] font-bold text-neutral-500 mb-0.5">
                         <div className="flex items-center gap-1"><Repeat className="w-3 h-3" /> LOOPS</div>
@@ -389,50 +377,18 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                         </button>
                     </div>
 
-                    {/* Loop Resizing Controls (Half/Double) */}
-                    <div className="flex gap-1 h-8">
-                        <button
-                            onClick={controls.loopHalf}
-                            className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[11px] font-black text-neutral-300 hover:text-white hover:bg-[#3f3f46] flex items-center justify-center transition-all active:scale-95"
-                            title="Half Loop Length"
-                        >
-                            &lt;
-                        </button>
-                        <button
-                            onClick={controls.loopDouble}
-                            className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[11px] font-black text-neutral-300 hover:text-white hover:bg-[#3f3f46] flex items-center justify-center transition-all active:scale-95"
-                            title="Double Loop Length"
-                        >
-                            &gt;
-                        </button>
-                    </div>
-
-                    {/* Fractional Loop Buttons (1/16, 1/32) */}
-                    <div className="flex gap-1 h-6">
-                        <button
-                            onClick={() => controls.quantizedLoop(1 / 16)}
-                            className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[9px] font-black text-neutral-400 hover:text-white hover:bg-[#3f3f46] flex items-center justify-center transition-all"
-                        >
-                            1/16
-                        </button>
-                        <button
-                            onClick={() => controls.quantizedLoop(1 / 32)}
-                            className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-sm text-[9px] font-black text-neutral-400 hover:text-white hover:bg-[#3f3f46] flex items-center justify-center transition-all"
-                        >
-                            1/32
-                        </button>
-                    </div>
-
-                    {/* Auto Loop Grid (Larger buttons) */}
                     <div className="grid grid-cols-2 gap-1 flex-1 min-h-0">
-                        {['1/4', '1/2', '1', '2', '4', '8', '16', '32'].map(val => (
+                        {['1/32', '1/16', '1/8', '1/4', '1/2', '1', '2', '4', '8', '16', '32'].map(val => (
                             <button
                                 key={val}
                                 className={cn(
-                                    "bg-[#27272a] border border-[#3f3f46] rounded-sm text-[10px] font-black text-neutral-400 hover:text-white hover:bg-[#3f3f46] flex items-center justify-center transition-colors h-full",
+                                    "bg-[#27272a] border border-[#3f3f46] rounded-sm text-[9px] font-black text-neutral-400 hover:text-white hover:bg-[#3f3f46] flex items-center justify-center transition-colors h-full",
                                     controls.state.loop.active &&
-                                        (Math.abs((controls.state.loop.end - controls.state.loop.start) - (parseFloat(eval(val)) * (60 / (controls.state.bpm || 120)))) < 0.1)
-                                        ? "border-[#39ff14] text-[#39ff14]"
+                                        Math.abs(
+                                            (controls.state.loop.end - controls.state.loop.start) -
+                                            ((val.includes('/') ? (parseInt(val.split('/')[0]) / parseInt(val.split('/')[1])) : parseInt(val)) * (60 / (controls.state.bpm || 120)))
+                                        ) < 0.05
+                                        ? "border-[#39ff14] text-[#39ff14] bg-[#39ff14]/5 shadow-[inset_0_0_8px_rgba(57,255,20,0.1)]"
                                         : ""
                                 )}
                                 onClick={() => {
@@ -451,26 +407,38 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                         ))}
                     </div>
 
-                    {/* Loop Move / Shift (Newly Added) */}
-                    <div className="flex gap-1 h-8">
+                    <div className="grid grid-cols-4 gap-1 h-7 pt-1">
+                        <button
+                            onClick={controls.loopHalf}
+                            className="bg-[#27272a] border border-[#3f3f46] rounded-sm text-[10px] font-black text-neutral-300 hover:text-white hover:bg-[#3f3f46] flex items-center justify-center transition-all active:scale-95"
+                            title="Half Loop"
+                        >
+                            1/2
+                        </button>
+                        <button
+                            onClick={controls.loopDouble}
+                            className="bg-[#27272a] border border-[#3f3f46] rounded-sm text-[10px] font-black text-neutral-300 hover:text-white hover:bg-[#3f3f46] flex items-center justify-center transition-all active:scale-95"
+                            title="Double Loop"
+                        >
+                            x2
+                        </button>
                         <button
                             onClick={() => controls.loopShift('back')}
-                            className="flex-1 bg-[#1a1a1a] border border-[#333] rounded-sm text-[10px] font-bold text-neutral-500 hover:text-white hover:bg-[#222] flex items-center justify-center gap-1 transition-all"
-                            title="Shift Loop Back"
+                            className="bg-[#1a1a1a] border border-[#333] rounded-sm text-neutral-500 hover:text-white hover:bg-[#222] flex items-center justify-center transition-all active:scale-95"
+                            title="Move Loop Back"
                         >
-                            <ChevronsLeft className="w-3 h-3" /> <span className="text-[8px] mt-[1px]">MOVE</span>
+                            <ChevronsLeft className="w-3.5 h-3.5" />
                         </button>
                         <button
                             onClick={() => controls.loopShift('fwd')}
-                            className="flex-1 bg-[#1a1a1a] border border-[#333] rounded-sm text-[10px] font-bold text-neutral-500 hover:text-white hover:bg-[#222] flex items-center justify-center gap-1 transition-all"
-                            title="Shift Loop Forward"
+                            className="bg-[#1a1a1a] border border-[#333] rounded-sm text-neutral-500 hover:text-white hover:bg-[#222] flex items-center justify-center transition-all active:scale-95"
+                            title="Move Loop Forward"
                         >
-                            <span className="text-[8px] mt-[1px]">MOVE</span> <ChevronsRight className="w-3 h-3" />
+                            <ChevronsRight className="w-3.5 h-3.5" />
                         </button>
                     </div>
                 </div>
 
-                {/* FX Panel */}
                 <div className="flex-1 min-w-0 h-full border-r border-[#27272a]">
                     <FXUnitGroup
                         label={`FX UNIT ${id}`}
@@ -485,12 +453,10 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                     />
                 </div>
 
-                {/* Brain Stems Panel (w-28) */}
                 <div className="w-28 bg-[#18181b] p-2 flex flex-col gap-2 border-l border-[#27272a]">
                     <div className="text-[10px] font-black text-neutral-500 uppercase tracking-tighter flex items-center gap-1 mb-1">
                         <Zap className="w-3 h-3 text-cyan-500" /> STEMS
                     </div>
-                    {/* Stem Buttons */}
                     {[
                         { label: 'DRUMS', key: 'drums' as const, color: 'text-cyan-400' },
                         { label: 'BASS', key: 'bass' as const, color: 'text-blue-400' },
@@ -526,6 +492,6 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                     </button>
                 </div>
             </div>
-        </div >
+        </div>
     );
 };

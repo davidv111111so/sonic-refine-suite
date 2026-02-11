@@ -241,6 +241,84 @@ def log_job(user_id, job_type, file_size=0, duration=0, status='pending', error=
     except Exception as e:
         print(f"⚠️ Failed to log job metrics: {str(e)}")
 
+def create_task_in_db(task_id, user_id, job_type="stems", file_size=0):
+    """Create a tracked task in job_logs and local TASKS dict"""
+    # Always update local store first as a reliable fallback
+    TASKS[task_id] = {
+        "id": task_id,
+        "user_id": user_id,
+        "job_type": job_type,
+        "status": "queued",
+        "progress": 0,
+        "file_size": file_size,
+        "created_at": datetime.now().isoformat()
+    }
+    
+    try:
+        data = {
+            "task_id": task_id,
+            "user_id": str(user_id) if user_id else "dev-user",
+            "job_type": job_type,
+            "status": "queued",
+            "file_size": file_size,
+            "progress": 0,
+            "created_at": "now()"
+        }
+        supabase.table("job_logs").insert(data).execute()
+        print(f"✅ Created task {task_id} in DB")
+    except Exception as e:
+        print(f"❌ Failed to create task {task_id} in Supabase: {e}")
+        # Local TASKS still has it, so we can continue
+
+def update_task_in_db(task_id, status, progress=None, output_url=None, error=None):
+    """Update task status in job_logs and local TASKS dict"""
+    # Always update local store first
+    if task_id in TASKS:
+        TASKS[task_id]["status"] = status
+        if progress is not None:
+            TASKS[task_id]["progress"] = progress
+        if output_url:
+            TASKS[task_id]["output_url"] = output_url
+        if error:
+            TASKS[task_id]["error_message"] = str(error)
+            TASKS[task_id]["error"] = str(error) # For frontend compatibility
+        TASKS[task_id]["updated_at"] = datetime.now().isoformat()
+
+    try:
+        data = {"status": status}
+        if progress is not None:
+            data["progress"] = progress
+        if output_url:
+            data["output_url"] = output_url
+        if error:
+            data["error_message"] = str(error)
+            
+        supabase.table("job_logs").update(data).eq("task_id", task_id).execute()
+    except Exception as e:
+        # Silently fail for Supabase updates if they're failing, we have the local store
+        if "Could not find the table" not in str(e):
+            print(f"⚠️ Failed to update task {task_id} in Supabase: {e}")
+
+def upload_result_to_storage(local_path, task_id, bucket='audio-processing'):
+    """Upload result ZIP to Supabase Storage"""
+    try:
+        file_name = f"results/{task_id}_stems.zip"
+        print(f"📤 Uploading result to {file_name}...")
+        
+        with open(local_path, 'rb') as f:
+            supabase.storage.from_(bucket).upload(
+                file=f,
+                path=file_name,
+                file_options={"content-type": "application/zip", "upsert": "true"}
+            )
+        
+        # Get public URL
+        url = supabase.storage.from_(bucket).get_public_url(file_name)
+        return url
+    except Exception as e:
+        print(f"❌ Upload result failed: {e}")
+        return None
+
 def cleanup_old_files(bucket_name='audio-processing', max_age_hours=1):
     """Delete files older than max_age_hours from Supabase Storage"""
     try:
@@ -558,15 +636,15 @@ TASKS = {}
 executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)
 
 def update_task_progress(task_id, progress):
-    if task_id in TASKS:
-        TASKS[task_id]['progress'] = progress
+    """Deprecated: Logic moved to background_separation"""
+    pass
 
 def background_separation(task_id, file_path, output_dir, library, model_name, shifts, two_stems=False):
     try:
-        TASKS[task_id]['status'] = 'processing'
+        update_task_in_db(task_id, 'processing', 0)
         
         def progress_callback(p):
-            update_task_progress(task_id, p)
+            update_task_in_db(task_id, 'processing', p)
             
         result = separate_audio(
             file_path, 
@@ -579,50 +657,104 @@ def background_separation(task_id, file_path, output_dir, library, model_name, s
         )
         
         if not result['success']:
-            TASKS[task_id]['status'] = 'failed'
-            TASKS[task_id]['error'] = result.get('error', 'Unknown error')
+            update_task_in_db(task_id, 'failed', error=result.get('error', 'Unknown error'))
             return
             
         # Zip the output
-        shutil.make_archive(os.path.join(os.path.dirname(output_dir), 'stems'), 'zip', result['output_path'])
-        zip_path = os.path.join(os.path.dirname(output_dir), 'stems.zip')
+        zip_base = os.path.join(os.path.dirname(output_dir), 'stems')
+        shutil.make_archive(zip_base, 'zip', result['output_path'])
+        zip_path = zip_base + '.zip'
         
-        TASKS[task_id]['status'] = 'completed'
-        TASKS[task_id]['progress'] = 100
-        TASKS[task_id]['result_path'] = zip_path
+        print(f"✅ Stems ZIP created at: {zip_path} ({os.path.getsize(zip_path)} bytes)")
         
+        # Store the local zip path so we can serve it directly
+        # Use a special local:// prefix so get_task_result knows to serve from disk
+        local_url = f"local://{zip_path}"
+        
+        # Try Supabase Storage upload as optional bonus (don't fail if it errors)
+        try:
+            remote_url = upload_result_to_storage(zip_path, task_id)
+            if remote_url:
+                print(f"✅ Also uploaded to Supabase Storage: {remote_url}")
+                local_url = remote_url  # Prefer remote URL if upload succeeded
+        except Exception as upload_err:
+            print(f"⚠️ Supabase Storage upload failed (using local serving): {upload_err}")
+        
+        update_task_in_db(task_id, 'completed', 100, output_url=local_url)
+
     except Exception as e:
         print(f"❌ Background task error: {str(e)}")
-        TASKS[task_id]['status'] = 'failed'
-        TASKS[task_id]['error'] = str(e)
+        update_task_in_db(task_id, 'failed', error=str(e))
 
 @app.route('/api/task-status/<task_id>', methods=['GET'])
 def get_task_status(task_id):
-    """Get status of a background task"""
-    task = TASKS.get(task_id)
-    if not task:
-        return jsonify({"error": "Task not found"}), 404
-    
-    return jsonify({
-        "id": task_id,
-        "status": task['status'],
-        "progress": task.get('progress', 0),
-        "error": task.get('error')
-    })
+    """Get status of a background task from local store or DB"""
+    # Try local store first as it's the most up-to-date and reliable fallback
+    if task_id in TASKS:
+        task = TASKS[task_id]
+        return jsonify({
+            "id": task_id,
+            "status": task['status'],
+            "progress": task.get('progress', 0),
+            "error": task.get('error_message') or task.get('error'),
+            "output_url": task.get('output_url')
+        })
+
+    try:
+        res = supabase.table("job_logs").select("*").eq("task_id", task_id).execute()
+        if not res.data:
+            return jsonify({"error": "Task not found"}), 404
+            
+        task = res.data[0]
+        return jsonify({
+            "id": task_id,
+            "status": task['status'],
+            "progress": task.get('progress', 0),
+            "error": task.get('error_message'),
+            "output_url": task.get('output_url')
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/task-result/<task_id>', methods=['GET'])
 def get_task_result(task_id):
-    """Download result of a completed task"""
-    task = TASKS.get(task_id)
-    if not task or task['status'] != 'completed':
-        return jsonify({"error": "Result not ready"}), 404
-        
-    return send_file(
-        task['result_path'],
-        mimetype='application/zip',
-        as_attachment=True,
-        download_name=f"stems_{task_id}.zip"
-    )
+    """Serve result ZIP — either from local disk or redirect to remote URL"""
+    url = None
+    
+    # Try local store first
+    if task_id in TASKS:
+        task = TASKS[task_id]
+        if task['status'] == 'completed':
+            url = task.get('output_url')
+    
+    if not url:
+        try:
+            res = supabase.table("job_logs").select("output_url, status").eq("task_id", task_id).execute()
+            if res.data and res.data[0]['status'] == 'completed':
+                url = res.data[0]['output_url']
+        except Exception as e:
+            print(f"⚠️ Failed to get result for task {task_id}: {e}")
+
+    if not url:
+        return jsonify({"error": "Result not ready or task not found"}), 404
+    
+    # If it's a local file, serve it directly
+    if url.startswith('local://'):
+        local_path = url.replace('local://', '')
+        if os.path.exists(local_path):
+            print(f"📦 Serving local ZIP: {local_path}")
+            return send_file(
+                local_path,
+                mimetype='application/zip',
+                as_attachment=True,
+                download_name=f'stems_{task_id[:8]}.zip'
+            )
+        else:
+            return jsonify({"error": "Result file no longer available on disk"}), 410
+    
+    # Otherwise redirect to remote URL
+    from flask import redirect
+    return redirect(url)
 
 @app.route('/api/separate-audio', methods=['POST'])
 def separate_audio_endpoint():
@@ -635,8 +767,13 @@ def separate_audio_endpoint():
     
     user_id = user.get('id') if isinstance(user, dict) else (user.user.id if hasattr(user, 'user') else 'dev-user')
 
+    # Debug Request
+    print(f"✂️ Request Content-Type: {request.content_type}")
     data = request.get_json(silent=True) or {}
-    file_url = data.get('file_url')
+    print(f"✂️ Request JSON Keys: {list(data.keys())}")
+    
+    # Robust file_url extraction (check JSON then FORM)
+    file_url = data.get('file_url') or request.form.get('file_url')
     
     library = data.get('library', request.form.get('library', 'demucs'))
     model_name = data.get('model_name', request.form.get('model_name', 'htdemucs'))
@@ -663,17 +800,10 @@ def separate_audio_endpoint():
         
         file_size = os.path.getsize(input_path)
         
-        TASKS[task_id] = {
-            'id': task_id,
-            'status': 'queued',
-            'progress': 0,
-            'created_at': time.time(),
-            'user_id': user_id,
-            'file_size': file_size
-        }
+        file_size = os.path.getsize(input_path)
         
-        # Log job start
-        log_job(user_id, 'stems', file_size, 0, 'queued')
+        # Create Task in DB
+        create_task_in_db(task_id, user_id, 'stems', file_size)
         
         # Submit to background thread
         executor.submit(

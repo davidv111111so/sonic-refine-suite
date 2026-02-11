@@ -2,16 +2,15 @@ import React from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { BrowserPanel } from './BrowserPanel';
 import { TrackList } from './TrackList';
-import { useLibrary } from '@/contexts/LibraryContext';
-import { Search } from 'lucide-react';
-import { LibraryTrack } from '@/contexts/LibraryContext';
+import { useLibrary, LibraryTrack } from '@/contexts/LibraryContext';
+import { Search, Trash2 } from 'lucide-react';
 
 interface LibraryBrowserProps {
-    onLoadTrack: (track: any) => void;
+    onLoadTrack: (track: LibraryTrack) => void;
 }
 
 export const LibraryBrowser: React.FC<LibraryBrowserProps> = ({ onLoadTrack }) => {
-    const { state, setSearch } = useLibrary();
+    const { state, setSearch, clearLibrary } = useLibrary();
 
     return (
         <div className="h-full flex flex-col bg-[#1e1e1e]">
@@ -27,11 +26,22 @@ export const LibraryBrowser: React.FC<LibraryBrowserProps> = ({ onLoadTrack }) =
                         onChange={(e) => setSearch(e.target.value)}
                     />
                 </div>
+
                 {state.analyzingCount > 0 && (
-                    <span className="text-[9px] text-[#00deea] animate-pulse ml-auto">
-                        ANALYZING {state.analyzingCount} TRACKS...
+                    <span className="text-[9px] text-[#00deea] animate-pulse ml-2">
+                        ANALYZING {state.analyzingCount}...
                     </span>
                 )}
+
+                <div className="ml-auto flex items-center gap-2">
+                    <button
+                        onClick={() => clearLibrary()}
+                        className="p-1 hover:bg-red-500/10 rounded-sm group transition-colors"
+                        title="Clear Library"
+                    >
+                        <Trash2 className="w-3.5 h-3.5 text-[#555] group-hover:text-red-400" />
+                    </button>
+                </div>
             </div>
 
             {/* Main Split View */}
