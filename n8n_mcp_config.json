@@ -1,0 +1,13 @@
+{
+    "mcpServers": {
+        "n8n": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-sse",
+                "--url",
+                "https://antigso.app.n8n.cloud/webhook/antigravity-ide"
+            ]
+        }
+    }
+}

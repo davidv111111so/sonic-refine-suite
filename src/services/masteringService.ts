@@ -13,7 +13,7 @@ export class MasteringService {
     window.location.hostname.includes('172.')
   )
     ? ""
-    : (import.meta.env.VITE_PYTHON_BACKEND_URL || "https://mastering-backend-azkp62xtaq-uc.a.run.app");
+    : (import.meta.env.VITE_PYTHON_BACKEND_URL || "https://mastering-backend-857351913435.us-central1.run.app");
 
   /**
    * Get auth token from Supabase session
@@ -30,69 +30,88 @@ export class MasteringService {
   }
 
   /**
-   * Upload file to Supabase Storage and get a public/signed URL
+   * Upload file to Backblaze B2 (if available) or fallback to Supabase Storage
    */
   private async uploadToProcessingBucket(file: File, folder: string = 'uploads'): Promise<string> {
-    const MAX_SIZE_MB = 1024; // Increased to 1GB for professional tracks
+    const MAX_SIZE_MB = 1024; // 1GB limit handled by B2 too
     const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 
     if (file.size > MAX_SIZE_BYTES) {
-      console.error(`❌ File too large: ${file.name} (${(file.size / 1024 / 1024).toFixed(1)}MB). Max allowed: ${MAX_SIZE_MB}MB`);
-      throw new Error(`File "${file.name}" exceeds the ${MAX_SIZE_MB}MB limit. Please provide a smaller file.`);
+      throw new Error(`File "${file.name}" exceeds the ${MAX_SIZE_MB}MB limit.`);
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user && localStorage.getItem("dev_bypass") !== "true") {
-        throw new Error('Authenticated user required for upload');
+      const authToken = await this.getAuthToken();
+
+      // 1. Try to get B2 upload URL
+      console.log(`☁️ Requesting B2 upload authorization for ${file.name}...`);
+      const b2Resp = await fetch(`${this.backendUrl}/api/get-b2-upload-url`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          fileName: `${folder}/${Math.random().toString(36).substring(2)}-${Date.now()}-${file.name}`,
+          contentType: file.type || 'audio/wav'
+        })
+      });
+
+      if (b2Resp.ok) {
+        const b2Data = await b2Resp.json();
+        console.log(`🚀 Using Backblaze B2 for upload: ${b2Data.fileName}`);
+
+        // Upload to B2
+        const formData = new FormData();
+        // B2 doesn't use FormData for direct uploads via uploadUrl usually, it's a raw body
+        // But for browser simplified flow, sometimes it's easier to proxy or use custom headers
+        // Given B2 Service returns uploadUrl and authorizationToken:
+        const uploadResponse = await fetch(b2Data.uploadUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': b2Data.authorizationToken,
+            'X-Bz-File-Name': encodeURIComponent(b2Data.fileName),
+            'Content-Type': file.type || 'audio/wav',
+            'X-Bz-Content-Sha1': 'do_not_verify' // or compute it if needed
+          },
+          body: file
+        });
+
+        if (uploadResponse.ok) {
+          const result = await uploadResponse.json();
+          // Construct the download URL
+          // We can ask the backend for the URL or construct it if we know the bucket name
+          // Since it's a private bucket, we return a B2-compatible path the backend can download
+          console.log(`✅ B2 Upload complete: ${result.fileName}`);
+          return `b2://${b2Data.fileName}`;
+        } else {
+          console.warn('⚠️ B2 Direct upload failed, falling back to Supabase', await uploadResponse.text());
+        }
+      } else {
+        console.log('ℹ️ B2 not available or configured, using Supabase fallback');
       }
 
+      // 2. Supabase Fallback
+      const { data: { user } } = await supabase.auth.getUser();
       const userId = user?.id || 'dev-user';
       const originalName = file.name || 'audio-file';
       const fileExt = originalName.includes('.') ? originalName.split('.').pop() : 'wav';
       const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
       const filePath = `${userId}/${folder}/${fileName}`;
 
-      console.log(`☁️ Uploading ${file.name} to storage: ${filePath}`);
-
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('audio-processing')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
+        .upload(filePath, file, { cacheControl: '3600', upsert: false });
 
-      if (error) {
-        console.error('❌ Storage upload error details:', {
-          message: error.message,
-          name: (error as any).name,
-          statusCode: (error as any).statusCode,
-          error: error
-        });
+      if (error) throw new Error(`Supabase upload failed: ${error.message}`);
 
-        if (error.message.includes('bucket not found') || error.message.includes('Bucket not found')) {
-          console.error("❌ Bucket 'audio-processing' not found. Please create it in Supabase dashboard.");
-          throw new Error("Storage bucket 'audio-processing' does not exist. Please contact administrator to create it in Supabase.");
-        }
-        if (error.message.includes('exceeded the maximum allowed size')) {
-          console.error(`❌ Storage limit error. Bucket limit may be too low. Required: ${(file.size / 1024 / 1024).toFixed(1)}MB`);
-          throw new Error(`Upload rejected: File exceeds the maximum allowed size (1GB) for the 'audio-processing' storage bucket.`);
-        }
-        if (error.message.includes('permission denied') || error.message.includes('Unauthorized') || error.message.includes('row-level security')) {
-          console.error("❌ Storage permission error. RLS policies may not be configured correctly.");
-          throw new Error("Storage upload permission denied. Please ensure you're logged in or contact administrator.");
-        }
-        throw new Error(`Storage upload failed: ${error.message}`);
-      }
-
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('audio-processing')
         .getPublicUrl(filePath);
 
       return publicUrl;
     } catch (error) {
-      console.error('❌ Storage upload error:', error);
+      console.error('❌ Upload error:', error);
       throw error;
     }
   }
@@ -138,32 +157,45 @@ export class MasteringService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Backend error (${response.status}): ${errorText}`);
+        throw new Error(`Mastering failed (${response.status}): ${errorText}`);
       }
 
-      if (onProgress) onProgress('Processing with Matchering AI...', 50);
+      const { task_id } = await response.json();
+      console.log("✅ Mastering task started:", task_id);
 
-      // Parse LUFS analysis from response header
-      let analysis = null;
-      const analysisHeader = response.headers.get('X-Audio-Analysis');
-      if (analysisHeader) {
-        try {
-          analysis = JSON.parse(analysisHeader);
-          console.log('📊 LUFS Analysis:', analysis);
-        } catch (e) {
-          console.warn('Failed to parse audio analysis:', e);
+      // 3. Poll for Completion
+      let status = 'queued';
+      let taskData = null;
+
+      while (status === 'queued' || status === 'processing') {
+        if (onProgress) {
+          const progressMsg = status === 'queued' ? 'Queueing mastering task...' : 'AI Mastering in progress...';
+          const progressPct = taskData?.progress ? 30 + (taskData.progress * 0.6) : 35;
+          onProgress(progressMsg, progressPct);
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        taskData = await this.getTaskStatus(task_id);
+        status = taskData.status;
+
+        if (status === 'failed') {
+          const detail = taskData.error_message || taskData.error || 'Unknown backend error';
+          console.error('❌ Backend task failed:', detail);
+          throw new Error(`Mastering failed: ${detail}`);
         }
       }
 
-      // Get the mastered audio blob
-      const blob = await response.blob();
+      // 4. Get Result Blob
+      if (onProgress) onProgress('Finalizing results...', 95);
+      const blob = await this.getTaskResult(task_id);
 
       if (onProgress) onProgress('Complete!', 100);
-
-      console.log('✅ Mastering complete!');
-      return { blob, analysis };
+      return {
+        blob,
+        analysis: taskData.metadata || null
+      };
     } catch (error) {
-      console.error('❌ Mastering service error:', error);
+      console.error('❌ masterAudio error:', error);
       throw error;
     }
   }

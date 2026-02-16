@@ -9,7 +9,7 @@ import time
 import tempfile
 import magic
 import hashlib
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file, redirect
 from flask_cors import CORS
 # import matchering as mg # Removed for GPL compliance
 from mastering_engine import MasteringEngine
@@ -17,15 +17,17 @@ import soundfile as sf
 import librosa
 from supabase import create_client, Client
 from dotenv import load_dotenv
+# Load environment variables FIRST
+load_dotenv()
+
 import requests
+import json
 import threading
 import uuid
 from datetime import datetime
 from audio_analysis import analyze_lufs, is_reference_suitable
 from payment_webhooks import payment_bp
-
-# Load environment variables
-load_dotenv()
+from b2_service import b2_service
 
 app = Flask(__name__)
 
@@ -46,6 +48,8 @@ ALLOWED_ORIGINS = [
     "http://localhost:8085",
     "http://127.0.0.1:8080",
     "https://level-audio-app.netlify.app",
+    "https://levelaudio.live",
+    "https://www.levelaudio.live",
     re.compile(r"https://.*\.netlify\.app"),
     re.compile(r"https://.*\.lovable\.app"),
     re.compile(r"https://.*\.lovableproject\.com"),
@@ -108,6 +112,10 @@ def verify_auth_token(request):
         if not os.environ.get("SUPABASE_URL") or not os.environ.get("SUPABASE_KEY"):
             print("❌ Start-up Error: SUPABASE_URL or SUPABASE_KEY missing in env")
         return None
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Health check endpoint"""
+    return jsonify({"status": "OK", "timestamp": time.time()}), 200
 
 @app.route('/api/payment/payu-signature', methods=['POST'])
 def payu_signature():
@@ -145,27 +153,39 @@ def payu_signature():
         print(f"❌ Payment signature error: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+def validate_file_type(file_path):
+    """Validate file type using python-magic"""
+    mime = magic.Magic(mime=True)
+    file_type = mime.from_file(file_path)
+    return file_type.startswith('audio/') or file_type == 'application/octet-stream'
+
 def download_file(url, local_path):
-    """Download file from URL to local path with 200MB safety limit"""
+    """Download file from URL (Supports HTTP/HTTPS and B2 protocol)"""
     MAX_SIZE = 1024 * 1024 * 1024 # 1GB
     try:
-        print(f"📥 Downloading file from URL: {url[:100]}...")
-        # Start download with stream=True to check headers
-        response = requests.get(url, stream=True, timeout=60)
+        # Handle B2 protocol
+        if url.startswith('b2://'):
+            from b2_service import b2_service
+            remote_path = url.replace('b2://', '')
+            print(f"📥 Downloading from B2: {remote_path}")
+            return b2_service.download_file(remote_path, local_path)
+
+        print(f"📥 Downloading from HTTP/S: {url[:100]}...")
+        # Start download with stream=True
+        response = requests.get(url, stream=True, timeout=120)
         response.raise_for_status()
         
-        # Check content length if available
         cl = response.headers.get('Content-Length')
         if cl and int(cl) > MAX_SIZE:
-             print(f"❌ File too large: {cl} bytes (Max: {MAX_SIZE})")
+             print(f"❌ File too large: {cl} bytes")
              return False
 
         downloaded = 0
         with open(local_path, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=8192):
+            for chunk in response.iter_content(chunk_size=65536):
                 downloaded += len(chunk)
                 if downloaded > MAX_SIZE:
-                    print(f"❌ File exceeded 200MB limit during download")
+                    print(f"❌ File exceeded limit")
                     f.close()
                     if os.path.exists(local_path): os.unlink(local_path)
                     return False
@@ -330,173 +350,165 @@ def convert_to_wav(input_path, output_path):
         traceback.print_exc()
         return False
 
-@app.route('/api/master-audio', methods=['POST'])
-def master_audio():
-    """Process audio files with Matchering - supports MP3, WAV, FLAC"""
-    # 1. Verify Authentication
+@app.route('/api/get-b2-upload-url', methods=['POST'])
+def get_b2_upload_url():
+    """Get a presigned B2 upload URL for the frontend"""
     user = verify_auth_token(request)
     if not user:
         return jsonify({"error": "Unauthorized"}), 401
     
+    try:
+        data = request.get_json()
+        file_name = data.get('fileName')
+        content_type = data.get('contentType', 'audio/wav')
+        
+        if not file_name:
+            return jsonify({"error": "fileName is required"}), 400
+            
+        upload_data = b2_service.get_upload_url(file_name, content_type)
+        if not upload_data:
+            return jsonify({"error": "Failed to generate B2 upload URL"}), 500
+            
+        return jsonify(upload_data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/master-audio', methods=['POST'])
+def master_audio_endpoint():
+    """Start audio mastering task"""
+    user = verify_auth_token(request)
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+
     user_id = user.get('id') if isinstance(user, dict) else (user.user.id if hasattr(user, 'user') else 'dev-user')
 
-    start_time = time.time()
+    data = request.get_json(silent=True) or {}
+    target_url = data.get('target_url')
+    reference_url = data.get('reference_url')
+    settings = data.get('settings', {})
+
+    if not target_url or not reference_url:
+        return jsonify({"error": "Missing target_url or reference_url"}), 400
+
+    task_id = str(uuid.uuid4())
+    create_task_in_db(task_id, user_id, "mastering")
+    executor.submit(background_mastering, task_id, user_id, target_url, reference_url, settings)
+
+    return jsonify({"task_id": task_id}), 202
+
+def background_mastering(task_id, user_id, target_url, reference_url, settings):
+    """Run mastering in background"""
     temp_files = []
+    start_time = time.time()
     
     try:
-        # Check for URL-based or File-based request
-        data = request.get_json(silent=True) or {}
-        target_url = data.get('target_url')
-        reference_url = data.get('reference_url')
-        settings = data.get('settings', {})
+        update_task_in_db(task_id, 'processing', 10)
         
-        target_filename = "target"
-        reference_filename = "reference"
-        target_ext = ".wav"
-        reference_ext = ".wav"
+        # 1. Download files
+        # EXTRACT EXTENSIONS FROM URLs IF POSSIBLE, FALLBACK TO .wav
+        def get_ext(url, default='.wav'):
+            if '.mp3' in url.lower(): return '.mp3'
+            if '.flac' in url.lower(): return '.flac'
+            if '.wav' in url.lower(): return '.wav'
+            return default
 
-        # Initialize temp paths
-        temp_target_upload_path = None
-        temp_reference_upload_path = None
+        target_ext = get_ext(target_url)
+        ref_ext = get_ext(reference_url)
 
-        if target_url and reference_url:
-            print(f"📥 Processing via URLs: target={target_url[:50]}...")
-            
-            # Create temp files for downloads
-            t_file = tempfile.NamedTemporaryFile(delete=False, suffix='.tmp')
-            t_file.close()
-            temp_target_upload_path = t_file.name
-            temp_files.append(temp_target_upload_path)
-            
-            r_file = tempfile.NamedTemporaryFile(delete=False, suffix='.tmp')
-            r_file.close()
-            temp_reference_upload_path = r_file.name
-            temp_files.append(temp_reference_upload_path)
-
-            if not download_file(target_url, temp_target_upload_path):
-                return jsonify({"error": "Failed to download target file"}), 500
-            if not download_file(reference_url, temp_reference_upload_path):
-                return jsonify({"error": "Failed to download reference file"}), 500
-            
-            # Determine extension from magic if possible, or assume wav
-            mime = magic.Magic(mime=True)
-            t_mime = mime.from_file(temp_target_upload_path)
-            r_mime = mime.from_file(temp_reference_upload_path)
-            
-            target_ext = ".wav" if "wav" in t_mime else (".mp3" if "mpeg" in t_mime else ".flac")
-            reference_ext = ".wav" if "wav" in r_mime else (".mp3" if "mpeg" in r_mime else ".flac")
-            
-        elif 'target' in request.files and 'reference' in request.files:
-            target_file = request.files['target']
-            reference_file = request.files['reference']
-            target_filename = target_file.filename
-            reference_filename = reference_file.filename
-            
-            if 'settings' in request.form:
-                import json
-                settings = json.loads(request.form['settings'])
-            
-            target_ext = os.path.splitext(target_filename)[1].lower()
-            reference_ext = os.path.splitext(reference_filename)[1].lower()
-
-            t_file = tempfile.NamedTemporaryFile(delete=False, suffix=target_ext)
-            target_file.save(t_file.name)
-            t_file.close()
-            temp_target_upload_path = t_file.name
-            temp_files.append(temp_target_upload_path)
-
-            r_file = tempfile.NamedTemporaryFile(delete=False, suffix=reference_ext)
-            reference_file.save(r_file.name)
-            r_file.close()
-            temp_reference_upload_path = r_file.name
-            temp_files.append(temp_reference_upload_path)
-        else:
-            return jsonify({"error": "Missing target or reference audio"}), 400
-
-        # 2. Validate File Types (Magic Numbers)
-        if not validate_file_type(temp_target_upload_path) or not validate_file_type(temp_reference_upload_path):
-            return jsonify({"error": "Invalid file content detected"}), 400
+        temp_target = tempfile.NamedTemporaryFile(delete=False, suffix=target_ext).name
+        temp_reference = tempfile.NamedTemporaryFile(delete=False, suffix=ref_ext).name
+        temp_files.extend([temp_target, temp_reference])
         
-        # Define paths for the engine (mappin the name for clarity)
-        target_path = temp_target_upload_path
-        reference_path = temp_reference_upload_path
+        print(f"📥 Downloading target (ext: {target_ext})...")
+        if not download_file(target_url, temp_target):
+            raise Exception(f"Failed to download target file from {target_url[:50]}...")
+        update_task_in_db(task_id, 'processing', 20)
         
-        # Create temp file for output
-        o_file = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
-        o_file.close()
-        output_path = o_file.name
+        print(f"📥 Downloading reference (ext: {ref_ext})...")
+        if not download_file(reference_url, temp_reference):
+            raise Exception(f"Failed to download reference file from {reference_url[:50]}...")
+        update_task_in_db(task_id, 'processing', 30)
+        
+        # Output path
+        output_path = tempfile.NamedTemporaryFile(delete=False, suffix='.wav').name
         temp_files.append(output_path)
-
-        # Determine file sizes for logging
-        total_size = os.path.getsize(target_path) + os.path.getsize(reference_path)
         
-        # Determine processing settings
+        # 2. Process
         target_lufs_val = settings.get('target_lufs')
         target_lufs = float(target_lufs_val) if target_lufs_val is not None else None
         
-        # Analyze input LUFS for the header
-        target_analysis = analyze_lufs(target_path)
-        reference_analysis = analyze_lufs(reference_path)
-
-        # Process with MasteringEngine (Permissive)
-        print(f"🎵 Starting Permissive Mastering...")
-        try:
-            # Initialize Engine
-            engine = MasteringEngine()
-            result = engine.process(target_path, reference_path, output_path, target_lufs=target_lufs)
-            print(f"✅ Mastering complete! Ref LUFS: {result['ref_lufs']}, Final LUFS: {result['target_lufs']}")
-        except Exception as e:
-            print(f"❌ Mastering error: {str(e)}")
-            log_job(user_id, 'mastering', total_size, 0, 'failed', str(e))
-            raise e
+        # Analysis
+        update_task_in_db(task_id, 'processing', 40)
+        from mastering_engine import MasteringEngine
         
-        # 3. Read output and analyze
-        output_analysis = analyze_lufs(output_path)
-        with open(output_path, 'rb') as f:
-            output_data = f.read()
-            
-        elapsed = time.time() - start_time
+        # Handle format conversion if needed for analysis
+        # (Already handled inside MasteringEngine.load_audio which uses librosa)
         
-        # Log success
-        cost_est = (elapsed / 60.0) * 0.05 # Approx $0.05 per minute CPU
-        log_job(user_id, 'mastering', total_size, elapsed, 'completed', cost_estimate=cost_est)
+        engine = MasteringEngine()
+        result_info = engine.process(temp_target, temp_reference, output_path, target_lufs=target_lufs)
+        update_task_in_db(task_id, 'processing', 80)
         
-        print(f"⏱️ Total processing time: {elapsed:.2f}s")
-        
-        # Generate output filename
-        output_filename = f"mastered_{target_filename}.wav"
-        
-        # 4. Return response
-        response = send_file(
-            io.BytesIO(output_data),
-            mimetype='audio/wav',
-            as_attachment=True,
-            download_name=output_filename
-        )
+        # 3. Analyze output and upload
+        # (Optional: Re-run analysis for metadata)
+        from main import analyze_lufs # Assuming it exists or use engine's stats
+        output_analysis = analyze_lufs(output_path) if 'analyze_lufs' in globals() else {"success": False}
         
         import json
-        response.headers['X-Audio-Analysis'] = json.dumps({
-            'target': target_analysis if target_analysis['success'] else None,
-            'reference': reference_analysis if reference_analysis['success'] else None,
-            'output': output_analysis if output_analysis['success'] else None,
-            'processing_time': round(elapsed, 2)
-        })
+        metadata = {
+            'output': output_analysis if output_analysis.get('success') else None,
+            'engine_stats': result_info
+        }
         
-        return response
-        
+        # Upload to Storage (B2 with Supabase fallback)
+        remote_url = upload_result_to_storage(output_path, task_id)
+        if not remote_url:
+             raise Exception("Result upload failed to both B2 and Supabase")
+             
+        elapsed = time.time() - start_time
+        update_task_in_db(task_id, 'completed', 100, output_url=remote_url, error=json.dumps(metadata))
+        log_job(user_id, 'mastering', os.path.getsize(temp_target), elapsed, 'completed')
+
     except Exception as e:
-        print(f"❌ Error in master_audio: {str(e)}")
         import traceback
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+        error_detail = f"{str(e)}\n{traceback.format_exc()}"
+        print(f"❌ Mastering Task Error: {error_detail}")
+        # Store detailed error in DB so frontend knows what happened
+        update_task_in_db(task_id, 'failed', error=str(e))
     finally:
-        # Cleanup any temp files
         for path in temp_files:
+            if os.path.exists(path):
+                try: os.unlink(path)
+                except: pass
+
+def upload_result_to_storage(local_path, task_id, bucket='audio-processing'):
+    """Upload result to B2 (primary) or Supabase Storage (fallback)"""
+    try:
+        ext = ".zip" if "stems" in local_path or local_path.endswith('.zip') else ".wav"
+        file_name = f"results/{task_id}{ext}"
+        mime = "application/zip" if ext == ".zip" else "audio/wav"
+        
+        # 1. Try B2
+        if b2_service.bucket:
             try:
-                if os.path.exists(path):
-                    os.unlink(path)
-            except:
-                pass
+                remote_url = b2_service.upload_file(local_path, file_name, content_type=mime)
+                if remote_url:
+                    print(f"✅ Uploaded to B2: {remote_url}")
+                    return remote_url
+            except Exception as b2_err:
+                print(f"⚠️ B2 Upload failed: {b2_err}")
+
+        # 2. Fallback to Supabase
+        print(f"📤 Uploading to Supabase Storage: {file_name}...")
+        with open(local_path, 'rb') as f:
+            supabase.storage.from_(bucket).upload(
+                file=f,
+                path=file_name,
+                file_options={"content-type": mime, "upsert": "true"}
+            )
+        return supabase.storage.from_(bucket).get_public_url(file_name)
+    except Exception as e:
+        print(f"❌ Final upload failure: {e}")
+        return None
 
 @app.route('/api/analyze-audio', methods=['POST'])
 def analyze_audio_endpoint():
@@ -661,12 +673,22 @@ def get_task_status(task_id):
             return jsonify({"error": "Task not found"}), 404
             
         task = res.data[0]
+        metadata = None
+        error_msg = task.get('error_message')
+        if task['status'] == 'completed' and error_msg and error_msg.startswith('{'):
+            try:
+                metadata = json.loads(error_msg)
+                error_msg = None
+            except:
+                pass
+
         return jsonify({
             "id": task_id,
             "status": task['status'],
             "progress": task.get('progress', 0),
-            "error": task.get('error_message'),
-            "output_url": task.get('output_url')
+            "error": error_msg,
+            "output_url": task.get('output_url'),
+            "metadata": metadata
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -707,8 +729,49 @@ def get_task_result(task_id):
         else:
             return jsonify({"error": "Result file no longer available on disk"}), 410
     
+    # If it's a B2 URL, get authorized URL
+    if url.startswith('b2://'):
+        try:
+            remote_path = url.replace('b2://', '')
+            print(f"🔐 Getting auth URL for B2: {remote_path}")
+            auth_url = b2_service.get_download_url(remote_path)
+            if auth_url:
+                url = auth_url
+            else:
+                return jsonify({"error": "Failed to authorize B2 download"}), 500
+        except Exception as e:
+            print(f"❌ B2 auth error: {e}")
+            return jsonify({"error": "B2 authorization exception"}), 500
+            
+    # If it's a remote URL, proxy it to avoid CORS issues
+    if url.startswith('http'):
+        try:
+            print(f"📥 Proxying remote file: {url[:100]}...")
+            resp = requests.get(url, stream=True, timeout=60)
+            
+            # Filter out headers that could cause issues when proxying
+            excluded_headers = [
+                'content-encoding', 'content-length', 'transfer-encoding', 
+                'connection', 'server', 'x-bz-info-large_file_sha1',
+                'x-bz-file-id', 'x-bz-file-name', 'x-bz-upload-timestamp'
+            ]
+            headers = [(name, value) for (name, value) in resp.headers.items()
+                       if name.lower() not in excluded_headers]
+            
+            # Add content-length if available from response
+            if 'Content-Length' in resp.headers:
+                headers.append(('Content-Length', resp.headers['Content-Length']))
+            
+            # Use Response to stream the content
+            from flask import Response
+            return Response(resp.iter_content(chunk_size=8192), 
+                           status=resp.status_code, 
+                           headers=headers)
+        except Exception as e:
+            print(f"❌ Proxy error: {e}")
+            return redirect(url) # Fallback to redirect if proxying fails
+    
     # Otherwise redirect to remote URL
-    from flask import redirect
     return redirect(url)
 
 @app.route('/api/separate-audio', methods=['POST'])

@@ -193,7 +193,7 @@ export const getBackendConfig = (): BackendConfig => {
 
   // Producción (Production) - usar siempre Cloud Run backend
   return {
-    baseUrl: backendUrl || 'https://mastering-backend-azkp62xtaq-uc.a.run.app',
+    baseUrl: (import.meta.env.VITE_PYTHON_BACKEND_URL || "https://mastering-backend-857351913435.us-central1.run.app"),
     timeout: 300000 // 5 minutes for large files
   };
 };

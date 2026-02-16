@@ -16,3 +16,4 @@ pydub
 torch
 torchvision
 torchaudio
+b2sdk

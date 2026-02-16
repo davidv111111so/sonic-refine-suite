@@ -5,7 +5,7 @@
 [build.environment]
   NODE_VERSION = "20"
   VITE_SUPABASE_URL = "https://nhulnikqfphofqpnmdba.supabase.co"
-  VITE_PYTHON_BACKEND_URL = "https://mastering-backend-azkp62xtaq-uc.a.run.app"
+  VITE_PYTHON_BACKEND_URL = "https://mastering-backend-857351913435.us-central1.run.app"
 
 [[redirects]]
   from = "/*"
