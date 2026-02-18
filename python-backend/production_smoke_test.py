@@ -10,8 +10,8 @@ import wave
 import struct
 import random
 
-BACKEND_URL = "https://mastering-backend-azkp62xtaq-uc.a.run.app"
-ORIGIN = "https://level-audio-app.netlify.app"
+BACKEND_URL = "https://mastering-backend-857351913435.us-central1.run.app"
+ORIGIN = "https://levelaudio.live"
 # Use dev bypass token for auth
 DEV_TOKEN = "dev-bypass-token"
 
@@ -257,7 +257,7 @@ def test_netlify_frontend():
     print("="*60)
     
     try:
-        r = requests.get("https://level-audio-app.netlify.app/", timeout=15)
+        r = requests.get("https://levelaudio.live/", timeout=15)
         assert r.status_code == 200, f"Expected 200, got {r.status_code}"
         assert 'Level Audio' in r.text, "Missing page title"
         
@@ -275,7 +275,7 @@ def test_netlify_frontend():
 def main():
     print("🚀 PRODUCTION SMOKE TEST SUITE")
     print(f"   Backend: {BACKEND_URL}")
-    print(f"   Frontend: https://level-audio-app.netlify.app")
+    print(f"   Frontend: https://levelaudio.live")
     print(f"   Time: {time.strftime('%Y-%m-%d %H:%M:%S')}")
     
     results = {}

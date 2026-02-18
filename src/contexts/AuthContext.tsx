@@ -37,6 +37,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    // Check for dev bypass first
+    const isDevBypass = localStorage.getItem('dev_bypass') === 'true' &&
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+    if (isDevBypass) {
+      console.log("🛠️ Auth: Using Dev Bypass context");
+      setProfile({
+        id: 'dev-user',
+        email: 'dev@example.com',
+        full_name: 'Developer Mode',
+        tier: 'admin',
+        created_at: new Date().toISOString()
+      } as any);
+      setLoading(false);
+      return;
+    }
+
     // Initial session check
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
@@ -48,6 +65,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      // If we are in dev bypass, don't let auth changes override it unless we're logging in
+      if (isDevBypass && !session) return;
+
       if (session) {
         fetchProfile(session.user.id);
       } else {

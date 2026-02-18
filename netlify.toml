@@ -7,18 +7,38 @@
   VITE_SUPABASE_URL = "https://nhulnikqfphofqpnmdba.supabase.co"
   VITE_PYTHON_BACKEND_URL = "https://mastering-backend-857351913435.us-central1.run.app"
 
+# Force HTTPS redirect
+[[redirects]]
+  from = "http://levelaudio.live/*"
+  to = "https://levelaudio.live/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://www.levelaudio.live/*"
+  to = "https://levelaudio.live/:splat"
+  status = 301
+  force = true
+
+# SPA fallback
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
 
+# Security headers for all pages
 [[headers]]
   for = "/*"
   [headers.values]
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+    X-XSS-Protection = "1; mode=block"
+    Permissions-Policy = "camera=(), microphone=(self), geolocation=()"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://nhulnikqfphofqpnmdba.supabase.co wss://nhulnikqfphofqpnmdba.supabase.co https://mastering-backend-857351913435.us-central1.run.app https://mastering-backend-azkp62xtaq-uc.a.run.app https://accounts.google.com https://apis.google.com https://*.backblazeb2.com; media-src 'self' blob: https://*.backblazeb2.com https://*.supabase.co; frame-src https://accounts.google.com https://nhulnikqfphofqpnmdba.supabase.co; worker-src 'self' blob:;"
 
+# Cache static assets aggressively
 [[headers]]
   for = "/assets/*"
   [headers.values]

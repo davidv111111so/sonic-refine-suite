@@ -573,19 +573,6 @@ export default function Auth() {
               </form>
             )}
           </CardContent>
-          <div className="p-4 text-center">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-slate-600 hover:text-slate-400 text-xs"
-              onClick={() => {
-                localStorage.setItem("dev_bypass", "true");
-                window.location.reload();
-              }}
-            >
-              Dev Bypass
-            </Button>
-          </div>
         </Card>
       </div>
     </>
