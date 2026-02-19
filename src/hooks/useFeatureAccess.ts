@@ -2,9 +2,10 @@
  * Feature Access Hook
  * Controls access to features based on subscription tier and usage limits
  * 
- * Usage Limits:
- * - FREE: 20 enhancements/month, 2 stems only, 1hr mixer/day, MP3 only
- * - PREMIUM: Unlimited enhancement, 2/4/6 stems, unlimited mixer, WAV, 25 mastering/day
+ * Option A "Preview" Limits (Updated):
+ * - FREE/BASIC: 30s preview mastering/stems, 2hr mixer/day (playback only), 16-bit, MP3 only
+ * - PREMIUM: Unlimited features, 20 mastering/day, 20 stems/day, 24-bit, WAV export
+ * - ADMIN: Unlimited everything, no caps
  */
 
 import { useState, useCallback, useEffect } from 'react';
@@ -14,38 +15,72 @@ import { supabase } from '@/integrations/supabase/client';
 // Feature types that can be gated
 export type Feature =
     | 'enhancement'      // Audio enhancement
+    | 'stems_2'          // 2-stem separation (Vocals/Instrumental)
     | 'stems_4'          // 4-stem separation
     | 'stems_6'          // 6-stem separation
+    | 'stems_daily'      // Daily stem separation limit
     | 'mastering'        // AI Mastering
     | 'mixer'            // Mixer Lab
+    | 'mixer_export'     // Mixer Lab export
+    | 'enhance_24bit'    // 24-bit enhancement
     | 'wav_download'     // WAV download (vs MP3)
+    | 'effects'          // Player effects section
+    | 'compression'      // Player compression section
     | 'priority_processing'; // Priority queue
 
 // Usage data structure
 interface UsageData {
     files_enhanced_count: number;
     mastering_daily_count: number;
+    stems_daily_count: number;
     mixer_minutes_used: number;
 }
 
-// Limits per tier
+// Limits per tier — Option A "Preview" Model
 const LIMITS = {
     free: {
         enhancement: 20,           // per month
-        stems_4: 0,                // not allowed
-        stems_6: 0,                // not allowed
-        mastering: 0,              // not allowed
-        mixer: 60,                 // 1 hour per day (in minutes)
+        stems_2: 0,                // blocked (30s preview only, handled in UI)
+        stems_4: 0,                // blocked
+        stems_6: 0,                // blocked
+        stems_daily: 0,            // no daily stems
+        mastering: 0,              // blocked (30s preview only)
+        mixer: 120,                // 2 hours per day (in minutes)
+        mixer_export: false,       // no export for free
+        enhance_24bit: false,      // 16-bit only
         wav_download: false,
+        effects: false,            // player effects locked
+        compression: false,        // player compression locked
         priority_processing: false,
     },
     premium: {
         enhancement: Infinity,
+        stems_2: Infinity,
         stems_4: Infinity,
         stems_6: Infinity,
-        mastering: 25,             // per day
+        stems_daily: 20,           // 20 per day
+        mastering: 20,             // 20 per day
         mixer: Infinity,
+        mixer_export: true,
+        enhance_24bit: true,
         wav_download: true,
+        effects: true,
+        compression: true,
+        priority_processing: true,
+    },
+    admin: {
+        enhancement: Infinity,
+        stems_2: Infinity,
+        stems_4: Infinity,
+        stems_6: Infinity,
+        stems_daily: Infinity,
+        mastering: Infinity,
+        mixer: Infinity,
+        mixer_export: true,
+        enhance_24bit: true,
+        wav_download: true,
+        effects: true,
+        compression: true,
         priority_processing: true,
     },
 } as const;
@@ -58,7 +93,7 @@ interface AccessResult {
 }
 
 export const useFeatureAccess = () => {
-    const { profile, isPremium } = useAuth();
+    const { profile, isPremium, isAdmin } = useAuth();
     const [usage, setUsage] = useState<UsageData | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -100,8 +135,13 @@ export const useFeatureAccess = () => {
                 return { allowed: false, reason: 'Please log in to use this feature' };
             }
 
+            // Admins bypass all limits
+            if (isAdmin) {
+                return { allowed: true };
+            }
+
             const tier = isPremium ? 'premium' : 'free';
-            const limit = LIMITS[tier][feature];
+            const limit = LIMITS[tier][feature as keyof typeof LIMITS[typeof tier]];
 
             // Boolean features (like wav_download, priority_processing)
             if (typeof limit === 'boolean') {
@@ -165,6 +205,19 @@ export const useFeatureAccess = () => {
                 return { allowed: true, remaining: limit - current, limit };
             }
 
+            if (feature === 'stems_daily') {
+                const current = (usage as any).stems_daily_count || 0;
+                if (current >= limit) {
+                    return {
+                        allowed: false,
+                        reason: `Daily stem separation limit reached (${limit}). Try again tomorrow!`,
+                        remaining: 0,
+                        limit,
+                    };
+                }
+                return { allowed: true, remaining: limit - current, limit };
+            }
+
             if (feature === 'mixer') {
                 const current = usage.mixer_minutes_used || 0;
                 if (current >= limit) {
@@ -180,7 +233,7 @@ export const useFeatureAccess = () => {
 
             return { allowed: true };
         },
-        [profile, isPremium, usage]
+        [profile, isPremium, isAdmin, usage]
     );
 
     /**

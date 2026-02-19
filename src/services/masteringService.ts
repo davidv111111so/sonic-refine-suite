@@ -240,10 +240,11 @@ export class MasteringService {
   async separateAudio(
     file: File,
     stemCount: string = '4',
+    speedMode: string = 'fast',
     onProgress?: (stage: string, percent: number) => void
   ): Promise<{ task_id: string }> {
     try {
-      console.log('🚀 Starting stem separation (via storage)...');
+      console.log(`🚀 Starting stem separation (via storage, mode: ${speedMode})...`);
       const token = await this.getAuthToken();
 
       if (onProgress) onProgress('Uploading file for separation...', 5);
@@ -262,7 +263,8 @@ export class MasteringService {
         file_url: fileUrl,
         stem_count: stemCount,
         library: 'demucs',
-        model_name: modelName
+        model_name: modelName,
+        speed_mode: speedMode
       };
 
       const response = await fetch(`${this.backendUrl}/api/separate-audio`, {

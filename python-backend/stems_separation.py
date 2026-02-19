@@ -22,7 +22,7 @@ def estimate_processing_time(duration, library, hardware_type='cpu'):
     
     return duration * factor
 
-def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs', shifts=1, overlap=0.25, two_stems=False, progress_callback=None):
+def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs', shifts=1, overlap=0.25, two_stems=False, speed_mode='fast', progress_callback=None):
     """
     Separate audio into stems using Demucs.
     
@@ -34,6 +34,7 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
         shifts (int): Number of random shifts for Demucs.
         overlap (float): Overlap between splits for Demucs.
         two_stems (bool): If True, mix non-vocal stems into 'instrumental'.
+        speed_mode (str): 'fast' (shifts=0, overlap=0.1) or 'standard' (shifts=1, overlap=0.25).
         progress_callback (callable): Function to call with progress (0-100).
         
     Returns:
@@ -43,6 +44,16 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
         file_path = Path(file_path)
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Apply speed_mode overrides
+        if speed_mode == 'fast':
+            shifts = 0
+            overlap = 0.1
+            print(f"⚡ FAST MODE: shifts=0, overlap=0.1 (~2x faster)")
+        else:
+            shifts = max(shifts, 1)  # Ensure at least 1 shift for standard mode
+            overlap = max(overlap, 0.25)
+            print(f"🔬 STANDARD MODE: shifts={shifts}, overlap={overlap} (highest quality)")
         
         print(f"🎵 Starting separation with {library} using model {model_name}...")
         
@@ -116,7 +127,8 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
             current_progress = 15.0
             target_progress = 85.0
             fps = 5 # updates per second
-            duration = 180 # seconds (increased estimate for CPU)
+            # Fast mode is ~2x faster than standard
+            duration = 90 if speed_mode == 'fast' else 180  # seconds estimate for CPU
             step = (target_progress - current_progress) / (duration * fps)
             
             while not stop_progress.is_set() and current_progress < target_progress:

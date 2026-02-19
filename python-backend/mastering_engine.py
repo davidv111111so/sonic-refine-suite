@@ -59,37 +59,35 @@ class MasteringEngine:
     def match_eq(self, target_y: np.ndarray, target_sr: int, ref_y: np.ndarray) -> np.ndarray:
         """
         Matches the Long-Term Average Spectrum (LTAS) of target to reference.
-        Uses a simple FIR filter design to avoid heavy FFT artifacts.
+        Uses a compact FIR filter (513 taps) for speed and oaconvolve for long tracks.
         """
-        # 1. Compute PSD (Power Spectral Density)
-        # Use Welch's method for smooth spectrum
+        # 1. Compute PSD (Power Spectral Density) using Welch's method
         f_ref, Pxx_ref = signal.welch(librosa.to_mono(ref_y), fs=target_sr, nperseg=4096)
         f_tar, Pxx_tar = signal.welch(librosa.to_mono(target_y), fs=target_sr, nperseg=4096)
         
-        # 2. Derive Gain Curve (Filter Response needed)
-        # Avoid division by zero
+        # 2. Derive Gain Curve
         Pxx_ref = np.maximum(Pxx_ref, 1e-10)
         Pxx_tar = np.maximum(Pxx_tar, 1e-10)
         
         gain_curve = np.sqrt(Pxx_ref / Pxx_tar)
         
+        # Clamp extreme gain values to prevent artifacts
+        gain_curve = np.clip(gain_curve, 0.1, 10.0)
+        
         # Smooth the gain curve to prevent ringing
         gain_smooth = signal.savgol_filter(gain_curve, 51, 3)
         
-        # 3. Design FIR Filter from Gain Curve
-        # Create a filter kernel using frequency sampling method
-        # This is a simplified approach; usually we'd use firwin2
-        # matching frequencies 0 to Nyquist
+        # 3. Design compact FIR Filter (513 taps instead of 1025 -> ~2x faster)
         freqs = np.linspace(0, 1, len(gain_smooth))
-        taps = signal.firwin2(1025, freqs, gain_smooth) # Default fs=2, so 0-1 is Nyquist
+        taps = signal.firwin2(513, freqs, gain_smooth)
         
-        # 4. Apply Filter
+        # 4. Apply Filter using oaconvolve (overlap-add, optimal for short filter + long signal)
         if target_y.ndim > 1:
             y_eq = np.zeros_like(target_y)
             for i in range(target_y.shape[0]):
-                y_eq[i] = signal.fftconvolve(target_y[i], taps, mode='same')
+                y_eq[i] = signal.oaconvolve(target_y[i], taps, mode='same')
         else:
-            y_eq = signal.fftconvolve(target_y, taps, mode='same')
+            y_eq = signal.oaconvolve(target_y, taps, mode='same')
             
         return y_eq
 

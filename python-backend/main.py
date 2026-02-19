@@ -85,8 +85,21 @@ def after_request(response):
         response.headers.add('Access-Control-Expose-Headers', 'Content-Type,Content-Length,Content-Disposition,X-Audio-Analysis')
     return response
 
+# ─── Access Control ───────────────────────────────────────────────────────────
+# Admin emails get permanent, unrestricted access
+ADMIN_EMAILS = [
+    'davidv111111@gmail.com',
+    'aelabs1003@gmail.com',
+]
+# Premium tester emails (temporary access, can be revoked)
+PREMIUM_TESTER_EMAILS = [
+    'vijay.parwal@gmail.com',
+]
+# All allowed emails during beta
+ALLOWED_EMAILS = ADMIN_EMAILS + PREMIUM_TESTER_EMAILS
+
 def verify_auth_token(request):
-    """Verify Supabase Auth Token"""
+    """Verify Supabase Auth Token and enforce beta access control."""
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
         print("❌ Auth failed: No Bearer token")
@@ -104,6 +117,25 @@ def verify_auth_token(request):
         # Log partial token for debugging (security: only last 6 chars)
         print(f"🔐 Verifying token ending in ...{token[-6:] if len(token) > 6 else token}")
         user = supabase.auth.get_user(token)
+        
+        # Extract email for access control
+        user_email = None
+        if hasattr(user, 'user') and hasattr(user.user, 'email'):
+            user_email = user.user.email
+        elif isinstance(user, dict) and 'email' in user:
+            user_email = user['email']
+        
+        # Beta Access Control: Only allow whitelisted emails
+        if user_email and user_email.lower() not in [e.lower() for e in ALLOWED_EMAILS]:
+            print(f"🚫 Access denied for: {user_email} (not in beta whitelist)")
+            return None
+        
+        # Log admin status
+        if user_email and user_email.lower() in [e.lower() for e in ADMIN_EMAILS]:
+            print(f"👑 Admin access granted for: {user_email}")
+        elif user_email:
+            print(f"✅ Beta tester access granted for: {user_email}")
+        
         print(f"✅ Auth success for user: {user.user.id if hasattr(user, 'user') else 'unknown'}")
         return user
     except Exception as e:
@@ -606,7 +638,7 @@ def update_task_progress(task_id, progress):
     """Deprecated: Logic moved to background_separation"""
     pass
 
-def background_separation(task_id, file_path, output_dir, library, model_name, shifts, two_stems=False):
+def background_separation(task_id, file_path, output_dir, library, model_name, shifts, two_stems=False, speed_mode='fast'):
     try:
         update_task_in_db(task_id, 'processing', 0)
         
@@ -620,6 +652,7 @@ def background_separation(task_id, file_path, output_dir, library, model_name, s
             model_name=model_name,
             shifts=shifts,
             two_stems=two_stems,
+            speed_mode=speed_mode,
             progress_callback=progress_callback
         )
         
@@ -811,7 +844,10 @@ def separate_audio_endpoint():
     model_name = data.get('model_name', request.form.get('model_name', 'htdemucs'))
     shifts = int(data.get('shifts', request.form.get('shifts', 1)))
     stem_count = data.get('stem_count', request.form.get('stem_count', '4'))
+    speed_mode = data.get('speed_mode', request.form.get('speed_mode', 'fast'))
     two_stems = (stem_count == '2')
+    
+    print(f"✂️ Speed mode: {speed_mode}")
 
     # Create task
     task_id = str(uuid.uuid4())
@@ -846,7 +882,8 @@ def separate_audio_endpoint():
             library,
             model_name,
             shifts,
-            two_stems
+            two_stems,
+            speed_mode
         )
         
         return jsonify({

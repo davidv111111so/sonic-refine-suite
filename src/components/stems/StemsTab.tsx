@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, Music, Download, Clock, Cpu, Zap, Play, Pause, FileAudio } from 'lucide-react';
+import { Loader2, Upload, Music, Download, Clock, Cpu, Zap, Play, Pause, FileAudio, AlertTriangle } from 'lucide-react';
 import { AudioFile } from '@/types/audio';
 import { supabase } from '@/integrations/supabase/client';
 import { Progress } from '@/components/ui/progress';
@@ -38,6 +38,7 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
     const { toast } = useToast();
     const [selectedFileId, setSelectedFileId] = useState<string>('');
     const [stemCount, setStemCount] = useState<string>('4');
+    const [speedMode, setSpeedMode] = useState<string>('fast');
     // isProcessing state is now passed as prop
     const [processingStage, setProcessingStage] = useState('');
     const [progress, setProgress] = useState(0);
@@ -291,9 +292,9 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
 
             // Time Estimation Toast
             const duration = file.duration || 180; // Default to 3 mins if unknown
-            const estimatedTime = Math.ceil(duration * (stemCount === '6' ? 0.4 : 0.3)); // Rough heuristic
+            const estimatedTime = Math.ceil(duration * (stemCount === '6' ? 0.4 : 0.3) * (speedMode === 'fast' ? 0.5 : 1));
             toast({
-                title: "Separation Started",
+                title: `Separation Started (${speedMode === 'fast' ? '⚡ Fast' : '🔬 Standard'} Mode)`,
                 description: `Estimated time: ~${Math.floor(estimatedTime / 60)}m ${estimatedTime % 60}s`,
             });
 
@@ -305,7 +306,7 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                 : new File([fileBlob], file.name || 'audio.wav', { type: fileBlob.type || 'audio/wav' });
 
             // Call backend via centralized service
-            const data = await masteringService.separateAudio(fileToSend, stemCount);
+            const data = await masteringService.separateAudio(fileToSend, stemCount, speedMode);
             const taskId = data.task_id;
 
             // Start polling
@@ -465,6 +466,32 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                                         <SelectItem value="6">6 Stems (Vocals/Drums/Bass/Guitar/Piano/Other)</SelectItem>
                                     </SelectContent>
                                 </Select>
+                            </div>
+
+                            <div className="space-y-3">
+                                <Label className="text-slate-300">Speed Mode</Label>
+                                <Select value={speedMode} onValueChange={setSpeedMode}>
+                                    <SelectTrigger className="bg-slate-950 border-slate-700 text-white">
+                                        <SelectValue placeholder="Select speed mode" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-slate-900 border-slate-700 text-white">
+                                        <SelectItem value="fast">
+                                            ⚡ Fast (~2x faster)
+                                        </SelectItem>
+                                        <SelectItem value="standard">
+                                            🔬 Standard (Highest Quality)
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                {speedMode === 'standard' && (
+                                    <div className="flex items-start gap-2 p-2 rounded-md bg-amber-950/30 border border-amber-500/30">
+                                        <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                                        <p className="text-xs text-amber-300">
+                                            Standard mode uses test-time augmentation for maximum quality.
+                                            Processing may take <strong>10-15 minutes</strong> depending on server load.
+                                        </p>
+                                    </div>
+                                )}
                             </div>
 
                             <Button
