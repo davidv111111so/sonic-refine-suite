@@ -634,23 +634,26 @@ def background_separation(task_id, file_path, output_dir, library, model_name, s
         
         print(f"✅ Stems ZIP created at: {zip_path} ({os.path.getsize(zip_path)} bytes)")
         
-        # Store the local zip path so we can serve it directly
-        # Use a special local:// prefix so get_task_result knows to serve from disk
-        local_url = f"local://{zip_path}"
-        
-        # Try Supabase Storage upload as optional bonus (don't fail if it errors)
+        # MUST upload to remote storage — local:// doesn't survive on Cloud Run
+        result_url = None
         try:
-            remote_url = upload_result_to_storage(zip_path, task_id)
-            if remote_url:
-                print(f"✅ Also uploaded to Supabase Storage: {remote_url}")
-                local_url = remote_url  # Prefer remote URL if upload succeeded
+            result_url = upload_result_to_storage(zip_path, task_id)
+            if result_url:
+                print(f"✅ Stems uploaded to remote storage: {result_url}")
         except Exception as upload_err:
-            print(f"⚠️ Supabase Storage upload failed (using local serving): {upload_err}")
+            print(f"⚠️ Remote storage upload failed: {upload_err}")
         
-        update_task_in_db(task_id, 'completed', 100, output_url=local_url)
+        # Fallback to local:// only if remote upload completely failed (works on localhost)
+        if not result_url:
+            result_url = f"local://{zip_path}"
+            print(f"⚠️ Using local fallback (won't work on Cloud Run): {result_url}")
+        
+        update_task_in_db(task_id, 'completed', 100, output_url=result_url)
 
     except Exception as e:
         print(f"❌ Background task error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         update_task_in_db(task_id, 'failed', error=str(e))
 
 @app.route('/api/task-status/<task_id>', methods=['GET'])
@@ -696,83 +699,94 @@ def get_task_status(task_id):
 @app.route('/api/task-result/<task_id>', methods=['GET'])
 def get_task_result(task_id):
     """Serve result ZIP — either from local disk or redirect to remote URL"""
-    url = None
-    
-    # Try local store first
-    if task_id in TASKS:
-        task = TASKS[task_id]
-        if task['status'] == 'completed':
-            url = task.get('output_url')
-    
-    if not url:
-        try:
-            res = supabase.table("job_logs").select("output_url, status").eq("task_id", task_id).execute()
-            if res.data and res.data[0]['status'] == 'completed':
-                url = res.data[0]['output_url']
-        except Exception as e:
-            print(f"⚠️ Failed to get result for task {task_id}: {e}")
+    try:
+        url = None
+        
+        # Try local store first
+        if task_id in TASKS:
+            task = TASKS[task_id]
+            if task['status'] == 'completed':
+                url = task.get('output_url')
+                print(f"📋 Task {task_id[:8]} found in memory, url type: {url[:20] if url else 'None'}...")
+        
+        if not url:
+            try:
+                res = supabase.table("job_logs").select("output_url, status").eq("task_id", task_id).execute()
+                if res.data and len(res.data) > 0 and res.data[0].get('status') == 'completed':
+                    url = res.data[0].get('output_url')
+                    print(f"📋 Task {task_id[:8]} found in DB, url type: {url[:20] if url else 'None'}...")
+                elif res.data and len(res.data) > 0:
+                    status = res.data[0].get('status', 'unknown')
+                    print(f"⏳ Task {task_id[:8]} status in DB: {status}")
+                    return jsonify({"error": f"Task not completed yet, status: {status}"}), 202
+                else:
+                    print(f"❓ Task {task_id[:8]} not found in DB")
+            except Exception as e:
+                print(f"⚠️ DB query failed for task {task_id}: {e}")
+                import traceback
+                traceback.print_exc()
 
-    if not url:
-        return jsonify({"error": "Result not ready or task not found"}), 404
-    
-    # If it's a local file, serve it directly
-    if url.startswith('local://'):
-        local_path = url.replace('local://', '')
-        if os.path.exists(local_path):
-            print(f"📦 Serving local ZIP: {local_path}")
-            return send_file(
-                local_path,
-                mimetype='application/zip',
-                as_attachment=True,
-                download_name=f'stems_{task_id[:8]}.zip'
-            )
-        else:
-            return jsonify({"error": "Result file no longer available on disk"}), 410
-    
-    # If it's a B2 URL, get authorized URL
-    if url.startswith('b2://'):
-        try:
-            remote_path = url.replace('b2://', '')
-            print(f"🔐 Getting auth URL for B2: {remote_path}")
-            auth_url = b2_service.get_download_url(remote_path)
-            if auth_url:
-                url = auth_url
+        if not url:
+            return jsonify({"error": "Result not ready or task not found"}), 404
+        
+        # If it's a local file, serve it directly
+        if url.startswith('local://'):
+            local_path = url.replace('local://', '')
+            if os.path.exists(local_path):
+                print(f"📦 Serving local ZIP: {local_path}")
+                return send_file(
+                    local_path,
+                    mimetype='application/zip',
+                    as_attachment=True,
+                    download_name=f'stems_{task_id[:8]}.zip'
+                )
             else:
-                return jsonify({"error": "Failed to authorize B2 download"}), 500
-        except Exception as e:
-            print(f"❌ B2 auth error: {e}")
-            return jsonify({"error": "B2 authorization exception"}), 500
-            
-    # If it's a remote URL, proxy it to avoid CORS issues
-    if url.startswith('http'):
-        try:
-            print(f"📥 Proxying remote file: {url[:100]}...")
-            resp = requests.get(url, stream=True, timeout=60)
-            
-            # Filter out headers that could cause issues when proxying
-            excluded_headers = [
-                'content-encoding', 'content-length', 'transfer-encoding', 
-                'connection', 'server', 'x-bz-info-large_file_sha1',
-                'x-bz-file-id', 'x-bz-file-name', 'x-bz-upload-timestamp'
-            ]
-            headers = [(name, value) for (name, value) in resp.headers.items()
-                       if name.lower() not in excluded_headers]
-            
-            # Add content-length if available from response
-            if 'Content-Length' in resp.headers:
-                headers.append(('Content-Length', resp.headers['Content-Length']))
-            
-            # Use Response to stream the content
-            from flask import Response
-            return Response(resp.iter_content(chunk_size=8192), 
-                           status=resp.status_code, 
-                           headers=headers)
-        except Exception as e:
-            print(f"❌ Proxy error: {e}")
-            return redirect(url) # Fallback to redirect if proxying fails
-    
-    # Otherwise redirect to remote URL
-    return redirect(url)
+                # On Cloud Run, local files vanish between requests
+                print(f"⚠️ Local file gone (stateless container): {local_path}")
+                return jsonify({"error": "Result file expired. On Cloud Run, local results are ephemeral. Please re-run the task."}), 410
+        
+        # If it's a B2 URL, get authorized download URL
+        if url.startswith('b2://'):
+            try:
+                remote_path = url.replace('b2://', '')
+                print(f"🔐 Getting auth URL for B2: {remote_path}")
+                
+                # Re-authenticate B2 if needed
+                if not b2_service.bucket:
+                    print("🔄 Re-authenticating B2...")
+                    b2_service.authenticate()
+                
+                auth_url = b2_service.get_download_url(remote_path)
+                if auth_url:
+                    url = auth_url
+                    print(f"✅ B2 auth URL generated successfully")
+                else:
+                    print(f"❌ B2 returned None for download URL")
+                    return jsonify({"error": "Failed to authorize B2 download"}), 500
+            except Exception as e:
+                print(f"❌ B2 auth error: {e}")
+                import traceback
+                traceback.print_exc()
+                return jsonify({"error": f"B2 authorization failed: {str(e)}"}), 500
+                
+        # Return the download URL to the client — DON'T proxy through Cloud Run
+        # (Cloud Run has a ~32MB response size limit, which audio files easily exceed)
+        if url.startswith('http'):
+            print(f"✅ Returning download URL to client: {url[:80]}...")
+            return jsonify({
+                "download_url": url,
+                "task_id": task_id
+            }), 200
+        
+        # Otherwise redirect to remote URL
+        return redirect(url)
+
+    except Exception as e:
+        # Top-level safety net — ensures CORS headers are always returned
+        print(f"💥 CRITICAL: Unhandled error in get_task_result: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Internal server error: {str(e)}"}), 500
 
 @app.route('/api/separate-audio', methods=['POST'])
 def separate_audio_endpoint():

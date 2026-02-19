@@ -41,7 +41,7 @@ export default function Admin() {
     // Dynamic backend URL: Prioritize local if on localhost, otherwise use env or cloud fallback
     const backendUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
         ? "" // This will hit the Vite proxy or local server if configured
-        : (import.meta.env.VITE_PYTHON_BACKEND_URL || "https://mastering-backend-azkp62xtaq-uc.a.run.app");
+        : (import.meta.env.VITE_PYTHON_BACKEND_URL || "https://mastering-backend-857351913435.us-central1.run.app");
 
     // For manual local overrides if the above is not enough
     const finalBackendUrl = backendUrl === "" ? "http://localhost:8001" : backendUrl;

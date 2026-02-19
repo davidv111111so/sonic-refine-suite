@@ -324,8 +324,27 @@ export class MasteringService {
     try {
       const response = await fetch(`${this.backendUrl}/api/task-result/${taskId}`);
       if (!response.ok) {
-        throw new Error(`Failed to get result (${response.status})`);
+        const errorText = await response.text();
+        throw new Error(`Failed to get result (${response.status}): ${errorText}`);
       }
+
+      // Check if the response is JSON (download URL) or binary (direct file)
+      const contentType = response.headers.get('Content-Type') || '';
+      if (contentType.includes('application/json')) {
+        // Backend returned a download URL — fetch the file directly from storage
+        const data = await response.json();
+        if (data.download_url) {
+          console.log('📥 Fetching result from download URL...');
+          const fileResponse = await fetch(data.download_url);
+          if (!fileResponse.ok) {
+            throw new Error(`Failed to download from storage (${fileResponse.status})`);
+          }
+          return await fileResponse.blob();
+        }
+        throw new Error('No download URL in response');
+      }
+
+      // Direct binary response (local development)
       return await response.blob();
     } catch (error) {
       console.error("❌ getTaskResult error:", error);

@@ -181,7 +181,7 @@ export const AIMasteringSetupChecker = () => {
     const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     const backendUrl = isLocal
       ? ''
-      : (import.meta.env.VITE_PYTHON_BACKEND_URL || 'https://mastering-backend-azkp62xtaq-uc.a.run.app');
+      : (import.meta.env.VITE_PYTHON_BACKEND_URL || 'https://mastering-backend-857351913435.us-central1.run.app');
 
     try {
       // Try health check first
