@@ -22,6 +22,8 @@ import { StemsTab } from '@/components/stems/StemsTab';
 import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
 import { usePlayer } from '@/contexts/PlayerContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { PremiumBadge, PremiumGate } from '@/components/ui/PremiumBadge';
 
 interface LevelTabsProps {
   audioFiles: AudioFile[];
@@ -60,6 +62,8 @@ export const LevelTabs = ({
 }: LevelTabsProps) => {
   const { t, language } = useLanguage();
   const { addToPlaylist, isPlaying, playPause } = usePlayer();
+  const { isPremium, isAdmin } = useAuth();
+  const hasPremiumAccess = isPremium || isAdmin;
   const [activeTab, setActiveTab] = useState('level');
   const [showMiniPlayer, setShowMiniPlayer] = useState(true); // Control visibility of MiniPlayer
   const [autoPlayFile, setAutoPlayFile] = useState<AudioFile | null>(null);
@@ -352,10 +356,12 @@ export const LevelTabs = ({
           <TabsTrigger value="stems" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:via-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl cursor-pointer">
             <Package className="h-5 w-5" />
             <span className="text-lg text-indigo-50">Stems</span>
+            <PremiumBadge locked={!hasPremiumAccess} />
           </TabsTrigger>
           <TabsTrigger value="ai-mastering" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:via-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl cursor-pointer">
             <Zap className="h-5 w-5" />
             <span className="text-lg text-cyan-50">AI Mastering</span>
+            <PremiumBadge locked={!hasPremiumAccess} />
           </TabsTrigger>
           <TabsTrigger value="media-player" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:via-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-green-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl cursor-pointer">
             <Music className="h-5 w-5" />
@@ -369,6 +375,7 @@ export const LevelTabs = ({
           >
             <ExternalLink className="h-5 w-5" />
             <span className="text-lg font-bold">Mixer Lab</span>
+            <PremiumBadge locked={!hasPremiumAccess} />
           </div>
         </TabsList>
 
@@ -484,20 +491,24 @@ export const LevelTabs = ({
         </TabsContent>
 
         <TabsContent value="stems" forceMount={true} className={`space-y-6 ${activeTab !== 'stems' ? 'hidden' : ''}`}>
-          <StemsTab
-            audioFiles={audioFiles}
-            onFilesUploaded={onFilesUploaded}
-            isProcessing={isStemsProcessing}
-            setIsProcessing={setIsStemsProcessing}
-            onComplete={handleStemsComplete}
-          />
+          <PremiumGate isLocked={!hasPremiumAccess} featureName="Stem Separation">
+            <StemsTab
+              audioFiles={audioFiles}
+              onFilesUploaded={onFilesUploaded}
+              isProcessing={isStemsProcessing}
+              setIsProcessing={setIsStemsProcessing}
+              onComplete={handleStemsComplete}
+            />
+          </PremiumGate>
         </TabsContent>
 
         <TabsContent value="ai-mastering" forceMount={true} className={`space-y-6 ${activeTab !== 'ai-mastering' ? 'hidden' : ''}`}>
-          <AIMasteringTab
-            isProcessing={isMasteringProcessing}
-            setIsProcessing={setIsMasteringProcessing}
-          />
+          <PremiumGate isLocked={!hasPremiumAccess} featureName="AI Mastering">
+            <AIMasteringTab
+              isProcessing={isMasteringProcessing}
+              setIsProcessing={setIsMasteringProcessing}
+            />
+          </PremiumGate>
         </TabsContent>
 
         <TabsContent value="media-player" forceMount={true} className={`space-y-6 ${activeTab !== 'media-player' ? 'hidden' : ''}`}>
