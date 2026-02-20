@@ -1,5 +1,6 @@
 import os
 import requests
+import urllib.parse
 from b2sdk.v2 import InMemoryAccountInfo, B2Api
 from typing import Optional
 
@@ -23,9 +24,9 @@ class B2Service:
             self.api.authorize_account("production", self.key_id, self.application_key)
             if self.bucket_name:
                 self.bucket = self.api.get_bucket_by_name(self.bucket_name)
-                print(f"✅ B2 Authenticated: {self.bucket_name}")
+                print(f"[INFO] B2 Authenticated: {self.bucket_name}")
         except Exception as e:
-            print(f"❌ B2 Authentication failed: {str(e)}")
+            print(f"[ERROR] B2 Authentication failed: {str(e)}")
             self.api = None
 
     def get_upload_url(self, file_name: str, content_type: str = "audio/wav"):
@@ -52,7 +53,7 @@ class B2Service:
                 "fileName": file_name
             }
         except Exception as e:
-            print(f"❌ Failed to get B2 upload URL: {str(e)}")
+            print(f"[ERROR] Failed to get B2 upload URL: {str(e)}")
             import traceback
             traceback.print_exc()
             return None
@@ -75,7 +76,7 @@ class B2Service:
             # Return a b2:// protocol URL for internal use
             return f"b2://{remote_path}"
         except Exception as e:
-            print(f"❌ B2 Upload failed: {str(e)}")
+            print(f"[ERROR] B2 Upload failed: {str(e)}")
             return None
 
     def get_download_url(self, remote_path: str, valid_duration: int = 3600):
@@ -92,18 +93,30 @@ class B2Service:
                 valid_duration_in_seconds=valid_duration
             )
             
-            # Construct the authorized URL
-            base_url = self.api.get_download_url_for_file_name(self.bucket_name, remote_path)
+            # Construct the authorized URL correctly
+            # B2 download URLs follow the pattern: https://<download_url>/file/<bucket_name>/<remote_path>
+            # Both the bucket name and remote path should be quoted if they contain special characters.
+            download_url = self.api.account_info.get_download_url()
+            quoted_bucket = urllib.parse.quote(self.bucket_name)
+            quoted_path = urllib.parse.quote(remote_path)
+            
+            base_url = f"{download_url}/file/{quoted_bucket}/{quoted_path}"
+            
             # The token is passed as a query param named 'Authorization'
             return f"{base_url}?Authorization={auth_token}"
         except Exception as e:
-            print(f"❌ Failed to get B2 download URL: {str(e)}")
+            print(f"[ERROR] Failed to get B2 download URL: {str(e)}")
             import traceback
             traceback.print_exc()
             return None
 
     def download_file(self, remote_path: str, local_path: str):
-        """Download a file from B2 to local backend using authorized URL"""
+        """Download a file from B2 to local backend using b2sdk"""
+        if not self.bucket:
+            self.authenticate()
+        if not self.bucket:
+            return False
+            
         try:
             # Handle cases where the path might include the bucket name prefix
             # e.g. b2://bucket-name/file.wav -> remote_path = "bucket-name/file.wav"
@@ -111,23 +124,21 @@ class B2Service:
                 print(f"🧹 Stripping bucket name from path: {remote_path}")
                 remote_path = remote_path.replace(f"{self.bucket_name}/", "", 1)
             
-            url = self.get_download_url(remote_path)
-            if not url:
-                print(f"❌ Could not generate download URL for: {remote_path}")
-                return False
-                
-            print(f"📥 Downloading from B2 URL: {remote_path}...")
-            response = requests.get(url, stream=True, timeout=300)
-            response.raise_for_status()
+            print(f"📥 Downloading from B2: {remote_path}...")
             
-            with open(local_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=65536):
-                    f.write(chunk)
+            # Use the b2sdk built-in method which handles auth/retry/streaming
+            self.bucket.download_file_by_name(remote_path).save_to(local_path)
             
-            print(f"✅ B2 Download successful: {local_path}")
+            print(f"[INFO] B2 Download successful: {local_path}")
             return True
         except Exception as e:
-            print(f"❌ B2 Download failed: {str(e)}")
+            error_msg = str(e)
+            if "download_capped" in error_msg.lower() or "403" in error_msg:
+                print(f"[ERROR] B2 Download failed: DAILY CAP EXCEEDED. Increase caps in B2 Dashboard.")
+                # We can store this status if we want, but for now just log it clearly
+            else:
+                print(f"[ERROR] B2 Download failed: {error_msg}")
+                
             if os.path.exists(local_path):
                 os.remove(local_path)
             return False

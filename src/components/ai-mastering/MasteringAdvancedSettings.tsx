@@ -43,6 +43,7 @@ export interface MasteringSettings {
   clipping?: boolean;
   output_channels?: number;
   dithering_method?: string;
+  draft_mode?: boolean;
 }
 
 interface MasteringAdvancedSettingsProps {
@@ -58,6 +59,7 @@ const DEFAULT_SETTINGS: MasteringSettings = {
   max_piece_length: 15.0, // Default approx 661500 samples / 44100
   fft_size: 4096,
   output_bits: '16',
+  draft_mode: false,
 };
 
 export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps> = ({
@@ -149,6 +151,21 @@ export const MasteringAdvancedSettings: React.FC<MasteringAdvancedSettingsProps>
                 className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-md text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               <p className="text-xs text-slate-500">Window size for analysis</p>
+            </div>
+
+            <div className="space-y-2 col-span-1 md:col-span-2">
+              <div className="flex items-center justify-between p-3 rounded-md bg-cyan-950/30 border border-cyan-500/30">
+                <div className="space-y-0.5">
+                  <Label className="text-white text-base">🚀 Draft Mode</Label>
+                  <p className="text-xs text-slate-400">Ultra-fast processing (~10-30s). Uses aggressive resampling and spectral sampling.</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={settings.draft_mode}
+                  onChange={(e) => handleChange('draft_mode', e.target.checked)}
+                  className="w-5 h-5 rounded border-slate-700 text-blue-600 focus:ring-blue-500 bg-slate-900"
+                />
+              </div>
             </div>
           </div>
         </div>

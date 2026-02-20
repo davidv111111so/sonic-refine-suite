@@ -5,15 +5,23 @@ export class MasteringService {
   // Dynamic backend URL based on environment
   // Dynamic backend URL based on environment
   // We prioritize local proxy (empty string) when running on localhost to avoid CORS and production limits
-  private backendUrl = (
-    window.location.hostname === 'localhost' ||
-    window.location.hostname === '127.0.0.1' ||
-    window.location.hostname.includes('192.168.') ||
-    window.location.hostname.includes('10.') ||
-    window.location.hostname.includes('172.')
-  )
-    ? ""
-    : (import.meta.env.VITE_PYTHON_BACKEND_URL || "https://mastering-backend-857351913435.us-central1.run.app");
+  // Dynamic backend URL based on environment
+  private backendUrl = (() => {
+    const url = (
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      window.location.hostname.includes('192.168.') ||
+      window.location.hostname.includes('10.') ||
+      window.location.hostname.includes('172.')
+    )
+      ? (import.meta.env.VITE_PYTHON_BACKEND_URL || "")
+      : (import.meta.env.VITE_PYTHON_BACKEND_URL || "https://mastering-backend-857351913435.us-central1.run.app");
+
+    // Ensure we don't have a trailing slash
+    const sanitizedUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+    console.log(`🔌 MasteringService initialized with backend at: ${sanitizedUrl || "ROOT (Vite Proxy)"}`);
+    return sanitizedUrl;
+  })();
 
   /**
    * Get auth token from Supabase session
@@ -241,10 +249,11 @@ export class MasteringService {
     file: File,
     stemCount: string = '4',
     speedMode: string = 'fast',
+    library: string = 'demucs',
     onProgress?: (stage: string, percent: number) => void
   ): Promise<{ task_id: string }> {
     try {
-      console.log(`🚀 Starting stem separation (via storage, mode: ${speedMode})...`);
+      console.log(`🚀 Starting stem separation (via storage, library: ${library}, mode: ${speedMode})...`);
       const token = await this.getAuthToken();
 
       if (onProgress) onProgress('Uploading file for separation...', 5);
@@ -262,7 +271,7 @@ export class MasteringService {
       const payload = {
         file_url: fileUrl,
         stem_count: stemCount,
-        library: 'demucs',
+        library: library,
         model_name: modelName,
         speed_mode: speedMode
       };
@@ -322,36 +331,48 @@ export class MasteringService {
   /**
    * Get task result (ZIP or audio blob)
    */
-  async getTaskResult(taskId: string): Promise<Blob> {
-    try {
-      const response = await fetch(`${this.backendUrl}/api/task-result/${taskId}`);
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to get result (${response.status}): ${errorText}`);
-      }
+  async getTaskResult(taskId: string, retries: number = 3): Promise<Blob> {
+    let lastError: Error | null = null;
 
-      // Check if the response is JSON (download URL) or binary (direct file)
-      const contentType = response.headers.get('Content-Type') || '';
-      if (contentType.includes('application/json')) {
-        // Backend returned a download URL — fetch the file directly from storage
-        const data = await response.json();
-        if (data.download_url) {
-          console.log('📥 Fetching result from download URL...');
-          const fileResponse = await fetch(data.download_url);
-          if (!fileResponse.ok) {
-            throw new Error(`Failed to download from storage (${fileResponse.status})`);
-          }
-          return await fileResponse.blob();
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const response = await fetch(`${this.backendUrl}/api/task-result/${taskId}`);
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Failed to get result (${response.status}): ${errorText}`);
         }
-        throw new Error('No download URL in response');
-      }
 
-      // Direct binary response (local development)
-      return await response.blob();
-    } catch (error) {
-      console.error("❌ getTaskResult error:", error);
-      throw error;
+        // Check if the response is JSON (download URL) or binary (direct file)
+        const contentType = response.headers.get('Content-Type') || '';
+        if (contentType.includes('application/json')) {
+          // Backend returned a download URL — fetch the file directly from storage
+          const data = await response.json();
+          if (data.download_url) {
+            console.log('📥 Fetching result from download URL...');
+            const fileResponse = await fetch(data.download_url);
+            if (!fileResponse.ok) {
+              throw new Error(`Failed to download from storage (${fileResponse.status})`);
+            }
+            return await fileResponse.blob();
+          }
+          throw new Error('No download URL in response');
+        }
+
+        // Direct binary response (local development)
+        return await response.blob();
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        console.warn(`⚠️ getTaskResult attempt ${attempt}/${retries} failed:`, error);
+
+        if (attempt < retries) {
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        }
+      }
     }
+
+    console.error("❌ getTaskResult failed after all retries:", lastError);
+    throw lastError;
   }
 }
 

@@ -28,8 +28,11 @@ def analyze_lufs(file_path: str) -> dict:
         data, rate = librosa.load(file_path, sr=None, mono=False)
         
         # Handle mono/stereo and transpose for pyloudnorm (samples, channels)
-        if len(data.shape) == 1:
-            data = data.reshape(-1, 1)
+        # Safe shape check
+        data_shape = getattr(data, 'shape', (len(data),)) if hasattr(data, '__len__') else (0,)
+        
+        if len(data_shape) == 1:
+            data = data.reshape(-1, 1) if hasattr(data, 'reshape') else np.array(data).reshape(-1, 1)
         else:
             data = data.T # librosa returns (channels, samples)
             
@@ -132,34 +135,34 @@ def is_reference_suitable(lufs: float, genre: str = None) -> dict:
         return {
             "suitable": False,
             "warning_level": "warning",
-            "message": f"⚠️ Reference muy loud ({lufs} LUFS). Puede causar distorsión y artifacts. Recomendado: {optimal_min} a {optimal_max} LUFS",
+            "message": f"[WARNING] Reference muy loud ({lufs} LUFS). Puede causar distorsión y artifacts. Recomendado: {optimal_min} a {optimal_max} LUFS",
             "recommended_range": (optimal_min, optimal_max)
         }
     elif lufs >= -7:
         return {
             "suitable": True,
             "warning_level": "caution",
-            "message": f"⚡ Reference loud ({lufs} LUFS). Puede reducir dinámica. Óptimo: {optimal_min} a {optimal_max} LUFS",
+            "message": f"[CAUTION] Reference loud ({lufs} LUFS). Puede reducir dinámica. Óptimo: {optimal_min} a {optimal_max} LUFS",
             "recommended_range": (optimal_min, optimal_max)
         }
     elif optimal_min <= lufs <= optimal_max:
         return {
             "suitable": True,
             "warning_level": "none",
-            "message": f"✅ Reference óptima ({lufs} LUFS) para {genre or 'este género'}",
+            "message": f"[OK] Reference óptima ({lufs} LUFS) para {genre or 'este género'}",
             "recommended_range": (optimal_min, optimal_max)
         }
     elif lufs < -16:
         return {
             "suitable": True,
             "warning_level": "caution",
-            "message": f"📉 Reference quiet ({lufs} LUFS). Resultado puede ser menos loud. Óptimo: {optimal_min} a {optimal_max} LUFS",
+            "message": f"[INFO] Reference quiet ({lufs} LUFS). Resultado puede ser menos loud. Óptimo: {optimal_min} a {optimal_max} LUFS",
             "recommended_range": (optimal_min, optimal_max)
         }
     else:
         return {
             "suitable": True,
             "warning_level": "none",
-            "message": f"✓ Reference aceptable ({lufs} LUFS)",
+            "message": f"[INFO] Reference aceptable ({lufs} LUFS)",
             "recommended_range": (optimal_min, optimal_max)
         }

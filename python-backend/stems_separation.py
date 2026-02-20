@@ -24,17 +24,17 @@ def estimate_processing_time(duration, library, hardware_type='cpu'):
 
 def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs', shifts=1, overlap=0.25, two_stems=False, speed_mode='fast', progress_callback=None):
     """
-    Separate audio into stems using Demucs.
+    Separate audio into stems using Demucs or Spleeter.
     
     Args:
         file_path (str): Path to the input audio file.
         output_dir (str): Directory to save the separated stems.
-        library (str): 'demucs' (Spleeter removed).
-        model_name (str): Model name (e.g., 'htdemucs').
+        library (str): 'demucs' or 'spleeter'.
+        model_name (str): Model name (e.g., 'htdemucs' for Demucs, '2stems' for Spleeter).
         shifts (int): Number of random shifts for Demucs.
         overlap (float): Overlap between splits for Demucs.
         two_stems (bool): If True, mix non-vocal stems into 'instrumental'.
-        speed_mode (str): 'fast' (shifts=0, overlap=0.1) or 'standard' (shifts=1, overlap=0.25).
+        speed_mode (str): 'fast', 'standard', or 'draft'.
         progress_callback (callable): Function to call with progress (0-100).
         
     Returns:
@@ -45,184 +45,235 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         
-        # Apply speed_mode overrides
-        if speed_mode == 'fast':
-            shifts = 0
-            overlap = 0.1
-            print(f"⚡ FAST MODE: shifts=0, overlap=0.1 (~2x faster)")
-        else:
-            shifts = max(shifts, 1)  # Ensure at least 1 shift for standard mode
-            overlap = max(overlap, 0.25)
-            print(f"🔬 STANDARD MODE: shifts={shifts}, overlap={overlap} (highest quality)")
+        # 1. OPTIMIZATION: Check for DRAFT/FAST mode and resample early if needed
+        # (This avoids heavy processing on 96k/192k files)
+        if speed_mode in ['fast', 'draft']:
+             print(f"[INFO] {speed_mode.upper()} MODE: Applying pre-resampling and speed optimizations")
+             import librosa
+             import soundfile as sf
+             # Load and resample to 44100 if higher
+             y, sr = sf.read(str(file_path))
+             y_ndim = getattr(y, 'ndim', 0)
+             if sr > 44100:
+                 print(f"   [INFO] Downsampling from {sr} to 44100 to save processing time...")
+                 y_resampled = librosa.resample(y.T if y_ndim > 1 else y, orig_sr=sr, target_sr=44100)
+                 # Save to temporary file to use as input
+                 temp_resampled = file_path.parent / f"resampled_{file_path.name}"
+                 sf.write(str(temp_resampled), y_resampled.T if y_ndim > 1 else y_resampled, 44100)
+                 file_path = temp_resampled
         
-        print(f"🎵 Starting separation with {library} using model {model_name}...")
-        
-        if library != 'demucs':
-             raise ValueError(f"Unsupported library: {library}. Only Demucs is supported.")
+        print(f"[INFO] Starting separation with {library}...")
 
-        import torch
-        import torchaudio
-        from demucs.pretrained import get_model
-        from demucs.apply import apply_model
-        import soundfile as sf
-        import numpy as np
+        # --- SPLEETER PATH (FAST) ---
+        if library == 'spleeter':
+            if progress_callback: progress_callback(10)
+            print("   Using Spleeter for high-speed separation...")
+            
+            num_stems = 2 if two_stems else 4
+            # Spleeter command
+            spleeter_bin = os.environ.get('SPLEETER_PATH', 'spleeter')
+            if ' ' in spleeter_bin: # Handle potential complex paths
+                cmd = f"{spleeter_bin} separate -o \"{output_dir}\" -p spleeter:{num_stems}stems \"{file_path}\""
+                shell = True
+            else:
+                cmd = [
+                    spleeter_bin, "separate",
+                    "-o", str(output_dir),
+                    "-p", f"spleeter:{num_stems}stems",
+                    str(file_path)
+                ]
+                shell = False
+            
+            print(f"   Executing: {cmd if isinstance(cmd, str) else ' '.join(cmd)}")
+            result = subprocess.run(cmd, capture_output=True, text=True, shell=shell)
+            
+            if result.returncode != 0:
+                print(f"[ERROR] Spleeter failed: {result.stderr}")
+                # Fallback to Demucs fast if spleeter isn't installed
+                print("[WARNING] Falling back to Demucs (Fast Mode)...")
+                library = 'demucs'
+                speed_mode = 'fast'
+            else:
+                spleeter_out = output_dir / file_path.stem
+                stems = list(spleeter_out.glob("*.wav"))
+                if progress_callback: progress_callback(100)
+                return {
+                    "success": True,
+                    "output_path": str(spleeter_out),
+                    "stems": [str(s) for s in stems]
+                }
 
-        if progress_callback:
-            progress_callback(5) # Started
+        # --- DEMUCS PATH (HIGH QUALITY) ---
+        if library == 'demucs':
+            import torch
+            import torchaudio
+            from demucs.pretrained import get_model
+            from demucs.apply import apply_model
+            import soundfile as sf
+            import numpy as np
 
-        # Load model
-        print(f"   Loading Demucs model: {model_name}")
-        model = get_model(model_name)
-        model.cpu()
-        model.eval()
+            # Apply speed_mode overrides
+            if speed_mode == 'fast' or speed_mode == 'draft':
+                shifts = 0
+                overlap = 0.1
+                print(f"[INFO] {speed_mode.upper()} MODE: shifts=0, overlap=0.1 (~2x faster)")
+            else:
+                shifts = max(shifts, 1)  # Ensure at least 1 shift for standard mode
+                overlap = max(overlap, 0.25)
+                print(f"[INFO] STANDARD MODE: shifts={shifts}, overlap={overlap} (highest quality)")
+            
+            if progress_callback: progress_callback(5)
 
-        if progress_callback:
-            progress_callback(10) # Model loaded
+            # Load model
+            print(f"   Loading Demucs model: {model_name}")
+            model = get_model(model_name)
+            model.cpu()
+            model.eval()
 
-        # Load audio
-        print(f"   Loading audio: {file_path}")
-        # Use soundfile to avoid torchaudio backend issues
-        wav_np, sr = sf.read(str(file_path))
-        
-        # Convert to torch tensor: [length, channels] -> [channels, length]
-        wav = torch.from_numpy(wav_np).float()
-        if wav.dim() == 1:
+            if progress_callback: progress_callback(15)
+
+            # Load audio
+            print(f"   Loading audio: {file_path}")
+            # Use soundfile to avoid torchaudio backend issues
+            wav_np, sr = sf.read(str(file_path))
+            
+            # Convert to torch tensor: [length, channels] -> [channels, length]
+            wav = torch.from_numpy(wav_np).float()
+            if wav.dim() == 1:
+                wav = wav.unsqueeze(0)
+            else:
+                wav = wav.t()
+            
+            # Resample if necessary
+            if sr != model.samplerate:
+                resampler = torchaudio.transforms.Resample(sr, model.samplerate)
+                wav = resampler(wav)
+                sr = model.samplerate
+
+            if progress_callback: progress_callback(25)
+
+            # Add batch dimension: [channels, length] -> [1, channels, length]
+            if wav.shape[0] == 1:
+                print("   Converting mono to stereo for Demucs stability...")
+                wav = torch.cat([wav, wav], dim=0)
+                
             wav = wav.unsqueeze(0)
-        else:
-            wav = wav.t()
-        
-        # Resample if necessary
-        if sr != model.samplerate:
-            resampler = torchaudio.transforms.Resample(sr, model.samplerate)
-            wav = resampler(wav)
-            sr = model.samplerate
 
-        if progress_callback:
-            progress_callback(20) # Audio loaded
+            # Move to device (ensure consistency)
+            device = "cpu" # Default to CPU as seen in line 65
+            wav = wav.to(device)
 
-        # Add batch dimension: [channels, length] -> [1, channels, length]
-        if wav.shape[0] == 1:
-            print("   Converting mono to stereo for Demucs stability...")
-            wav = torch.cat([wav, wav], dim=0)
+            # Separate
+            print(f"   Separating (tensor shape: {wav.shape})...")
+            ref = wav.mean(0)
+            # Avoid division by zero for silent files
+            std = ref.std()
+            if std == 0:
+                std = 1.0
+            wav = (wav - ref.mean()) / std
             
-        wav = wav.unsqueeze(0)
-
-        # Move to device (ensure consistency)
-        device = "cpu" # Default to CPU as seen in line 65
-        wav = wav.to(device)
-
-        # Separate
-        print(f"   Separating (tensor shape: {wav.shape})...")
-        ref = wav.mean(0)
-        # Avoid division by zero for silent files
-        std = ref.std()
-        if std == 0:
-            std = 1.0
-        wav = (wav - ref.mean()) / std
-        
-        # Start simulated progress thread for the separation phase
-        stop_progress = threading.Event()
-        
-        def simulate_progress():
-            current_progress = 15.0
-            target_progress = 85.0
-            fps = 5 # updates per second
-            # Fast mode is ~2x faster than standard
-            duration = 90 if speed_mode == 'fast' else 180  # seconds estimate for CPU
-            step = (target_progress - current_progress) / (duration * fps)
+            # Start simulated progress thread for the separation phase
+            stop_progress = threading.Event()
             
-            while not stop_progress.is_set() and current_progress < target_progress:
-                time.sleep(1.0 / fps)
-                current_progress += step
-                if current_progress > 75:
-                    step *= 0.99
-                if progress_callback:
-                    progress_callback(int(current_progress))
-        
-        progress_thread = threading.Thread(target=simulate_progress)
-        progress_thread.daemon = True
-        progress_thread.start()
-
-        try:
-            # Apply model
-            print("   Applying Demucs model...")
-            # We use a try-except here to catch the specific AssertionError some versions of demucs throw
-            try:
-                sources = apply_model(model, wav, shifts=shifts, overlap=overlap)[0]
-            except AssertionError as ae:
-                print(f"⚠️ Demucs internal assertion error: {ae}. Retrying with simplified parameters...")
-                # Try with 0 shifts and no overlap if it failed
-                sources = apply_model(model, wav, shifts=0, overlap=0.1)[0]
+            def simulate_progress():
+                current_progress = 25.0
+                target_progress = 85.0
+                fps = 5 # updates per second
+                # Fast mode is ~2x faster than standard
+                duration = 60 if speed_mode in ['fast', 'draft'] else 180  # seconds estimate for CPU
+                step = (target_progress - current_progress) / (duration * fps)
                 
-            sources = sources * std + ref.mean()
-        except Exception as inner_e:
-            print(f"❌ Core separation failed: {str(inner_e)}")
-            raise inner_e
-        finally:
-            stop_progress.set()
+                while not stop_progress.is_set() and current_progress < target_progress:
+                    time.sleep(1.0 / fps)
+                    current_progress += step
+                    if current_progress > 75:
+                        step *= 0.99
+                    if progress_callback:
+                        progress_callback(int(current_progress))
+            
+            progress_thread = threading.Thread(target=simulate_progress)
+            progress_thread.daemon = True
+            progress_thread.start()
+
             try:
-                progress_thread.join(timeout=1)
-            except:
-                pass
+                # Apply model
+                print("   Applying Demucs model...")
+                # We use a try-except here to catch the specific AssertionError some versions of demucs throw
+                try:
+                    sources = apply_model(model, wav, shifts=shifts, overlap=overlap)[0]
+                except Exception as ae:
+                    print(f"⚠️ Demucs failed: {ae}. Retrying with simplified parameters...")
+                    # Try with 0 shifts and no overlap if it failed
+                    sources = apply_model(model, wav, shifts=0, overlap=0.1)[0]
+                    
+                sources = sources * std + ref.mean()
+            except Exception as inner_e:
+                print(f"[ERROR] Core separation failed: {str(inner_e)}")
+                raise inner_e
+            finally:
+                stop_progress.set()
+                try:
+                    progress_thread.join(timeout=1)
+                except:
+                    pass
 
-        if progress_callback:
-            progress_callback(90) # Separation done
+            if progress_callback: progress_callback(90) # Separation done
 
-        # Save stems
-        track_name = file_path.stem
-        output_path = output_dir / model_name / track_name
-        output_path.mkdir(parents=True, exist_ok=True)
-        
-        source_names = model.sources
-        saved_files = []
-        
-        print(f"   Saving stems to {output_path}...")
-        
-        # Handle 2-stem logic (Vocals + Instrumental)
-        if two_stems and "vocals" in source_names:
-            print("   Mixing down to 2 stems (Vocals + Instrumental)...")
+            # Save stems
+            track_name = file_path.stem
+            output_path = output_dir / model_name / track_name
+            output_path.mkdir(parents=True, exist_ok=True)
             
-            # Find indices
-            vocals_idx = source_names.index("vocals")
-            other_indices = [i for i, name in enumerate(source_names) if name != "vocals"]
+            source_names = model.sources
+            saved_files = []
             
-            # Save Vocals
-            vocals_source = sources[vocals_idx].cpu().numpy().T
-            vocals_path = output_path / "vocals.wav"
-            sf.write(str(vocals_path), vocals_source, sr)
-            saved_files.append(str(vocals_path))
+            print(f"   Saving stems to {output_path}...")
             
-            # Mix Instrumental
-            instrumental_source = np.zeros_like(vocals_source)
-            for idx in other_indices:
-                instrumental_source += sources[idx].cpu().numpy().T
-            
-            instrumental_path = output_path / "instrumental.wav"
-            sf.write(str(instrumental_path), instrumental_source, sr)
-            saved_files.append(str(instrumental_path))
-            
-        else:
-            # Standard saving
-            for i, (source, name) in enumerate(zip(sources, source_names)):
-                stem_path = output_path / f"{name}.wav"
-                # source is [channels, length], soundfile expects [length, channels]
-                source = source.cpu().numpy().T
-                sf.write(str(stem_path), source, sr)
-                saved_files.append(str(stem_path))
+            # Handle 2-stem logic (Vocals + Instrumental)
+            if two_stems and "vocals" in source_names:
+                print("   Mixing down to 2 stems (Vocals + Instrumental)...")
                 
-                # Update progress for saving
-                if progress_callback:
-                    progress = 90 + int((i + 1) / len(source_names) * 10)
-                    progress_callback(progress)
-        
-        return {
-            "success": True,
-            "output_path": str(output_path),
-            "stems": saved_files
-        }
+                # Find indices
+                vocals_idx = source_names.index("vocals")
+                other_indices = [i for i, name in enumerate(source_names) if name != "vocals"]
+                
+                # Save Vocals
+                vocals_source = sources[vocals_idx].cpu().numpy().T
+                vocals_path = output_path / "vocals.wav"
+                sf.write(str(vocals_path), vocals_source, sr)
+                saved_files.append(str(vocals_path))
+                
+                # Mix Instrumental
+                instrumental_source = np.zeros_like(vocals_source)
+                for idx in other_indices:
+                    instrumental_source += sources[idx].cpu().numpy().T
+                
+                instrumental_path = output_path / "instrumental.wav"
+                sf.write(str(instrumental_path), instrumental_source, sr)
+                saved_files.append(str(instrumental_path))
+                
+            else:
+                # Standard saving
+                for i, (source, name) in enumerate(zip(sources, source_names)):
+                    stem_path = output_path / f"{name}.wav"
+                    # source is [channels, length], soundfile expects [length, channels]
+                    source = source.cpu().numpy().T
+                    sf.write(str(stem_path), source, sr)
+                    saved_files.append(str(stem_path))
+                    
+                    # Update progress for saving
+                    if progress_callback:
+                        progress = 90 + int((i + 1) / len(source_names) * 10)
+                        progress_callback(progress)
+            
+            return {
+                "success": True,
+                "output_path": str(output_path),
+                "stems": saved_files
+            }
             
     except Exception as e:
-        print(f"❌ Separation error: {str(e)}")
+        print(f"[ERROR] Separation error: {str(e)}")
         import traceback
         traceback.print_exc()
         return {

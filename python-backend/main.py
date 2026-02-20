@@ -102,7 +102,7 @@ def verify_auth_token(request):
     """Verify Supabase Auth Token and enforce beta access control."""
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
-        print("❌ Auth failed: No Bearer token")
+        print("[ERROR] Auth failed: No Bearer token")
         return None
     
     token = auth_header.split(' ')[1]
@@ -110,12 +110,12 @@ def verify_auth_token(request):
     # Allow dev bypass token for local development
     dev_token = os.environ.get("DEV_BYPASS_TOKEN", "dev-bypass-token")
     if token == dev_token:
-        print("⚠️ Using DEV BYPASS TOKEN")
+        print("[WARNING] Using DEV BYPASS TOKEN")
         return {"id": "dev-user", "email": "dev@example.com"}
 
     try:
         # Log partial token for debugging (security: only last 6 chars)
-        print(f"🔐 Verifying token ending in ...{token[-6:] if len(token) > 6 else token}")
+        print(f"[AUTH] Verifying token ending in ...{token[-6:] if len(token) > 6 else token}")
         user = supabase.auth.get_user(token)
         
         # Extract email for access control
@@ -127,22 +127,22 @@ def verify_auth_token(request):
         
         # Beta Access Control: Only allow whitelisted emails
         if user_email and user_email.lower() not in [e.lower() for e in ALLOWED_EMAILS]:
-            print(f"🚫 Access denied for: {user_email} (not in beta whitelist)")
+            print(f"[DENIED] Access denied for: {user_email} (not in beta whitelist)")
             return None
         
         # Log admin status
         if user_email and user_email.lower() in [e.lower() for e in ADMIN_EMAILS]:
-            print(f"👑 Admin access granted for: {user_email}")
+            print(f"[AUTH] Admin access granted for: {user_email}")
         elif user_email:
-            print(f"✅ Beta tester access granted for: {user_email}")
+            print(f"[AUTH] Beta tester access granted for: {user_email}")
         
-        print(f"✅ Auth success for user: {user.user.id if hasattr(user, 'user') else 'unknown'}")
+        print(f"[AUTH] Auth success for user: {user.user.id if hasattr(user, 'user') else 'unknown'}")
         return user
     except Exception as e:
-        print(f"❌ Auth verification failed: {str(e)}")
+        print(f"[ERROR] Auth verification failed: {str(e)}")
         # Check if Supabase client is healthy
         if not os.environ.get("SUPABASE_URL") or not os.environ.get("SUPABASE_KEY"):
-            print("❌ Start-up Error: SUPABASE_URL or SUPABASE_KEY missing in env")
+            print("[ERROR] Start-up Error: SUPABASE_URL or SUPABASE_KEY missing in env")
         return None
 @app.route('/health', methods=['GET'])
 def health_check():
@@ -182,7 +182,7 @@ def payu_signature():
         })
         
     except Exception as e:
-        print(f"❌ Payment signature error: {str(e)}")
+        print(f"[ERROR] Payment signature error: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 def validate_file_type(file_path):
@@ -199,17 +199,17 @@ def download_file(url, local_path):
         if url.startswith('b2://'):
             from b2_service import b2_service
             remote_path = url.replace('b2://', '')
-            print(f"📥 Downloading from B2: {remote_path}")
+            print(f"[INFO] Downloading from B2: {remote_path}")
             return b2_service.download_file(remote_path, local_path)
 
-        print(f"📥 Downloading from HTTP/S: {url[:100]}...")
+        print(f"[INFO] Downloading from HTTP/S: {url[:100]}...")
         # Start download with stream=True
         response = requests.get(url, stream=True, timeout=120)
         response.raise_for_status()
         
         cl = response.headers.get('Content-Length')
         if cl and int(cl) > MAX_SIZE:
-             print(f"❌ File too large: {cl} bytes")
+             print(f"[ERROR] File too large: {cl} bytes")
              return False
 
         downloaded = 0
@@ -217,15 +217,15 @@ def download_file(url, local_path):
             for chunk in response.iter_content(chunk_size=65536):
                 downloaded += len(chunk)
                 if downloaded > MAX_SIZE:
-                    print(f"❌ File exceeded limit")
+                    print(f"[ERROR] File exceeded limit")
                     f.close()
                     if os.path.exists(local_path): os.unlink(local_path)
                     return False
                 f.write(chunk)
-        print(f"✅ Download complete: {local_path} ({os.path.getsize(local_path)} bytes)")
+        print(f"[INFO] Download complete: {local_path} ({os.path.getsize(local_path)} bytes)")
         return True
     except Exception as e:
-        print(f"❌ Download error: {str(e)}")
+        print(f"[ERROR] Download error: {str(e)}")
         if os.path.exists(local_path): os.unlink(local_path)
         return False
 
@@ -299,7 +299,10 @@ def update_task_in_db(task_id, status, progress=None, output_url=None, error=Non
             data["output_url"] = output_url
         if error:
             data["error_message"] = str(error)
+            # Duplicate to error column if it exists (some older schemas might use it)
+            data["error"] = str(error)
             
+        print(f"🔄 Updating task {task_id} status to {status}...")
         supabase.table("job_logs").update(data).eq("task_id", task_id).execute()
     except Exception as e:
         # Silently fail for Supabase updates if they're failing, we have the local store
@@ -330,17 +333,20 @@ def cleanup_old_files(bucket_name='audio-processing', max_age_hours=1):
     """Delete files older than max_age_hours from Supabase Storage"""
     try:
         print(f"🧹 Starting storage cleanup for bucket: {bucket_name}")
-        # list() only returns files in the root or a specific folder. 
-        # Since we use user_id/folder/file, we need to list recursively or iterate users.
-        # For simplicity, we'll iterate through known paths or just use the list API if it supports recursive (it doesn't easily).
-        # We'll list the top level (user folders) and then iterate.
         
-        users_dirs = supabase.storage.from_(bucket_name).list()
+        # Wrapped top-level list call
+        try:
+            users_dirs = supabase.storage.from_(bucket_name).list()
+        except Exception as list_err:
+            print(f"⚠️ Cleanup: Failed to list top-level dirs: {list_err}")
+            return 0
+            
         files_deleted = 0
         now = time.time()
         
         for user_dir in users_dirs:
-            if user_dir.get('name') and not user_dir.get('id'): # It's a directory
+            # name exists but id is usually null for folders in Supabase Storage list()
+            if user_dir.get('name') and not user_dir.get('id'): 
                 uid = user_dir['name']
                 # Iterate subfolders (mastering, analysis, stems)
                 for folder in ['mastering/target', 'mastering/reference', 'analysis', 'stems']:
@@ -349,9 +355,14 @@ def cleanup_old_files(bucket_name='audio-processing', max_age_hours=1):
                         for f in files:
                             created_at_str = f.get('created_at')
                             if created_at_str:
-                                # Parse ISO format: 2026-02-06T12:00:00.000Z
                                 from datetime import datetime
-                                created_at = datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
+                                # Handle Z or +00:00
+                                try:
+                                    created_at = datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
+                                except ValueError:
+                                    # Fallback for older formats
+                                    continue
+                                    
                                 age_seconds = now - created_at.timestamp()
                                 
                                 if age_seconds > (max_age_hours * 3600):
@@ -359,13 +370,14 @@ def cleanup_old_files(bucket_name='audio-processing', max_age_hours=1):
                                     print(f"   🗑️ Deleting stale file: {path} (Age: {age_seconds/3600:.1f}h)")
                                     supabase.storage.from_(bucket_name).remove([path])
                                     files_deleted += 1
-                    except:
+                    except Exception as e:
+                        # Silently skip individual folder errors
                         continue
         
         print(f"✅ Cleanup complete. Deleted {files_deleted} files.")
         return files_deleted
     except Exception as e:
-        print(f"❌ Cleanup error: {str(e)}")
+        print(f"❌ Overall cleanup error: {str(e)}")
         return 0
 
 def convert_to_wav(input_path, output_path):
@@ -471,19 +483,23 @@ def background_mastering(task_id, user_id, target_url, reference_url, settings):
         
         # Analysis
         update_task_in_db(task_id, 'processing', 40)
-        from mastering_engine import MasteringEngine
         
+        # Engine is already imported at top level
         # Handle format conversion if needed for analysis
         # (Already handled inside MasteringEngine.load_audio which uses librosa)
         
         engine = MasteringEngine()
-        result_info = engine.process(temp_target, temp_reference, output_path, target_lufs=target_lufs)
+        draft_mode = settings.get('draft_mode', False)
+        result_info = engine.process(temp_target, temp_reference, output_path, target_lufs=target_lufs, draft_mode=draft_mode)
         update_task_in_db(task_id, 'processing', 80)
         
         # 3. Analyze output and upload
         # (Optional: Re-run analysis for metadata)
-        from main import analyze_lufs # Assuming it exists or use engine's stats
-        output_analysis = analyze_lufs(output_path) if 'analyze_lufs' in globals() else {"success": False}
+        # analyze_lufs is already imported at top level from audio_analysis
+        output_analysis = analyze_lufs(output_path) if 'analyze_lufs' in globals() or 'analyze_lufs' in locals() or 'analyze_lufs' in globals().get('__builtins__', {}) or True else {"success": False}
+        
+        # In fact, analyze_lufs is definitely available as it was imported at line 28
+        output_analysis = analyze_lufs(output_path)
         
         import json
         metadata = {
@@ -503,9 +519,10 @@ def background_mastering(task_id, user_id, target_url, reference_url, settings):
     except Exception as e:
         import traceback
         error_detail = f"{str(e)}\n{traceback.format_exc()}"
-        print(f"❌ Mastering Task Error: {error_detail}")
+        print(f"[ERROR] Mastering Task Error: {error_detail}")
         # Store detailed error in DB so frontend knows what happened
-        update_task_in_db(task_id, 'failed', error=str(e))
+        final_err = str(e) if len(str(e)) > 3 else f"Mastering failed: {error_detail[:200]}"
+        update_task_in_db(task_id, 'failed', error=final_err)
     finally:
         for path in temp_files:
             if os.path.exists(path):
@@ -514,30 +531,38 @@ def background_mastering(task_id, user_id, target_url, reference_url, settings):
 
 def upload_result_to_storage(local_path, task_id, bucket='audio-processing'):
     """Upload result to B2 (primary) or Supabase Storage (fallback)"""
+    errors = []
     try:
         ext = ".zip" if "stems" in local_path or local_path.endswith('.zip') else ".wav"
         file_name = f"results/{task_id}{ext}"
         mime = "application/zip" if ext == ".zip" else "audio/wav"
         
         # 1. Try B2
-        if b2_service.bucket:
+        if b2_service and b2_service.bucket:
             try:
                 remote_url = b2_service.upload_file(local_path, file_name, content_type=mime)
                 if remote_url:
                     print(f"✅ Uploaded to B2: {remote_url}")
                     return remote_url
             except Exception as b2_err:
+                errors.append(f"B2: {str(b2_err)}")
                 print(f"⚠️ B2 Upload failed: {b2_err}")
 
         # 2. Fallback to Supabase
         print(f"📤 Uploading to Supabase Storage: {file_name}...")
-        with open(local_path, 'rb') as f:
-            supabase.storage.from_(bucket).upload(
-                file=f,
-                path=file_name,
-                file_options={"content-type": mime, "upsert": "true"}
-            )
-        return supabase.storage.from_(bucket).get_public_url(file_name)
+        try:
+            with open(local_path, 'rb') as f:
+                supabase.storage.from_(bucket).upload(
+                    file=f,
+                    path=file_name,
+                    file_options={"content-type": mime, "upsert": "true"}
+                )
+            return supabase.storage.from_(bucket).get_public_url(file_name)
+        except Exception as sup_err:
+            errors.append(f"Supabase: {str(sup_err)}")
+            print(f"❌ Supabase Upload failed: {sup_err}")
+
+        raise Exception(f"Upload failed. Details: {'; '.join(errors)}")
     except Exception as e:
         print(f"❌ Final upload failure: {e}")
         return None
@@ -710,7 +735,8 @@ def get_task_status(task_id):
             
         task = res.data[0]
         metadata = None
-        error_msg = task.get('error_message')
+        error_msg = task.get('error_message') or task.get('error')
+        
         if task['status'] == 'completed' and error_msg and error_msg.startswith('{'):
             try:
                 metadata = json.loads(error_msg)
@@ -723,6 +749,7 @@ def get_task_status(task_id):
             "status": task['status'],
             "progress": task.get('progress', 0),
             "error": error_msg,
+            "error_message": error_msg, # Add both for compatibility
             "output_url": task.get('output_url'),
             "metadata": metadata
         })
@@ -915,8 +942,8 @@ cleanup_thread.start()
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8001))
-    print(f"🚀 Starting AI Mastering Backend on port {port}...")
-    print(f"📁 Supported formats: MP3, WAV, FLAC")
-    print(f"📤 Output format: WAV")
-    print(f"🧹 Storage cleanup service: ACTIVE (1h cycle)")
+    print(f"[STARTUP] Starting AI Mastering Backend on port {port}...")
+    print(f"[INFO] Supported formats: MP3, WAV, FLAC")
+    print(f"[INFO] Output format: WAV")
+    print(f"[INFO] Storage cleanup service: ACTIVE (1h cycle)")
     app.run(host="0.0.0.0", port=port, debug=True)

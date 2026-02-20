@@ -3,6 +3,7 @@ import librosa
 import pyloudnorm as pyln
 import soundfile as sf
 import scipy.signal as signal
+import os
 from typing import Tuple, Optional
 
 class MasteringEngine:
@@ -15,21 +16,69 @@ class MasteringEngine:
         self.sr = sample_rate
 
     def load_audio(self, file_path: str) -> Tuple[np.ndarray, int]:
-        """Loads audio and ensures standard format (float32)."""
-        y, sr = librosa.load(file_path, sr=self.sr, mono=False)
-        return y, sr
+        """Loads audio efficiently. Uses soundfile for WAV, librosa for others."""
+        ext = os.path.splitext(file_path)[1].lower()
+        
+        try:
+            if ext == '.wav':
+                # soundfile is much faster for wav
+                y, sr = sf.read(file_path, always_2d=True)
+                y = y.T # Back to [channels, samples]
+            else:
+                # Use librosa for compressed formats
+                y, sr = librosa.load(file_path, sr=None, mono=False)
+            
+            # EMERGENCY FIX for "int object has no attribute ndim"
+            # If y is int and sr is array/float, SWAP THEM
+            if not hasattr(y, 'ndim') and (hasattr(sr, 'ndim') or isinstance(sr, float)):
+                y, sr = sr, y
+                
+            # Final verification: y must be a numpy array
+            if not hasattr(y, 'ndim'):
+                # Try one last absolute fallback if the above failed
+                print(f"   ⚠️ load_audio fallback for {file_path}")
+                y, sr = librosa.load(file_path, sr=self.sr, mono=False)
+            
+            # Resample only if necessary
+            if sr != self.sr:
+                y = librosa.resample(y, orig_sr=sr, target_sr=self.sr)
+                sr = self.sr
+                
+            return y, sr
+        except Exception as e:
+            # Absolute fallback
+            try:
+                y, sr = librosa.load(file_path, sr=self.sr, mono=False)
+                return y, sr
+            except Exception as lib_err:
+                raise lib_err
+
+    def _get_ndim(self, arr) -> int:
+        """Helper to safely get ndim of an object which might not be an array."""
+        return getattr(arr, 'ndim', 0)
 
     def analyze_track(self, y: np.ndarray, sr: int) -> dict:
-        """extracts LUFS and Spectral Centroid."""
-        # Ensure mono for analysis
-        y_mono = librosa.to_mono(y)
+        """extracts LUFS and Spectral Centroid efficiently."""
+        # Use mono for analysis
+        y_mono = librosa.to_mono(y) if self._get_ndim(y) > 1 else y
         
         # Loudness (LUFS)
         meter = pyln.Meter(sr)
-        loudness = meter.integrated_loudness(y_mono)
+        # pyloudnorm expects (samples, channels)
+        y_ln = y.T if self._get_ndim(y) > 1 else y
+        loudness = meter.integrated_loudness(y_ln)
         
-        # Spectral Centroid (Brightness)
-        cent = librosa.feature.spectral_centroid(y=y_mono, sr=sr)
+        # Spectral Centroid (Brightness) - downsample for speed in analysis if track is long
+        duration = len(y_mono) / sr
+        if duration > 30:
+            # Analyze every 10th sample for centroid to speed up
+            cent_y = y_mono[::4]
+            cent_sr = sr // 4
+        else:
+            cent_y = y_mono
+            cent_sr = sr
+
+        cent = librosa.feature.spectral_centroid(y=cent_y, sr=cent_sr)
         avg_centroid = np.mean(cent)
         
         return {
@@ -43,7 +92,7 @@ class MasteringEngine:
         meter = pyln.Meter(target_sr)
         
         # Handle stereo/mono
-        if target_y.ndim == 1:
+        if self._get_ndim(target_y) == 1:
             y_measure = target_y
         else:
             y_measure = target_y.T # pyloudnorm expects (samples, channels)
@@ -54,7 +103,7 @@ class MasteringEngine:
         video_lufs = ref_lufs # Target
         normalized_y = pyln.normalize.loudness(y_measure, current_lufs, video_lufs)
         
-        return normalized_y.T if target_y.ndim > 1 else normalized_y
+        return normalized_y.T if self._get_ndim(target_y) > 1 else normalized_y
 
     def match_eq(self, target_y: np.ndarray, target_sr: int, ref_y: np.ndarray) -> np.ndarray:
         """
@@ -62,8 +111,14 @@ class MasteringEngine:
         Uses a compact FIR filter (513 taps) for speed and oaconvolve for long tracks.
         """
         # 1. Compute PSD (Power Spectral Density) using Welch's method
-        f_ref, Pxx_ref = signal.welch(librosa.to_mono(ref_y), fs=target_sr, nperseg=4096)
-        f_tar, Pxx_tar = signal.welch(librosa.to_mono(target_y), fs=target_sr, nperseg=4096)
+        # Ensure nperseg is not larger than signal length
+        nperseg = min(len(ref_y) if self._get_ndim(ref_y) == 1 else ref_y.shape[1], 
+                      len(target_y) if self._get_ndim(target_y) == 1 else target_y.shape[1], 
+                      4096)
+        if nperseg < 256: nperseg = 256 # Minimum reasonable window
+        
+        f_ref, Pxx_ref = signal.welch(librosa.to_mono(ref_y), fs=target_sr, nperseg=nperseg)
+        f_tar, Pxx_tar = signal.welch(librosa.to_mono(target_y), fs=target_sr, nperseg=nperseg)
         
         # 2. Derive Gain Curve
         Pxx_ref = np.maximum(Pxx_ref, 1e-10)
@@ -82,7 +137,7 @@ class MasteringEngine:
         taps = signal.firwin2(513, freqs, gain_smooth)
         
         # 4. Apply Filter using oaconvolve (overlap-add, optimal for short filter + long signal)
-        if target_y.ndim > 1:
+        if self._get_ndim(target_y) > 1:
             y_eq = np.zeros_like(target_y)
             for i in range(target_y.shape[0]):
                 y_eq[i] = signal.oaconvolve(target_y[i], taps, mode='same')
@@ -91,45 +146,53 @@ class MasteringEngine:
             
         return y_eq
 
-    def process(self, target_path: str, reference_path: str, output_path: str, target_lufs: Optional[float] = None):
+    def process(self, target_path: str, reference_path: str, output_path: str, target_lufs: Optional[float] = None, draft_mode: bool = False):
         """Full Permissive Mastering Pipeline."""
-        
+        if draft_mode:
+            print("[INFO] DRAFT MODE ENABLED: Using speed-optimized pipeline")
+            # Force 44.1k for draft mode even if system default is higher
+            self.sr = 44100
+
         # 1. Load
-        print(f"Loading Target: {target_path}")
+        print(f"   📥 Loading Target: {os.path.basename(target_path)}")
         y_tar, sr = self.load_audio(target_path)
         
-        print(f"Loading Reference: {reference_path}")
+        print(f"   📥 Loading Reference: {os.path.basename(reference_path)}")
         y_ref, _ = self.load_audio(reference_path)
         
-        # 2. Key Stats
-        print("Analyzing Reference...")
-        ref_stats = self.analyze_track(y_ref, sr)
-        print(f"Reference LUFS: {ref_stats['lufs']:.2f} dB")
+        # 2. Analyze
+        print("   🔍 Analyzing tracks...")
+        ref_stats = self.analyze_track(y_ref, self.sr)
         
-        # Determine Target LUFS
-        final_lufs = target_lufs if target_lufs is not None else ref_stats['lufs']
+        # 3. Match EQ
+        print("   🎛️ Matching EQ...")
+        y_eq = self.match_eq(y_tar, self.sr, y_ref)
         
-        # 3. EQ Match (Spectral)
-        print("Matching EQ Profile...")
-        y_eq = self.match_eq(y_tar, sr, y_ref)
+        # 4. Match Loudness
+        print("   🔊 Normalizing Loudness...")
+        target_loudness = target_lufs if target_lufs is not None else ref_stats['lufs']
         
-        # 4. Loudness Match
-        print(f"Matching Loudness to {final_lufs:.2f} LUFS...")
-        y_mastered = self.match_loudness(y_eq, sr, final_lufs)
+        # Ensure we don't over-boost in draft mode to avoid complex limiting
+        if draft_mode:
+             target_loudness = min(target_loudness, -10.0) 
+
+        meter = pyln.Meter(self.sr)
+        y_ln = y_eq.T if self._get_ndim(y_eq) > 1 else y_eq
+        curr_lufs = meter.integrated_loudness(y_ln)
+        y_master = pyln.normalize.loudness(y_eq.T, curr_lufs, target_loudness).T
         
-        # 5. Safety Limiter (Hard Clip at -0.1 dB to prevent artifacts)
-        peak = np.max(np.abs(y_mastered))
-        if peak > 0.99:
-            print("Limiting Peaks...")
-            y_mastered = y_mastered * (0.99 / peak)
+        # 5. Peak Limiter (Soft clip for speed in draft, or simple clamp)
+        print("[INFO] Applying Peak Limiter...")
+        max_val = np.max(np.abs(y_master))
+        if max_val > 0.98:
+            y_master = y_master * (0.95 / max_val)
             
         # 6. Export
-        print(f"Saving to {output_path}")
-        sf.write(output_path, y_mastered.T if y_mastered.ndim > 1 else y_mastered, sr)
+        print(f"[INFO] Exporting to {output_path}")
+        sf.write(output_path, y_master.T, self.sr)
         
         return {
-            "status": "success",
-            "ref_lufs": float(ref_stats['lufs']),
-            "target_lufs": float(final_lufs),
-            "output_path": output_path
+            "success": True,
+            "lufs": target_loudness,
+            "sr": self.sr
         }

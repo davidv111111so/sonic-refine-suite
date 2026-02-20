@@ -221,6 +221,7 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
       outputBits: settings.output_bits,
       outputChannels: settings.output_channels,
       ditheringMethod: settings.dithering_method,
+      draft_mode: settings.draft_mode,
     };
   };
 
@@ -248,6 +249,7 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
             loudness_steps: 10,
             spectrum_bands: 32,
             fft_size: 4096,
+            draft_mode: false,
             normalize_reference: false,
             normalize: false,
             limiter_method: "True Peak",

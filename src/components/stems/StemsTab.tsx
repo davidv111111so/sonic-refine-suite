@@ -39,7 +39,7 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
     const [selectedFileId, setSelectedFileId] = useState<string>('');
     const [stemCount, setStemCount] = useState<string>('4');
     const [speedMode, setSpeedMode] = useState<string>('fast');
-    // isProcessing state is now passed as prop
+    const [processingLibrary, setProcessingLibrary] = useState<string>('demucs');
     const [processingStage, setProcessingStage] = useState('');
     const [progress, setProgress] = useState(0);
     const [results, setResults] = useState<string | null>(null); // URL to zip
@@ -292,9 +292,15 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
 
             // Time Estimation Toast
             const duration = file.duration || 180; // Default to 3 mins if unknown
-            const estimatedTime = Math.ceil(duration * (stemCount === '6' ? 0.4 : 0.3) * (speedMode === 'fast' ? 0.5 : 1));
+            let estimatedTime = 0;
+            if (processingLibrary === 'spleeter') {
+                estimatedTime = Math.ceil(duration / 4); // Spleeter is very fast
+            } else {
+                estimatedTime = Math.ceil(duration * (stemCount === '6' ? 0.4 : 0.3) * (speedMode === 'fast' ? 0.5 : 1));
+            }
+
             toast({
-                title: `Separation Started (${speedMode === 'fast' ? '⚡ Fast' : '🔬 Standard'} Mode)`,
+                title: `${processingLibrary === 'spleeter' ? '⚡ Spleeter' : '🔬 Demucs'} Started (${speedMode.toUpperCase()} Mode)`,
                 description: `Estimated time: ~${Math.floor(estimatedTime / 60)}m ${estimatedTime % 60}s`,
             });
 
@@ -306,7 +312,7 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                 : new File([fileBlob], file.name || 'audio.wav', { type: fileBlob.type || 'audio/wav' });
 
             // Call backend via centralized service
-            const data = await masteringService.separateAudio(fileToSend, stemCount, speedMode);
+            const data = await masteringService.separateAudio(fileToSend, stemCount, speedMode, processingLibrary);
             const taskId = data.task_id;
 
             // Start polling
@@ -444,14 +450,26 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div className="space-y-3">
-                                <Label className="text-slate-300">Engine</Label>
-                                <div className="p-3 rounded-lg border bg-purple-950/30 border-purple-500/50">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <Music className="w-4 h-4 text-purple-400" />
-                                        <span className="font-medium text-white">Level (High Quality)</span>
-                                    </div>
-                                    <p className="text-xs text-slate-400">State-of-the-art separation powered by AI.</p>
-                                </div>
+                                <Label className="text-slate-300">Processing Engine</Label>
+                                <Select value={processingLibrary} onValueChange={setProcessingLibrary}>
+                                    <SelectTrigger className="bg-slate-950 border-slate-700 text-white">
+                                        <SelectValue placeholder="Select engine" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-slate-900 border-slate-700 text-white">
+                                        <SelectItem value="demucs">
+                                            <div className="flex flex-col">
+                                                <span className="font-medium">Demucs (Pro Quality)</span>
+                                                <span className="text-[10px] opacity-60">Best for stems, takes 3-10 mins.</span>
+                                            </div>
+                                        </SelectItem>
+                                        <SelectItem value="spleeter">
+                                            <div className="flex flex-col">
+                                                <span className="font-medium">Spleeter (Express)</span>
+                                                <span className="text-[10px] opacity-60">Finishes in under 60s. Great for drafts.</span>
+                                            </div>
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
 
                             <div className="space-y-3">
@@ -475,11 +493,14 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                                         <SelectValue placeholder="Select speed mode" />
                                     </SelectTrigger>
                                     <SelectContent className="bg-slate-900 border-slate-700 text-white">
+                                        <SelectItem value="draft">
+                                            🚀 Draft (Aggressive Speed)
+                                        </SelectItem>
                                         <SelectItem value="fast">
                                             ⚡ Fast (~2x faster)
                                         </SelectItem>
                                         <SelectItem value="standard">
-                                            🔬 Standard (Highest Quality)
+                                            🔬 Standard (Focus on Quality)
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
