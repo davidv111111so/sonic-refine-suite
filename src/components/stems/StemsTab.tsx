@@ -290,18 +290,9 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
             }
             formData.append('stem_count', stemCount);
 
-            // Time Estimation Toast
-            const duration = file.duration || 180; // Default to 3 mins if unknown
-            let estimatedTime = 0;
-            if (processingLibrary === 'spleeter') {
-                estimatedTime = Math.ceil(duration / 4); // Spleeter is very fast
-            } else {
-                estimatedTime = Math.ceil(duration * (stemCount === '6' ? 0.4 : 0.3) * (speedMode === 'fast' ? 0.5 : 1));
-            }
-
             toast({
                 title: `${processingLibrary === 'spleeter' ? '⚡ Spleeter' : '🔬 Demucs'} Started (${speedMode.toUpperCase()} Mode)`,
-                description: `Estimated time: ~${Math.floor(estimatedTime / 60)}m ${estimatedTime % 60}s`,
+                description: `Processing audio... This usually takes 1-3 minutes depending on track length and performance.`,
             });
 
             setProcessingStage('Uploading and starting separation...');

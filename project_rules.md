@@ -86,6 +86,20 @@
 - **CORS Management**: Never manually handle `OPTIONS` requests if using a CORS middleware (like `Flask-CORS`). Let the middleware handle preflight.
 - **Robust Retries**: Implement exponential backoff for network requests that are prone to intermittent failure.
 
+### Antigravity Builder Agent Rules (New)
+1.  **Investigate, Review & Plan (IRP)**:
+    -   **Investigate**: Look through all skills and code before taking action.
+    -   **Review**: Evaluate multiple approaches (e.g., refactor vs. quick fix).
+    -   **Plan**: Always create/update `implementation_plan.md` for major changes.
+2.  **Skill-First Integration**:
+    -   Before any architectural decision, query `@notebooklm-research`.
+    -   Use `@speckit-reviewer` to validate "Atomic Skills" and "Progressive Disclosure".
+    -   Use `@git-committer` for every commit to ensure Conventional Commits.
+3.  **Refactor & Clean Code**:
+    -   **Refactor when Required**: If you see messy code while fixing a bug, refactor it first.
+    -   **Fix All Errors**: No console errors, no lint warnings, no `TODO`s left behind.
+    -   **Scanner Enforcement**: Run `@tech-debt-scanner` after every major task to ensure quality.
+
 ### Mixer Lab Rules (Strict)
 1.  **Tempo Master Logic**:
     -   **Manual**: Assign via MASTER button on deck.

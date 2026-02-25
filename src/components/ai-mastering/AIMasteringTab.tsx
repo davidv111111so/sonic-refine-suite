@@ -457,6 +457,11 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
     setProgress(0);
 
     try {
+      toast.info("Mastering Started", {
+        description: "AI Mastering can take 5-15 minutes depending on track length and hardware performance. Please stay on this page.",
+        duration: 10000,
+      });
+
       console.log("🚀 Starting Matchering AI Mastering...");
       const backendParams = mapSettingsToEnhancedBackend(advancedSettings);
       const validationErrors = validateBackendParams(backendParams);

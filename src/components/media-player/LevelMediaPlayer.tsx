@@ -534,14 +534,20 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
 
   // Auto-play file logic
   useEffect(() => {
-    if (autoPlayFile && autoPlayFile.id !== currentTrack?.id) {
-      console.log("Auto-playing file from track list:", autoPlayFile.name);
-      loadTrack(autoPlayFile);
+    if (autoPlayFile) {
+      if (autoPlayFile.id !== currentTrack?.id) {
+        console.log("Auto-playing file from track list:", autoPlayFile.name);
+        loadTrack(autoPlayFile);
+      } else if (!isPlaying) {
+        // If already loaded but paused, trigger play
+        playPause();
+      }
+
       if (onAutoPlayComplete) {
         onAutoPlayComplete();
       }
     }
-  }, [autoPlayFile, currentTrack, onAutoPlayComplete, loadTrack]);
+  }, [autoPlayFile, currentTrack, isPlaying, onAutoPlayComplete, loadTrack, playPause]);
 
   // Update Effects Parameters
   useEffect(() => {

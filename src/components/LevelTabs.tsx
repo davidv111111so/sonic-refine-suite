@@ -1,26 +1,16 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { LevelUpload } from '@/components/level/LevelUpload';
-import { LevelTrackList } from '@/components/level/LevelTrackList';
-import { DynamicOutputSettings } from '@/components/enhancement/DynamicOutputSettings';
-import { InteractiveProcessingOptions } from '@/components/enhancement/InteractiveProcessingOptions';
-import { FiveBandEqualizer } from '@/components/enhancement/FiveBandEqualizer';
-import { AdvancedAudioEnhancement } from '@/components/enhancement/AdvancedAudioEnhancement';
-import { FileInfoModal } from '@/components/FileInfoModal';
+import { LevelTabContent } from './level/LevelTabContent';
+import { EnhanceTabContent } from './enhancement/EnhanceTabContent';
 import { AudioFile } from '@/types/audio';
 import { ProcessingSettings } from '@/utils/audioProcessor';
-import { BarChart3, Settings, Upload, Zap, Package, Music, ExternalLink, CreditCard } from 'lucide-react';
+import { BarChart3, Settings, Zap, Package, Music, ExternalLink } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { IndividualModeQueue } from '@/components/enhancement/IndividualModeQueue';
 import { AIMasteringTab } from '@/components/ai-mastering/AIMasteringTab';
 import { LevelMediaPlayer } from '@/components/media-player/LevelMediaPlayer';
 import { MiniPlayer } from '@/components/media-player/MiniPlayer';
 import { StemsTab } from '@/components/stems/StemsTab';
 import { toast } from 'sonner';
-import { Progress } from '@/components/ui/progress';
 import { usePlayer } from '@/contexts/PlayerContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { PremiumBadge, PremiumGate } from '@/components/ui/PremiumBadge';
@@ -49,10 +39,8 @@ export const LevelTabs = ({
   onFilesUploaded,
   onDownload,
   onConvert,
-  onDownloadAll,
-  onClearDownloaded,
-  onClearAll,
   onDelete,
+  onClearAll,
   onEnhanceFiles,
   eqBands,
   onEQBandChange,
@@ -61,26 +49,19 @@ export const LevelTabs = ({
   setEqEnabled
 }: LevelTabsProps) => {
   const { t, language } = useLanguage();
-  const { addToPlaylist, isPlaying, playPause } = usePlayer();
+  const { addToPlaylist, isPlaying } = usePlayer();
   const { isPremium, isAdmin } = useAuth();
   const hasPremiumAccess = isPremium || isAdmin;
   const [activeTab, setActiveTab] = useState('level');
-  const [showMiniPlayer, setShowMiniPlayer] = useState(true); // Control visibility of MiniPlayer
+  const [showMiniPlayer, setShowMiniPlayer] = useState(true);
   const [autoPlayFile, setAutoPlayFile] = useState<AudioFile | null>(null);
   const [selectedFilesForIndividual, setSelectedFilesForIndividual] = useState<string[]>([]);
-  const [fileInfoModal, setFileInfoModal] = useState<{
-    isOpen: boolean;
-    file: AudioFile | null;
-  }>({
-    isOpen: false,
-    file: null
-  });
 
   // Analysis progress state
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  // Stems processing state (Lifted for navigation warning)
+  // Stems/Mastering processing state
   const [isStemsProcessing, setIsStemsProcessing] = useState(false);
   const [isMasteringProcessing, setIsMasteringProcessing] = useState(false);
 
@@ -89,23 +70,19 @@ export const LevelTabs = ({
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isStemsProcessing || isMasteringProcessing) {
         e.preventDefault();
-        e.returnValue = ''; // Chrome requires returnValue to be set
+        e.returnValue = '';
       }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isStemsProcessing, isMasteringProcessing]);
 
-  // Reset mini player visibility when returning to media player so it works again next time we leave
   useEffect(() => {
     if (activeTab === 'media-player') {
       setShowMiniPlayer(true);
     }
   }, [activeTab]);
 
-  // Processing settings state
-
-  // Processing settings state
   const [processingSettings, setProcessingSettings] = useState<ProcessingSettings>({
     outputFormat: 'wav',
     sampleRate: 44100,
@@ -134,16 +111,13 @@ export const LevelTabs = ({
     setActiveTab('media-player');
   };
 
-  // Calculate estimated total output size
   const estimatedTotalSize = useMemo(() => {
     if (audioFiles.length === 0) return 0;
-
     const filesToCalculate = processingSettings.batchMode
       ? audioFiles
       : audioFiles.filter(file => selectedFilesForIndividual.includes(file.id));
 
     if (filesToCalculate.length === 0) return 0;
-
     const totalDuration = filesToCalculate.reduce((acc, file) => acc + (file.duration || 0), 0);
     const totalOriginalSize = filesToCalculate.reduce((acc, file) => acc + file.size, 0);
 
@@ -173,7 +147,6 @@ export const LevelTabs = ({
       default:
         estimated = totalOriginalSize;
     }
-
     return Math.round(estimated * 1.015);
   }, [audioFiles, selectedFilesForIndividual, processingSettings]);
 
@@ -217,11 +190,9 @@ export const LevelTabs = ({
     setIsAnalyzing(true);
     setAnalysisProgress(0);
 
-    // Start simulated progress
     const progressInterval = setInterval(() => {
       setAnalysisProgress(prev => {
-        if (prev >= 90) return prev; // Cap at 90% until actually done
-        // Slow down as we get closer to 90%
+        if (prev >= 90) return prev;
         const increment = prev < 50 ? 2 : prev < 80 ? 1 : 0.5;
         return Math.min(prev + increment, 90);
       });
@@ -236,7 +207,7 @@ export const LevelTabs = ({
       const { detectBPMFromFile } = await import('@/utils/bpmDetector');
 
       const filesWithAnalysis = await Promise.all(
-        files.map(async (file, idx) => {
+        files.map(async (file) => {
           let harmonicKey = 'N/A';
           let bpm: number | undefined = undefined;
 
@@ -251,14 +222,8 @@ export const LevelTabs = ({
             ])
           ]);
 
-          if (keyResult.status === 'fulfilled') {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            harmonicKey = (keyResult.value as any).camelot;
-          }
-          if (bpmResult.status === 'fulfilled') {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            bpm = (bpmResult.value as any).bpm;
-          }
+          if (keyResult.status === 'fulfilled') harmonicKey = (keyResult.value as any).camelot;
+          if (bpmResult.status === 'fulfilled') bpm = (bpmResult.value as any).bpm;
 
           return { ...file, harmonicKey, bpm };
         })
@@ -276,12 +241,11 @@ export const LevelTabs = ({
         toast.success('Analysis complete!', { id: toastId, description: `BPM: ${detectedBPM}/${files.length} • Key: ${detectedKey}/${files.length}` });
       }
 
-      // Small delay to let user see 100%
       setTimeout(() => {
         setIsAnalyzing(false);
         setAnalysisProgress(0);
         onFilesUploaded(filesWithAnalysis);
-        addToPlaylist(filesWithAnalysis); // Sync with global player
+        addToPlaylist(filesWithAnalysis);
       }, 500);
 
     } catch (error) {
@@ -289,7 +253,6 @@ export const LevelTabs = ({
       setIsAnalyzing(false);
       setAnalysisProgress(0);
       toast.error('Analysis error', { id: toastId, description: 'An unexpected error occurred.' });
-      console.error(error);
     }
   };
 
@@ -324,10 +287,7 @@ export const LevelTabs = ({
     toast.success(language === 'ES' ? 'Procesamiento iniciado' : 'Processing started');
   };
 
-  const handleTabChange = (value: string) => {
-    // No longer blocking navigation for Stems/Mastering as they run in background
-    setActiveTab(value);
-  };
+  const handleTabChange = (value: string) => setActiveTab(value);
 
   const handleStemsComplete = () => {
     if (activeTab !== 'stems') {
@@ -344,32 +304,32 @@ export const LevelTabs = ({
   return (
     <>
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full relative z-30">
-        <TabsList className="grid w-full grid-cols-6 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-black dark:via-slate-900 dark:to-black border-2 border-slate-600 dark:border-slate-700 p-1 rounded-xl shadow-xl relative z-50">
-          <TabsTrigger value="level" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:via-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-cyan-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl cursor-pointer">
+        <TabsList className="grid w-full h-[60px] grid-cols-6 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-black dark:via-slate-900 dark:to-black border-2 border-slate-600 dark:border-slate-700 p-1.5 rounded-2xl shadow-xl relative z-50 items-center">
+          <TabsTrigger value="level" className="h-full flex items-center justify-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:via-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-cyan-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-xl cursor-pointer">
             <BarChart3 className="h-5 w-5" />
             <span className="text-lg text-blue-50">Level</span>
           </TabsTrigger>
-          <TabsTrigger value="enhance" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:via-pink-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl cursor-pointer">
+          <TabsTrigger value="enhance" className="h-full flex items-center justify-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:via-pink-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-xl cursor-pointer">
             <Settings className="h-5 w-5" />
             <span className="text-lg text-cyan-50">{t('button.enhance')}</span>
           </TabsTrigger>
-          <TabsTrigger value="stems" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:via-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl cursor-pointer">
+          <TabsTrigger value="stems" className="h-full flex items-center justify-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:via-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-xl cursor-pointer">
             <Package className="h-5 w-5" />
             <span className="text-lg text-indigo-50">Stems</span>
             <PremiumBadge locked={!hasPremiumAccess} />
           </TabsTrigger>
-          <TabsTrigger value="ai-mastering" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:via-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl cursor-pointer">
+          <TabsTrigger value="ai-mastering" className="h-full flex items-center justify-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:via-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-xl cursor-pointer">
             <Zap className="h-5 w-5" />
             <span className="text-lg text-cyan-50">AI Mastering</span>
             <PremiumBadge locked={!hasPremiumAccess} />
           </TabsTrigger>
-          <TabsTrigger value="media-player" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:via-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-green-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-3xl cursor-pointer">
+          <TabsTrigger value="media-player" className="h-full flex items-center justify-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:via-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-green-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-xl cursor-pointer">
             <Music className="h-5 w-5" />
             <span className="text-lg text-green-50">Media Player</span>
           </TabsTrigger>
           <div
             onClick={() => window.open('/mixer', '_blank')}
-            className="flex items-center justify-center gap-2 px-4 py-2 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-3xl cursor-pointer transition-all duration-300"
+            className="h-full flex items-center justify-center gap-2 px-4 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-xl cursor-pointer transition-all duration-300"
             role="button"
             title="Open Mixer Lab in new window"
           >
@@ -379,122 +339,45 @@ export const LevelTabs = ({
           </div>
         </TabsList>
 
-        <TabsContent value="level" className={`space-y-8 ${activeTab !== 'level' ? 'hidden' : ''}`}>
-          <div className="flex flex-col items-center justify-center min-h-[400px] w-full max-w-5xl mx-auto">
-            <div className="w-full mb-8 space-y-4">
-              <LevelUpload onFilesUploaded={handleFilesUploaded} />
-              {isAnalyzing && (
-                <div className="w-full max-w-md mx-auto space-y-2 animate-in fade-in slide-in-from-top-2">
-                  <div className="flex justify-between text-xs text-slate-400">
-                    <span>Analyzing audio...</span>
-                    <span>{analysisProgress}%</span>
-                  </div>
-                  <Progress value={analysisProgress} className="h-2" />
-                </div>
-              )}
-            </div>
-            <div className="w-full">
-              <LevelTrackList
-                files={[...audioFiles, ...enhancedHistory]}
-                onPlay={handlePlayInMediaPlayer}
-                onDownload={onDownload}
-                onDelete={onDelete}
-                onClearAll={onClearAll}
-                onConvert={onConvert}
-              />
-            </div>
-          </div>
+        <TabsContent value="level" className={activeTab !== 'level' ? 'hidden' : ''}>
+          <LevelTabContent
+            audioFiles={audioFiles}
+            enhancedHistory={enhancedHistory}
+            isAnalyzing={isAnalyzing}
+            analysisProgress={analysisProgress}
+            handleFilesUploaded={handleFilesUploaded}
+            handlePlayInMediaPlayer={handlePlayInMediaPlayer}
+            onDownload={onDownload}
+            onDelete={onDelete}
+            onClearAll={onClearAll}
+            onConvert={onConvert}
+          />
         </TabsContent>
 
-        <TabsContent value="enhance" className={`space-y-6 ${activeTab !== 'enhance' ? 'hidden' : ''}`}>
-          {/* Scaled down UI for Enhance Tab */}
-          <div className="transform scale-90 origin-top w-[111%]">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
-              {/* Left Column: Main Controls */}
-              <div className="lg:col-span-2 space-y-6">
-                <AdvancedAudioEnhancement
-                  audioFiles={processingSettings.batchMode ? audioFiles : audioFiles.filter(f => selectedFilesForIndividual.includes(f.id))}
-                  processingSettings={processingSettings}
-                  estimatedTotalSize={estimatedTotalSize}
-                  onEnhance={handleEnhanceFiles}
-                  isProcessing={false}
-                />
-
-                {!processingSettings.batchMode && audioFiles.length > 0 && (
-                  <IndividualModeQueue
-                    files={audioFiles}
-                    selectedFiles={selectedFilesForIndividual}
-                    onToggleFile={handleToggleFileForIndividual}
-                    onClearAll={handleClearSelectedFiles}
-                  />
-                )}
-
-                <FiveBandEqualizer
-                  eqBands={eqBands}
-                  onEQBandChange={onEQBandChange}
-                  onResetEQ={onResetEQ}
-                  enabled={eqEnabled}
-                  onEnabledChange={setEqEnabled}
-                />
-              </div>
-
-              {/* Right Column: Settings & Actions */}
-              <div className="space-y-6 flex flex-col h-full">
-                <div className="space-y-6 flex-1">
-                  <Card className="bg-slate-900/90 border-slate-800">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg font-bold text-slate-200">Output Settings</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <DynamicOutputSettings
-                        outputFormat={processingSettings.outputFormat}
-                        sampleRate={processingSettings.sampleRate}
-                        bitDepth={processingSettings.bitDepth}
-                        bitrate={processingSettings.bitrate}
-                        onOutputFormatChange={format => handleProcessingSettingChange('outputFormat', format)}
-                        onSampleRateChange={rate => handleProcessingSettingChange('sampleRate', rate)}
-                        onBitDepthChange={depth => handleProcessingSettingChange('bitDepth', depth)}
-                        onBitrateChange={rate => handleProcessingSettingChange('bitrate', rate)}
-                      />
-                    </CardContent>
-                  </Card>
-
-                  <InteractiveProcessingOptions
-                    noiseReduction={processingSettings.noiseReduction}
-                    noiseReductionEnabled={processingSettings.noiseReductionEnabled}
-                    normalize={processingSettings.normalize}
-                    normalizeLevel={processingSettings.normalizeLevel}
-                    compression={processingSettings.compression}
-                    compressionEnabled={processingSettings.compressionEnabled}
-                    compressionThreshold={processingSettings.compressionThreshold}
-                    compressionRatio={processingSettings.compressionRatio}
-                    stereoWidening={processingSettings.stereoWidening}
-                    stereoWideningEnabled={processingSettings.stereoWideningEnabled}
-                    batchMode={processingSettings.batchMode}
-                    onNoiseReductionChange={value => handleProcessingSettingChange('noiseReduction', value)}
-                    onNoiseReductionEnabledChange={enabled => handleProcessingSettingChange('noiseReductionEnabled', enabled)}
-                    onNormalizeChange={enabled => handleProcessingSettingChange('normalize', enabled)}
-                    onNormalizeLevelChange={level => handleProcessingSettingChange('normalizeLevel', level)}
-                    onCompressionChange={value => handleProcessingSettingChange('compression', value)}
-                    onCompressionEnabledChange={enabled => handleProcessingSettingChange('compressionEnabled', enabled)}
-                    onCompressionThresholdChange={value => handleProcessingSettingChange('compressionThreshold', value)}
-                    onCompressionRatioChange={ratio => handleProcessingSettingChange('compressionRatio', ratio)}
-                    onStereoWideningChange={value => handleProcessingSettingChange('stereoWidening', value)}
-                    onStereoWideningEnabledChange={enabled => handleProcessingSettingChange('stereoWideningEnabled', enabled)}
-                    onBatchModeChange={enabled => handleProcessingSettingChange('batchMode', enabled)}
-                    onReset={handleResetProcessingOptions}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
+        <TabsContent value="enhance" className={activeTab !== 'enhance' ? 'hidden' : ''}>
+          <EnhanceTabContent
+            audioFiles={audioFiles}
+            selectedFilesForIndividual={selectedFilesForIndividual}
+            processingSettings={processingSettings}
+            estimatedTotalSize={estimatedTotalSize}
+            handleEnhanceFiles={handleEnhanceFiles}
+            handleToggleFileForIndividual={handleToggleFileForIndividual}
+            handleClearSelectedFiles={handleClearSelectedFiles}
+            eqBands={eqBands}
+            onEQBandChange={onEQBandChange}
+            onResetEQ={onResetEQ}
+            eqEnabled={eqEnabled}
+            setEqEnabled={setEqEnabled}
+            handleProcessingSettingChange={handleProcessingSettingChange}
+            handleResetProcessingOptions={handleResetProcessingOptions}
+          />
         </TabsContent>
 
-        <TabsContent value="stems" forceMount={true} className={`space-y-6 ${activeTab !== 'stems' ? 'hidden' : ''}`}>
+        <TabsContent value="stems" forceMount={true} className={activeTab !== 'stems' ? 'hidden' : ''}>
           <PremiumGate isLocked={!hasPremiumAccess} featureName="Stem Separation">
             <StemsTab
               audioFiles={audioFiles}
-              onFilesUploaded={onFilesUploaded}
+              onFilesUploaded={handleFilesUploaded}
               isProcessing={isStemsProcessing}
               setIsProcessing={setIsStemsProcessing}
               onComplete={handleStemsComplete}
@@ -502,7 +385,7 @@ export const LevelTabs = ({
           </PremiumGate>
         </TabsContent>
 
-        <TabsContent value="ai-mastering" forceMount={true} className={`space-y-6 ${activeTab !== 'ai-mastering' ? 'hidden' : ''}`}>
+        <TabsContent value="ai-mastering" forceMount={true} className={activeTab !== 'ai-mastering' ? 'hidden' : ''}>
           <PremiumGate isLocked={!hasPremiumAccess} featureName="AI Mastering">
             <AIMasteringTab
               isProcessing={isMasteringProcessing}
@@ -511,7 +394,7 @@ export const LevelTabs = ({
           </PremiumGate>
         </TabsContent>
 
-        <TabsContent value="media-player" forceMount={true} className={`space-y-6 ${activeTab !== 'media-player' ? 'hidden' : ''}`}>
+        <TabsContent value="media-player" forceMount={true} className={activeTab !== 'media-player' ? 'hidden' : ''}>
           <LevelMediaPlayer
             files={[...audioFiles, ...enhancedHistory]}
             onFilesAdded={handleFilesUploaded}
@@ -523,23 +406,12 @@ export const LevelTabs = ({
         </TabsContent>
       </Tabs >
 
-      {/* Persistent Mini Player */}
       {activeTab !== 'media-player' && isPlaying && showMiniPlayer && (
         <MiniPlayer
           onExpand={() => setActiveTab('media-player')}
           onClose={() => setShowMiniPlayer(false)}
         />
       )}
-
-      {
-        fileInfoModal.isOpen && fileInfoModal.file && (
-          <FileInfoModal
-            file={fileInfoModal.file}
-            isOpen={fileInfoModal.isOpen}
-            onClose={() => setFileInfoModal({ isOpen: false, file: null })}
-          />
-        )
-      }
     </>
   );
 };
