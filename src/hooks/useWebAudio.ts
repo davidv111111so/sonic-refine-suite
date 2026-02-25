@@ -44,6 +44,14 @@ export const useWebAudio = () => {
             // Start Tone (user interaction usually required, but we init nodes first)
             // Note: Tone.start() should be called on first user click.
 
+            // Set Latency Hint for Performance (audio-perf-analyzer optimization)
+            try {
+                // Tone.context is usually a Tone.Context instance in v14
+                (Tone.context as any).latencyHint = 'interactive';
+            } catch (e) {
+                console.warn("Could not set Tone.js latencyHint:", e);
+            }
+
             // 1. Create Nodes
             const crossfade = new Tone.CrossFade(0.5);
             const masterBus = new Tone.Gain(0.5); // Lowered from 0.8

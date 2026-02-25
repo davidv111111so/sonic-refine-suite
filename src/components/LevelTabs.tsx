@@ -14,6 +14,8 @@ import { toast } from 'sonner';
 import { usePlayer } from '@/contexts/PlayerContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { PremiumBadge, PremiumGate } from '@/components/ui/PremiumBadge';
+import { useFileAnalysis } from '@/hooks/useFileAnalysis';
+import { useProcessingSettings } from '@/hooks/useProcessingSettings';
 
 interface LevelTabsProps {
   audioFiles: AudioFile[];
@@ -57,9 +59,22 @@ export const LevelTabs = ({
   const [autoPlayFile, setAutoPlayFile] = useState<AudioFile | null>(null);
   const [selectedFilesForIndividual, setSelectedFilesForIndividual] = useState<string[]>([]);
 
-  // Analysis progress state
-  const [analysisProgress, setAnalysisProgress] = useState(0);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  // Custom Hooks for Modular Logic
+  const { isAnalyzing, analysisProgress, handleFilesUploaded } = useFileAnalysis({
+    onFilesUploaded,
+    addToPlaylist,
+    language
+  });
+
+  const {
+    processingSettings,
+    handleProcessingSettingChange,
+    handleResetProcessingOptions
+  } = useProcessingSettings({
+    initialEqBands: eqBands,
+    eqEnabled,
+    language
+  });
 
   // Stems/Mastering processing state
   const [isStemsProcessing, setIsStemsProcessing] = useState(false);
@@ -82,29 +97,6 @@ export const LevelTabs = ({
       setShowMiniPlayer(true);
     }
   }, [activeTab]);
-
-  const [processingSettings, setProcessingSettings] = useState<ProcessingSettings>({
-    outputFormat: 'wav',
-    sampleRate: 44100,
-    bitDepth: 16,
-    bitrate: 320,
-    noiseReduction: 50,
-    noiseReductionEnabled: false,
-    normalize: true,
-    normalizeLevel: -0.3,
-    bassBoost: 0,
-    trebleEnhancement: 0,
-    compression: 4,
-    compressionEnabled: false,
-    compressionThreshold: -3,
-    compressionRatio: '2:1',
-    gainAdjustment: 0,
-    stereoWidening: 25,
-    stereoWideningEnabled: false,
-    batchMode: false,
-    eqBands: eqBands,
-    enableEQ: eqEnabled
-  });
 
   const handlePlayInMediaPlayer = (file: AudioFile) => {
     setAutoPlayFile(file);
@@ -149,112 +141,6 @@ export const LevelTabs = ({
     }
     return Math.round(estimated * 1.015);
   }, [audioFiles, selectedFilesForIndividual, processingSettings]);
-
-  const handleProcessingSettingChange = (key: keyof ProcessingSettings, value: any) => {
-    setProcessingSettings(prev => {
-      const newSettings = { ...prev, [key]: value };
-      if (key === 'batchMode' && value === true && prev.batchMode === false) {
-        toast.info(language === 'ES' ? 'Modo por Lotes Activado' : 'Batch Mode Activated', {
-          description: language === 'ES'
-            ? 'Todos los archivos serán procesados con la misma configuración'
-            : 'All files will be processed with the same settings'
-        });
-      }
-      return newSettings;
-    });
-  };
-
-  const handleResetProcessingOptions = () => {
-    setProcessingSettings(prev => ({
-      ...prev,
-      noiseReduction: 50,
-      noiseReductionEnabled: false,
-      normalize: true,
-      normalizeLevel: -0.3,
-      compression: 4,
-      compressionEnabled: false,
-      compressionThreshold: -3,
-      compressionRatio: '2:1',
-      stereoWidening: 25,
-      stereoWideningEnabled: false,
-      batchMode: false
-    }));
-  };
-
-  const handleFilesUploaded = async (files: AudioFile[]) => {
-    if (files.length > 5) {
-      toast.error('Please upload maximum 5 files at a time for optimal performance');
-      return;
-    }
-
-    setIsAnalyzing(true);
-    setAnalysisProgress(0);
-
-    const progressInterval = setInterval(() => {
-      setAnalysisProgress(prev => {
-        if (prev >= 90) return prev;
-        const increment = prev < 50 ? 2 : prev < 80 ? 1 : 0.5;
-        return Math.min(prev + increment, 90);
-      });
-    }, 100);
-
-    const toastId = toast.loading(`Analyzing ${files.length} file${files.length > 1 ? 's' : ''}...`, {
-      description: 'Detecting BPM and key signatures',
-    });
-
-    try {
-      const { detectKeyFromFile } = await import('@/utils/keyDetector');
-      const { detectBPMFromFile } = await import('@/utils/bpmDetector');
-
-      const filesWithAnalysis = await Promise.all(
-        files.map(async (file) => {
-          let harmonicKey = 'N/A';
-          let bpm: number | undefined = undefined;
-
-          const [keyResult, bpmResult] = await Promise.allSettled([
-            Promise.race([
-              detectKeyFromFile(file.originalFile),
-              new Promise((_, reject) => setTimeout(() => reject(new Error('Key timeout')), 5000))
-            ]),
-            Promise.race([
-              detectBPMFromFile(file.originalFile),
-              new Promise((_, reject) => setTimeout(() => reject(new Error('BPM timeout')), 5000))
-            ])
-          ]);
-
-          if (keyResult.status === 'fulfilled') harmonicKey = (keyResult.value as any).camelot;
-          if (bpmResult.status === 'fulfilled') bpm = (bpmResult.value as any).bpm;
-
-          return { ...file, harmonicKey, bpm };
-        })
-      );
-
-      clearInterval(progressInterval);
-      setAnalysisProgress(100);
-
-      const detectedBPM = filesWithAnalysis.filter(f => f.bpm).length;
-      const detectedKey = filesWithAnalysis.filter(f => f.harmonicKey && f.harmonicKey !== 'N/A').length;
-
-      if (detectedKey === 0 && detectedBPM === 0) {
-        toast.error('Analysis failed', { id: toastId, description: 'Could not detect BPM or Key.' });
-      } else {
-        toast.success('Analysis complete!', { id: toastId, description: `BPM: ${detectedBPM}/${files.length} • Key: ${detectedKey}/${files.length}` });
-      }
-
-      setTimeout(() => {
-        setIsAnalyzing(false);
-        setAnalysisProgress(0);
-        onFilesUploaded(filesWithAnalysis);
-        addToPlaylist(filesWithAnalysis);
-      }, 500);
-
-    } catch (error) {
-      clearInterval(progressInterval);
-      setIsAnalyzing(false);
-      setAnalysisProgress(0);
-      toast.error('Analysis error', { id: toastId, description: 'An unexpected error occurred.' });
-    }
-  };
 
   const handleToggleFileForIndividual = (fileId: string) => {
     setSelectedFilesForIndividual(prev =>

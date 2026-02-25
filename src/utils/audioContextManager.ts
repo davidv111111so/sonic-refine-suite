@@ -14,15 +14,15 @@ let isResumed = false;
 export function getAudioContext(): AudioContext {
   if (!audioContext) {
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    
+
     if (!AudioContextClass) {
       throw new Error("Web Audio API is not supported in this browser");
     }
-    
-    audioContext = new AudioContextClass();
-    console.log("AudioContext created with state:", audioContext.state);
+
+    audioContext = new AudioContextClass({ latencyHint: 'interactive' });
+    console.log("AudioContext created with latencyHint: interactive, state:", audioContext.state);
   }
-  
+
   return audioContext;
 }
 
@@ -32,9 +32,9 @@ export function getAudioContext(): AudioContext {
  */
 export async function resumeAudioContext(): Promise<void> {
   if (isResumed) return;
-  
+
   const context = getAudioContext();
-  
+
   if (context.state === 'suspended') {
     try {
       await context.resume();
@@ -56,13 +56,13 @@ export async function resumeAudioContext(): Promise<void> {
 export function initAudioContextOnInteraction(): void {
   const handleInteraction = () => {
     resumeAudioContext();
-    
+
     // Remove listeners after first interaction
     document.body.removeEventListener('click', handleInteraction);
     document.body.removeEventListener('touchstart', handleInteraction);
     document.body.removeEventListener('keydown', handleInteraction);
   };
-  
+
   // Listen to multiple interaction types
   document.body.addEventListener('click', handleInteraction, { once: true });
   document.body.addEventListener('touchstart', handleInteraction, { once: true });

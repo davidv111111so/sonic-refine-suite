@@ -23,9 +23,9 @@ export const IntroAnimation: React.FC<IntroAnimationProps> = ({ onComplete }) =>
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <ShaderAnimation />
       <div className="absolute pointer-events-none z-10 text-center">
-        <h1 className="text-7xl leading-none font-semibold tracking-tighter text-white">
+        <h2 className="text-7xl leading-none font-semibold tracking-tighter text-white">
           SPECTRUM
-        </h1>
+        </h2>
         <p className="text-xl text-white/80 mt-4">Audio Mastering Studio</p>
       </div>
     </div>

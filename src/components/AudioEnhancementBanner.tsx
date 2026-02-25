@@ -16,17 +16,17 @@ export const AudioEnhancementBanner = () => {
           <FileAudio className="h-5 w-5 text-white" />
         </div>
       </div>
-      
+
       {/* Main content */}
       <div className="relative z-10 text-center">
         <div className="flex items-center justify-center gap-3 mb-2">
           <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
             <FileAudio className="h-8 w-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white">
+          <h2 className="text-3xl font-bold text-white">
             Audio Enhancer
             <span className="ml-2 text-xl font-light text-blue-200">Pro</span>
-          </h1>
+          </h2>
         </div>
         <p className="text-blue-100 text-base font-medium">
           Transform your music collection with professional-grade audio enhancement

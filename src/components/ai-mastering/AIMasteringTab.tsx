@@ -576,9 +576,9 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 drop-shadow-[0_0_10px_rgba(6,182,212,0.5)]">
+            <h2 className="text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 drop-shadow-[0_0_10px_rgba(6,182,212,0.5)]">
               AI Audio Mastering
-            </h1>
+            </h2>
             <p className="text-slate-400 mt-1 font-light tracking-wide">
               Professional mastering powered by neural networks
             </p>

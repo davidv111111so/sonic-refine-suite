@@ -82,7 +82,8 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         stems?: { [key: string]: Tone.Player };
         trim: Tone.Gain | null;
         eq: Tone.EQ3 | null;
-        filter: Tone.Filter | null; // One-knob filter
+        lpf: Tone.Filter | null;
+        hpf: Tone.Filter | null;
         volume: Tone.Gain | null;
         cueGate: Tone.Gain | null;
         meter: Tone.Meter | null;
@@ -104,12 +105,13 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         player: null,
         trim: null,
         eq: null,
-        filter: null,
+        analyser: null,
+        split: null,
+        lpf: null,
+        hpf: null,
         volume: null,
         cueGate: null,
         meter: null,
-        analyser: null,
-        split: null,
         stemFilters: null,
         stemGains: null
     });
@@ -187,7 +189,8 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         eq.mid.value = 0;
         eq.high.value = 0;
 
-        const filter = new Tone.Filter(20000, "lowpass");
+        const lpf = new Tone.Filter(20000, "lowpass");
+        const hpf = new Tone.Filter(10, "highpass");
 
         const volume = new Tone.Gain(0);
         const cueGate = new Tone.Gain(0);
@@ -205,11 +208,12 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
 
         player.connect(trim);
         trim.connect(eq);
-        eq.connect(filter);
-        filter.connect(volume);
+        eq.connect(lpf);
+        lpf.connect(hpf);
+        hpf.connect(volume);
 
         // Cue Path (Pre-Fader)
-        filter.connect(cueGate);
+        hpf.connect(cueGate);
 
         // Analysis
         // Tone.connect handles connecting Tone Node -> Native Node
@@ -218,11 +222,12 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
             player,
             trim,
             eq,
-            filter,
             volume,
             cueGate,
             meter,
             analyser,
+            lpf,
+            hpf,
             split: null,
             stemFilters: {
                 drums: new Tone.Filter({ frequency: 250, type: "lowpass", Q: 1 }),
@@ -247,7 +252,8 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
             player.dispose();
             trim.dispose();
             eq.dispose();
-            filter.dispose();
+            lpf.dispose();
+            hpf.dispose();
             volume.dispose();
             cueGate.dispose();
             meter.dispose();
@@ -306,35 +312,34 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         nodes.current.eq.high.rampTo(state.eqKills.high ? -Infinity : mapToDB(state.eq.high), rampTime);
     }, [state.eq, state.eqKills]);
 
-    // Filter Logic
+    // Dual-Filter Logic (audio-perf-analyzer optimization)
     useEffect(() => {
-        if (!nodes.current.filter) return;
-        const val = state.filter;
-        // 0.5 = Neutral
-        // <0.5 = LowPass
-        // >0.5 = HighPass
+        const { lpf, hpf } = nodes.current;
+        if (!lpf || !hpf) return;
 
-        // Tone.Filter doesn't support changing type effectively without artifacts sometimes, 
-        // but we can try. Or use two filters.
-        if (val < 0.45) {
-            nodes.current.filter.type = "lowpass";
-            // Map 0.0-0.5 to 0Hz-20kHz
-            // Log scale preferred
-            const freq = Math.max(20, 20000 * (val * 2));
-            nodes.current.filter.frequency.rampTo(freq, 0.1);
-            nodes.current.filter.Q.value = 1;
-        } else if (val > 0.55) {
-            nodes.current.filter.type = "highpass";
-            // Map 0.5-1.0 to 0Hz-20kHz
-            const norm = (val - 0.5) * 2;
-            const freq = Math.max(20, 20000 * norm);
-            nodes.current.filter.frequency.rampTo(freq, 0.1);
-            nodes.current.filter.Q.value = 1;
+        const val = state.filter; // 0.0 to 1.0, 0.5 = Neutral
+
+        if (val < 0.48) {
+            // LowPass Mode
+            const freq = Math.max(20, 20000 * (val * 2.08)); // Map 0-0.48 to 20-20k
+            lpf.frequency.rampTo(freq, 0.1);
+            hpf.frequency.rampTo(10, 0.1); // Open HPF
+            lpf.Q.value = 1;
+            hpf.Q.value = 0;
+        } else if (val > 0.52) {
+            // HighPass Mode
+            const norm = (val - 0.52) * 2.08;
+            const freq = Math.max(10, 20000 * norm); // Map 0.52-1.0 to 10-20k
+            lpf.frequency.rampTo(20000, 0.1); // Open LPF
+            hpf.frequency.rampTo(freq, 0.1);
+            lpf.Q.value = 0;
+            hpf.Q.value = 1;
         } else {
-            // Neutral - open up LPF or bypass
-            nodes.current.filter.type = "lowpass";
-            nodes.current.filter.frequency.rampTo(20000, 0.1);
-            nodes.current.filter.Q.value = 0;
+            // Neutral (0.48 - 0.52)
+            lpf.frequency.rampTo(20000, 0.1);
+            hpf.frequency.rampTo(10, 0.1);
+            lpf.Q.value = 0;
+            hpf.Q.value = 0;
         }
     }, [state.filter]);
 
@@ -537,8 +542,8 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
 
     // Reactive Stem Routing
     useEffect(() => {
-        const { player, trim, stemFilters, stemGains } = nodes.current;
-        if (!player || !trim || !stemFilters || !stemGains) return;
+        const { player, trim, stemFilters, stemGains, lpf } = nodes.current;
+        if (!player || !trim || !stemFilters || !stemGains || !lpf) return;
 
         // Disconnect player from previous inputs to avoid duplicates or mixing
         player.disconnect();
@@ -659,26 +664,29 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
 
     // Connect FX Chain dynamically
     useEffect(() => {
-        const { filter, volume } = nodes.current;
+        const { lpf, hpf, volume } = nodes.current;
         const { inputNode, outputNode } = fxChain;
 
-        if (filter && volume && inputNode && outputNode) {
+        if (lpf && hpf && volume && inputNode && outputNode) {
             // Disconnect old Direct Path
-            try { filter.disconnect(volume); } catch (e) { }
-            try { filter.disconnect(nodes.current.cueGate); } catch (e) { } // cueGate was also connected to filter
+            try { hpf.disconnect(volume); } catch (e) { }
+            try { hpf.disconnect(nodes.current.cueGate); } catch (e) { }
 
-            // Route: Filter -> FX Input
-            filter.connect(inputNode);
+            // Route: EQ -> LPF -> HPF -> FX Input
+            // Note: Filter chain is eq -> lpf -> hpf.
+            // When FX is active, we should insert it.
+            // Let's reconnect: filter -> fx -> volume
+            hpf.connect(inputNode);
 
             // Route: FX Output -> Volume
             const nativeVolInput = (volume as any).input || (volume as any)._gainNode || volume;
             outputNode.connect(nativeVolInput);
 
-            // Cue Path: Filter -> CueGate (Pre-FX? or Post-FX?)
+            // Cue Path: HPF -> CueGate (Pre-FX? or Post-FX?)
             const nativeCueInput = (nodes.current.cueGate as any).input || (nodes.current.cueGate as any)._gainNode || nodes.current.cueGate;
             outputNode.connect(nativeCueInput);
 
-        } else if (filter && volume) {
+        } else if (lpf && hpf && volume) {
             // Fallback if FX not ready
         }
 
