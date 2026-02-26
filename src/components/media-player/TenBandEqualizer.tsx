@@ -25,6 +25,7 @@ interface TenBandEqualizerProps {
   bands: EQBand[];
   onBandChange: (index: number, gain: number) => void;
   onReset: () => void;
+  isLocked?: boolean;
 }
 
 const FREQUENCIES = [64, 125, 250, 500, 1000, 2000, 4000, 8000];
@@ -44,6 +45,7 @@ export const TenBandEqualizer: React.FC<TenBandEqualizerProps> = ({
   bands,
   onBandChange,
   onReset,
+  isLocked = false,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [selectedPreset, setSelectedPreset] = useState("Flat");
@@ -159,7 +161,14 @@ export const TenBandEqualizer: React.FC<TenBandEqualizerProps> = ({
 
   return (
     <TooltipProvider>
-      <Card className="bg-slate-950 border-slate-800 p-6 shadow-2xl relative overflow-hidden">
+      <Card className={`bg-slate-950 border-slate-800 p-4 shadow-2xl relative overflow-hidden transition-all duration-500 ${isLocked ? 'grayscale opacity-60' : ''}`}>
+        {isLocked && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-950/40 backdrop-blur-[2px]">
+            <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-full px-4 py-1 flex items-center gap-2">
+              <span className="text-cyan-400 text-xs font-bold tracking-widest">PRO FEATURE</span>
+            </div>
+          </div>
+        )}
         {/* Top Bar */}
         <div className="flex items-center justify-between mb-6 relative z-10">
           <div className="flex items-center gap-4">
@@ -218,7 +227,7 @@ export const TenBandEqualizer: React.FC<TenBandEqualizerProps> = ({
         </div>
 
         {/* Visualization Canvas */}
-        <div className="h-24 w-full mb-6 bg-slate-900/50 rounded-lg border border-slate-800/50 relative overflow-hidden">
+        <div className="h-20 w-full mb-4 bg-slate-900/50 rounded-lg border border-slate-800/50 relative overflow-hidden">
           <canvas
             ref={canvasRef}
             width={800}
@@ -240,7 +249,7 @@ export const TenBandEqualizer: React.FC<TenBandEqualizerProps> = ({
               </div>
 
               {/* Slider Track */}
-              <div className="h-40 relative w-full flex justify-center">
+              <div className="h-32 relative w-full flex justify-center">
                 {/* Center Line */}
                 <div className="absolute top-0 bottom-0 w-px bg-slate-800 z-0"></div>
 

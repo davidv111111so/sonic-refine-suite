@@ -39,7 +39,7 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
     const [selectedFileId, setSelectedFileId] = useState<string>('');
     const [stemCount, setStemCount] = useState<string>('4');
     const [speedMode, setSpeedMode] = useState<string>('fast');
-    const [processingLibrary, setProcessingLibrary] = useState<string>('demucs');
+    const processingLibrary = 'demucs';
     const [processingStage, setProcessingStage] = useState('');
     const [progress, setProgress] = useState(0);
     const [results, setResults] = useState<string | null>(null); // URL to zip
@@ -282,7 +282,7 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
 
             const formData = new FormData();
             formData.append('file', fileBlob, file.name);
-            formData.append('library', 'demucs');
+            formData.append('library', processingLibrary);
             formData.append('model_name', 'htdemucs');
 
             if (stemCount === '6') {
@@ -291,7 +291,7 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
             formData.append('stem_count', stemCount);
 
             toast({
-                title: `${processingLibrary === 'spleeter' ? '⚡ Spleeter' : '🔬 Demucs'} Started (${speedMode.toUpperCase()} Mode)`,
+                title: `🔬 Demucs Started (${speedMode.toUpperCase()} Mode)`,
                 description: `Processing audio... This usually takes 1-3 minutes depending on track length and performance.`,
             });
 
@@ -440,28 +440,7 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            <div className="space-y-3">
-                                <Label className="text-slate-300">Processing Engine</Label>
-                                <Select value={processingLibrary} onValueChange={setProcessingLibrary}>
-                                    <SelectTrigger className="bg-slate-950 border-slate-700 text-white">
-                                        <SelectValue placeholder="Select engine" />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-slate-900 border-slate-700 text-white">
-                                        <SelectItem value="demucs">
-                                            <div className="flex flex-col">
-                                                <span className="font-medium">Demucs (Pro Quality)</span>
-                                                <span className="text-[10px] opacity-60">Best for stems, takes 3-10 mins.</span>
-                                            </div>
-                                        </SelectItem>
-                                        <SelectItem value="spleeter">
-                                            <div className="flex flex-col">
-                                                <span className="font-medium">Spleeter (Express)</span>
-                                                <span className="text-[10px] opacity-60">Finishes in under 60s. Great for drafts.</span>
-                                            </div>
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+
 
                             <div className="space-y-3">
                                 <Label className="text-slate-300">Stem Count</Label>
@@ -484,22 +463,22 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                                         <SelectValue placeholder="Select speed mode" />
                                     </SelectTrigger>
                                     <SelectContent className="bg-slate-900 border-slate-700 text-white">
-                                        <SelectItem value="draft">
-                                            🚀 Draft (Aggressive Speed)
+                                        <SelectItem value="fastest">
+                                            🚀 Fastest (Aggressive Speed)
                                         </SelectItem>
                                         <SelectItem value="fast">
                                             ⚡ Fast (~2x faster)
                                         </SelectItem>
-                                        <SelectItem value="standard">
-                                            🔬 Standard (Focus on Quality)
+                                        <SelectItem value="normal">
+                                            🔬 Normal (Focus on Quality)
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
-                                {speedMode === 'standard' && (
+                                {speedMode === 'normal' && (
                                     <div className="flex items-start gap-2 p-2 rounded-md bg-amber-950/30 border border-amber-500/30">
                                         <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
                                         <p className="text-xs text-amber-300">
-                                            Standard mode uses test-time augmentation for maximum quality.
+                                            Normal mode uses test-time augmentation for maximum quality.
                                             Processing may take <strong>10-15 minutes</strong> depending on server load.
                                         </p>
                                     </div>

@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, Music, FileAudio, AlertCircle } from 'lucide-react';
+import { Upload, Music, FileAudio, AlertCircle, ExternalLink } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -140,7 +141,7 @@ export const LevelUpload = ({
                     className="mt-1 w-4 h-4 rounded border-slate-600 bg-slate-800 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-slate-900"
                 />
                 <label htmlFor="level-upload-consent" className="text-xs text-slate-400 leading-relaxed max-w-2xl">
-                    Notification; I agree to the Terms and Conditions and acknowledge the Copyright Disclaimer. I confirm that I own or have proper authorization for all audio files I upload and process through this service.
+                    <span className="text-cyan-500/80 font-semibold uppercase tracking-tighter mr-1">Notice:</span> I agree to the <Link to="/terms" target="_blank" className="text-cyan-400 hover:text-cyan-300 underline inline-flex items-center gap-1">Terms and Conditions <ExternalLink className="h-3 w-3" /></Link> and acknowledge the Copyright Disclaimer. I confirm that I own or have proper authorization for all audio files I upload and process through this service. Files are processed locally or temporarily stored for 1h for AI tasks.
                 </label>
             </div>
         </div>

@@ -15,7 +15,8 @@ export type VisualizerMode =
     | 'terrain3d'
     | 'particles3d'
     | 'tunnel3d'
-    | 'sphere3d';
+    | 'sphere3d'
+    | 'cybergrid';
 
 interface VisualizerDisplayProps {
     analyserNode: AnalyserNode | null;
@@ -24,19 +25,23 @@ interface VisualizerDisplayProps {
     onModeChange?: (mode: VisualizerMode) => void;
 }
 
-export const VisualizerDisplay: React.FC<VisualizerDisplayProps> = ({
+export const VisualizerDisplay = ({
     analyserNode,
     isPlaying,
-    mode,
+    mode = 'bars',
     onModeChange
-}) => {
+}: VisualizerDisplayProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const animationRef = useRef<number>();
     const particlesRef = useRef<any[]>([]);
     const [isFullscreen, setIsFullscreen] = useState(false);
 
-    const is3DMode = mode.endsWith('3d');
+    const is3DMode = mode.startsWith('3d');
+
+    useEffect(() => {
+        console.log("🎬 VisualizerDisplay mounted (v3.2 - Cyber Grid Update)");
+    }, []);
 
     // Handle fullscreen changes
     useEffect(() => {
@@ -218,6 +223,55 @@ export const VisualizerDisplay: React.FC<VisualizerDisplayProps> = ({
                     // Left side
                     ctx.fillRect(width / 2 - i * barWidth, height / 2 - barHeight / 2, barWidth, barHeight);
                 }
+            } else if (mode === 'cybergrid') {
+                analyserNode.getByteFrequencyData(dataArray);
+                const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+                const intensity = average / 255;
+
+                // Draw pulsing background grid
+                ctx.strokeStyle = `rgba(6, 182, 212, ${0.1 + intensity * 0.2})`;
+                ctx.lineWidth = 1;
+
+                const gridSize = 40;
+                const offset = (Date.now() / 20) % gridSize;
+
+                // Vertical lines
+                for (let x = offset; x < width; x += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, height);
+                    ctx.stroke();
+                }
+
+                // Horizontal lines
+                for (let y = offset; y < height; y += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(width, y);
+                    ctx.stroke();
+                }
+
+                // Draw "Power Peaks" from the center
+                const bars = 32;
+                const barWidth = width / bars;
+                for (let i = 0; i < bars; i++) {
+                    const value = dataArray[i * 8];
+                    const h = (value / 255) * height * 0.7;
+
+                    const x = i * barWidth;
+                    const gradient = ctx.createLinearGradient(x, height, x, height - h);
+                    gradient.addColorStop(0, 'rgba(6, 182, 212, 0.8)');
+                    gradient.addColorStop(1, 'rgba(168, 85, 247, 0)'); // Fade to purple trans
+
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(x, height - h, barWidth - 2, h);
+
+                    // Add a glowing cap
+                    if (h > 10) {
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(x, height - h, barWidth - 2, 2);
+                    }
+                }
             }
 
             animationRef.current = requestAnimationFrame(draw);
@@ -240,6 +294,7 @@ export const VisualizerDisplay: React.FC<VisualizerDisplayProps> = ({
         >
             {is3DMode ? (
                 <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-cyan-500">Loading 3D Engine...</div>}>
+
                     <Visualizer3D
                         mode={mode.replace('3d', '') as any}
                         analyser={analyserNode}
@@ -274,6 +329,7 @@ export const VisualizerDisplay: React.FC<VisualizerDisplayProps> = ({
                             <option value="particles3d">3D Particles</option>
                             <option value="tunnel3d">3D Tunnel</option>
                             <option value="sphere3d">3D Sphere</option>
+                            <option value="cybergrid">Cyber Grid</option>
                         </select>
                     </div>
                 )}

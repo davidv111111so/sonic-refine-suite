@@ -77,6 +77,8 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
     // Tone.js uses global context usually, but we can respect overrides if needed.
     // We kept the contextOverride argument for API compatibility, though Tone handles context internally.
 
+    const [analyserState, setAnalyserState] = useState<AnalyserNode | null>(null);
+
     const nodes = useRef<{
         player: Tone.Player | null;
         stems?: { [key: string]: Tone.Player };
@@ -215,9 +217,21 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         // Cue Path (Pre-Fader)
         hpf.connect(cueGate);
 
-        // Analysis
-        // Tone.connect handles connecting Tone Node -> Native Node
-        volume.connect(analyser);
+        // Analysis: Connect the native output of the Tone.Gain node directly to the native AnalyserNode.
+        // Tone's .connect() to a native node can silently fail with some Tone versions.
+        // Using the underlying AudioNode ensures the connection is always made correctly.
+        try {
+            const nativeVolumeOutput = (volume as any).output?.input ?? (volume as any)._gainNode ?? (volume as any).input;
+            if (nativeVolumeOutput) {
+                nativeVolumeOutput.connect(analyser);
+            } else {
+                // Fallback: use Tone.connect static helper
+                Tone.connect(volume, analyser);
+            }
+        } catch (e) {
+            // Final fallback
+            try { Tone.connect(volume, analyser); } catch (_) { }
+        }
         nodes.current = {
             player,
             trim,
@@ -242,6 +256,8 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
                 other: new Tone.Gain(1)
             }
         };
+        // Expose analyser via state so React consumers re-render when it's ready
+        setAnalyserState(analyser);
 
         // Stem Routing (Parallel)
         // Player -> StemFilters -> StemGains -> Trim
@@ -701,7 +717,7 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         toggleStems,
         setKeyLock, setTempoBend, toggleSync,
         state,
-        analyser: nodes.current.analyser,
+        analyser: analyserState,
         masterOutput: nodes.current.volume,
         cueOutput: nodes.current.cueGate,
         fx: {

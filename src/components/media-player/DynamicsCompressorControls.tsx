@@ -10,7 +10,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Info } from 'lucide-react';
+import { Info, Sliders } from 'lucide-react';
 export interface CompressorSettings {
   threshold: number;  // Range: 0 to -60dB
   ratio: number;      // Range: 1 to 20:1
@@ -22,15 +22,26 @@ interface DynamicsCompressorControlsProps {
   settings: CompressorSettings;
   gainReduction: number;
   onSettingsChange: (settings: Partial<CompressorSettings>) => void;
+  isLocked?: boolean;
 }
 export const DynamicsCompressorControls: React.FC<DynamicsCompressorControlsProps> = ({
   settings,
   gainReduction,
-  onSettingsChange
+  onSettingsChange,
+  isLocked = false,
 }) => {
   return (
     <TooltipProvider>
-      <Card className="bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 p-6">
+      <Card className={`bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 p-4 relative overflow-hidden transition-all duration-500 ${isLocked ? 'grayscale opacity-50 pointer-events-none' : ''}`}>
+        {isLocked && (
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/60 backdrop-blur-[2px]">
+            <div className="bg-orange-500/20 border border-orange-500/30 rounded-full px-4 py-1.5 flex items-center gap-2 mb-2">
+              <Sliders className="w-4 h-4 text-orange-400" />
+              <span className="text-orange-300 text-xs font-bold tracking-widest">PRO COMPRESSOR</span>
+            </div>
+            <p className="text-[10px] text-slate-400 font-medium">Upgrade to access mastery dynamics</p>
+          </div>
+        )}
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold text-purple-400 flex items-center gap-2">

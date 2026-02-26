@@ -28,14 +28,7 @@ def update_cors():
         cors_rules = [
             {
                 "corsRuleName": "allowAny",
-                "allowedOrigins": [
-                    "https://level-audio-app.netlify.app",
-                    "https://levelaudio.live",
-                    "https://www.levelaudio.live",
-                    "http://localhost:5173",
-                    "http://localhost:8080",
-                    "http://127.0.0.1:5173"
-                ],
+                "allowedOrigins": ["*"],
                 "allowedOperations": [
                     "b2_download_file_by_id",
                     "b2_download_file_by_name",

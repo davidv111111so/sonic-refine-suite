@@ -29,4 +29,4 @@ ENV SPLEETER_PATH=/opt/spleeter-env/bin/spleeter
 EXPOSE 8080
 
 # Run with gunicorn
-CMD exec gunicorn --bind :8080 --workers 1 --threads 8 --timeout 400 main:app
+CMD exec gunicorn --bind :8080 --workers 1 --threads 8 --timeout 900 main:app

@@ -45,9 +45,9 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         
-        # 1. OPTIMIZATION: Check for DRAFT/FAST mode and resample early if needed
+        # 1. OPTIMIZATION: Check for FASTEST/FAST mode and resample early if needed
         # (This avoids heavy processing on 96k/192k files)
-        if speed_mode in ['fast', 'draft']:
+        if speed_mode in ['fastest', 'fast']:
              print(f"[INFO] {speed_mode.upper()} MODE: Applying pre-resampling and speed optimizations")
              import librosa
              import soundfile as sf
@@ -113,14 +113,18 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
             import numpy as np
 
             # Apply speed_mode overrides
-            if speed_mode == 'fast' or speed_mode == 'draft':
+            if speed_mode == 'fastest':
+                shifts = 0
+                overlap = 0.0
+                print(f"[INFO] FASTEST MODE: shifts=0, overlap=0.0")
+            elif speed_mode == 'fast':
                 shifts = 0
                 overlap = 0.1
-                print(f"[INFO] {speed_mode.upper()} MODE: shifts=0, overlap=0.1 (~2x faster)")
+                print(f"[INFO] FAST MODE: shifts=0, overlap=0.1 (~2x faster)")
             else:
-                shifts = max(shifts, 1)  # Ensure at least 1 shift for standard mode
+                shifts = max(shifts, 1)  # Ensure at least 1 shift for normal mode
                 overlap = max(overlap, 0.25)
-                print(f"[INFO] STANDARD MODE: shifts={shifts}, overlap={overlap} (highest quality)")
+                print(f"[INFO] NORMAL MODE: shifts={shifts}, overlap={overlap} (highest quality)")
             
             if progress_callback: progress_callback(5)
 
@@ -178,16 +182,23 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
             def simulate_progress():
                 current_progress = 25.0
                 target_progress = 85.0
-                fps = 5 # updates per second
-                # Fast mode is ~2x faster than standard
-                duration = 60 if speed_mode in ['fast', 'draft'] else 180  # seconds estimate for CPU
-                step = (target_progress - current_progress) / (duration * fps)
+                fps = 2 # updates per second (slower for less DB overhead)
+                # Fast mode is ~2-3x faster than standard
+                # Adjust duration based on audio length if possible, or use a safer larger estimate
+                estimated_duration = 120 if speed_mode in ['fastest', 'fast'] else 300  # seconds estimate for CPU
+                step = (target_progress - current_progress) / (estimated_duration * fps)
+                
+                print(f"   [PROGRESS] Simulating progress from 25 to 85 over approx {estimated_duration}s")
                 
                 while not stop_progress.is_set() and current_progress < target_progress:
                     time.sleep(1.0 / fps)
-                    current_progress += step
-                    if current_progress > 75:
-                        step *= 0.99
+                    # Exponential slowdown as we approach 85% to avoid looking "stuck"
+                    if current_progress > 70:
+                        dynamic_step = step * (1.0 - (current_progress - 70) / (target_progress - 70) * 0.9)
+                    else:
+                        dynamic_step = step
+                        
+                    current_progress += dynamic_step
                     if progress_callback:
                         progress_callback(int(current_progress))
             
@@ -197,23 +208,27 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
 
             try:
                 # Apply model
-                print("   Applying Demucs model...")
-                # We use a try-except here to catch the specific AssertionError some versions of demucs throw
+                print(f"   [CORE] Applying Demucs model (shifts={shifts}, overlap={overlap})...")
+                start_time = time.time()
+                # We use a try-except here to catch potential memory/torch errors
                 try:
+                    # htdemucs normally segments audio automatically
                     sources = apply_model(model, wav, shifts=shifts, overlap=overlap)[0]
+                    elapsed = time.time() - start_time
+                    print(f"   [CORE] Separation completed in {elapsed:.1f}s")
                 except Exception as ae:
-                    print(f"⚠️ Demucs failed: {ae}. Retrying with simplified parameters...")
-                    # Try with 0 shifts and no overlap if it failed
+                    print(f"⚠️ Demucs core separation failed: {ae}. Retrying with absolute minimum parameters...")
+                    # Try with 0 shifts and minimal overlap if it failed
                     sources = apply_model(model, wav, shifts=0, overlap=0.1)[0]
                     
                 sources = sources * std + ref.mean()
             except Exception as inner_e:
-                print(f"[ERROR] Core separation failed: {str(inner_e)}")
+                print(f"[ERROR] Core separation failed definitively: {str(inner_e)}")
                 raise inner_e
             finally:
                 stop_progress.set()
                 try:
-                    progress_thread.join(timeout=1)
+                    progress_thread.join(timeout=2)
                 except:
                     pass
 

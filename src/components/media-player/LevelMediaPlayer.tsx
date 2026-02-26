@@ -26,10 +26,11 @@ import {
 } from "./DynamicsCompressorControls";
 import { VisualizerDisplay, VisualizerMode } from "./VisualizerDisplay";
 import { PlaylistPanel } from "./PlaylistPanel";
-import { MediaPlayerUpload } from "./MediaPlayerUpload";
+
 import { AudioEffectsControls, AudioEffectsSettings } from "./AudioEffectsControls";
 import { toast } from "sonner";
 import { usePlayer } from "@/contexts/PlayerContext";
+import { useRole } from "@/contexts/AuthContext";
 
 interface LevelMediaPlayerProps {
   files: AudioFile[];
@@ -98,8 +99,11 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
     addToPlaylist,
     playNext,
     playPrevious,
-    setIsDirectOutputEnabled
+    setIsDirectOutputEnabled,
+    stop
   } = usePlayer();
+
+  const { isPremium } = useRole();
 
   // Route Audio through our Effects Chain ONLY
   useEffect(() => {
@@ -502,7 +506,7 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
       safeDisconnect(analyserNodeRef.current);
       console.log("🔌 Audio Graph Disconnected");
     };
-  }, [mediaSourceNode, effectsSettings.enabled, compressorSettings.enabled]);
+  }, [mediaSourceNode, effectsSettings.enabled, compressorSettings.enabled, compressorSettings.threshold, compressorSettings.ratio, compressorSettings.attack, compressorSettings.release]);
 
   // Compressor Metering Loop
   useEffect(() => {
@@ -534,20 +538,27 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
 
   // Auto-play file logic
   useEffect(() => {
-    if (autoPlayFile) {
-      if (autoPlayFile.id !== currentTrack?.id) {
-        console.log("Auto-playing file from track list:", autoPlayFile.name);
-        loadTrack(autoPlayFile);
-      } else if (!isPlaying) {
-        // If already loaded but paused, trigger play
-        playPause();
-      }
+    if (!autoPlayFile) return;
 
-      if (onAutoPlayComplete) {
-        onAutoPlayComplete();
-      }
+    // Resume AudioContext if suspended (browser autoplay policy)
+    const ctx = getAudioContext();
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume();
     }
-  }, [autoPlayFile, currentTrack, isPlaying, onAutoPlayComplete, loadTrack, playPause]);
+
+    if (autoPlayFile.id !== currentTrack?.id) {
+      console.log("Auto-playing file from track list:", autoPlayFile.name);
+      loadTrack(autoPlayFile);
+    } else if (!isPlaying) {
+      playPause();
+    }
+
+    // Defer clearing so loadTrack has time to initiate playback
+    if (onAutoPlayComplete) {
+      setTimeout(onAutoPlayComplete, 150);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPlayFile]);
 
   // Update Effects Parameters
   useEffect(() => {
@@ -629,10 +640,12 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
 
   const handleDeleteFile = () => {
     if (!currentTrack) return;
+    const name = currentTrack.name;
+    stop();
     if (onFileDelete) {
       onFileDelete(currentTrack.id);
     }
-    toast.success(`Deleted: ${currentTrack.name}`);
+    toast.success(`Removed: ${name}`);
   };
 
   const formatTime = (seconds: number) => {
@@ -656,8 +669,6 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
         </Button>
       </div>
 
-      {/* Upload Zone */}
-      <MediaPlayerUpload onFilesAdded={handleFilesAdded} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Waveform & EQ */}
@@ -808,7 +819,7 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
           />
 
           {/* Playlist */}
-          <div className="max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+          <div className="flex-1 min-h-[500px] overflow-hidden">
             <PlaylistPanel
               files={files}
               currentFileId={currentTrack?.id || null}
@@ -825,6 +836,7 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
           <AudioEffectsControls
             settings={effectsSettings}
             onSettingsChange={(settings) => setEffectsSettings(prev => ({ ...prev, ...settings }))}
+            isLocked={!isPremium}
           />
 
           {/* Compressor (Middle) */}
@@ -834,6 +846,7 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
             onSettingsChange={(settings) =>
               setCompressorSettings({ ...compressorSettings, ...settings })
             }
+            isLocked={!isPremium}
           />
 
           {/* Visualizer - Now in right column, filling remaining height if needed or fixed height */}

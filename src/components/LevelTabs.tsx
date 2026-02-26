@@ -51,7 +51,7 @@ export const LevelTabs = ({
   setEqEnabled
 }: LevelTabsProps) => {
   const { t, language } = useLanguage();
-  const { addToPlaylist, isPlaying } = usePlayer();
+  const { addToPlaylist, isPlaying, stop } = usePlayer();
   const { isPremium, isAdmin } = useAuth();
   const hasPremiumAccess = isPremium || isAdmin;
   const [activeTab, setActiveTab] = useState('level');
@@ -295,7 +295,7 @@ export const LevelTabs = ({
       {activeTab !== 'media-player' && isPlaying && showMiniPlayer && (
         <MiniPlayer
           onExpand={() => setActiveTab('media-player')}
-          onClose={() => setShowMiniPlayer(false)}
+          onClose={() => { stop(); setShowMiniPlayer(false); }}
         />
       )}
     </>

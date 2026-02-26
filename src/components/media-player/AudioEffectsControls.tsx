@@ -29,15 +29,26 @@ export interface AudioEffectsSettings {
 interface AudioEffectsControlsProps {
     settings: AudioEffectsSettings;
     onSettingsChange: (settings: Partial<AudioEffectsSettings>) => void;
+    isLocked?: boolean;
 }
 
 export const AudioEffectsControls: React.FC<AudioEffectsControlsProps> = ({
     settings,
     onSettingsChange,
+    isLocked = false,
 }) => {
     return (
         <TooltipProvider>
-            <Card className="bg-slate-900/90 border-slate-800">
+            <Card className={`bg-slate-900/90 border-slate-800 relative overflow-hidden transition-all duration-500 ${isLocked ? 'grayscale scale-[0.98] opacity-50 pointer-events-none' : ''}`}>
+                {isLocked && (
+                    <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/60 backdrop-blur-[2px]">
+                        <div className="bg-purple-500/20 border border-purple-500/30 rounded-full px-4 py-1.5 flex items-center gap-2 mb-2">
+                            <Zap className="w-4 h-4 text-purple-400 fill-purple-400" />
+                            <span className="text-purple-300 text-xs font-bold tracking-widest">PRO EFFECTS</span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 font-medium">Upgrade to access premium effects</p>
+                    </div>
+                )}
                 <CardHeader className="pb-4 flex flex-row items-center justify-between space-y-0">
                     <CardTitle className="text-lg font-bold text-slate-200 flex items-center gap-2">
                         <Wand2 className="w-5 h-5 text-purple-400" />

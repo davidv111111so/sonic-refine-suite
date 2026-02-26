@@ -26,10 +26,10 @@ export const useFileManagement = () => {
         if (!savedData) return;
 
         const parsedData: StoredFileData = JSON.parse(savedData);
-        
+
         // Check if data is recent (within 7 days) to avoid stale data
         const isRecent = parsedData.timestamp && (Date.now() - parsedData.timestamp) < 7 * 24 * 60 * 60 * 1000;
-        
+
         if (!isRecent) {
           console.log('Clearing old stored files (older than 7 days)');
           localStorage.removeItem(STORAGE_KEY);
@@ -37,10 +37,10 @@ export const useFileManagement = () => {
         }
 
         // Only restore uploaded files (not processed ones)
-        const uploadedFiles = parsedData.files.filter(file => 
+        const uploadedFiles = parsedData.files.filter(file =>
           file.status === 'uploaded' && file.name && file.size
         );
-        
+
         if (uploadedFiles.length === 0) return;
 
         // Recreate file objects with safe defaults
@@ -57,9 +57,9 @@ export const useFileManagement = () => {
           artist: file.artist || 'Unknown Artist',
           title: file.title || file.name?.replace(/\.[^.]+$/, '') || 'Unknown Title'
         }));
-        
+
         setAudioFiles(restoredFiles);
-        
+
         toast({
           title: "Files restored",
           description: `${restoredFiles.length} files restored from previous session`,
@@ -98,13 +98,13 @@ export const useFileManagement = () => {
             artist: file.artist,
             title: file.title
           }));
-        
+
         const dataToSave: StoredFileData = {
           version: STORAGE_VERSION,
           files: filesToSave,
           timestamp: Date.now()
         };
-        
+
         localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
       } catch (error) {
         console.error('Error saving files:', error);
@@ -129,10 +129,10 @@ export const useFileManagement = () => {
   const parseAudioFileName = (fileName: string) => {
     let artist = "Unknown Artist";
     let title = fileName;
-    
+
     // Enhanced filename parsing for better song name extraction
     const nameWithoutExt = fileName.replace(/\.[^.]+$/, '');
-    
+
     // Try different patterns for artist - title separation
     const patterns = [
       /^(.*?)\s*-\s*(.*)$/, // Artist - Title
@@ -141,7 +141,7 @@ export const useFileManagement = () => {
       /^(\d+\.?\s*)?(.*?)\s*-\s*(.*)$/, // Track number. Artist - Title
       /^(\d+[.\s]+)(.*)$/ // Just track number prefix
     ];
-    
+
     for (const pattern of patterns) {
       const match = nameWithoutExt.match(pattern);
       if (match) {
@@ -156,7 +156,7 @@ export const useFileManagement = () => {
         }
       }
     }
-    
+
     // If no pattern matched, use the filename as title
     if (artist === "Unknown Artist") {
       title = nameWithoutExt;
@@ -167,49 +167,50 @@ export const useFileManagement = () => {
 
   const handleFilesUploaded = useCallback((files: AudioFile[]) => {
     const processedFiles = files.map(file => {
-      const originalUrl = URL.createObjectURL(file.originalFile);
+      const originalUrl = file.originalUrl || (file.originalFile ? URL.createObjectURL(file.originalFile) : '');
       const { artist, title } = parseAudioFileName(file.name);
-      
+
       return {
         ...file,
         id: file.id || generateFileId(),
         originalUrl,
-        artist,
-        title,
+        artist: file.artist || artist,
+        title: file.title || title,
         status: 'uploaded' as const,
-        bpm: null, // Initialize BPM as null
+        bpm: file.bpm ?? null,
+        harmonicKey: file.harmonicKey ?? 'N/A',
       };
     });
-    
+
     setAudioFiles(prev => {
       // Check for duplicates based on name and size
       const existing = new Set(prev.map(f => `${f.name}-${f.size}`));
-      const newFiles = processedFiles.filter(f => 
+      const newFiles = processedFiles.filter(f =>
         !existing.has(`${f.name}-${f.size}`)
       );
-      
+
       if (newFiles.length < processedFiles.length) {
         toast({
           title: "Duplicate files detected",
           description: `${processedFiles.length - newFiles.length} files were already in your library`,
         });
       }
-      
+
       if (newFiles.length > 0) {
         toast({
           title: "Files uploaded successfully",
           description: `${newFiles.length} new audio files added to your collection`,
         });
-        
+
         // Trigger BPM detection for new files asynchronously
         newFiles.forEach(async (audioFile) => {
           try {
             const result = await analyzeFile(audioFile);
-            
+
             // Update file with detected BPM
-            setAudioFiles(prevFiles => prevFiles.map(f => 
-              f.id === audioFile.id 
-                ? { ...f, bpm: result.bpm } 
+            setAudioFiles(prevFiles => prevFiles.map(f =>
+              f.id === audioFile.id
+                ? { ...f, bpm: result.bpm }
                 : f
             ));
           } catch (error) {
@@ -217,7 +218,7 @@ export const useFileManagement = () => {
           }
         });
       }
-      
+
       return [...prev, ...newFiles];
     });
   }, [toast, analyzeFile]);
@@ -225,7 +226,7 @@ export const useFileManagement = () => {
   const handleRemoveFile = useCallback((fileId: string) => {
     setAudioFiles(prev => {
       const fileToRemove = prev.find(file => file.id === fileId);
-      
+
       // Clean up URLs to prevent memory leaks
       if (fileToRemove?.originalUrl) {
         try {
@@ -241,7 +242,7 @@ export const useFileManagement = () => {
           console.warn('Error revoking URL:', error);
         }
       }
-      
+
       return prev.filter(file => file.id !== fileId);
     });
 
@@ -252,7 +253,7 @@ export const useFileManagement = () => {
   }, [toast]);
 
   const handleUpdateFile = useCallback((fileId: string, updates: Partial<AudioFile>) => {
-    setAudioFiles(prev => prev.map(file => 
+    setAudioFiles(prev => prev.map(file =>
       file.id === fileId ? { ...file, ...updates } : file
     ));
   }, []);
@@ -278,7 +279,7 @@ export const useFileManagement = () => {
 
     setAudioFiles([]);
     localStorage.removeItem(STORAGE_KEY);
-    
+
     toast({
       title: "Library cleared",
       description: "All files have been removed from your library",

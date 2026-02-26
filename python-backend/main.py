@@ -657,7 +657,7 @@ import concurrent.futures
 
 # Global task store (in-memory for simplicity)
 TASKS = {}
-executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)
+executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
 def update_task_progress(task_id, progress):
     """Deprecated: Logic moved to background_separation"""

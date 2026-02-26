@@ -21,6 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Crown, Menu } from 'lucide-react';
+import { usePlayer } from '@/contexts/PlayerContext';
 import { SubscriptionModal } from '@/components/payment/SubscriptionModal';
 import {
   Sheet,
@@ -368,18 +369,27 @@ const Index = () => {
   };
 
   // Handle file deletion (from both queues)
+  const { removeFromPlaylist } = usePlayer();
   const handleDeleteFile = useCallback((fileId: string) => {
+    console.log(`🗑️ Deleting file: ${fileId}`);
     // Remove from upload/processing queue
     handleRemoveFile(fileId);
 
     // Remove from enhanced history
     setEnhancedHistory(prev => prev.filter(f => f.id !== fileId));
 
+    // Also remove from global player playlist
+    try {
+      removeFromPlaylist(fileId);
+    } catch (e) {
+      console.warn('Error removing from player playlist:', e);
+    }
+
     toast({
       title: "File removed",
       description: "File has been removed from the list."
     });
-  }, [handleRemoveFile, toast]);
+  }, [handleRemoveFile, removeFromPlaylist, toast]);
 
   // Clear all files functionality
   const handleClearAll = useCallback(() => {
@@ -599,6 +609,13 @@ const Index = () => {
         {/* Copyright Notice at Bottom */}
         <div className="mt-8">
           <CopyrightNotice />
+        </div>
+
+        {/* Storage Notice */}
+        <div className="mt-4 text-center">
+          <p className="text-[10px] text-slate-500 max-w-2xl mx-auto leading-relaxed">
+            <span className="text-slate-400 font-semibold uppercase tracking-wider">Privacy & Storage:</span> Most processing happens locally in your browser. For advanced AI features (Stem Separation & Mastering), files are temporarily processed on our secure servers and stored in encrypted Backblaze B2 buckets for 1 hour before being automatically deleted. We never share or retain your music.
+          </p>
         </div>
       </div>
 
