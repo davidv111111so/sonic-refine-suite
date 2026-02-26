@@ -237,17 +237,27 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
                 
                 # Upsample back to original resolution if we downsampled
                 if fastest_downsample_ratio > 1:
-                    print(f"   [OPTIMIZATION] Upsampling resulting sources back to {sr}Hz as spectral masks...")
+                    print(f"   [OPTIMIZATION] Upsampling resulting sources back to {sr}Hz and applying as spectral masks...")
                     transform_up = torchaudio.transforms.Resample(inference_sr, sr).to(sources.device)
-                    sources = transform_up(sources)
+                    sources_up = transform_up(sources)
                     
                     # Ensure dimensions match exactly after resampling due to fractional issues
-                    if sources.shape[-1] != wav.shape[-1]:
-                        diff = wav.shape[-1] - sources.shape[-1]
+                    if sources_up.shape[-1] != wav.shape[-1]:
+                        diff = wav.shape[-1] - sources_up.shape[-1]
                         if diff > 0:
-                            sources = torch.nn.functional.pad(sources, (0, diff))
+                            sources_up = torch.nn.functional.pad(sources_up, (0, diff))
                         elif diff < 0:
-                            sources = sources[..., :diff]
+                            sources_up = sources_up[..., :diff]
+                            
+                    # Apply as soft masks to the original high-resolution audio
+                    # This preserves high frequencies that were lost during downsampling
+                    eps = 1e-10
+                    total_energy = sources_up.abs().sum(dim=0) + eps
+                    masks = sources_up.abs() / total_energy
+                    
+                    sources = masks * wav.to(sources_up.device)
+                else:
+                    sources = sources
 
                 sources = sources * std + ref.mean()
             except Exception as inner_e:

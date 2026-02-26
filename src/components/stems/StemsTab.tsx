@@ -162,6 +162,12 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
     };
 
     const handleClearStems = () => {
+        // Destroy WaveSurfer instances to free AudioContext & memory
+        wavesurfersRef.current.forEach(ws => {
+            try { ws.destroy(); } catch (e) { }
+        });
+        wavesurfersRef.current = [];
+
         // Revoke object URLs to free memory
         if (results) URL.revokeObjectURL(results);
         stems.forEach(stem => URL.revokeObjectURL(stem.url));
@@ -172,7 +178,6 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
         setProgress(0);
         setProcessingStage('');
         setIsPlaying(false);
-        wavesurfersRef.current = [];
     };
 
     // Retry counter for polling - survives across poll intervals
@@ -328,6 +333,9 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
             // Cleanup object URLs to prevent memory leaks if tab is unmounted
             if (results) URL.revokeObjectURL(results);
             stems.forEach(stem => URL.revokeObjectURL(stem.url));
+            wavesurfersRef.current.forEach(ws => {
+                try { ws.destroy(); } catch (e) { }
+            });
         };
     }, [results, stems]);
 
