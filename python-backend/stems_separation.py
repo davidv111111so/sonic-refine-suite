@@ -210,17 +210,45 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
                 # Apply model
                 print(f"   [CORE] Applying Demucs model (shifts={shifts}, overlap={overlap})...")
                 start_time = time.time()
+                
+                # Spectral Pre-Downsampling optimization for 'fastest' mode
+                fastest_downsample_ratio = 1
+                if speed_mode == 'fastest' and sr > 22050:
+                    fastest_downsample_ratio = sr / 22050
+                    print(f"   [OPTIMIZATION] Temporarily downsampling Tensor to 22.05kHz for 'fastest' processing...")
+                    # Update local sr strictly for Model inference downsampling
+                    transform_down = torchaudio.transforms.Resample(sr, 22050).to(wav.device)
+                    wav_inference = transform_down(wav)
+                    inference_sr = 22050
+                else:
+                    wav_inference = wav
+                    inference_sr = sr
+
                 # We use a try-except here to catch potential memory/torch errors
                 try:
                     # htdemucs normally segments audio automatically
-                    sources = apply_model(model, wav, shifts=shifts, overlap=overlap)[0]
+                    sources = apply_model(model, wav_inference, shifts=shifts, overlap=overlap)[0]
                     elapsed = time.time() - start_time
                     print(f"   [CORE] Separation completed in {elapsed:.1f}s")
                 except Exception as ae:
                     print(f"⚠️ Demucs core separation failed: {ae}. Retrying with absolute minimum parameters...")
                     # Try with 0 shifts and minimal overlap if it failed
-                    sources = apply_model(model, wav, shifts=0, overlap=0.1)[0]
+                    sources = apply_model(model, wav_inference, shifts=0, overlap=0.0)[0]
+                
+                # Upsample back to original resolution if we downsampled
+                if fastest_downsample_ratio > 1:
+                    print(f"   [OPTIMIZATION] Upsampling resulting sources back to {sr}Hz as spectral masks...")
+                    transform_up = torchaudio.transforms.Resample(inference_sr, sr).to(sources.device)
+                    sources = transform_up(sources)
                     
+                    # Ensure dimensions match exactly after resampling due to fractional issues
+                    if sources.shape[-1] != wav.shape[-1]:
+                        diff = wav.shape[-1] - sources.shape[-1]
+                        if diff > 0:
+                            sources = torch.nn.functional.pad(sources, (0, diff))
+                        elif diff < 0:
+                            sources = sources[..., :diff]
+
                 sources = sources * std + ref.mean()
             except Exception as inner_e:
                 print(f"[ERROR] Core separation failed definitively: {str(inner_e)}")

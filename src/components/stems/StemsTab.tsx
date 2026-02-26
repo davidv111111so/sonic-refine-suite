@@ -321,12 +321,15 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
         }
     };
 
-    // Cleanup polling on unmount
+    // Cleanup polling and URLs on unmount
     useEffect(() => {
         return () => {
             if (pollingInterval.current) clearInterval(pollingInterval.current);
+            // Cleanup object URLs to prevent memory leaks if tab is unmounted
+            if (results) URL.revokeObjectURL(results);
+            stems.forEach(stem => URL.revokeObjectURL(stem.url));
         };
-    }, []);
+    }, [results, stems]);
 
     // Player Controls
     const togglePlay = () => {

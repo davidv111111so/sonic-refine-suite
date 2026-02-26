@@ -55,8 +55,8 @@ gcloud run deploy $SERVICE_NAME `
     --region $REGION `
     --allow-unauthenticated `
     --set-env-vars "$envString" `
-    --memory 4Gi `
-    --cpu 2
+    --memory 16Gi `
+    --cpu 8
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host ""

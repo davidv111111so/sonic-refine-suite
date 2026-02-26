@@ -29,6 +29,12 @@ export const StemPlayerComponent = ({ url, name, color, isMuted, isSoloed, onMut
             wavesurferRef.current.destroy();
         }
 
+        // Pre-create AudioContext for consistent sample rate and interactive latency
+        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)({
+            latencyHint: 'interactive',
+            sampleRate: 44100
+        });
+
         const wavesurfer = WaveSurfer.create({
             container: containerRef.current,
             waveColor: color,
@@ -39,7 +45,6 @@ export const StemPlayerComponent = ({ url, name, color, isMuted, isSoloed, onMut
             barRadius: 2,
             height: 48,
             normalize: true,
-            // minPxPerSec: 50, // Removed to prevent overflow/scrolling
             fillParent: true, // Ensure it fits the container
             interact: true, // Enable interaction for seeking
             hideScrollbar: true,
