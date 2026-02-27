@@ -19,8 +19,10 @@ import {
     CheckCircle2,
     RefreshCw,
     Search,
-    Trash2
+    Trash2,
+    FlaskConical
 } from 'lucide-react';
+import { AudioQALab } from '@/components/admin/AudioQALab';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserSubscription } from '@/hooks/useUserSubscription';
 import { useNavigate } from 'react-router-dom';
@@ -154,6 +156,9 @@ export default function Admin() {
                     </TabsTrigger>
                     <TabsTrigger value="settings" className="gap-2 data-[state=active]:bg-slate-800">
                         <Settings className="w-4 h-4" /> Settings
+                    </TabsTrigger>
+                    <TabsTrigger value="qa-lab" className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-900/80 data-[state=active]:to-purple-900/80 data-[state=active]:text-cyan-300">
+                        <FlaskConical className="w-4 h-4" /> QA Lab
                     </TabsTrigger>
                 </TabsList>
 
@@ -328,6 +333,11 @@ export default function Admin() {
                             </div>
                         </CardContent>
                     </Card>
+                </TabsContent>
+
+                {/* QA Lab Tab */}
+                <TabsContent value="qa-lab">
+                    <AudioQALab />
                 </TabsContent>
             </Tabs>
         </div>

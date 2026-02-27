@@ -34,12 +34,28 @@ interface Stem {
     isSoloed: boolean;
 }
 
+// Time estimates for each processing configuration (CPU-only Cloud Run, minutes)
+const TIME_ESTIMATES: Record<string, Record<string, { min: number; max: number; label: string }>> = {
+    spleeter: {
+        fastest: { min: 1, max: 3, label: '~1-3 min' },
+        fast: { min: 2, max: 5, label: '~2-5 min' },
+        normal: { min: 2, max: 5, label: '~2-5 min' },
+    },
+    demucs: {
+        fastest: { min: 15, max: 25, label: '~15-25 min' },
+        fast: { min: 25, max: 35, label: '~25-35 min' },
+        normal: { min: 35, max: 50, label: '~35-50 min' },
+    },
+};
+
 export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProcessing, onComplete }: StemsTabProps) => {
     const { toast } = useToast();
     const [selectedFileId, setSelectedFileId] = useState<string>('');
     const [stemCount, setStemCount] = useState<string>('4');
     const [speedMode, setSpeedMode] = useState<string>('fast');
-    const processingLibrary = 'demucs';
+    const [processingLibrary, setProcessingLibrary] = useState<string>('demucs');
+
+    const currentEstimate = TIME_ESTIMATES[processingLibrary]?.[speedMode] || TIME_ESTIMATES.demucs.fast;
     const [processingStage, setProcessingStage] = useState('');
     const [progress, setProgress] = useState(0);
     const [results, setResults] = useState<string | null>(null); // URL to zip
@@ -295,9 +311,10 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
             }
             formData.append('stem_count', stemCount);
 
+            const engineLabel = processingLibrary === 'spleeter' ? 'Spleeter' : 'Demucs';
             toast({
-                title: `🔬 Demucs Started (${speedMode.toUpperCase()} Mode)`,
-                description: `Processing audio... This usually takes 1-3 minutes depending on track length and performance.`,
+                title: `🔬 ${engineLabel} Started (${speedMode.toUpperCase()} Mode)`,
+                description: `Estimated time: ${currentEstimate.label}. Please keep this tab open.`,
             });
 
             setProcessingStage('Uploading and starting separation...');
@@ -452,6 +469,28 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                         </CardHeader>
                         <CardContent className="space-y-6">
 
+                            {/* Processing Engine */}
+                            <div className="space-y-3">
+                                <Label className="text-slate-300">Processing Engine</Label>
+                                <Select value={processingLibrary} onValueChange={setProcessingLibrary}>
+                                    <SelectTrigger className="bg-slate-950 border-slate-700 text-white">
+                                        <SelectValue placeholder="Select engine" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-slate-900 border-slate-700 text-white">
+                                        <SelectItem value="spleeter">
+                                            ⚡ Spleeter (Fast — 2-5 min)
+                                        </SelectItem>
+                                        <SelectItem value="demucs">
+                                            🎧 Demucs (High Quality — 15-50 min)
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-[10px] text-slate-500">
+                                    {processingLibrary === 'spleeter'
+                                        ? 'Spleeter is much faster but produces lower quality stems.'
+                                        : 'Demucs produces studio-quality stems but takes longer on CPU.'}
+                                </p>
+                            </div>
 
                             <div className="space-y-3">
                                 <Label className="text-slate-300">Stem Count</Label>
@@ -462,7 +501,9 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                                     <SelectContent className="bg-slate-900 border-slate-700 text-white">
                                         <SelectItem value="2">2 Stems (Vocals/Instrumental)</SelectItem>
                                         <SelectItem value="4">4 Stems (Vocals/Drums/Bass/Other)</SelectItem>
-                                        <SelectItem value="6">6 Stems (Vocals/Drums/Bass/Guitar/Piano/Other)</SelectItem>
+                                        {processingLibrary === 'demucs' && (
+                                            <SelectItem value="6">6 Stems (Vocals/Drums/Bass/Guitar/Piano/Other)</SelectItem>
+                                        )}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -478,22 +519,35 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                                             🚀 Fastest (Aggressive Speed)
                                         </SelectItem>
                                         <SelectItem value="fast">
-                                            ⚡ Fast (~2x faster)
+                                            ⚡ Fast (Balanced)
                                         </SelectItem>
                                         <SelectItem value="normal">
                                             🔬 Normal (Focus on Quality)
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
-                                {speedMode === 'normal' && (
-                                    <div className="flex items-start gap-2 p-2 rounded-md bg-amber-950/30 border border-amber-500/30">
-                                        <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
-                                        <p className="text-xs text-amber-300">
-                                            Normal mode uses test-time augmentation for maximum quality.
-                                            Processing may take <strong>10-15 minutes</strong> depending on server load.
-                                        </p>
-                                    </div>
-                                )}
+                            </div>
+
+                            {/* Dynamic Time Estimate Warning */}
+                            <div className={`flex items-start gap-2 p-3 rounded-md border ${currentEstimate.max <= 5
+                                    ? 'bg-emerald-950/30 border-emerald-500/30'
+                                    : currentEstimate.max <= 25
+                                        ? 'bg-amber-950/30 border-amber-500/30'
+                                        : 'bg-red-950/20 border-red-500/30'
+                                }`}>
+                                <Clock className={`w-4 h-4 mt-0.5 flex-shrink-0 ${currentEstimate.max <= 5 ? 'text-emerald-400' : currentEstimate.max <= 25 ? 'text-amber-400' : 'text-red-400'
+                                    }`} />
+                                <div>
+                                    <p className={`text-xs font-semibold ${currentEstimate.max <= 5 ? 'text-emerald-300' : currentEstimate.max <= 25 ? 'text-amber-300' : 'text-red-300'
+                                        }`}>
+                                        Estimated processing time: {currentEstimate.label}
+                                    </p>
+                                    <p className="text-[10px] text-slate-400 mt-0.5">
+                                        {processingLibrary === 'demucs' && speedMode === 'normal'
+                                            ? 'Normal mode uses test-time augmentation for maximum quality. Long tracks may take longer.'
+                                            : 'Times vary based on track length and server load. Keep this tab open.'}
+                                    </p>
+                                </div>
                             </div>
 
                             <Button
@@ -579,7 +633,9 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                                     </div>
                                     <Progress value={progress} className="h-2 bg-slate-800" />
                                     <p className="text-xs text-slate-500 text-center mt-2">
-                                        Please wait while our AI separates your track. This may take a few minutes.
+                                        {processingLibrary === 'spleeter'
+                                            ? 'Spleeter is processing your track. This should finish in a few minutes.'
+                                            : `Demucs AI is separating your track (${speedMode} mode). Estimated: ${currentEstimate.label}. Please keep this tab open.`}
                                     </p>
                                 </div>
                             )}

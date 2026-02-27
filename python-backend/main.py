@@ -924,6 +924,182 @@ def separate_audio_endpoint():
         log_job(user_id, 'stems', 0, 0, 'failed', str(e))
         return jsonify({"error": str(e)}), 500
 
+# ─── QA Lab Endpoint ─────────────────────────────────────────────────────────
+@app.route('/api/admin/qa-analyze', methods=['POST'])
+def qa_analyze_endpoint():
+    """
+    Extended audio analysis for the QA Lab.
+    Returns comprehensive metrics to compare before/after processing.
+    Accepts file upload via multipart form data.
+    """
+    user = verify_auth_token(request)
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    # Check admin access
+    user_email = None
+    if isinstance(user, dict):
+        user_email = user.get('email')
+    elif hasattr(user, 'user'):
+        user_email = user.user.email if hasattr(user.user, 'email') else None
+
+    if user_email and user_email not in ADMIN_EMAILS:
+        return jsonify({"error": "Admin access required"}), 403
+
+    if 'file' not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+
+    file = request.files['file']
+    original_filename = file.filename or 'unknown'
+    ext = os.path.splitext(original_filename)[1].lower()
+
+    temp_path = None
+    try:
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=ext or '.wav')
+        file.save(temp_file.name)
+        temp_file.close()
+        temp_path = temp_file.name
+
+        file_size = os.path.getsize(temp_path)
+
+        # ── Basic File Info ──
+        file_info = {
+            "filename": original_filename,
+            "extension": ext or "unknown",
+            "file_size_bytes": file_size,
+            "file_size_mb": round(file_size / 1024 / 1024, 2),
+        }
+
+        # ── Audio Properties via soundfile ──
+        import soundfile as sf_qa
+        try:
+            sf_info = sf_qa.info(temp_path)
+            file_info["sample_rate"] = sf_info.samplerate
+            file_info["channels"] = sf_info.channels
+            file_info["duration_seconds"] = round(sf_info.duration, 3)
+            file_info["format"] = sf_info.format
+            file_info["subtype"] = sf_info.subtype  # e.g. PCM_16, PCM_24, FLOAT
+            # Derive bit depth from subtype
+            subtype = sf_info.subtype.upper()
+            if 'PCM_16' in subtype:
+                file_info["bit_depth"] = 16
+            elif 'PCM_24' in subtype:
+                file_info["bit_depth"] = 24
+            elif 'PCM_32' in subtype or 'FLOAT' in subtype:
+                file_info["bit_depth"] = 32
+            else:
+                file_info["bit_depth"] = None
+        except Exception as sf_err:
+            # Fallback to librosa for compressed formats
+            print(f"   ⚠️ soundfile.info failed ({sf_err}), using librosa fallback")
+            import librosa as lr_qa
+            y_qa, sr_qa = lr_qa.load(temp_path, sr=None, mono=False)
+            file_info["sample_rate"] = sr_qa
+            file_info["channels"] = 1 if y_qa.ndim == 1 else y_qa.shape[0]
+            file_info["duration_seconds"] = round(len(y_qa if y_qa.ndim == 1 else y_qa[0]) / sr_qa, 3)
+            file_info["format"] = ext.replace('.', '').upper()
+            file_info["subtype"] = "compressed"
+            file_info["bit_depth"] = None
+
+        # ── LUFS & Loudness Analysis ──
+        lufs_result = analyze_lufs(temp_path)
+        loudness = {}
+        if lufs_result.get('success'):
+            loudness = {
+                "integrated_lufs": lufs_result.get("integrated_lufs"),
+                "true_peak_db": lufs_result.get("true_peak_db"),
+                "dynamic_range_db": lufs_result.get("dynamic_range_db"),
+            }
+        else:
+            loudness = {"error": lufs_result.get("error", "Analysis failed")}
+
+        # ── Extended Spectral Analysis ──
+        spectral = {}
+        try:
+            import librosa as lr_spec
+            import numpy as np_spec
+            y_s, sr_s = lr_spec.load(temp_path, sr=None, mono=True)
+
+            # Spectral Centroid (brightness indicator)
+            cent = lr_spec.feature.spectral_centroid(y=y_s, sr=sr_s)
+            spectral["centroid_hz"] = round(float(np_spec.mean(cent)), 1)
+
+            # Spectral Bandwidth
+            bw = lr_spec.feature.spectral_bandwidth(y=y_s, sr=sr_s)
+            spectral["bandwidth_hz"] = round(float(np_spec.mean(bw)), 1)
+
+            # Spectral Rolloff (95% energy frequency)
+            rolloff = lr_spec.feature.spectral_rolloff(y=y_s, sr=sr_s)
+            spectral["rolloff_hz"] = round(float(np_spec.mean(rolloff)), 1)
+
+            # RMS Energy
+            rms = lr_spec.feature.rms(y=y_s)
+            rms_mean = float(np_spec.mean(rms))
+            rms_db = round(20 * np_spec.log10(rms_mean), 2) if rms_mean > 0 else -120.0
+            spectral["rms_db"] = rms_db
+
+            # Crest Factor (peak-to-RMS ratio — indicates compression level)
+            peak = float(np_spec.max(np_spec.abs(y_s)))
+            crest = round(20 * np_spec.log10(peak / rms_mean), 2) if rms_mean > 0 else 0.0
+            spectral["crest_factor_db"] = crest
+
+            # Zero Crossing Rate (texture indicator)
+            zcr = lr_spec.feature.zero_crossing_rate(y_s)
+            spectral["zero_crossing_rate"] = round(float(np_spec.mean(zcr)), 5)
+
+        except Exception as spec_err:
+            spectral["error"] = str(spec_err)
+
+        # ── Compression Detection Heuristics ──
+        compression = {}
+        try:
+            dr = loudness.get("dynamic_range_db")
+            crest = spectral.get("crest_factor_db")
+            lufs_val = loudness.get("integrated_lufs")
+
+            if dr is not None and crest is not None:
+                # Low dynamic range + low crest factor = heavy compression
+                if dr < 6 and crest < 8:
+                    compression["level"] = "heavy"
+                    compression["description"] = "Audio appears heavily compressed/limited"
+                elif dr < 10 and crest < 12:
+                    compression["level"] = "moderate"
+                    compression["description"] = "Moderate compression detected"
+                elif dr < 15:
+                    compression["level"] = "light"
+                    compression["description"] = "Light or no compression"
+                else:
+                    compression["level"] = "none"
+                    compression["description"] = "No significant compression detected"
+
+            if lufs_val is not None:
+                if lufs_val > -8:
+                    compression["loudness_warning"] = "Very loud — possible over-limiting"
+                elif lufs_val > -11:
+                    compression["loudness_warning"] = "Loud — mastered for streaming"
+        except:
+            pass
+
+        return jsonify({
+            "success": True,
+            "file_info": file_info,
+            "loudness": loudness,
+            "spectral": spectral,
+            "compression": compression,
+            "timestamp": time.strftime('%Y-%m-%dT%H:%M:%SZ'),
+        })
+
+    except Exception as e:
+        print(f"❌ QA Analysis error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            try:
+                os.unlink(temp_path)
+            except:
+                pass
 
 
 # Start background cleanup thread
