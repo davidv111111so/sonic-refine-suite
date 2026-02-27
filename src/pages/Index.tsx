@@ -30,6 +30,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { Helmet } from 'react-helmet-async';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -457,6 +458,16 @@ const Index = () => {
 
   return (
     <div className="min-h-screen transition-colors duration-300 bg-background relative overflow-hidden">
+      <Helmet>
+        <title>Sonic Refine Suite - Studio Grade Web Audio Processing</title>
+        <meta name="description" content="Professional mastering, stem separation, noise reduction, and browser-based precision mixer. Built with modern Web Audio API." />
+        <meta name="keywords" content="audio mastering, stem splitting, DJ mixer, web audio API, online audio editor, noise reduction" />
+        <meta property="og:title" content="Sonic Refine Suite" />
+        <meta property="og:description" content="Studio Grade Web Audio Processing" />
+        <meta property="og:type" content="website" />
+        <link rel="canonical" href="https://levelaudio.live" />
+      </Helmet>
+
       {/* Background Orb */}
       <div className="fixed inset-0 z-0">
         <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/50 to-background/80 z-10 pointer-events-none" />

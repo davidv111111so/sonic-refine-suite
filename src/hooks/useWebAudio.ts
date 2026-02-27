@@ -3,6 +3,8 @@ import * as Tone from 'tone';
 import AudioWorker from '../workers/audioDecoder.worker.ts?worker';
 import { useDJDeck, DeckControls, DeckState } from './useDJDeck';
 import { useSync } from '@/contexts/SyncContext';
+import { useAudioRecorder } from './useAudioRecorder';
+import { useBeatSync } from './useBeatSync';
 
 // Re-export types
 export type { DeckControls, DeckState };
@@ -22,7 +24,6 @@ export const useWebAudio = () => {
         splitMerger: Tone.Merge | null;
         masterMono: Tone.Mono | null;
         cueMono: Tone.Mono | null;
-        recorder: Tone.Recorder | null;
     }>({
         crossfade: null,
         limiter: null,
@@ -33,7 +34,6 @@ export const useWebAudio = () => {
         splitMerger: null,
         masterMono: null,
         cueMono: null,
-        recorder: null
     });
 
     const [routingMode, setRoutingMode] = useState<'stereo' | 'split' | 'multichannel'>('stereo');
@@ -80,14 +80,9 @@ export const useWebAudio = () => {
             cueMix.connect(cueVolume);
             cueVolume.toDestination(); // In browser, same output, but logic separates them
 
-            // 4. Advanced Routing Nodes
             const splitMerger = new Tone.Merge();
             const masterMono = new Tone.Mono();
             const cueMono = new Tone.Mono();
-
-            // Recorder Node (Added for VIP feature)
-            const recorder = new Tone.Recorder();
-            limiter.connect(recorder);
 
             mixerRef.current = {
                 crossfade,
@@ -99,7 +94,6 @@ export const useWebAudio = () => {
                 splitMerger,
                 masterMono,
                 cueMono,
-                recorder
             };
 
             isReadyRef.current = true;
@@ -118,6 +112,16 @@ export const useWebAudio = () => {
     // Initialize Decks
     const deckA = useDJDeck();
     const deckB = useDJDeck();
+
+    // Custom Hooks
+    const { initRecorder, isRecording, startRecording, stopRecording } = useAudioRecorder(mixerRef.current.limiter);
+    const { handleSync, masterDeckId, setMasterDeckId } = useBeatSync(deckA, deckB);
+
+    useEffect(() => {
+        if (isReady && mixerRef.current.limiter) {
+            initRecorder();
+        }
+    }, [isReady, mixerRef.current.limiter, initRecorder]);
 
     // Connect Decks to Mixer
     useEffect(() => {
@@ -250,78 +254,7 @@ export const useWebAudio = () => {
         }
     }, []);
 
-    // Record Logic
-    const recorderRef = useRef<Tone.Recorder | null>(null);
-    const [isRecording, setIsRecording] = useState(false);
 
-    const startRecording = useCallback(() => {
-        if (!mixerRef.current.recorder) return;
-        mixerRef.current.recorder.start();
-        setIsRecording(true);
-        console.log("[useWebAudio] Started Master Recording");
-    }, []);
-
-    const stopRecording = useCallback(async () => {
-        if (!mixerRef.current.recorder || !isRecording) return;
-        console.log("[useWebAudio] Stopping Master Recording...");
-        try {
-            const recording = await mixerRef.current.recorder.stop();
-            setIsRecording(false);
-
-            // Create a download link for the recording
-            const url = URL.createObjectURL(recording);
-            const anchor = document.createElement('a');
-            anchor.download = `sonic-refine-mix-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.webm`;
-            anchor.href = url;
-            anchor.click();
-            console.log("[useWebAudio] Download triggered");
-        } catch (err) {
-            console.error("[useWebAudio] Error stopping recording:", err);
-            setIsRecording(false);
-        }
-    }, [isRecording]);
-
-    // Sync Helper
-    const { masterDeckId, setMasterDeckId } = useSync();
-
-    const handleSync = useCallback((deckId: 'A' | 'B') => {
-        if (!masterDeckId) return;
-        if (deckId === masterDeckId) return;
-
-        const targetDeck = deckId === 'A' ? deckA : deckB;
-        const masterDeck = masterDeckId === 'A' ? deckA : deckB;
-
-        if (!masterDeck.state.bpm || !targetDeck.state.bpm || !masterDeck.state.buffer) return;
-
-        // 1. Tempo Sync
-        const masterEffectiveBPM = masterDeck.state.bpm * masterDeck.state.playbackRate;
-        const requiredRate = masterEffectiveBPM / targetDeck.state.bpm;
-
-        // 2. Phase Sync (Beat Alignment)
-        // We calculate where the Master is within its beat and force the Target to match.
-        const beatDuration = 60 / masterEffectiveBPM;
-        const masterTime = masterDeck.state.currentTime;
-        const followerTime = targetDeck.state.currentTime;
-
-        // How far into the beat is the master? (0 to beatDuration)
-        const masterPhase = masterTime % beatDuration;
-
-        // Where should the follower be to match?
-        // Since we are matching BPM, beatDuration is now the same for both.
-        let targetTime = Math.floor(followerTime / beatDuration) * beatDuration + masterPhase;
-
-        // If the jump is too far (> 0.5 beat), move it to the closest beat
-        if (Math.abs(targetTime - followerTime) > beatDuration / 2) {
-            if (targetTime > followerTime) targetTime -= beatDuration;
-            else targetTime += beatDuration;
-        }
-
-        // Apply both simultaneously
-        targetDeck.setRate(requiredRate);
-        targetDeck.seek(Math.max(0, targetTime));
-
-        console.log(`[Sync] Deck ${deckId} matched to ${masterEffectiveBPM.toFixed(2)} BPM. Phase shifted by ${(targetTime - followerTime).toFixed(3)}s`);
-    }, [masterDeckId, deckA, deckB]);
 
     // Cue Switch Logic handled in deck (gain gate)
     // We control the gate here

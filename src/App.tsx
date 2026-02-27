@@ -19,6 +19,7 @@ import Admin from "./pages/Admin";
 import { ProMixer } from "@/components/mixer/ProMixer";
 import { initAudioContextOnInteraction } from "@/utils/audioContextManager";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { HelmetProvider } from 'react-helmet-async';
 
 const queryClient = new QueryClient();
 
@@ -32,47 +33,49 @@ const AudioContextInitializer = () => {
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
-      <AuthProvider>
-        <LanguageProvider>
-          <TooltipProvider>
-            {/* <AudioContextInitializer /> Removed to prevent conflict with Tone.js */}
-            <Toaster />
-            <Sonner />
-            <PlayerProvider>
-              <ErrorBoundary>
-                <BrowserRouter>
-                  <FloatingMiniPlayer />
-                  <Routes>
-                    <Route path="/player" element={<PlayerPage />} />
-                    <Route path="/auth" element={<Auth />} />
-                    <Route path="/terms" element={<TermsAndConditions />} />
-                    <Route path="/admin" element={
-                      <BetaGate>
-                        <Admin />
-                      </BetaGate>
-                    } />
-                    <Route path="/" element={
-                      <BetaGate>
-                        <Index />
-                      </BetaGate>
-                    } />
-                    <Route path="/mixer" element={<ProMixer />} />
-                    <Route path="*" element={
-                      <BetaGate>
-                        <NotFound />
-                      </BetaGate>
-                    } />
-                  </Routes>
-                </BrowserRouter>
-              </ErrorBoundary>
-            </PlayerProvider>
-          </TooltipProvider>
-        </LanguageProvider>
-      </AuthProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
+  <HelmetProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+        <AuthProvider>
+          <LanguageProvider>
+            <TooltipProvider>
+              {/* <AudioContextInitializer /> Removed to prevent conflict with Tone.js */}
+              <Toaster />
+              <Sonner />
+              <PlayerProvider>
+                <ErrorBoundary>
+                  <BrowserRouter>
+                    <FloatingMiniPlayer />
+                    <Routes>
+                      <Route path="/player" element={<PlayerPage />} />
+                      <Route path="/auth" element={<Auth />} />
+                      <Route path="/terms" element={<TermsAndConditions />} />
+                      <Route path="/admin" element={
+                        <BetaGate>
+                          <Admin />
+                        </BetaGate>
+                      } />
+                      <Route path="/" element={
+                        <BetaGate>
+                          <Index />
+                        </BetaGate>
+                      } />
+                      <Route path="/mixer" element={<ProMixer />} />
+                      <Route path="*" element={
+                        <BetaGate>
+                          <NotFound />
+                        </BetaGate>
+                      } />
+                    </Routes>
+                  </BrowserRouter>
+                </ErrorBoundary>
+              </PlayerProvider>
+            </TooltipProvider>
+          </LanguageProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  </HelmetProvider>
 );
 
 export default App;
