@@ -1,4 +1,4 @@
-export type UserTier = 'basic' | 'premium' | 'admin';
+export type UserTier = 'basic' | 'premium' | 'vip' | 'admin';
 
 export interface UserProfile {
     id: string;

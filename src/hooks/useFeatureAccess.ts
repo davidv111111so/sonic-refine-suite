@@ -36,7 +36,6 @@ interface UsageData {
     mixer_minutes_used: number;
 }
 
-// Limits per tier — Option A "Preview" Model
 const LIMITS = {
     free: {
         enhancement: 20,           // per month
@@ -54,12 +53,27 @@ const LIMITS = {
         priority_processing: false,
     },
     premium: {
-        enhancement: Infinity,
+        enhancement: 250,          // 250 per month
         stems_2: Infinity,
         stems_4: Infinity,
         stems_6: Infinity,
-        stems_daily: 20,           // 20 per day
-        mastering: 20,             // 20 per day
+        stems_daily: 100,          // 100 per month
+        mastering: 100,            // 100 per month
+        mixer: Infinity,
+        mixer_export: true,
+        enhance_24bit: true,
+        wav_download: true,
+        effects: true,
+        compression: true,
+        priority_processing: true,
+    },
+    vip: {
+        enhancement: Infinity,     // Unlimited
+        stems_2: Infinity,
+        stems_4: Infinity,
+        stems_6: Infinity,
+        stems_daily: 300,          // 300 per month
+        mastering: 300,            // 300 per month
         mixer: Infinity,
         mixer_export: true,
         enhance_24bit: true,
@@ -93,7 +107,7 @@ interface AccessResult {
 }
 
 export const useFeatureAccess = () => {
-    const { profile, isPremium, isAdmin } = useAuth();
+    const { profile, isPremium, isVip, isAdmin } = useAuth();
     const [usage, setUsage] = useState<UsageData | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -107,7 +121,7 @@ export const useFeatureAccess = () => {
 
             try {
                 // Call the get_user_usage function which auto-resets quotas
-                const { data, error } = await supabase.rpc('get_user_usage', {
+                const { data, error } = await (supabase.rpc as any)('get_user_usage', {
                     p_user_id: profile.id,
                 });
 
@@ -140,7 +154,7 @@ export const useFeatureAccess = () => {
                 return { allowed: true };
             }
 
-            const tier = isPremium ? 'premium' : 'free';
+            const tier = isVip ? 'vip' : (isPremium ? 'premium' : 'free');
             const limit = LIMITS[tier][feature as keyof typeof LIMITS[typeof tier]];
 
             // Boolean features (like wav_download, priority_processing)
@@ -233,7 +247,7 @@ export const useFeatureAccess = () => {
 
             return { allowed: true };
         },
-        [profile, isPremium, isAdmin, usage]
+        [profile, isPremium, isVip, isAdmin, usage]
     );
 
     /**
@@ -252,7 +266,8 @@ export const useFeatureAccess = () => {
             const field = fieldMap[feature];
 
             try {
-                await supabase.rpc('increment_usage', {
+                // Update remotely
+                await (supabase.rpc as any)('increment_usage', {
                     p_user_id: profile.id,
                     p_field: field,
                     p_amount: amount,
@@ -295,7 +310,7 @@ export const useFeatureAccess = () => {
         if (!profile?.id) return;
 
         try {
-            const { data, error } = await supabase.rpc('get_user_usage', {
+            const { data, error } = await (supabase.rpc as any)('get_user_usage', {
                 p_user_id: profile.id,
             });
 
@@ -316,7 +331,8 @@ export const useFeatureAccess = () => {
         usage,
         loading,
         isPremium,
-        limits: isPremium ? LIMITS.premium : LIMITS.free,
+        isVip,
+        limits: isVip ? LIMITS.vip : (isPremium ? LIMITS.premium : LIMITS.free),
     };
 };
 
@@ -330,14 +346,15 @@ export const checkFeatureAccess = async (
 ): Promise<AccessResult> => {
     try {
         // Check if user is premium
-        const { data: subData } = await supabase
-            .from('subscriptions')
-            .select('status, plan_type')
-            .eq('user_id', userId)
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('tier')
+            .eq('id', userId)
             .single();
 
-        const isPremium = subData?.status === 'active' || subData?.status === 'trialing';
-        const tier = isPremium ? 'premium' : 'free';
+        const isVip = (profile as any)?.tier === 'vip';
+        const isPremium = (profile as any)?.tier === 'premium' || (profile as any)?.tier === 'admin' || isVip;
+        const tier = isVip ? 'vip' : (isPremium ? 'premium' : 'free');
         const limit = LIMITS[tier][feature];
 
         // Boolean features
@@ -352,7 +369,7 @@ export const checkFeatureAccess = async (
         if (limit === 0) return { allowed: false, reason: 'Premium required' };
 
         // Get usage
-        const { data: usageData } = await supabase.rpc('get_user_usage', {
+        const { data: usageData } = await (supabase.rpc as any)('get_user_usage', {
             p_user_id: userId,
         });
 

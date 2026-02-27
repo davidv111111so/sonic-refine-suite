@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { LogOut, User as UserIcon, Shield, Trash2, Zap, Sparkles } from 'lucide-react';
+import { LogOut, User as UserIcon, Shield, Trash2, Zap, Sparkles, Crown } from 'lucide-react';
 import { toast } from 'sonner';
 import { ProfileModal } from '@/components/ProfileModal';
 import { useAuth } from '@/contexts/AuthContext';
@@ -25,7 +25,7 @@ interface UserHeaderProps {
 
 export const UserHeader = ({ onLogout }: UserHeaderProps) => {
   const navigate = useNavigate();
-  const { profile, isAdmin, isPremium, signOut } = useAuth();
+  const { profile, isAdmin, isPremium, isVip, signOut } = useAuth();
   const [showProfile, setShowProfile] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
@@ -77,17 +77,15 @@ export const UserHeader = ({ onLogout }: UserHeaderProps) => {
   return (
     <>
       <div className="flex items-center gap-4">
-        {!isPremium && (
-          <Button
-            variant="default"
-            size="sm"
-            onClick={() => setShowProfile(true)}
-            className="hidden sm:flex bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold h-9 px-4 rounded-full border-none shadow-[0_0_15px_rgba(59,130,246,0.3)] animate-pulse"
-          >
-            <Zap className="mr-2 h-4 w-4 fill-white" />
-            Go Pro
-          </Button>
-        )}
+        <Button
+          variant="default"
+          size="sm"
+          onClick={() => setShowProfile(true)}
+          className="hidden sm:flex bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold h-9 px-4 rounded-full border-none shadow-[0_0_15px_rgba(59,130,246,0.3)] animate-pulse"
+        >
+          <Zap className="mr-2 h-4 w-4 fill-white" />
+          {isPremium ? 'Plans' : 'Upgrade'}
+        </Button>
 
         <div className="text-right hidden md:block">
           <p className="text-sm font-medium text-cyan-300 brightness-125">
@@ -100,7 +98,13 @@ export const UserHeader = ({ onLogout }: UserHeaderProps) => {
                 ADMIN
               </p>
             )}
-            {isPremium && !isAdmin && (
+            {isVip && !isAdmin && (
+              <p className="text-[10px] bg-purple-500/10 text-purple-400 px-1.5 py-0.5 rounded border border-purple-500/30 flex items-center gap-1 font-bold">
+                <Crown className="h-2.5 w-2.5" />
+                VIP
+              </p>
+            )}
+            {isPremium && !isVip && !isAdmin && (
               <p className="text-[10px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded border border-blue-500/30 flex items-center gap-1 font-bold">
                 <Sparkles className="h-2.5 w-2.5" />
                 PREMIUM

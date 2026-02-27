@@ -468,9 +468,9 @@ const Index = () => {
         />
       </div>
 
-      <div className="relative z-10 container mx-auto px-4 py-6 max-w-6xl">
+      <div className="relative z-10 container mx-auto px-4 py-4 max-w-6xl mb-16">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-4">
           <AnimatedTitle />
 
           {/* Desktop Navigation */}
@@ -538,33 +538,6 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Stats */}
-        {stats.total > 0 && <div className="grid grid-cols-4 gap-4 mb-6">
-          <Card className="bg-slate-900/50 border-slate-800 shadow-lg backdrop-blur-sm">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-white">{stats.total}</div>
-              <div className="text-sm text-slate-400">Total Files</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-blue-950/30 border-blue-900/50 shadow-lg backdrop-blur-sm">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-white">{stats.uploaded}</div>
-              <div className="text-sm text-blue-200">Queue</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-orange-950/30 border-orange-900/50 shadow-lg backdrop-blur-sm">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-white">{stats.processing}</div>
-              <div className="text-sm text-orange-200">Processing</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-emerald-950/30 border-emerald-900/50 shadow-lg backdrop-blur-sm">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-white">{stats.enhanced}</div>
-              <div className="text-sm text-emerald-200">Completed</div>
-            </CardContent>
-          </Card>
-        </div>}
 
         {/* Processing Progress */}
         {processingFiles.length > 0 && <Card className="bg-slate-900/80 border-slate-800 mb-6 shadow-lg backdrop-blur-sm">
@@ -628,6 +601,29 @@ const Index = () => {
         isOpen={isPremiumModalOpen}
         onClose={() => setIsPremiumModalOpen(false)}
       />
+
+      {/* Sticky Bottom Stats Bar */}
+      {stats.total > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-[100] bg-slate-950/90 border-t border-slate-800/80 backdrop-blur-xl px-4 py-3 flex justify-center gap-8 md:gap-16 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+          <div className="flex flex-col items-center">
+            <span className="text-lg font-black text-white leading-none mb-1">{stats.total}</span>
+            <span className="text-[9px] uppercase tracking-[0.15em] font-medium text-slate-500">Total Files</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-lg font-black text-blue-400 leading-none mb-1">{stats.uploaded}</span>
+            <span className="text-[9px] uppercase tracking-[0.15em] font-medium text-blue-500/70">Queue</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-lg font-black text-orange-400 leading-none mb-1">{stats.processing}</span>
+            <span className="text-[9px] uppercase tracking-[0.15em] font-medium text-orange-500/70">Processing</span>
+          </div>
+          <div className="flex flex-col items-center relative">
+            {stats.enhanced > 0 && <span className="absolute -top-1 -right-3 h-2 w-2 rounded-full bg-emerald-400 animate-ping"></span>}
+            <span className="text-lg font-black text-emerald-400 leading-none mb-1">{stats.enhanced}</span>
+            <span className="text-[9px] uppercase tracking-[0.15em] font-medium text-emerald-500/70">Completed</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

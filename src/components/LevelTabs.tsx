@@ -215,12 +215,13 @@ export const LevelTabs = ({
           </TabsTrigger>
           <div
             onClick={() => window.open('/mixer', '_blank')}
-            className="h-full flex items-center justify-center gap-2 px-4 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-xl cursor-pointer transition-all duration-300"
+            className="relative group h-full flex items-center justify-center gap-2 px-4 rounded-xl cursor-pointer transition-all duration-500 hover:bg-slate-800/80 overflow-hidden"
             role="button"
             title="Open Mixer Lab in new window"
           >
-            <ExternalLink className="h-5 w-5" />
-            <span className="text-lg font-bold">Mixer Lab</span>
+            <div className="absolute inset-0 bg-gradient-to-r from-pink-500/10 via-purple-500/10 to-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <ExternalLink className="h-4 w-4 text-pink-400 drop-shadow-[0_0_8px_rgba(236,72,153,0.8)] group-hover:scale-110 transition-transform duration-300" />
+            <span className="text-lg font-black tracking-wide bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(192,132,252,0.4)] group-hover:drop-shadow-[0_0_20px_rgba(192,132,252,0.8)] transition-all duration-300">Mixer Lab</span>
             <PremiumBadge locked={!hasPremiumAccess} />
           </div>
         </TabsList>

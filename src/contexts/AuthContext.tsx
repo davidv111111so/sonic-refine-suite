@@ -7,6 +7,7 @@ interface AuthContextType {
   profile: UserProfile | null;
   loading: boolean;
   isAdmin: boolean;
+  isVip: boolean;
   isPremium: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -94,7 +95,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     profile,
     loading,
     isAdmin: profile?.tier === 'admin',
-    isPremium: profile?.tier === 'premium' || profile?.tier === 'admin',
+    isVip: profile?.tier === 'vip' || profile?.tier === 'admin',
+    isPremium: profile?.tier === 'premium' || profile?.tier === 'vip' || profile?.tier === 'admin',
     signOut,
     refreshProfile
   };
@@ -111,10 +113,11 @@ export const useAuth = () => {
 };
 
 export const useRole = () => {
-  const { profile, isAdmin, isPremium } = useAuth();
+  const { profile, isAdmin, isPremium, isVip } = useAuth();
   return {
     tier: profile?.tier || 'basic' as UserTier,
     isAdmin,
-    isPremium
+    isPremium,
+    isVip
   };
 };

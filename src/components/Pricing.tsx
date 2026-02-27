@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, Music, Star, Crown, CreditCard, Wallet, X, Sparkles } from 'lucide-react';
+import { Check, Music, Star, Crown, CreditCard, Wallet, X, Sparkles, Zap } from 'lucide-react';
 import { paymentService } from '@/services/paymentService';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 type PaymentMethod = 'paddle' | 'crypto';
 
 export const Pricing: React.FC = () => {
-    const { profile, isPremium } = useAuth();
+    const { profile, isPremium, isVip } = useAuth();
     const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>('paddle');
     const [isLoading, setIsLoading] = useState(false);
 
@@ -66,47 +66,71 @@ export const Pricing: React.FC = () => {
         },
         {
             id: 'monthly',
-            name: 'Premium Monthly',
-            price: '$7.99',
+            name: 'Premium',
+            price: '$9.99',
             period: '/month',
             description: 'Full access to all features',
             icon: Star,
             iconColor: 'text-yellow-400',
             features: [
-                { text: 'Unlimited Enhancements', included: true },
+                { text: '250 Enhancements/month', included: true },
                 { text: '2, 4, or 6 Stem Separation', included: true },
+                { text: '100 Stem Tracks/month', included: true },
+                { text: '100 AI Masterings/month', included: true },
                 { text: 'Unlimited Mixer Lab', included: true },
                 { text: 'High-Fidelity WAV Downloads', included: true },
-                { text: '25 AI Mastering/day', included: true },
-                { text: 'Priority Processing', included: true },
             ],
-            buttonText: isPremium ? 'Current Plan' : 'Subscribe Monthly',
+            buttonText: isPremium && !isVip ? 'Current Plan' : (isVip ? 'Downgrade' : 'Subscribe Monthly'),
             buttonAction: () => handleUpgrade('monthly'),
-            disabled: isPremium,
+            disabled: isPremium && !isVip,
             highlighted: false,
         },
         {
             id: 'yearly',
-            name: 'Premium Yearly',
-            price: '$79.99',
-            period: '/year',
-            originalPrice: '$95.88',
-            savings: '2 Months Free!',
-            description: 'Best value for power users',
+            name: 'VIP Cloud',
+            price: '$29.99',
+            period: '/month',
+            originalPrice: '',
+            savings: 'GPU Speed',
+            description: 'Fastest online processing',
             icon: Crown,
             iconColor: 'text-purple-400',
             features: [
-                { text: 'Everything in Monthly', included: true },
-                { text: 'Early Access to New Features', included: true },
-                { text: 'Priority Customer Support', included: true },
-                { text: 'Exclusive Presets Library', included: true },
-                { text: 'Beta Feature Testing', included: true },
-                { text: 'Annual Member Badge', included: true },
+                { text: '⚡ GPU Accelerated (5-10x faster)', included: true },
+                { text: 'Unlimited Enhancements', included: true },
+                { text: '300 Stem Tracks/month', included: true },
+                { text: '300 AI Masterings/month', included: true },
+                { text: 'Priority Processing Queue', included: true },
+                { text: 'Everything in Premium', included: true },
             ],
-            buttonText: isPremium ? 'Current Plan' : 'Subscribe Yearly',
+            buttonText: isVip ? 'Current Plan' : 'Go VIP',
             buttonAction: () => handleUpgrade('yearly'),
-            disabled: isPremium,
+            disabled: isVip,
             highlighted: true,
+        },
+        {
+            id: 'desktop',
+            name: 'Desktop Pro',
+            price: '$49.99',
+            period: ' one-time',
+            originalPrice: '$59.99',
+            savings: 'Launch Offer!',
+            description: 'Lightning fast. Unlimited. Local.',
+            icon: Zap,
+            iconColor: 'text-orange-400',
+            features: [
+                { text: 'Runs on your GPU/CPU locally', included: true },
+                { text: 'ZERO recurring fees (Lifetime)', included: true },
+                { text: 'Fully offline capable', included: true },
+                { text: 'Unlimited Enhancements', included: true },
+                { text: 'Unlimited Stem Separations', included: true },
+                { text: 'Unlimited AI Mastering', included: true },
+            ],
+            buttonText: 'Pre-Order Now',
+            buttonAction: () => { toast.info('Desktop Pro coming very soon!') },
+            disabled: false,
+            highlighted: false,
+            specialBorder: 'border-orange-500/50 shadow-[0_0_30px_rgba(249,115,22,0.15)] ring-1 ring-orange-500/30'
         },
     ];
 
@@ -159,18 +183,20 @@ export const Pricing: React.FC = () => {
             )}
 
             {/* Pricing Cards */}
-            <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
                 {plans.map((plan) => (
                     <Card
                         key={plan.id}
                         className={cn(
                             "relative overflow-hidden transition-all duration-300 hover:scale-[1.02]",
                             "bg-slate-900/80 border-slate-800",
-                            plan.highlighted && [
-                                "border-purple-500/50",
-                                "shadow-[0_0_40px_rgba(168,85,247,0.15)]",
-                                "ring-1 ring-purple-500/30",
-                            ]
+                            (plan as any).specialBorder ? (plan as any).specialBorder : (
+                                plan.highlighted ? [
+                                    "border-purple-500/50",
+                                    "shadow-[0_0_40px_rgba(168,85,247,0.15)]",
+                                    "ring-1 ring-purple-500/30",
+                                ] : ""
+                            )
                         )}
                     >
                         {/* Savings Badge */}
@@ -242,22 +268,19 @@ export const Pricing: React.FC = () => {
                                     "w-full font-bold text-base py-6",
                                     plan.id === 'free' && "bg-slate-800 hover:bg-slate-700 text-slate-300",
                                     plan.id === 'monthly' && !isPremium && "bg-blue-600 hover:bg-blue-700",
-                                    plan.highlighted && !isPremium && [
+                                    plan.id === 'desktop' && "bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-lg shadow-orange-500/25",
+                                    plan.highlighted && !isVip && [
                                         "bg-gradient-to-r from-purple-600 to-pink-600",
                                         "hover:from-purple-700 hover:to-pink-700",
                                         "shadow-lg shadow-purple-500/25",
                                     ],
-                                    isPremium && plan.id !== 'free' && "bg-green-600/50 text-green-300"
+                                    plan.disabled && plan.id !== 'free' && "bg-green-600/50 text-green-300"
                                 )}
                             >
                                 {isLoading ? 'Loading...' : plan.buttonText}
                             </Button>
 
-                            {plan.highlighted && !isPremium && (
-                                <p className="text-[11px] text-slate-500 text-center">
-                                    Save ${(7.99 * 12 - 79.99).toFixed(2)} compared to monthly billing
-                                </p>
-                            )}
+
                         </CardFooter>
                     </Card>
                 ))}
