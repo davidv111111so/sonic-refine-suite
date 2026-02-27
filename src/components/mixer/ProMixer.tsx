@@ -59,7 +59,8 @@ const ProMixerContent = () => {
         deckA, deckB, crossfader, setCrossfader, nudgeCrossfader, autoFade,
         headphoneMix, setHeadphoneMix, headphoneVol, setHeadphoneVol,
         analysers, handleSync, masterDeckId, setMaster, cueA, setCueA, cueB, setCueB,
-        routingMode, setRoutingMode
+        routingMode, setRoutingMode,
+        isRecording, startRecording, stopRecording
     } = useWebAudio();
 
     // MIDI Initialization
@@ -132,6 +133,18 @@ const ProMixerContent = () => {
                 </div>
 
                 <div className="flex items-center gap-2">
+                    <button
+                        className={cn(
+                            "flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded border transition-all",
+                            isRecording
+                                ? "bg-red-500/20 text-red-500 border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.4)] animate-pulse"
+                                : "bg-[#222] text-[#666] border-[#444] hover:text-white hover:border-[#666]"
+                        )}
+                        onClick={() => isRecording ? stopRecording() : startRecording()}
+                    >
+                        <div className={cn("w-2 h-2 rounded-full", isRecording ? "bg-red-500" : "bg-[#666]")} />
+                        {isRecording ? "RECORDING" : "REC"}
+                    </button>
                     <SyncSettingsButton />
                 </div>
             </div>

@@ -22,6 +22,7 @@ export const useWebAudio = () => {
         splitMerger: Tone.Merge | null;
         masterMono: Tone.Mono | null;
         cueMono: Tone.Mono | null;
+        recorder: Tone.Recorder | null;
     }>({
         crossfade: null,
         limiter: null,
@@ -31,7 +32,8 @@ export const useWebAudio = () => {
         cueMix: null,
         splitMerger: null,
         masterMono: null,
-        cueMono: null
+        cueMono: null,
+        recorder: null
     });
 
     const [routingMode, setRoutingMode] = useState<'stereo' | 'split' | 'multichannel'>('stereo');
@@ -83,6 +85,10 @@ export const useWebAudio = () => {
             const masterMono = new Tone.Mono();
             const cueMono = new Tone.Mono();
 
+            // Recorder Node (Added for VIP feature)
+            const recorder = new Tone.Recorder();
+            limiter.connect(recorder);
+
             mixerRef.current = {
                 crossfade,
                 limiter,
@@ -92,7 +98,8 @@ export const useWebAudio = () => {
                 cueMix,
                 splitMerger,
                 masterMono,
-                cueMono
+                cueMono,
+                recorder
             };
 
             isReadyRef.current = true;
@@ -243,6 +250,37 @@ export const useWebAudio = () => {
         }
     }, []);
 
+    // Record Logic
+    const recorderRef = useRef<Tone.Recorder | null>(null);
+    const [isRecording, setIsRecording] = useState(false);
+
+    const startRecording = useCallback(() => {
+        if (!mixerRef.current.recorder) return;
+        mixerRef.current.recorder.start();
+        setIsRecording(true);
+        console.log("[useWebAudio] Started Master Recording");
+    }, []);
+
+    const stopRecording = useCallback(async () => {
+        if (!mixerRef.current.recorder || !isRecording) return;
+        console.log("[useWebAudio] Stopping Master Recording...");
+        try {
+            const recording = await mixerRef.current.recorder.stop();
+            setIsRecording(false);
+
+            // Create a download link for the recording
+            const url = URL.createObjectURL(recording);
+            const anchor = document.createElement('a');
+            anchor.download = `sonic-refine-mix-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.webm`;
+            anchor.href = url;
+            anchor.click();
+            console.log("[useWebAudio] Download triggered");
+        } catch (err) {
+            console.error("[useWebAudio] Error stopping recording:", err);
+            setIsRecording(false);
+        }
+    }, [isRecording]);
+
     // Sync Helper
     const { masterDeckId, setMasterDeckId } = useSync();
 
@@ -322,6 +360,9 @@ export const useWebAudio = () => {
         routingMode,
         setRoutingMode,
         analysers: { A: deckA.analyser, B: deckB.analyser },
-        context: Tone.getContext().rawContext as AudioContext
+        context: Tone.getContext().rawContext as AudioContext,
+        isRecording,
+        startRecording,
+        stopRecording
     };
 };
