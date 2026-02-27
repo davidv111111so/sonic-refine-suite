@@ -55,6 +55,13 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
     const [speedMode, setSpeedMode] = useState<string>('fast');
     const [processingLibrary, setProcessingLibrary] = useState<string>('demucs');
 
+    // Reset stem count to 4 if switching to Spleeter while 6 is selected
+    useEffect(() => {
+        if (processingLibrary === 'spleeter' && stemCount === '6') {
+            setStemCount('4');
+        }
+    }, [processingLibrary, stemCount]);
+
     const currentEstimate = TIME_ESTIMATES[processingLibrary]?.[speedMode] || TIME_ESTIMATES.demucs.fast;
     const [processingStage, setProcessingStage] = useState('');
     const [progress, setProgress] = useState(0);
@@ -530,10 +537,10 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
 
                             {/* Dynamic Time Estimate Warning */}
                             <div className={`flex items-start gap-2 p-3 rounded-md border ${currentEstimate.max <= 5
-                                    ? 'bg-emerald-950/30 border-emerald-500/30'
-                                    : currentEstimate.max <= 25
-                                        ? 'bg-amber-950/30 border-amber-500/30'
-                                        : 'bg-red-950/20 border-red-500/30'
+                                ? 'bg-emerald-950/30 border-emerald-500/30'
+                                : currentEstimate.max <= 25
+                                    ? 'bg-amber-950/30 border-amber-500/30'
+                                    : 'bg-red-950/20 border-red-500/30'
                                 }`}>
                                 <Clock className={`w-4 h-4 mt-0.5 flex-shrink-0 ${currentEstimate.max <= 5 ? 'text-emerald-400' : currentEstimate.max <= 25 ? 'text-amber-400' : 'text-red-400'
                                     }`} />
