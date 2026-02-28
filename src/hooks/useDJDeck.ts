@@ -312,18 +312,22 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
 
     // EQ Logic (Traktor-Style Smooth Curve)
     // Avoid aggressive cuts/boosts that cause distortion
-    const mapToDB = (val: number) => {
-        if (val <= 0.02) return -Infinity; // Hard Kill
-        if (val === 0.5) return 0;
+    // DJ mixers generally have +6dB max boost, and -24dB to -26dB max cut.
+    const mapToDB = (val: number, isMid: boolean = false) => {
+        if (val <= 0.05) return -Infinity; // Hard Kill near zero
+        if (val >= 0.48 && val <= 0.52) return 0; // Center detent flat response
 
         if (val > 0.5) {
-            // Smooth boost up to +5dB (squared curve for smooth center transition)
+            // Smooth boost up to +6dB.
             const norm = (val - 0.5) * 2; // 0 to 1
-            return (norm * norm) * 5;
+            // Use a slight curve so the initial turn isn't a massive jump
+            return (norm * norm) * 6;
         } else {
             // Smooth cut down to -24dB before the hard kill
             const norm = (0.5 - val) * 2; // 0 to 1
-            return -(norm * norm) * 24;
+            // Mids cut slightly less aggressively than lows/highs for smoother vocals
+            const maxCut = isMid ? 20 : 26;
+            return -(Math.pow(norm, 1.5)) * maxCut;
         }
     };
 
@@ -331,9 +335,9 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         if (!nodes.current.eq) return;
         // Faster, smoother ramp (0.1s)
         const rampTime = 0.1;
-        nodes.current.eq.low.rampTo(state.eqKills.low ? -Infinity : mapToDB(state.eq.low), rampTime);
-        nodes.current.eq.mid.rampTo(state.eqKills.mid ? -Infinity : mapToDB(state.eq.mid), rampTime);
-        nodes.current.eq.high.rampTo(state.eqKills.high ? -Infinity : mapToDB(state.eq.high), rampTime);
+        nodes.current.eq.low.rampTo(state.eqKills.low ? -Infinity : mapToDB(state.eq.low, false), rampTime);
+        nodes.current.eq.mid.rampTo(state.eqKills.mid ? -Infinity : mapToDB(state.eq.mid, true), rampTime);
+        nodes.current.eq.high.rampTo(state.eqKills.high ? -Infinity : mapToDB(state.eq.high, false), rampTime);
     }, [state.eq, state.eqKills]);
 
     // Dual-Filter Logic (audio-perf-analyzer optimization)

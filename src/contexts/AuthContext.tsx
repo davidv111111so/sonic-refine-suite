@@ -11,6 +11,7 @@ interface AuthContextType {
   isPremium: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  updateProfile: (updates: Partial<UserProfile>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -91,6 +92,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateProfile = (updates: Partial<UserProfile>) => {
+    setProfile(prev => prev ? { ...prev, ...updates } : null);
+  };
+
   const value = {
     profile,
     loading,
@@ -98,7 +103,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isVip: profile?.tier === 'vip' || profile?.tier === 'admin',
     isPremium: profile?.tier === 'premium' || profile?.tier === 'vip' || profile?.tier === 'admin',
     signOut,
-    refreshProfile
+    refreshProfile,
+    updateProfile
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

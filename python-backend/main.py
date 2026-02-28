@@ -1033,11 +1033,40 @@ def qa_analyze_endpoint():
         try:
             import librosa as lr_spec
             import numpy as np_spec
-            y_s, sr_s = lr_spec.load(temp_path, sr=None, mono=True)
+            # Load with a lower sample rate to save memory (22050 is enough for basic spectral feats)
+            y_s, sr_s = lr_spec.load(temp_path, sr=22050, mono=True)
 
             # Spectral Centroid (brightness indicator)
             cent = lr_spec.feature.spectral_centroid(y=y_s, sr=sr_s)
             spectral["centroid_hz"] = round(float(np_spec.mean(cent)), 1)
+
+            # Spectral Bandwidth
+            bw = lr_spec.feature.spectral_bandwidth(y=y_s, sr=sr_s)
+            spectral["bandwidth_hz"] = round(float(np_spec.mean(bw)), 1)
+
+            # Spectral Rolloff
+            rolloff = lr_spec.feature.spectral_rolloff(y=y_s, sr=sr_s, roll_percent=0.85)
+            spectral["rolloff_hz"] = round(float(np_spec.mean(rolloff)), 1)
+            
+            # RMS (Root Mean Square Energy)
+            rms = lr_spec.feature.rms(y=y_s)
+            spectral["rms_db"] = round(float(20 * np_spec.log10(np_spec.mean(rms) + 1e-9)), 2)
+
+            # Zero Crossing Rate
+            zcr = lr_spec.feature.zero_crossing_rate(y=y_s)
+            spectral["zero_crossing_rate"] = round(float(np_spec.mean(zcr)), 4)
+
+            # Clean up memory explicitly
+            del y_s
+            import gc
+            gc.collect()
+
+        except MemoryError:
+            print("   ⚠️ librosa spectral analysis hit MemoryError, skipping spectral features.")
+            spectral["error"] = "File too large for spectral analysis (Out of Memory)"
+        except Exception as e:
+            print(f"   ⚠️ librosa spectral analysis failed: {e}")
+            spectral["error"] = "Spectral analysis failed"
 
             # Spectral Bandwidth
             bw = lr_spec.feature.spectral_bandwidth(y=y_s, sr=sr_s)

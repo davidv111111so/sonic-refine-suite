@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { LogOut, User as UserIcon, Shield, Trash2, Zap, Sparkles, Crown } from 'lucide-react';
 import { toast } from 'sonner';
@@ -120,8 +120,9 @@ export const UserHeader = ({ onLogout }: UserHeaderProps) => {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full border border-slate-700/50 bg-slate-900/50 hover:bg-slate-800 backdrop-blur-md">
               <Avatar className="h-9 w-9">
+                <AvatarImage src={profile?.avatar_url} />
                 <AvatarFallback className="bg-transparent text-slate-300 font-medium text-sm">
-                  {profile.email?.[0].toUpperCase() || 'U'}
+                  {initials}
                 </AvatarFallback>
               </Avatar>
             </Button>

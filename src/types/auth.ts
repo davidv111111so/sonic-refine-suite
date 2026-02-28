@@ -7,6 +7,7 @@ export interface UserProfile {
     tier: UserTier;
     subscription_id?: string;
     customer_id?: string;
+    avatar_url?: string;
     created_at: string;
     updated_at: string;
 }

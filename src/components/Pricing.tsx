@@ -183,7 +183,7 @@ export const Pricing: React.FC = () => {
             )}
 
             {/* Pricing Cards */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6 max-w-7xl mx-auto">
                 {plans.map((plan) => (
                     <Card
                         key={plan.id}
@@ -208,12 +208,12 @@ export const Pricing: React.FC = () => {
 
                         {/* Most Popular Badge */}
                         {plan.highlighted && (
-                            <div className="absolute top-0 left-0 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-[10px] font-bold px-3 py-1 rounded-br-lg uppercase tracking-widest">
+                            <div className="absolute top-0 left-0 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-[10px] font-bold px-3 py-1 rounded-br-lg uppercase tracking-widest z-10">
                                 Most Popular
                             </div>
                         )}
 
-                        <CardHeader className="pt-8">
+                        <CardHeader className="pt-10">
                             <div className="flex items-center gap-3 mb-2">
                                 <plan.icon className={cn("h-7 w-7", plan.iconColor, plan.highlighted && "fill-current")} />
                                 <CardTitle className="text-xl font-bold text-white">
