@@ -102,6 +102,10 @@ export const useAudioRecorder = (limiterNode: Tone.Limiter | null) => {
         if (!recorder || !isRecording) return;
         console.log("[useAudioRecorder] Stopping Master Recording...");
 
+        // immediately update state so UI switches to Converted state instead of unmounting
+        setIsRecording(false);
+        setIsConverting(true);
+
         // Clear timer
         if (timerRef.current) {
             clearInterval(timerRef.current);
@@ -110,8 +114,6 @@ export const useAudioRecorder = (limiterNode: Tone.Limiter | null) => {
 
         try {
             const webmBlob = await recorder.stop();
-            setIsRecording(false);
-            setIsConverting(true);
 
             // Convert WebM → WAV
             console.log("[useAudioRecorder] Converting to WAV...");
@@ -126,14 +128,15 @@ export const useAudioRecorder = (limiterNode: Tone.Limiter | null) => {
             const anchor = document.createElement('a');
             anchor.download = `sonic-refine-mix-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.wav`;
             anchor.href = url;
+            document.body.appendChild(anchor); // ensure it's in DOM for some browsers
             anchor.click();
+            document.body.removeChild(anchor);
             URL.revokeObjectURL(url);
 
             setIsConverting(false);
             console.log("[useAudioRecorder] WAV download triggered");
         } catch (err) {
             console.error("[useAudioRecorder] Error stopping recording:", err);
-            setIsRecording(false);
             setIsConverting(false);
         }
     }, [recorder, isRecording]);

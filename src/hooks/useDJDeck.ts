@@ -310,22 +310,20 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         nodes.current.volume.gain.rampTo(cappedVolume, 0.05);
     }, [state.volume]);
 
-    // EQ Logic (Professional Logarithmic Curve)
-    // 0.5 -> 1.0 (Boost +6dB) - Linear for clarity
-    // 0.0 -> 0.5 (Cut -Inf) - Smooth Log for blending
+    // EQ Logic (Traktor-Style Smooth Curve)
+    // Avoid aggressive cuts/boosts that cause distortion
     const mapToDB = (val: number) => {
         if (val <= 0.02) return -Infinity; // Hard Kill
         if (val === 0.5) return 0;
 
         if (val > 0.5) {
-            // Map 0.5-1.0 to 0-6dB (Linear)
-            return (val - 0.5) * 12;
+            // Smooth boost up to +5dB (squared curve for smooth center transition)
+            const norm = (val - 0.5) * 2; // 0 to 1
+            return (norm * norm) * 5;
         } else {
-            // Map 0.02-0.5 to -Inf to 0dB (Smooth Power-Log)
-            // Normalized 0 to 1
-            const norm = val / 0.5;
-            // curve: 40 * log10(norm ^ 1.2) for a slightly deeper mid-cut
-            return 48 * Math.log10(norm);
+            // Smooth cut down to -24dB before the hard kill
+            const norm = (0.5 - val) * 2; // 0 to 1
+            return -(norm * norm) * 24;
         }
     };
 
