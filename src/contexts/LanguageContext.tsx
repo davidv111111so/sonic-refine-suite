@@ -1,25 +1,37 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 
-type Language = 'EN' | 'ES';
+export type Language = 'EN' | 'ES' | 'FR' | 'DE' | 'IT';
+
+export const LANGUAGE_LABELS: Record<Language, { flag: string; name: string }> = {
+  EN: { flag: '🇬🇧', name: 'English' },
+  ES: { flag: '🇪🇸', name: 'Español' },
+  FR: { flag: '🇫🇷', name: 'Français' },
+  DE: { flag: '🇩🇪', name: 'Deutsch' },
+  IT: { flag: '🇮🇹', name: 'Italiano' },
+};
 
 interface LanguageContextType {
   language: Language;
+  setLanguage: (lang: Language) => void;
   toggleLanguage: () => void;
   t: (key: string) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-// Comprehensive Translation Dictionary for Full i18n Support
-const translations = {
+// ─── Translation Keys ───────────────────────────────────────────
+// Each language block maps the same keys to localised strings.
+// Keys are organized by feature area.
+
+const translations: Record<Language, Record<string, string>> = {
+  // ═══════════════════════════════════════════
+  //  ENGLISH
+  // ═══════════════════════════════════════════
   EN: {
-    // Header & Navigation
     'header.title': 'Level Audio Processor',
     'header.upload': 'Upload',
     'header.enhance': 'Enhance',
     'header.settings': 'Settings',
-
-    // EQ Presets
     'eq.preset.flat': 'Flat',
     'eq.preset.bassBoost': 'Bass Boost',
     'eq.preset.vocalEnhance': 'Vocal Enhance',
@@ -28,15 +40,11 @@ const translations = {
     'eq.preset.club': 'Club',
     'eq.preset.rock': 'Rock',
     'eq.preset.jazz': 'Jazz',
-
-    // Upload Section
     'upload.title': 'Upload Audio Files',
     'upload.dragDrop': 'Drag & drop your audio files here',
     'upload.clickSelect': 'or click to select files',
     'upload.supportedFormats': 'MP3, WAV, FLAC, OGG, M4A, AAC',
     'upload.limits': 'Max 20 files • 100MB each',
-
-    // Track List
     'tracks.title': 'Track List',
     'tracks.noTracks': 'No tracks uploaded yet',
     'tracks.uploadToStart': 'Upload audio files to get started',
@@ -50,8 +58,6 @@ const translations = {
     'tracks.inQueue': 'In Queue',
     'tracks.processing': 'Processing',
     'tracks.completed': 'Completed',
-
-    // Buttons & Actions
     'button.spectrum': 'Spectrum',
     'button.enhance': 'Enhance',
     'button.enhanceAll': 'Enhance All Files',
@@ -65,16 +71,12 @@ const translations = {
     'button.load': 'Load',
     'button.cancel': 'Cancel',
     'button.ok': 'OK',
-
-    // Status Messages
     'status.loading': 'Loading',
     'status.ready': 'Ready',
     'status.processing': 'Processing',
     'status.error': 'Error',
     'status.enhanced': 'Enhanced',
     'status.queue': 'Queue',
-
-    // Enhancement Settings
     'enhance.title': 'Advanced Audio Enhancement',
     'enhance.format': 'Format',
     'enhance.quality': 'Quality',
@@ -82,8 +84,6 @@ const translations = {
     'enhance.outputSettings': 'Output Settings',
     'enhance.processingOptions': 'Processing Options',
     'enhance.equalizer': 'Equalizer & Presets',
-
-    // Audio Settings
     'settings.outputFormat': 'Output Format',
     'settings.sampleRate': 'Sample Rate',
     'settings.bitDepth': 'Bit Depth',
@@ -95,8 +95,6 @@ const translations = {
     'settings.bassBoost': 'Bass Boost',
     'settings.trebleEnhancement': 'Treble Enhancement',
     'settings.gainAdjustment': 'Gain Adjustment',
-
-    // Equalizer
     'eq.title': '10-Band Equalizer',
     'eq.enable': 'Enable Equalizer',
     'eq.presets': 'EQ Presets',
@@ -104,19 +102,13 @@ const translations = {
     'eq.tenBandEqualizer': '10-Band Equalizer',
     'eq.eqPresets': 'EQ Presets',
     'eq.reset': 'Reset',
-
-    // Conversion
     'conversion.source': 'Source',
     'conversion.output': 'Output',
     'conversion.size': 'Size',
     'conversion.noConversion': 'No conversion',
-
-    // Dialogs & Modals
     'dialog.downloadAll.title': 'Download Multiple Files',
     'dialog.downloadAll.message': 'Do you want to download {count} files?',
     'dialog.downloadAll.confirm': 'Yes, download all',
-
-    // Toast Messages
     'toast.noFiles': 'No files to process',
     'toast.uploadFirst': 'Please upload some audio files first',
     'toast.enhancementComplete': 'Enhancement Complete!',
@@ -124,14 +116,10 @@ const translations = {
     'toast.downloadComplete': 'Download Complete',
     'toast.downloadFailed': 'Download Failed',
     'toast.filesCleared': 'Files cleared',
-
-    // Stats
     'stats.total': 'Total Files',
     'stats.uploaded': 'Queue',
     'stats.processing': 'Processing',
     'stats.enhanced': 'Completed',
-
-    // AI Mastering
     'aiMastering.title': 'AI Audio Mastering',
     'aiMastering.description': 'Professional-grade mastering powered by AI technology',
     'aiMastering.premiumFeature': 'Premium Feature',
@@ -187,8 +175,6 @@ const translations = {
     'aiMastering.complete': 'Mastering Complete!',
     'aiMastering.dragOrClick': 'Drag & drop or click to select',
     'aiMastering.dropFile': 'Drop your file here',
-
-    // Processing Options - Phase 1 & 2
     'processing.options': 'Processing Options',
     'processing.batchMode': 'Batch Mode',
     'processing.individualMode': 'Individual Mode',
@@ -200,19 +186,13 @@ const translations = {
     'processing.stereoWideningInfo': 'Subtle stereo enhancement. Values >70% may cause phase issues.',
     'processing.antiPhaseWarning': '⚠️ Anti-phase territory! Risk of phase cancellation.',
     'processing.premiumRequired': 'Premium subscription required for this feature',
-
-    // EQ Presets - Phase 3
     'eq.professionalPresets': 'Professional EQ Presets',
     'eq.autoGainCompensation': 'Auto Gain Compensation',
     'eq.gainComp': 'Gain Comp',
     'eq.compensationExplanation': 'All presets include automatic gain compensation for objective A/B comparison at equal perceived loudness',
-
-    // Real-time Audio Player
     'player.realtimePreview': 'Real-time Audio Preview',
     'player.noAudioLoaded': 'No audio file loaded',
     'player.realtimeProcessing': '⚡ Real-time processing active - hear changes instantly',
-
-    // EQ Band Names (5-Band with specific frequencies)
     'eq.band1': 'Low / Sub',
     'eq.band1Freq': '50 Hz',
     'eq.band1Range': '20-85 Hz',
@@ -230,14 +210,15 @@ const translations = {
     'eq.band5Range': '9.8k-20k Hz',
     'eq.psychoacousticInfo': 'The default range has selected frequencies that are psychoacoustically pleasing to the human ear, naturally highlighting the most embellishing tones in the audio.',
   },
+
+  // ═══════════════════════════════════════════
+  //  SPANISH
+  // ═══════════════════════════════════════════
   ES: {
-    // Navigation
     'header.title': 'Procesador de Audio Level',
     'header.upload': 'Subir',
     'header.enhance': 'Mejorar',
     'header.settings': 'Configuración',
-
-    // EQ Presets
     'eq.preset.flat': 'Plano',
     'eq.preset.bassBoost': 'Realce de Graves',
     'eq.preset.vocalEnhance': 'Mejora Vocal',
@@ -246,15 +227,11 @@ const translations = {
     'eq.preset.club': 'Club',
     'eq.preset.rock': 'Rock',
     'eq.preset.jazz': 'Jazz',
-
-    // Upload Section
     'upload.title': 'Subir Archivos de Audio',
     'upload.dragDrop': 'Arrastra tus archivos de audio aquí',
     'upload.clickSelect': 'o haz clic para seleccionar archivos',
     'upload.supportedFormats': 'MP3, WAV, FLAC, OGG, M4A, AAC',
     'upload.limits': 'Máx 20 archivos • 100MB cada uno',
-
-    // Track List
     'tracks.title': 'Lista de Pistas',
     'tracks.noTracks': 'No hay pistas subidas',
     'tracks.uploadToStart': 'Sube archivos de audio para comenzar',
@@ -268,9 +245,7 @@ const translations = {
     'tracks.inQueue': 'En Cola',
     'tracks.processing': 'Procesando',
     'tracks.completed': 'Completados',
-
-    // Buttons & Actions
-    'button.spectrum': 'Spectrum',
+    'button.spectrum': 'Espectro',
     'button.enhance': 'Mejorar',
     'button.enhanceAll': 'Mejorar Todos',
     'button.downloadAll': 'Descargar Todos',
@@ -283,16 +258,12 @@ const translations = {
     'button.load': 'Cargar',
     'button.cancel': 'Cancelar',
     'button.ok': 'Aceptar',
-
-    // Status Messages
     'status.loading': 'Cargando',
     'status.ready': 'Listo',
     'status.processing': 'Procesando',
     'status.error': 'Error',
     'status.enhanced': 'Mejorado',
     'status.queue': 'Cola',
-
-    // Enhancement Settings
     'enhance.title': 'Mejora de Audio Avanzada',
     'enhance.format': 'Formato',
     'enhance.quality': 'Calidad',
@@ -300,8 +271,6 @@ const translations = {
     'enhance.outputSettings': 'Configuración de Salida',
     'enhance.processingOptions': 'Opciones de Procesamiento',
     'enhance.equalizer': 'Ecualizador y Preajustes',
-
-    // Audio Settings
     'settings.outputFormat': 'Formato de Salida',
     'settings.sampleRate': 'Frecuencia de Muestreo',
     'settings.bitDepth': 'Profundidad de Bits',
@@ -313,8 +282,6 @@ const translations = {
     'settings.bassBoost': 'Realce de Graves',
     'settings.trebleEnhancement': 'Realce de Agudos',
     'settings.gainAdjustment': 'Ajuste de Ganancia',
-
-    // Equalizer
     'eq.title': 'Ecualizador de 10 Bandas',
     'eq.enable': 'Activar Ecualizador',
     'eq.presets': 'Preajustes EQ',
@@ -322,19 +289,13 @@ const translations = {
     'eq.tenBandEqualizer': 'Ecualizador de 10 Bandas',
     'eq.eqPresets': 'Preajustes EQ',
     'eq.reset': 'Restablecer',
-
-    // Conversion
     'conversion.source': 'Origen',
     'conversion.output': 'Salida',
     'conversion.size': 'Tamaño',
     'conversion.noConversion': 'Sin conversión',
-
-    // Dialogs & Modals
     'dialog.downloadAll.title': 'Descargar Múltiples Archivos',
     'dialog.downloadAll.message': '¿Desea descargar {count} archivos?',
     'dialog.downloadAll.confirm': 'Sí, descargar todos',
-
-    // Toast Messages
     'toast.noFiles': 'No hay archivos para procesar',
     'toast.uploadFirst': 'Por favor sube algunos archivos de audio primero',
     'toast.enhancementComplete': '¡Mejora Completa!',
@@ -342,16 +303,12 @@ const translations = {
     'toast.downloadComplete': 'Descarga Completa',
     'toast.downloadFailed': 'Descarga Fallida',
     'toast.filesCleared': 'Archivos limpiados',
-
-    // Stats
     'stats.total': 'Archivos Totales',
     'stats.uploaded': 'Cola',
     'stats.processing': 'Procesando',
     'stats.enhanced': 'Completados',
-
-    // AI Mastering
     'aiMastering.title': 'Masterización de Audio con IA',
-    'aiMastering.description': 'Masterización de nivel profesional impulsada por tecnología IA',
+    'aiMastering.description': 'Masterización profesional impulsada por IA',
     'aiMastering.premiumFeature': 'Función Premium',
     'aiMastering.unlockMessage': 'Desbloquea la masterización con IA para llevar tus pistas al siguiente nivel',
     'aiMastering.feature1': 'Análisis y mejora de audio con IA',
@@ -369,147 +326,508 @@ const translations = {
     'aiMastering.masterTrack': 'Masterizar Mi Pista',
     'aiMastering.processing': 'Procesando',
     'aiMastering.processingMessage': 'Esto puede tomar unos minutos dependiendo del tamaño del archivo',
-    'aiMastering.infoBanner': 'Tus datos de audio nunca se suben a ningún servidor, todo el procesamiento ocurre localmente en tu navegador. Esto garantiza que tu audio permanezca seguro y en tu computadora. La tasa de muestreo óptima es de 48 kHz.',
+    'aiMastering.infoBanner': 'Tus datos de audio nunca se suben a ningún servidor, todo el procesamiento ocurre localmente en tu navegador.',
     'aiMastering.settings': 'Configuración',
     'aiMastering.threshold': 'Umbral',
     'aiMastering.epsilon': 'Epsilon',
     'aiMastering.maxPieceLength': 'Longitud Máxima de Pieza (segundos)',
     'aiMastering.bpm': 'BPM',
-    'aiMastering.timeSignatureNumerator': 'Numerador de Compás',
-    'aiMastering.timeSignatureDenominator': 'Denominador de Compás',
-    'aiMastering.pieceLengthBars': 'Longitud de Pieza (compases)',
-    'aiMastering.resamplingMethod': 'Método de Remuestreo',
-    'aiMastering.spectrumCompensation': 'Compensación de Espectro',
-    'aiMastering.loudnessCompensation': 'Compensación de Volumen',
-    'aiMastering.analyzeFullSpectrum': 'Analizar Espectro Completo',
-    'aiMastering.spectrumSmoothingWidth': 'Ancho de Suavizado de Espectro',
-    'aiMastering.smoothingSteps': 'Pasos de Suavizado',
-    'aiMastering.spectrumCorrectionHops': 'Saltos de Corrección de Espectro',
-    'aiMastering.loudnessSteps': 'Pasos de Volumen',
-    'aiMastering.spectrumBands': 'Bandas de Espectro',
-    'aiMastering.fftSize': 'Tamaño FFT',
-    'aiMastering.normalizeReference': 'Normalizar Referencia',
-    'aiMastering.normalize': 'Normalizar',
-    'aiMastering.limiterMethod': 'Método Limitador',
-    'aiMastering.limiterThreshold': 'Umbral Limitador dB',
-    'aiMastering.loudnessCorrectionLimiting': 'Limitación de Corrección de Volumen',
-    'aiMastering.amplify': 'Amplificar',
-    'aiMastering.clipping': 'Recorte',
-    'aiMastering.outputBits': 'Bits de Salida',
-    'aiMastering.outputChannels': 'Canales de Salida',
-    'aiMastering.ditheringMethod': 'Método de Dithering',
-    'aiMastering.success': '¡Masterización Completa!',
+    'aiMastering.success': 'Masterización Completa!',
     'aiMastering.successMessage': 'Tu pista ha sido masterizada exitosamente',
     'aiMastering.error': 'Masterización Fallida',
     'aiMastering.errorMessage': 'Fallo al procesar tu pista. Por favor intenta de nuevo.',
     'aiMastering.complete': '¡Masterización Completa!',
     'aiMastering.dragOrClick': 'Arrastra y suelta o haz clic para seleccionar',
     'aiMastering.dropFile': 'Suelta tu archivo aquí',
-
-    // Processing Options
     'processing.options': 'Opciones de Procesamiento',
     'processing.batchMode': 'Modo Lote',
     'processing.individualMode': 'Modo Individual',
     'processing.compressionRatio': 'Relación de Compresión',
     'processing.threshold': 'Umbral',
-    'processing.thresholdInfo': 'Controla cuándo se aplica la compresión a la señal',
-    'processing.normalizationInfo': 'Limitado a 0dB a -3dB para estabilidad óptima en escenarios en vivo/transmisión',
-    'processing.width': 'Ancho',
-    'processing.stereoWideningInfo': 'Mejora estéreo sutil. Valores >70% pueden causar problemas de fase.',
-    'processing.antiPhaseWarning': '⚠️ ¡Territorio de antifase! Riesgo de cancelación de fase.',
     'processing.premiumRequired': 'Se requiere suscripción premium para esta función',
-
-    // EQ Presets
     'eq.professionalPresets': 'Presets Profesionales de EQ',
     'eq.autoGainCompensation': 'Compensación Automática de Ganancia',
     'eq.gainComp': 'Comp. Ganancia',
-    'eq.compensationExplanation': 'Todos los presets incluyen compensación automática de ganancia para comparación A/B objetiva a volumen percibido igual',
-
-    // Real-time Audio Player
-    'player.realtimePreview': 'Vista Previa de Audio en Tiempo Real',
+    'eq.compensationExplanation': 'Todos los presets incluyen compensación automática de ganancia',
+    'player.realtimePreview': 'Vista Previa en Tiempo Real',
     'player.noAudioLoaded': 'No hay archivo de audio cargado',
     'player.realtimeProcessing': '⚡ Procesamiento en tiempo real activo - escucha los cambios instantáneamente',
+    'eq.band1': 'Graves / Sub', 'eq.band1Freq': '50 Hz', 'eq.band1Range': '20-85 Hz',
+    'eq.band2': 'Medios Bajos / Pegada', 'eq.band2Freq': '145 Hz', 'eq.band2Range': '85-356 Hz',
+    'eq.band3': 'Medios', 'eq.band3Freq': '874 Hz', 'eq.band3Range': '356-2.2k Hz',
+    'eq.band4': 'Medios Altos / Presencia', 'eq.band4Freq': '5.56 kHz', 'eq.band4Range': '2.2k-9.8k Hz',
+    'eq.band5': 'Agudos / Aire', 'eq.band5Freq': '17.2 kHz', 'eq.band5Range': '9.8k-20k Hz',
+    'eq.psychoacousticInfo': 'El rango predeterminado ha seleccionado frecuencias psicoacústicamente agradables al oído humano.',
+  },
 
-    // EQ Band Names
-    'eq.band1': 'Graves / Sub',
-    'eq.band1Freq': '50 Hz',
-    'eq.band1Range': '20-85 Hz',
-    'eq.band2': 'Medios Bajos / Pegada',
-    'eq.band2Freq': '145 Hz',
-    'eq.band2Range': '85-356 Hz',
-    'eq.band3': 'Medios',
-    'eq.band3Freq': '874 Hz',
-    'eq.band3Range': '356-2.2k Hz',
-    'eq.band4': 'Medios Altos / Presencia',
-    'eq.band4Freq': '5.56 kHz',
-    'eq.band4Range': '2.2k-9.8k Hz',
-    'eq.band5': 'Agudos / Aire',
-    'eq.band5Freq': '17.2 kHz',
-    'eq.band5Range': '9.8k-20k Hz',
-    'eq.psychoacousticInfo': 'El rango predeterminado ha seleccionado frecuencias que son psicoacústicamente agradables al oído humano, resaltando naturalmente los tonos más embellecedores en el audio.',
-  }
+  // ═══════════════════════════════════════════
+  //  FRENCH
+  // ═══════════════════════════════════════════
+  FR: {
+    'header.title': 'Processeur Audio Level',
+    'header.upload': 'Télécharger',
+    'header.enhance': 'Améliorer',
+    'header.settings': 'Paramètres',
+    'eq.preset.flat': 'Plat',
+    'eq.preset.bassBoost': 'Renfort Basses',
+    'eq.preset.vocalEnhance': 'Amélioration Vocale',
+    'eq.preset.bright': 'Brillant',
+    'eq.preset.warm': 'Chaud',
+    'eq.preset.club': 'Club',
+    'eq.preset.rock': 'Rock',
+    'eq.preset.jazz': 'Jazz',
+    'upload.title': 'Télécharger des Fichiers Audio',
+    'upload.dragDrop': 'Glissez-déposez vos fichiers audio ici',
+    'upload.clickSelect': 'ou cliquez pour sélectionner',
+    'upload.supportedFormats': 'MP3, WAV, FLAC, OGG, M4A, AAC',
+    'upload.limits': 'Max 20 fichiers • 100 Mo chacun',
+    'tracks.title': 'Liste des Pistes',
+    'tracks.noTracks': 'Aucune piste téléchargée',
+    'tracks.uploadToStart': 'Téléchargez des fichiers audio pour commencer',
+    'tracks.songName': 'Nom du Morceau',
+    'tracks.fileSize': 'Taille du Fichier',
+    'tracks.status': 'Statut',
+    'tracks.conversion': 'Conversion',
+    'tracks.fileInfo': 'Info Fichier',
+    'tracks.download': 'Télécharger',
+    'tracks.totalFiles': 'Fichiers Totaux',
+    'tracks.inQueue': 'En File',
+    'tracks.processing': 'En Traitement',
+    'tracks.completed': 'Terminés',
+    'button.spectrum': 'Spectre',
+    'button.enhance': 'Améliorer',
+    'button.enhanceAll': 'Améliorer Tous',
+    'button.downloadAll': 'Tout Télécharger',
+    'button.clear': 'Effacer',
+    'button.clearDownloaded': 'Effacer Téléchargés',
+    'button.download': 'Télécharger',
+    'button.info': 'Info',
+    'button.reset': 'Réinitialiser',
+    'button.save': 'Enregistrer',
+    'button.load': 'Charger',
+    'button.cancel': 'Annuler',
+    'button.ok': 'OK',
+    'status.loading': 'Chargement',
+    'status.ready': 'Prêt',
+    'status.processing': 'En Traitement',
+    'status.error': 'Erreur',
+    'status.enhanced': 'Amélioré',
+    'status.queue': 'File d\'attente',
+    'enhance.title': 'Amélioration Audio Avancée',
+    'enhance.format': 'Format',
+    'enhance.quality': 'Qualité',
+    'enhance.outputSize': 'Taille de Sortie',
+    'enhance.outputSettings': 'Paramètres de Sortie',
+    'enhance.processingOptions': 'Options de Traitement',
+    'enhance.equalizer': 'Égaliseur & Préréglages',
+    'settings.outputFormat': 'Format de Sortie',
+    'settings.sampleRate': 'Fréquence d\'Échantillonnage',
+    'settings.bitDepth': 'Profondeur de Bits',
+    'settings.bitrate': 'Débit Binaire',
+    'settings.noiseReduction': 'Réduction du Bruit',
+    'settings.normalization': 'Normalisation Audio',
+    'settings.compression': 'Compression Dynamique',
+    'settings.stereoWidening': 'Élargissement Stéréo',
+    'settings.bassBoost': 'Renfort Basses',
+    'settings.trebleEnhancement': 'Renfort Aigus',
+    'settings.gainAdjustment': 'Ajustement du Gain',
+    'eq.title': 'Égaliseur 10 Bandes',
+    'eq.enable': 'Activer Égaliseur',
+    'eq.presets': 'Préréglages EQ',
+    'eq.enableEqualizer': 'Activer Égaliseur',
+    'eq.tenBandEqualizer': 'Égaliseur 10 Bandes',
+    'eq.eqPresets': 'Préréglages EQ',
+    'eq.reset': 'Réinitialiser',
+    'conversion.source': 'Source',
+    'conversion.output': 'Sortie',
+    'conversion.size': 'Taille',
+    'conversion.noConversion': 'Pas de conversion',
+    'dialog.downloadAll.title': 'Télécharger Plusieurs Fichiers',
+    'dialog.downloadAll.message': 'Voulez-vous télécharger {count} fichiers ?',
+    'dialog.downloadAll.confirm': 'Oui, tout télécharger',
+    'toast.noFiles': 'Aucun fichier à traiter',
+    'toast.uploadFirst': 'Veuillez d\'abord télécharger des fichiers audio',
+    'toast.enhancementComplete': 'Amélioration Terminée !',
+    'toast.enhancementFailed': 'Amélioration échouée',
+    'toast.downloadComplete': 'Téléchargement Terminé',
+    'toast.downloadFailed': 'Téléchargement Échoué',
+    'toast.filesCleared': 'Fichiers effacés',
+    'stats.total': 'Fichiers Totaux',
+    'stats.uploaded': 'File',
+    'stats.processing': 'En Traitement',
+    'stats.enhanced': 'Terminés',
+    'aiMastering.title': 'Mastering Audio IA',
+    'aiMastering.description': 'Mastering professionnel propulsé par l\'IA',
+    'aiMastering.premiumFeature': 'Fonction Premium',
+    'aiMastering.unlockMessage': 'Débloquez le mastering IA pour sublimer vos pistes',
+    'aiMastering.feature1': 'Analyse et amélioration audio par IA',
+    'aiMastering.feature2': 'Correspondance parfaite avec vos pistes de référence',
+    'aiMastering.feature3': 'Préréglages professionnels par genre',
+    'aiMastering.upgradeToPremium': 'Passer à Premium',
+    'aiMastering.admin': 'ADMIN',
+    'aiMastering.premium': 'PREMIUM',
+    'aiMastering.customReference': 'Référence Personnalisée',
+    'aiMastering.genrePresets': 'Préréglages de Genre',
+    'aiMastering.targetTrack': 'Piste Cible',
+    'aiMastering.referenceTrack': 'Piste de Référence',
+    'aiMastering.selectGenre': 'Sélectionner un Genre',
+    'aiMastering.selectPreset': 'Sélectionner un Préréglage',
+    'aiMastering.masterTrack': 'Masteriser Ma Piste',
+    'aiMastering.processing': 'En Traitement',
+    'aiMastering.processingMessage': 'Cela peut prendre quelques minutes selon la taille du fichier',
+    'aiMastering.infoBanner': 'Vos données audio ne sont jamais envoyées à un serveur, tout le traitement se fait localement dans votre navigateur.',
+    'aiMastering.settings': 'Paramètres',
+    'aiMastering.success': 'Mastering Terminé !',
+    'aiMastering.successMessage': 'Votre piste a été masterisée avec succès',
+    'aiMastering.error': 'Mastering Échoué',
+    'aiMastering.errorMessage': 'Échec du traitement de votre piste. Veuillez réessayer.',
+    'aiMastering.complete': 'Mastering Terminé !',
+    'aiMastering.dragOrClick': 'Glissez-déposez ou cliquez pour sélectionner',
+    'aiMastering.dropFile': 'Déposez votre fichier ici',
+    'processing.options': 'Options de Traitement',
+    'processing.batchMode': 'Mode Lot',
+    'processing.individualMode': 'Mode Individuel',
+    'processing.premiumRequired': 'Abonnement premium requis pour cette fonction',
+    'eq.professionalPresets': 'Préréglages EQ Professionnels',
+    'eq.autoGainCompensation': 'Compensation Automatique du Gain',
+    'eq.gainComp': 'Comp. Gain',
+    'eq.compensationExplanation': 'Tous les préréglages incluent une compensation automatique du gain',
+    'player.realtimePreview': 'Aperçu Audio en Temps Réel',
+    'player.noAudioLoaded': 'Aucun fichier audio chargé',
+    'player.realtimeProcessing': '⚡ Traitement en temps réel actif - écoutez les changements instantanément',
+    'eq.band1': 'Graves / Sub', 'eq.band1Freq': '50 Hz', 'eq.band1Range': '20-85 Hz',
+    'eq.band2': 'Médiums Bas / Punch', 'eq.band2Freq': '145 Hz', 'eq.band2Range': '85-356 Hz',
+    'eq.band3': 'Médiums', 'eq.band3Freq': '874 Hz', 'eq.band3Range': '356-2.2k Hz',
+    'eq.band4': 'Médiums Hauts / Présence', 'eq.band4Freq': '5.56 kHz', 'eq.band4Range': '2.2k-9.8k Hz',
+    'eq.band5': 'Aigus / Air', 'eq.band5Freq': '17.2 kHz', 'eq.band5Range': '9.8k-20k Hz',
+    'eq.psychoacousticInfo': 'La plage par défaut utilise des fréquences psychoacoustiquement agréables à l\'oreille humaine.',
+  },
+
+  // ═══════════════════════════════════════════
+  //  GERMAN
+  // ═══════════════════════════════════════════
+  DE: {
+    'header.title': 'Level Audio Prozessor',
+    'header.upload': 'Hochladen',
+    'header.enhance': 'Verbessern',
+    'header.settings': 'Einstellungen',
+    'eq.preset.flat': 'Flach',
+    'eq.preset.bassBoost': 'Bass Verstärkung',
+    'eq.preset.vocalEnhance': 'Gesangsverbesserung',
+    'eq.preset.bright': 'Hell',
+    'eq.preset.warm': 'Warm',
+    'eq.preset.club': 'Club',
+    'eq.preset.rock': 'Rock',
+    'eq.preset.jazz': 'Jazz',
+    'upload.title': 'Audiodateien Hochladen',
+    'upload.dragDrop': 'Audiodateien hierher ziehen',
+    'upload.clickSelect': 'oder klicken zum Auswählen',
+    'upload.supportedFormats': 'MP3, WAV, FLAC, OGG, M4A, AAC',
+    'upload.limits': 'Max 20 Dateien • 100 MB pro Datei',
+    'tracks.title': 'Titelliste',
+    'tracks.noTracks': 'Keine Titel hochgeladen',
+    'tracks.uploadToStart': 'Laden Sie Audiodateien hoch, um zu beginnen',
+    'tracks.songName': 'Titelname',
+    'tracks.fileSize': 'Dateigröße',
+    'tracks.status': 'Status',
+    'tracks.conversion': 'Konvertierung',
+    'tracks.fileInfo': 'Datei-Info',
+    'tracks.download': 'Herunterladen',
+    'tracks.totalFiles': 'Dateien Gesamt',
+    'tracks.inQueue': 'In Warteschlange',
+    'tracks.processing': 'Verarbeitung',
+    'tracks.completed': 'Abgeschlossen',
+    'button.spectrum': 'Spektrum',
+    'button.enhance': 'Verbessern',
+    'button.enhanceAll': 'Alle Verbessern',
+    'button.downloadAll': 'Alle Herunterladen',
+    'button.clear': 'Löschen',
+    'button.clearDownloaded': 'Heruntergeladene Löschen',
+    'button.download': 'Herunterladen',
+    'button.info': 'Info',
+    'button.reset': 'Zurücksetzen',
+    'button.save': 'Speichern',
+    'button.load': 'Laden',
+    'button.cancel': 'Abbrechen',
+    'button.ok': 'OK',
+    'status.loading': 'Laden',
+    'status.ready': 'Bereit',
+    'status.processing': 'Verarbeitung',
+    'status.error': 'Fehler',
+    'status.enhanced': 'Verbessert',
+    'status.queue': 'Warteschlange',
+    'enhance.title': 'Erweiterte Audiobearbeitung',
+    'enhance.format': 'Format',
+    'enhance.quality': 'Qualität',
+    'enhance.outputSize': 'Ausgabegröße',
+    'enhance.outputSettings': 'Ausgabeeinstellungen',
+    'enhance.processingOptions': 'Verarbeitungsoptionen',
+    'enhance.equalizer': 'Equalizer & Voreinstellungen',
+    'settings.outputFormat': 'Ausgabeformat',
+    'settings.sampleRate': 'Abtastrate',
+    'settings.bitDepth': 'Bittiefe',
+    'settings.bitrate': 'Bitrate',
+    'settings.noiseReduction': 'Rauschunterdrückung',
+    'settings.normalization': 'Audio-Normalisierung',
+    'settings.compression': 'Dynamik-Kompression',
+    'settings.stereoWidening': 'Stereo-Erweiterung',
+    'settings.bassBoost': 'Bass Verstärkung',
+    'settings.trebleEnhancement': 'Höhen Verstärkung',
+    'settings.gainAdjustment': 'Gain Anpassung',
+    'eq.title': '10-Band Equalizer',
+    'eq.enable': 'Equalizer Aktivieren',
+    'eq.presets': 'EQ Voreinstellungen',
+    'eq.enableEqualizer': 'Equalizer Aktivieren',
+    'eq.tenBandEqualizer': '10-Band Equalizer',
+    'eq.eqPresets': 'EQ Voreinstellungen',
+    'eq.reset': 'Zurücksetzen',
+    'conversion.source': 'Quelle',
+    'conversion.output': 'Ausgabe',
+    'conversion.size': 'Größe',
+    'conversion.noConversion': 'Keine Konvertierung',
+    'dialog.downloadAll.title': 'Mehrere Dateien Herunterladen',
+    'dialog.downloadAll.message': 'Möchten Sie {count} Dateien herunterladen?',
+    'dialog.downloadAll.confirm': 'Ja, alle herunterladen',
+    'toast.noFiles': 'Keine Dateien zum Verarbeiten',
+    'toast.uploadFirst': 'Bitte laden Sie zuerst Audiodateien hoch',
+    'toast.enhancementComplete': 'Verbesserung Abgeschlossen!',
+    'toast.enhancementFailed': 'Verbesserung fehlgeschlagen',
+    'toast.downloadComplete': 'Download Abgeschlossen',
+    'toast.downloadFailed': 'Download Fehlgeschlagen',
+    'toast.filesCleared': 'Dateien gelöscht',
+    'stats.total': 'Dateien Gesamt',
+    'stats.uploaded': 'Warteschlange',
+    'stats.processing': 'Verarbeitung',
+    'stats.enhanced': 'Abgeschlossen',
+    'aiMastering.title': 'KI Audio Mastering',
+    'aiMastering.description': 'Professionelles Mastering mit KI-Technologie',
+    'aiMastering.premiumFeature': 'Premium-Funktion',
+    'aiMastering.unlockMessage': 'Schalten Sie KI-Mastering frei, um Ihre Titel zu optimieren',
+    'aiMastering.feature1': 'KI-gestützte Audioanalyse und -verbesserung',
+    'aiMastering.feature2': 'Perfekte Übereinstimmung mit Ihren Referenztiteln',
+    'aiMastering.feature3': 'Professionelle genrespezifische Voreinstellungen',
+    'aiMastering.upgradeToPremium': 'Auf Premium Upgraden',
+    'aiMastering.admin': 'ADMIN',
+    'aiMastering.premium': 'PREMIUM',
+    'aiMastering.customReference': 'Eigene Referenz',
+    'aiMastering.genrePresets': 'Genre-Voreinstellungen',
+    'aiMastering.targetTrack': 'Zieltitel',
+    'aiMastering.referenceTrack': 'Referenztitel',
+    'aiMastering.selectGenre': 'Genre Wählen',
+    'aiMastering.selectPreset': 'Voreinstellung Wählen',
+    'aiMastering.masterTrack': 'Meinen Titel Mastern',
+    'aiMastering.processing': 'Verarbeitung',
+    'aiMastering.processingMessage': 'Dies kann je nach Dateigröße einige Minuten dauern',
+    'aiMastering.infoBanner': 'Ihre Audiodaten werden nie auf einen Server hochgeladen, die gesamte Verarbeitung erfolgt lokal in Ihrem Browser.',
+    'aiMastering.settings': 'Einstellungen',
+    'aiMastering.success': 'Mastering Abgeschlossen!',
+    'aiMastering.successMessage': 'Ihr Titel wurde erfolgreich gemastert',
+    'aiMastering.error': 'Mastering Fehlgeschlagen',
+    'aiMastering.errorMessage': 'Verarbeitung Ihres Titels fehlgeschlagen. Bitte versuchen Sie es erneut.',
+    'aiMastering.complete': 'Mastering Abgeschlossen!',
+    'aiMastering.dragOrClick': 'Ziehen & Ablegen oder klicken zum Auswählen',
+    'aiMastering.dropFile': 'Datei hier ablegen',
+    'processing.options': 'Verarbeitungsoptionen',
+    'processing.batchMode': 'Stapelmodus',
+    'processing.individualMode': 'Einzelmodus',
+    'processing.premiumRequired': 'Premium-Abonnement für diese Funktion erforderlich',
+    'eq.professionalPresets': 'Professionelle EQ-Voreinstellungen',
+    'eq.autoGainCompensation': 'Automatische Gain-Kompensation',
+    'eq.gainComp': 'Gain-Komp.',
+    'eq.compensationExplanation': 'Alle Voreinstellungen beinhalten automatische Gain-Kompensation',
+    'player.realtimePreview': 'Echtzeit-Audio-Vorschau',
+    'player.noAudioLoaded': 'Keine Audiodatei geladen',
+    'player.realtimeProcessing': '⚡ Echtzeit-Verarbeitung aktiv - Änderungen sofort hören',
+    'eq.band1': 'Tief / Sub', 'eq.band1Freq': '50 Hz', 'eq.band1Range': '20-85 Hz',
+    'eq.band2': 'Tief-Mitten / Punch', 'eq.band2Freq': '145 Hz', 'eq.band2Range': '85-356 Hz',
+    'eq.band3': 'Mitten', 'eq.band3Freq': '874 Hz', 'eq.band3Range': '356-2.2k Hz',
+    'eq.band4': 'Hoch-Mitten / Präsenz', 'eq.band4Freq': '5.56 kHz', 'eq.band4Range': '2.2k-9.8k Hz',
+    'eq.band5': 'Höhen / Luft', 'eq.band5Freq': '17.2 kHz', 'eq.band5Range': '9.8k-20k Hz',
+    'eq.psychoacousticInfo': 'Der Standardbereich verwendet psychoakustisch angenehme Frequenzen für das menschliche Ohr.',
+  },
+
+  // ═══════════════════════════════════════════
+  //  ITALIAN
+  // ═══════════════════════════════════════════
+  IT: {
+    'header.title': 'Processore Audio Level',
+    'header.upload': 'Carica',
+    'header.enhance': 'Migliora',
+    'header.settings': 'Impostazioni',
+    'eq.preset.flat': 'Piatto',
+    'eq.preset.bassBoost': 'Potenziamento Bassi',
+    'eq.preset.vocalEnhance': 'Miglioramento Voce',
+    'eq.preset.bright': 'Brillante',
+    'eq.preset.warm': 'Caldo',
+    'eq.preset.club': 'Club',
+    'eq.preset.rock': 'Rock',
+    'eq.preset.jazz': 'Jazz',
+    'upload.title': 'Carica File Audio',
+    'upload.dragDrop': 'Trascina i tuoi file audio qui',
+    'upload.clickSelect': 'o clicca per selezionare',
+    'upload.supportedFormats': 'MP3, WAV, FLAC, OGG, M4A, AAC',
+    'upload.limits': 'Max 20 file • 100 MB ciascuno',
+    'tracks.title': 'Lista Tracce',
+    'tracks.noTracks': 'Nessuna traccia caricata',
+    'tracks.uploadToStart': 'Carica file audio per iniziare',
+    'tracks.songName': 'Nome Brano',
+    'tracks.fileSize': 'Dimensione File',
+    'tracks.status': 'Stato',
+    'tracks.conversion': 'Conversione',
+    'tracks.fileInfo': 'Info File',
+    'tracks.download': 'Scarica',
+    'tracks.totalFiles': 'File Totali',
+    'tracks.inQueue': 'In Coda',
+    'tracks.processing': 'In Elaborazione',
+    'tracks.completed': 'Completati',
+    'button.spectrum': 'Spettro',
+    'button.enhance': 'Migliora',
+    'button.enhanceAll': 'Migliora Tutti',
+    'button.downloadAll': 'Scarica Tutti',
+    'button.clear': 'Cancella',
+    'button.clearDownloaded': 'Cancella Scaricati',
+    'button.download': 'Scarica',
+    'button.info': 'Info',
+    'button.reset': 'Ripristina',
+    'button.save': 'Salva',
+    'button.load': 'Carica',
+    'button.cancel': 'Annulla',
+    'button.ok': 'OK',
+    'status.loading': 'Caricamento',
+    'status.ready': 'Pronto',
+    'status.processing': 'In Elaborazione',
+    'status.error': 'Errore',
+    'status.enhanced': 'Migliorato',
+    'status.queue': 'Coda',
+    'enhance.title': 'Miglioramento Audio Avanzato',
+    'enhance.format': 'Formato',
+    'enhance.quality': 'Qualità',
+    'enhance.outputSize': 'Dimensione Output',
+    'enhance.outputSettings': 'Impostazioni di Output',
+    'enhance.processingOptions': 'Opzioni di Elaborazione',
+    'enhance.equalizer': 'Equalizzatore & Preset',
+    'settings.outputFormat': 'Formato di Output',
+    'settings.sampleRate': 'Frequenza di Campionamento',
+    'settings.bitDepth': 'Profondità di Bit',
+    'settings.bitrate': 'Bitrate',
+    'settings.noiseReduction': 'Riduzione Rumore',
+    'settings.normalization': 'Normalizzazione Audio',
+    'settings.compression': 'Compressione Dinamica',
+    'settings.stereoWidening': 'Allargamento Stereo',
+    'settings.bassBoost': 'Potenziamento Bassi',
+    'settings.trebleEnhancement': 'Potenziamento Alti',
+    'settings.gainAdjustment': 'Regolazione Gain',
+    'eq.title': 'Equalizzatore 10 Bande',
+    'eq.enable': 'Attiva Equalizzatore',
+    'eq.presets': 'Preset EQ',
+    'eq.enableEqualizer': 'Attiva Equalizzatore',
+    'eq.tenBandEqualizer': 'Equalizzatore 10 Bande',
+    'eq.eqPresets': 'Preset EQ',
+    'eq.reset': 'Ripristina',
+    'conversion.source': 'Sorgente',
+    'conversion.output': 'Output',
+    'conversion.size': 'Dimensione',
+    'conversion.noConversion': 'Nessuna conversione',
+    'dialog.downloadAll.title': 'Scarica File Multipli',
+    'dialog.downloadAll.message': 'Vuoi scaricare {count} file?',
+    'dialog.downloadAll.confirm': 'Sì, scarica tutti',
+    'toast.noFiles': 'Nessun file da elaborare',
+    'toast.uploadFirst': 'Per favore carica prima dei file audio',
+    'toast.enhancementComplete': 'Miglioramento Completato!',
+    'toast.enhancementFailed': 'Miglioramento fallito',
+    'toast.downloadComplete': 'Download Completato',
+    'toast.downloadFailed': 'Download Fallito',
+    'toast.filesCleared': 'File cancellati',
+    'stats.total': 'File Totali',
+    'stats.uploaded': 'Coda',
+    'stats.processing': 'In Elaborazione',
+    'stats.enhanced': 'Completati',
+    'aiMastering.title': 'Mastering Audio IA',
+    'aiMastering.description': 'Mastering professionale alimentato dall\'IA',
+    'aiMastering.premiumFeature': 'Funzione Premium',
+    'aiMastering.unlockMessage': 'Sblocca il mastering IA per portare le tue tracce al livello successivo',
+    'aiMastering.feature1': 'Analisi e miglioramento audio con IA',
+    'aiMastering.feature2': 'Corrispondenza perfetta con le tue tracce di riferimento',
+    'aiMastering.feature3': 'Preset professionali specifici per genere',
+    'aiMastering.upgradeToPremium': 'Passa a Premium',
+    'aiMastering.admin': 'ADMIN',
+    'aiMastering.premium': 'PREMIUM',
+    'aiMastering.customReference': 'Riferimento Personalizzato',
+    'aiMastering.genrePresets': 'Preset di Genere',
+    'aiMastering.targetTrack': 'Traccia Obiettivo',
+    'aiMastering.referenceTrack': 'Traccia di Riferimento',
+    'aiMastering.selectGenre': 'Seleziona Genere',
+    'aiMastering.selectPreset': 'Seleziona Preset',
+    'aiMastering.masterTrack': 'Masterizza la Mia Traccia',
+    'aiMastering.processing': 'In Elaborazione',
+    'aiMastering.processingMessage': 'Potrebbe richiedere qualche minuto a seconda della dimensione del file',
+    'aiMastering.infoBanner': 'I tuoi dati audio non vengono mai caricati su nessun server, tutta l\'elaborazione avviene localmente nel tuo browser.',
+    'aiMastering.settings': 'Impostazioni',
+    'aiMastering.success': 'Mastering Completato!',
+    'aiMastering.successMessage': 'La tua traccia è stata masterizzata con successo',
+    'aiMastering.error': 'Mastering Fallito',
+    'aiMastering.errorMessage': 'Elaborazione della traccia fallita. Per favore riprova.',
+    'aiMastering.complete': 'Mastering Completato!',
+    'aiMastering.dragOrClick': 'Trascina e rilascia o clicca per selezionare',
+    'aiMastering.dropFile': 'Rilascia il tuo file qui',
+    'processing.options': 'Opzioni di Elaborazione',
+    'processing.batchMode': 'Modalità Batch',
+    'processing.individualMode': 'Modalità Individuale',
+    'processing.premiumRequired': 'Abbonamento premium richiesto per questa funzione',
+    'eq.professionalPresets': 'Preset EQ Professionali',
+    'eq.autoGainCompensation': 'Compensazione Automatica del Gain',
+    'eq.gainComp': 'Comp. Gain',
+    'eq.compensationExplanation': 'Tutti i preset includono la compensazione automatica del gain',
+    'player.realtimePreview': 'Anteprima Audio in Tempo Reale',
+    'player.noAudioLoaded': 'Nessun file audio caricato',
+    'player.realtimeProcessing': '⚡ Elaborazione in tempo reale attiva - ascolta le modifiche istantaneamente',
+    'eq.band1': 'Bassi / Sub', 'eq.band1Freq': '50 Hz', 'eq.band1Range': '20-85 Hz',
+    'eq.band2': 'Medio-bassi / Punch', 'eq.band2Freq': '145 Hz', 'eq.band2Range': '85-356 Hz',
+    'eq.band3': 'Medi', 'eq.band3Freq': '874 Hz', 'eq.band3Range': '356-2.2k Hz',
+    'eq.band4': 'Medio-alti / Presenza', 'eq.band4Freq': '5.56 kHz', 'eq.band4Range': '2.2k-9.8k Hz',
+    'eq.band5': 'Alti / Aria', 'eq.band5Freq': '17.2 kHz', 'eq.band5Range': '9.8k-20k Hz',
+    'eq.psychoacousticInfo': 'L\'intervallo predefinito utilizza frequenze psicoacusticamente piacevoli per l\'orecchio umano.',
+  },
 };
+
+// ─── Provider ───────────────────────────────────────────────────
 
 interface LanguageProviderProps {
   children: ReactNode;
 }
 
 export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) => {
-  const [language, setLanguage] = useState<Language>('EN');
+  const [language, setLanguageState] = useState<Language>(() => {
+    const saved = localStorage.getItem('level_language') as Language | null;
+    return saved && translations[saved] ? saved : 'EN';
+  });
+
+  const setLanguage = (lang: Language) => {
+    setLanguageState(lang);
+    localStorage.setItem('level_language', lang);
+  };
 
   const toggleLanguage = () => {
-    setLanguage(prev => prev === 'EN' ? 'ES' : 'EN');
+    const langs: Language[] = ['EN', 'ES', 'FR', 'DE', 'IT'];
+    const idx = langs.indexOf(language);
+    setLanguage(langs[(idx + 1) % langs.length]);
   };
 
   const t = (key: string): string => {
-    return translations[language][key as keyof typeof translations[typeof language]] || key;
+    return translations[language]?.[key] || translations.EN[key] || key;
   };
 
   return (
-    <LanguageContext.Provider value={{ language, toggleLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage, toggleLanguage, t }}>
       {children}
     </LanguageContext.Provider>
   );
 };
 
-export const useLanguage = (): LanguageContextType => {
+export const useLanguage = () => {
   const context = useContext(LanguageContext);
   if (context === undefined) {
     throw new Error('useLanguage must be used within a LanguageProvider');
   }
   return context;
-};
-
-// Header component example using the context
-export const Header: React.FC = () => {
-  const { language, toggleLanguage, t } = useLanguage();
-
-  return (
-    <header className="bg-slate-800 border-b border-slate-600 p-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-white">
-          {t('header.title')}
-        </h1>
-        <div className="flex items-center gap-4">
-          <nav className="flex items-center gap-4">
-            <a href="#upload" className="text-slate-300 hover:text-white">
-              {t('header.upload')}
-            </a>
-            <a href="#enhance" className="text-slate-300 hover:text-white">
-              {t('header.enhance')}
-            </a>
-            <a href="#settings" className="text-slate-300 hover:text-white">
-              {t('header.settings')}
-            </a>
-          </nav>
-          <button
-            onClick={toggleLanguage}
-            className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-          >
-            {language}
-          </button>
-        </div>
-      </div>
-    </header>
-  );
 };

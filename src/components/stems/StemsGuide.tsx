@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { BookOpen, Cpu, Music, HardDrive, AlertTriangle } from 'lucide-react';
+import { BookOpen, Cpu, Music, Zap, AlertTriangle, Clock, Shield } from 'lucide-react';
 
 export const StemsGuide = () => {
     return (
@@ -24,97 +24,121 @@ export const StemsGuide = () => {
                 <DialogHeader>
                     <DialogTitle className="text-2xl font-bold text-white flex items-center gap-2">
                         <Music className="w-6 h-6 text-cyan-400" />
-                        Stems Separation Guide
+                        Level Stem Separation Guide
                     </DialogTitle>
                     <DialogDescription className="text-slate-400">
-                        Everything you need to know about separating audio into stems with Level.
+                        Everything you need to know about separating audio into stems.
                     </DialogDescription>
                 </DialogHeader>
 
                 <ScrollArea className="h-[60vh] pr-4">
                     <div className="space-y-6">
 
-                        {/* Section 1: Introduction */}
-                        <div className="space-y-2">
+                        {/* How it Works */}
+                        <div className="bg-gradient-to-br from-cyan-500/5 to-purple-500/5 p-5 rounded-xl border border-slate-800/50 space-y-2">
                             <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                                 <Cpu className="w-5 h-5 text-purple-400" />
                                 How it Works
                             </h3>
                             <p className="text-sm text-slate-300 leading-relaxed">
-                                Level uses advanced AI models (powered by the Level Engine) to analyze your audio and surgically separate it into distinct tracks (stems). This process happens locally on your machine or via our dedicated processing server, ensuring high fidelity and privacy.
+                                Level uses the <span className="text-cyan-400 font-semibold">Level Stem Engine</span>, powered by HTDemucs AI on dedicated NVIDIA A100 GPU clusters. Your track is uploaded, processed in the cloud with lightning speed, and the separated stems are delivered back to you in seconds.
                             </p>
                         </div>
 
-                        {/* Section 2: System Requirements */}
-                        <div className="space-y-2">
+                        {/* Processing Speed */}
+                        <div className="bg-gradient-to-br from-green-500/5 to-emerald-500/5 p-5 rounded-xl border border-slate-800/50 space-y-3">
                             <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                                <HardDrive className="w-5 h-5 text-emerald-400" />
-                                System Requirements
+                                <Zap className="w-5 h-5 text-emerald-400" />
+                                Processing Speed
                             </h3>
-                            <div className="bg-slate-900/50 p-4 rounded-lg border border-slate-800 space-y-3">
-                                <div className="grid grid-cols-2 gap-4 text-sm">
-                                    <div>
-                                        <span className="font-medium text-slate-200">Minimum RAM:</span>
-                                        <p className="text-slate-400">8GB (16GB recommended)</p>
-                                    </div>
-                                    <div>
-                                        <span className="font-medium text-slate-200">Processor:</span>
-                                        <p className="text-slate-400">Multi-core CPU (Intel i5/Ryzen 5 or better)</p>
-                                    </div>
-                                    <div>
-                                        <span className="font-medium text-slate-200">GPU (Optional):</span>
-                                        <p className="text-slate-400">NVIDIA GPU with CUDA for faster processing</p>
-                                    </div>
-                                    <div>
-                                        <span className="font-medium text-slate-200">Storage:</span>
-                                        <p className="text-slate-400">~1GB per song for temporary files</p>
-                                    </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-slate-900/60 p-3 rounded-lg border border-slate-800/40">
+                                    <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Level Engine (Premium)</p>
+                                    <p className="text-lg font-bold text-emerald-400">~15–90 sec ⚡</p>
+                                    <p className="text-xs text-slate-400">GPU-accelerated cloud processing</p>
+                                </div>
+                                <div className="bg-slate-900/60 p-3 rounded-lg border border-slate-800/40">
+                                    <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Spleeter (Free)</p>
+                                    <p className="text-lg font-bold text-blue-400">~1–5 min</p>
+                                    <p className="text-xs text-slate-400">CPU cloud processing</p>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Section 3: Supported Formats */}
-                        <div className="space-y-2">
-                            <h3 className="text-lg font-semibold text-white">Supported Formats</h3>
-                            <ul className="list-disc list-inside text-sm text-slate-300 space-y-1 ml-2">
-                                <li><span className="text-cyan-400">Input:</span> MP3, WAV, FLAC, M4A, OGG</li>
-                                <li><span className="text-purple-400">Output:</span> High-quality WAV (32-bit float)</li>
-                            </ul>
+                        {/* What You Get */}
+                        <div className="bg-gradient-to-br from-indigo-500/5 to-violet-500/5 p-5 rounded-xl border border-slate-800/50 space-y-3">
+                            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                                <Clock className="w-5 h-5 text-indigo-400" />
+                                What You Get
+                            </h3>
+                            <div className="grid grid-cols-2 gap-2 text-sm">
+                                <div className="flex items-center gap-2 text-slate-300">
+                                    <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+                                    Vocals (isolated)
+                                </div>
+                                <div className="flex items-center gap-2 text-slate-300">
+                                    <span className="w-2 h-2 rounded-full bg-purple-400"></span>
+                                    Drums
+                                </div>
+                                <div className="flex items-center gap-2 text-slate-300">
+                                    <span className="w-2 h-2 rounded-full bg-pink-400"></span>
+                                    Bass
+                                </div>
+                                <div className="flex items-center gap-2 text-slate-300">
+                                    <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                                    Other instruments
+                                </div>
+                            </div>
+                            <p className="text-xs text-slate-400">6-stem mode also separates guitar and piano. Output: high-quality WAV (32-bit float).</p>
                         </div>
 
-                        {/* Section 4: Best Practices */}
-                        <div className="space-y-2">
-                            <h3 className="text-lg font-semibold text-white">Best Practices</h3>
+                        {/* Supported Formats */}
+                        <div className="bg-gradient-to-br from-pink-500/5 to-rose-500/5 p-5 rounded-xl border border-slate-800/50 space-y-2">
+                            <h3 className="text-lg font-semibold text-white">Supported Formats</h3>
+                            <div className="flex gap-2 flex-wrap">
+                                {['MP3', 'WAV', 'FLAC', 'M4A', 'OGG'].map(fmt => (
+                                    <span key={fmt} className="px-3 py-1 bg-slate-800/60 text-cyan-300 text-xs font-mono rounded-full border border-slate-700/40">
+                                        {fmt}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Security */}
+                        <div className="bg-gradient-to-br from-emerald-500/5 to-teal-500/5 p-5 rounded-xl border border-slate-800/50 space-y-2">
+                            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                                <Shield className="w-5 h-5 text-teal-400" />
+                                Privacy & Security
+                            </h3>
+                            <p className="text-sm text-slate-300 leading-relaxed">
+                                Your audio files are uploaded to our secure processing servers, separated, and then immediately deleted from our servers. We never store, share, or listen to your music. All transfers are encrypted via HTTPS.
+                            </p>
+                        </div>
+
+                        {/* Tips */}
+                        <div className="bg-gradient-to-br from-amber-500/5 to-yellow-500/5 p-5 rounded-xl border border-amber-900/30 space-y-2">
+                            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                                <AlertTriangle className="w-5 h-5 text-amber-400" />
+                                Tips & Troubleshooting
+                            </h3>
                             <ul className="space-y-2 text-sm text-slate-300">
                                 <li className="flex items-start gap-2">
-                                    <span className="text-cyan-400 font-bold">•</span>
+                                    <span className="text-cyan-400 font-bold mt-0.5">•</span>
                                     Use high-quality input files (WAV/FLAC) for the best separation results.
                                 </li>
                                 <li className="flex items-start gap-2">
-                                    <span className="text-cyan-400 font-bold">•</span>
-                                    Avoid files that are already heavily compressed or distorted.
+                                    <span className="text-cyan-400 font-bold mt-0.5">•</span>
+                                    Avoid heavily compressed or distorted files.
                                 </li>
                                 <li className="flex items-start gap-2">
-                                    <span className="text-cyan-400 font-bold">•</span>
-                                    Processing time varies by song length and hardware. A 3-minute song typically takes 2-5 minutes on a CPU.
+                                    <span className="text-cyan-400 font-bold mt-0.5">•</span>
+                                    Ensure a stable internet connection during processing.
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <span className="text-cyan-400 font-bold mt-0.5">•</span>
+                                    If processing fails, check your file format and try again.
                                 </li>
                             </ul>
-                        </div>
-
-                        {/* Section 5: Troubleshooting */}
-                        <div className="space-y-2">
-                            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                                <AlertTriangle className="w-5 h-5 text-amber-400" />
-                                Troubleshooting
-                            </h3>
-                            <div className="bg-amber-950/20 p-4 rounded-lg border border-amber-900/30 text-sm text-slate-300">
-                                <p className="mb-2"><span className="font-semibold text-amber-400">Processing Failed?</span></p>
-                                <ul className="list-disc list-inside space-y-1">
-                                    <li>Ensure you have a stable internet connection if using cloud processing.</li>
-                                    <li>Check that your file is not corrupted and is in a supported format.</li>
-                                    <li>If the app freezes, try processing a shorter file to test system stability.</li>
-                                </ul>
-                            </div>
                         </div>
 
                     </div>

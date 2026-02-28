@@ -85,9 +85,9 @@ export const UserHeader = ({ onLogout }: UserHeaderProps) => {
             setProfileModalTab("subscription");
             setShowProfile(true);
           }}
-          className="hidden sm:flex bg-slate-900/50 hover:bg-slate-800 backdrop-blur-md border border-slate-700/50 text-slate-300 font-medium h-9 px-4 rounded-full transition-all duration-300"
+          className="hidden sm:flex bg-slate-900/50 hover:bg-slate-800/70 backdrop-blur-md border border-slate-700/50 text-slate-300 font-medium h-9 px-4 rounded-full transition-colors duration-300"
         >
-          <Zap className="mr-2 h-4 w-4 text-cyan-400" />
+          <Zap className="mr-2 h-4 w-4 text-cyan-400/70" />
           {isPremium ? 'Plans' : 'Upgrade'}
         </Button>
 

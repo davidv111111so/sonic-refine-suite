@@ -36,7 +36,7 @@ interface Stem {
     isSoloed: boolean;
 }
 
-// Time estimates for each processing configuration (CPU-only Cloud Run, minutes)
+// Time estimates for each processing configuration
 const TIME_ESTIMATES: Record<string, Record<string, { min: number; max: number; label: string }>> = {
     spleeter: {
         fastest: { min: 1, max: 3, label: '~1-3 min' },
@@ -44,9 +44,9 @@ const TIME_ESTIMATES: Record<string, Record<string, { min: number; max: number; 
         normal: { min: 2, max: 5, label: '~2-5 min' },
     },
     demucs: {
-        fastest: { min: 15, max: 25, label: '~15-25 min' },
-        fast: { min: 25, max: 35, label: '~25-35 min' },
-        normal: { min: 35, max: 50, label: '~35-50 min' },
+        fastest: { min: 0.25, max: 0.5, label: '~15-30 sec ⚡' },
+        fast: { min: 0.5, max: 1, label: '~30-60 sec ⚡' },
+        normal: { min: 0.5, max: 1.5, label: '~30-90 sec ⚡' },
     },
 };
 

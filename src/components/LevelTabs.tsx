@@ -215,13 +215,22 @@ export const LevelTabs = ({
           </TabsTrigger>
           <div
             onClick={() => window.open('/mixer', '_blank')}
-            className="relative group h-full flex items-center justify-center gap-2 px-4 rounded-xl cursor-pointer transition-all duration-500 hover:bg-slate-800/80 overflow-hidden"
+            className="relative group h-full flex items-center justify-center gap-2 px-5 rounded-xl cursor-pointer transition-all duration-500 overflow-hidden bg-gradient-to-r from-pink-600/20 via-purple-600/20 to-indigo-600/20 border border-pink-500/40 hover:border-pink-400/80 hover:shadow-[0_0_25px_rgba(236,72,153,0.5),0_0_50px_rgba(147,51,234,0.3)] animate-[mixerPulse_3s_ease-in-out_infinite]"
             role="button"
             title="Open Mixer Lab in new window"
+            style={{
+              animation: 'mixerPulse 3s ease-in-out infinite',
+            }}
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-pink-500/10 via-purple-500/10 to-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-            <ExternalLink className="h-4 w-4 text-pink-400 drop-shadow-[0_0_8px_rgba(236,72,153,0.8)] group-hover:scale-110 transition-transform duration-300" />
-            <span className="text-lg font-black tracking-wide bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(192,132,252,0.4)] group-hover:drop-shadow-[0_0_20px_rgba(192,132,252,0.8)] transition-all duration-300">Mixer Lab</span>
+            <style>{`
+              @keyframes mixerPulse {
+                0%, 100% { box-shadow: 0 0 8px rgba(236,72,153,0.3), 0 0 16px rgba(147,51,234,0.15); }
+                50% { box-shadow: 0 0 16px rgba(236,72,153,0.5), 0 0 32px rgba(147,51,234,0.25); }
+              }
+            `}</style>
+            <div className="absolute inset-0 bg-gradient-to-r from-pink-500/15 via-purple-500/15 to-indigo-500/15 group-hover:from-pink-500/30 group-hover:via-purple-500/30 group-hover:to-indigo-500/30 transition-all duration-500"></div>
+            <ExternalLink className="h-4 w-4 text-pink-300 drop-shadow-[0_0_10px_rgba(236,72,153,1)] group-hover:scale-125 transition-transform duration-300" />
+            <span className="text-lg font-black tracking-wider bg-gradient-to-r from-pink-300 via-fuchsia-300 to-indigo-300 bg-clip-text text-transparent drop-shadow-[0_0_20px_rgba(236,72,153,0.8)] group-hover:drop-shadow-[0_0_30px_rgba(236,72,153,1)] transition-all duration-300">Mixer Lab</span>
             <PremiumBadge locked={!hasPremiumAccess} />
           </div>
         </TabsList>

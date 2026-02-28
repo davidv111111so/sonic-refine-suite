@@ -20,9 +20,9 @@ import { AudioFile, AudioStats } from '@/types/audio';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { Crown, Menu } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { usePlayer } from '@/contexts/PlayerContext';
-import { SubscriptionModal } from '@/components/payment/SubscriptionModal';
+
 import {
   Sheet,
   SheetContent,
@@ -49,7 +49,7 @@ const Index = () => {
   const [eqEnabled, setEqEnabled] = useState(true);
   const [processingQueue, setProcessingQueue] = useState<AudioFile[]>([]);
   const [enhancedHistory, setEnhancedHistory] = useState<AudioFile[]>([]);
-  const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
+
   const { toast } = useToast();
   const { addToHistory } = useEnhancementHistory();
 
@@ -486,13 +486,6 @@ const Index = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-3">
-            <Button
-              onClick={() => setIsPremiumModalOpen(true)}
-              className="bg-slate-900/50 hover:bg-slate-800 backdrop-blur-md border border-slate-700/50 text-slate-200 transition-all duration-300 shadow-sm"
-            >
-              <Crown className="h-4 w-4 mr-2 text-yellow-500/80" />
-              Premium
-            </Button>
             <UserHeader onLogout={handleLogoutCleanup} />
             <LanguageToggle />
             <Guide />
@@ -515,16 +508,7 @@ const Index = () => {
                   </SheetTitle>
                 </SheetHeader>
                 <div className="flex flex-col gap-6 py-4">
-                  <Button
-                    onClick={() => {
-                      setIsPremiumModalOpen(true);
-                      // Sheet closes automatically when clicking outside, or we could handle close state
-                    }}
-                    className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-white border-0 py-6 text-lg"
-                  >
-                    <Crown className="h-5 w-5 mr-3" />
-                    Go Premium
-                  </Button>
+
 
                   <div className="space-y-4">
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-2">Settings & info</p>
@@ -607,11 +591,8 @@ const Index = () => {
         <Footer />
       </div>
 
-      {/* Subscription Modal */}
-      <SubscriptionModal
-        isOpen={isPremiumModalOpen}
-        onClose={() => setIsPremiumModalOpen(false)}
-      />
+
+
 
       {/* Sticky Bottom Stats Bar */}
       {stats.total > 0 && (
