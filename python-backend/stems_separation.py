@@ -108,18 +108,89 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
             import torch
             import torchaudio
             
-            # Check for Commercial API Key for profitability
-            commercial_api_key = os.environ.get('COMMERCIAL_STEM_API_KEY')
-            if commercial_api_key:
-                print(f"[INFO] 💰 Commercial API key detected! Ready to route this request to commercial backend.")
-                # The exact API format depends on your chosen provider (e.g. StemSplit REST API or Moises.ai)
-                # You can swap out the local processing logic here with requests.post(...)
-            else:
-                print(f"[WARNING] ⚠️ COMMERCIAL_STEM_API_KEY not found in .env!")
-                print(f"[WARNING]    Processing premium stems on local CPU (Demucs).")
-                print(f"[WARNING]    This uses 15-30min of Cloud Run CPU and drains profitability for heavy users.")
-                print(f"[WARNING]    Action: Register for an API (Moises/StemSplit) and add the key to .env!")
+            # --- REPLICATE COMMERCIAL API INTEGRATION ---
+            replicate_api_token = os.environ.get('REPLICATE_API_TOKEN')
+            if replicate_api_token:
+                import replicate
+                import requests
+                import soundfile as sf
+                import numpy as np
+                
+                print(f"[INFO] 💰 Replicate API Token detected! Routing request to commercial GPU backend.")
+                if progress_callback: progress_callback(10)
+                
+                try:
+                    # Run Replicate explicitly
+                    print(f"   Uploading & running on Replicate's Demucs API (cjwbw/demucs)...")
+                    # Using the latest open-source htdemucs model version on Replicate for maximum quality
+                    with open(str(file_path), "rb") as audio_file:
+                        output = replicate.run(
+                            "cjwbw/demucs:25a173108cff36ef9f80f70f2f3b9c7cfcc686b24de8115eb3751d3822184ad2",
+                            input={"audio": audio_file}
+                        )
+                    
+                    if progress_callback: progress_callback(80)
+                    print(f"   [CORE] Commercial API separation completed. Downloading stems...")
+                    
+                    track_name = file_path.stem
+                    final_output_path = output_dir / model_name / track_name
+                    final_output_path.mkdir(parents=True, exist_ok=True)
+                    
+                    saved_files = []
+                    
+                    if isinstance(output, dict):
+                        for stem_name, stem_url in output.items():
+                            if stem_url and isinstance(stem_url, str) and stem_url.startswith('http'):
+                                print(f"   Downloading stem: {stem_name}...")
+                                stem_file_path = final_output_path / f"{stem_name}.wav"
+                                
+                                resp = requests.get(stem_url)
+                                resp.raise_for_status()
+                                with open(str(stem_file_path), 'wb') as f:
+                                    f.write(resp.content)
+                                    
+                                saved_files.append(str(stem_file_path))
+                    else:
+                        raise Exception(f"Unexpected output format from Replicate: {output}")
 
+                    # Handle 2-stems mixing
+                    if two_stems and any(Path(f).stem == 'vocals' for f in saved_files):
+                        print("   Mixing down to 2 stems (Vocals + Instrumental)...")
+                        vocals_path = next((f for f in saved_files if Path(f).stem == 'vocals'), None)
+                        other_paths = [f for f in saved_files if Path(f).stem != 'vocals']
+                        
+                        if vocals_path:
+                            vocals_np, sr = sf.read(vocals_path)
+                            inst_np = np.zeros_like(vocals_np)
+                            
+                            for p in other_paths:
+                                p_np, sr_p = sf.read(p)
+                                min_len = min(inst_np.shape[0], p_np.shape[0])
+                                inst_np[:min_len] += p_np[:min_len]
+                            
+                            inst_path = final_output_path / "instrumental.wav"
+                            sf.write(str(inst_path), inst_np, sr)
+                            
+                            # Update saved_files to only return the required 2 stems
+                            saved_files = [vocals_path, str(inst_path)]
+
+                    if progress_callback: progress_callback(100)
+                    
+                    return {
+                        "success": True,
+                        "output_path": str(final_output_path),
+                        "stems": saved_files
+                    }
+                    
+                except Exception as api_err:
+                    print(f"[ERROR] Replicate API Failed: {api_err}. Falling back to local CPU Demucs...")
+            else:
+                print(f"[WARNING] ⚠️ REPLICATE_API_TOKEN not found in .env!")
+                print(f"[WARNING]    Processing premium stems on local CPU (Demucs).")
+                print(f"[WARNING]    This drains profitability! Retrieve your Replicate API key to activate hardware acceleration.")
+
+            import torch
+            import torchaudio
             from demucs.pretrained import get_model
             from demucs.apply import apply_model
             import soundfile as sf
