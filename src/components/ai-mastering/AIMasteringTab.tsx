@@ -456,6 +456,14 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
     setIsProcessing(true);
     setProgress(0);
 
+    // Smooth progress simulation
+    let simulatedProgress = 0;
+    const progressInterval = setInterval(() => {
+      simulatedProgress += Math.random() * 1.5 + 0.3; // Small random increments (0.3-1.8%)
+      if (simulatedProgress > 92) simulatedProgress = 92; // Cap at 92% until real completion
+      setProgress(prev => Math.max(prev, simulatedProgress));
+    }, 800);
+
     try {
       toast.info("Mastering Started", {
         description: "AI Mastering can take 5-15 minutes depending on track length and hardware performance. Please stay on this page.",
@@ -474,16 +482,22 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
         { ...convertedSettings, target_lufs: targetLufs }, // Pass Target LUFS override
         (stage, percent) => {
           if (!isMounted.current || !isProcessingRef.current) return;
-          setProgress(percent);
+          // Merge real progress with simulated (take whichever is higher)
+          simulatedProgress = Math.max(simulatedProgress, percent);
+          setProgress(simulatedProgress);
           console.log(`Progress: ${stage} - ${percent.toFixed(0)}%`);
         }
       );
+
+      clearInterval(progressInterval);
 
       // Check if we should still proceed
       if (!isMounted.current || !isProcessingRef.current) {
         console.log("🛑 Mastering cancelled or component unmounted");
         return;
       }
+
+      setProgress(100);
 
       const { blob: resultBlob, analysis } = result;
       if (analysis) setAudioAnalysis(analysis);
@@ -500,6 +514,7 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
       toast.success("✅ Your track has been mastered with Matchering!");
       setIsMasteringComplete(true);
     } catch (err) {
+      clearInterval(progressInterval);
       if (!isMounted.current || !isProcessingRef.current) return;
       let errorMsg = "An error occurred during mastering";
       if (err instanceof Error) errorMsg = err.message;
@@ -508,6 +523,7 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
       setError(errorMsg);
       toast.error(errorMsg);
     } finally {
+      clearInterval(progressInterval);
       if (isMounted.current) {
         setIsProcessing(false);
         setProgress(0);
@@ -921,7 +937,7 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
                   {/* Progress Bar Overlay */}
                   {isProcessing && (
                     <div
-                      className="absolute bottom-0 left-0 h-2 bg-white/50 transition-all duration-300 ease-out"
+                      className="absolute bottom-0 left-0 h-2 bg-white/50 transition-all duration-1000 ease-in-out"
                       style={{ width: `${progress}%` }}
                     />
                   )}

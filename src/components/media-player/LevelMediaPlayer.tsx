@@ -10,7 +10,8 @@ import {
   Volume2,
   Repeat,
   Trash2,
-  ExternalLink
+  ExternalLink,
+  RotateCcw
 } from "lucide-react";
 // WaveSurfer removed
 import { DetailWaveform } from "../mixer/DetailWaveform";
@@ -658,15 +659,31 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
     <div className="space-y-6 p-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-white">Media Player</h2>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => window.open('/player', '_blank')}
-          className="flex items-center gap-2 border-cyan-500/30 text-cyan-400 hover:bg-cyan-950/30"
-        >
-          <ExternalLink className="w-4 h-4" />
-          <span>Open External Player</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setEqBands([...INITIAL_EQ_BANDS]);
+              setCompressorSettings({ ...INITIAL_COMPRESSOR });
+              setEffectsSettings({ ...INITIAL_EFFECTS });
+              toast.success('All settings reset to defaults');
+            }}
+            className="flex items-center gap-2 border-amber-500/30 text-amber-400 hover:bg-amber-950/30"
+          >
+            <RotateCcw className="w-4 h-4" />
+            <span>Reset All</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open('/player', '_blank')}
+            className="flex items-center gap-2 border-cyan-500/30 text-cyan-400 hover:bg-cyan-950/30"
+          >
+            <ExternalLink className="w-4 h-4" />
+            <span>Open External Player</span>
+          </Button>
+        </div>
       </div>
 
 
