@@ -17,3 +17,5 @@ torch
 torchvision
 torchaudio
 b2sdk
+replicate
+requests
