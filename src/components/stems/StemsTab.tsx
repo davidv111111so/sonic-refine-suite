@@ -318,7 +318,7 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
             }
             formData.append('stem_count', stemCount);
 
-            const engineLabel = processingLibrary === 'spleeter' ? 'Spleeter' : 'Demucs';
+            const engineLabel = processingLibrary === 'spleeter' ? 'Spleeter' : 'Level Engine';
             toast({
                 title: `🔬 ${engineLabel} Started (${speedMode.toUpperCase()} Mode)`,
                 description: `Estimated time: ${currentEstimate.label}. Please keep this tab open.`,
@@ -488,14 +488,14 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                                             ⚡ Spleeter (Fast — 2-5 min)
                                         </SelectItem>
                                         <SelectItem value="demucs">
-                                            🎧 Demucs (High Quality — 15-50 min)
+                                            🎧 Level Stem Separation (High Quality — 15-50 min)
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
                                 <p className="text-[10px] text-slate-500">
                                     {processingLibrary === 'spleeter'
                                         ? 'Spleeter is much faster but produces lower quality stems.'
-                                        : 'Demucs produces studio-quality stems but takes longer on CPU.'}
+                                        : 'Level Stem Separation produces studio-quality stems but takes longer on CPU.'}
                                 </p>
                             </div>
 
@@ -642,7 +642,7 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                                     <p className="text-xs text-slate-500 text-center mt-2">
                                         {processingLibrary === 'spleeter'
                                             ? 'Spleeter is processing your track. This should finish in a few minutes.'
-                                            : `Demucs AI is separating your track (${speedMode} mode). Estimated: ${currentEstimate.label}. Please keep this tab open.`}
+                                            : `Level Engine is separating your track (${speedMode} mode). Estimated: ${currentEstimate.label}. Please keep this tab open.`}
                                     </p>
                                 </div>
                             )}

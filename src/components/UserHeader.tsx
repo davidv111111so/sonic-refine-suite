@@ -27,6 +27,7 @@ export const UserHeader = ({ onLogout }: UserHeaderProps) => {
   const navigate = useNavigate();
   const { profile, isAdmin, isPremium, isVip, signOut } = useAuth();
   const [showProfile, setShowProfile] = useState(false);
+  const [profileModalTab, setProfileModalTab] = useState("profile");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const handleLogout = async () => {
@@ -80,10 +81,13 @@ export const UserHeader = ({ onLogout }: UserHeaderProps) => {
         <Button
           variant="default"
           size="sm"
-          onClick={() => setShowProfile(true)}
-          className="hidden sm:flex bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold h-9 px-4 rounded-full border-none shadow-[0_0_15px_rgba(59,130,246,0.3)] animate-pulse"
+          onClick={() => {
+            setProfileModalTab("subscription");
+            setShowProfile(true);
+          }}
+          className="hidden sm:flex bg-slate-900/50 hover:bg-slate-800 backdrop-blur-md border border-slate-700/50 text-slate-300 font-medium h-9 px-4 rounded-full transition-all duration-300"
         >
-          <Zap className="mr-2 h-4 w-4 fill-white" />
+          <Zap className="mr-2 h-4 w-4 text-cyan-400" />
           {isPremium ? 'Plans' : 'Upgrade'}
         </Button>
 
@@ -114,9 +118,9 @@ export const UserHeader = ({ onLogout }: UserHeaderProps) => {
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-              <Avatar className="h-10 w-10 border-2 border-cyan-500">
-                <AvatarFallback className="bg-gradient-to-r from-cyan-500 to-purple-500 text-white font-bold">
+            <Button variant="ghost" className="relative h-10 w-10 rounded-full border border-slate-700/50 bg-slate-900/50 hover:bg-slate-800 backdrop-blur-md">
+              <Avatar className="h-9 w-9">
+                <AvatarFallback className="bg-transparent text-slate-300 font-medium text-sm">
                   {profile.email?.[0].toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
@@ -124,7 +128,10 @@ export const UserHeader = ({ onLogout }: UserHeaderProps) => {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56 bg-slate-900 border-slate-700 z-[9999]">
             <DropdownMenuItem
-              onClick={() => setShowProfile(true)}
+              onClick={() => {
+                setProfileModalTab("profile");
+                setShowProfile(true);
+              }}
               className="text-white hover:bg-slate-800 cursor-pointer"
             >
               <UserIcon className="mr-2 h-4 w-4" />
@@ -162,6 +169,7 @@ export const UserHeader = ({ onLogout }: UserHeaderProps) => {
         onOpenChange={setShowProfile}
         profile={profile}
         isAdmin={isAdmin}
+        defaultTab={profileModalTab}
       />
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

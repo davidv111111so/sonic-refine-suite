@@ -488,9 +488,9 @@ const Index = () => {
           <div className="hidden md:flex items-center gap-3">
             <Button
               onClick={() => setIsPremiumModalOpen(true)}
-              className="bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-white border-0 shadow-lg shadow-amber-900/20 group"
+              className="bg-slate-900/50 hover:bg-slate-800 backdrop-blur-md border border-slate-700/50 text-slate-200 transition-all duration-300 shadow-sm"
             >
-              <Crown className="h-4 w-4 mr-2 group-hover:animate-bounce" />
+              <Crown className="h-4 w-4 mr-2 text-yellow-500/80" />
               Premium
             </Button>
             <UserHeader onLogout={handleLogoutCleanup} />

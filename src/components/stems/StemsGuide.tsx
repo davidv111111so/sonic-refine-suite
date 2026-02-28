@@ -41,7 +41,7 @@ export const StemsGuide = () => {
                                 How it Works
                             </h3>
                             <p className="text-sm text-slate-300 leading-relaxed">
-                                Level uses advanced AI models (powered by Hybrid Transformer Demucs) to analyze your audio and surgically separate it into distinct tracks (stems). This process happens locally on your machine or via our dedicated processing server, ensuring high fidelity and privacy.
+                                Level uses advanced AI models (powered by the Level Engine) to analyze your audio and surgically separate it into distinct tracks (stems). This process happens locally on your machine or via our dedicated processing server, ensuring high fidelity and privacy.
                             </p>
                         </div>
 

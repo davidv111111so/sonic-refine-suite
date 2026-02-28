@@ -19,6 +19,7 @@ interface ProfileModalProps {
   onOpenChange: (open: boolean) => void;
   profile: any;
   isAdmin: boolean;
+  defaultTab?: string;
 }
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({
@@ -26,6 +27,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   onOpenChange,
   profile,
   isAdmin,
+  defaultTab = "profile"
 }) => {
   const isPremium = profile?.tier === 'premium' || profile?.tier === 'admin';
 
@@ -46,7 +48,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           <DialogTitle className="text-2xl font-bold text-cyan-400">Account & Billing</DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="profile" className="w-full">
+        <Tabs defaultValue={defaultTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3 bg-slate-800">
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="subscription">Subscription</TabsTrigger>

@@ -90,10 +90,10 @@ export const Guide = () => {
       <Button
         variant="default"
         size="sm"
-        className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg hover:shadow-cyan-500/20 transition-all duration-300 font-bold"
+        className="bg-slate-900/50 hover:bg-slate-800 backdrop-blur-md border border-slate-700/50 text-slate-300 font-medium transition-all duration-300 shadow-sm"
         onClick={() => setOpen(true)}
       >
-        <BookOpen className="h-4 w-4 mr-2" />
+        <BookOpen className="h-4 w-4 mr-2 text-cyan-400" />
         Guide
       </Button>
 
