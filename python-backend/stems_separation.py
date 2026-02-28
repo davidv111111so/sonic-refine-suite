@@ -103,10 +103,23 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
                     "stems": [str(s) for s in stems]
                 }
 
-        # --- DEMUCS PATH (HIGH QUALITY) ---
+        # --- LEVEL STEM SEPARATION (PREMIUM PATH) ---
         if library == 'demucs':
             import torch
             import torchaudio
+            
+            # Check for Commercial API Key for profitability
+            commercial_api_key = os.environ.get('COMMERCIAL_STEM_API_KEY')
+            if commercial_api_key:
+                print(f"[INFO] 💰 Commercial API key detected! Ready to route this request to commercial backend.")
+                # The exact API format depends on your chosen provider (e.g. StemSplit REST API or Moises.ai)
+                # You can swap out the local processing logic here with requests.post(...)
+            else:
+                print(f"[WARNING] ⚠️ COMMERCIAL_STEM_API_KEY not found in .env!")
+                print(f"[WARNING]    Processing premium stems on local CPU (Demucs).")
+                print(f"[WARNING]    This uses 15-30min of Cloud Run CPU and drains profitability for heavy users.")
+                print(f"[WARNING]    Action: Register for an API (Moises/StemSplit) and add the key to .env!")
+
             from demucs.pretrained import get_model
             from demucs.apply import apply_model
             import soundfile as sf

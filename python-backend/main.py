@@ -859,8 +859,19 @@ def separate_audio_endpoint():
     
     user_id = user.get('id') if isinstance(user, dict) else (user.user.id if hasattr(user, 'user') else 'dev-user')
 
+    
+    # Enforce Tier Restrictions to ensure profitability
+    tier = 'free'
+    if user_id != 'dev-user':
+        try:
+            profile_res = supabase.table('profiles').select('tier').eq('id', user_id).execute()
+            if profile_res.data:
+                tier = profile_res.data[0].get('tier', 'free')
+        except Exception as e:
+            print(f"⚠️ Failed to fetch user tier to verify access limits: {e}")
+
     # Debug Request
-    print(f"✂️ Request Content-Type: {request.content_type}")
+    print(f"✂️ Request Content-Type: {request.content_type}, User Tier: {tier}")
     data = request.get_json(silent=True) or {}
     print(f"✂️ Request JSON Keys: {list(data.keys())}")
     
@@ -868,6 +879,10 @@ def separate_audio_endpoint():
     file_url = data.get('file_url') or request.form.get('file_url')
     
     library = data.get('library', request.form.get('library', 'demucs'))
+    if tier not in ['premium', 'vip', 'admin'] and library == 'demucs':
+        print(f"🔒 ACCESSS DENIED: User tier '{tier}' cannot use Level Stem Separation. Forcing Spleeter.")
+        library = 'spleeter'
+
     model_name = data.get('model_name', request.form.get('model_name', 'htdemucs'))
     shifts = int(data.get('shifts', request.form.get('shifts', 1)))
     stem_count = data.get('stem_count', request.form.get('stem_count', '4'))

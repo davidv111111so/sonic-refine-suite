@@ -17,6 +17,8 @@ import WaveSurfer from 'wavesurfer.js';
 import { StemsGuide } from './StemsGuide';
 import { saveAs } from 'file-saver';
 import { masteringService } from '@/services/masteringService';
+import { useAuth } from '@/contexts/AuthContext';
+import { Lock } from 'lucide-react';
 
 interface StemsTabProps {
     audioFiles: AudioFile[];
@@ -50,10 +52,11 @@ const TIME_ESTIMATES: Record<string, Record<string, { min: number; max: number; 
 
 export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProcessing, onComplete }: StemsTabProps) => {
     const { toast } = useToast();
+    const { isPremium } = useAuth();
     const [selectedFileId, setSelectedFileId] = useState<string>('');
     const [stemCount, setStemCount] = useState<string>('4');
     const [speedMode, setSpeedMode] = useState<string>('fast');
-    const [processingLibrary, setProcessingLibrary] = useState<string>('demucs');
+    const [processingLibrary, setProcessingLibrary] = useState<string>(isPremium ? 'demucs' : 'spleeter');
 
     // Reset stem count to 4 if switching to Spleeter while 6 is selected
     useEffect(() => {
@@ -487,15 +490,24 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                                         <SelectItem value="spleeter">
                                             ⚡ Spleeter (Fast — 2-5 min)
                                         </SelectItem>
-                                        <SelectItem value="demucs">
-                                            🎧 Level Stem Separation (High Quality — 15-50 min)
+                                        <SelectItem value="demucs" disabled={!isPremium}>
+                                            <div className="flex items-center gap-2">
+                                                🎧 Level Stem Separation (High Quality)
+                                                {!isPremium && <Lock className="h-3 w-3 text-amber-500" />}
+                                            </div>
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
+                                {!isPremium && (
+                                    <p className="text-xs text-amber-500/90 font-medium">
+                                        <Lock className="h-3 w-3 inline mr-1 -mt-0.5" />
+                                        Upgrade to Premium to unlock Level Stem Separation for studio-quality results.
+                                    </p>
+                                )}
                                 <p className="text-[10px] text-slate-500">
                                     {processingLibrary === 'spleeter'
-                                        ? 'Spleeter is much faster but produces lower quality stems.'
-                                        : 'Level Stem Separation produces studio-quality stems but takes longer on CPU.'}
+                                        ? 'Spleeter is much faster but produces lower quality stems. Free tier.'
+                                        : 'Level Stem Separation produces studio-quality stems. Premium processing.'}
                                 </p>
                             </div>
 
