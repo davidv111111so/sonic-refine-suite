@@ -114,7 +114,7 @@ export const useWebAudio = () => {
     const deckB = useDJDeck();
 
     // Custom Hooks
-    const { initRecorder, isRecording, startRecording, stopRecording } = useAudioRecorder(mixerRef.current.limiter);
+    const { initRecorder, isRecording, startRecording, stopRecording, elapsedSeconds, maxDuration, isConverting } = useAudioRecorder(mixerRef.current.limiter);
     const { handleSync, masterDeckId, setMasterDeckId } = useBeatSync(deckA, deckB);
 
     useEffect(() => {
@@ -296,6 +296,9 @@ export const useWebAudio = () => {
         context: Tone.getContext().rawContext as AudioContext,
         isRecording,
         startRecording,
-        stopRecording
+        stopRecording,
+        elapsedSeconds,
+        maxDuration,
+        isConverting
     };
 };

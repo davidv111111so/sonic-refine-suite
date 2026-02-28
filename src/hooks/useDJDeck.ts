@@ -26,6 +26,7 @@ export interface DeckState {
     meta?: { title?: string; artist?: string;[key: string]: any };
     baseRate: number; // Persistent rate (Sync/Buttons)
     tempoBend: number; // Temporary bend 0-1 (Fader)
+    pitchRange: number; // ±% range: 0.04, 0.08, 0.16, 0.50
 }
 
 export interface DeckControls {
@@ -55,6 +56,7 @@ export interface DeckControls {
     loadStems: (stems: { [key: string]: AudioBuffer }, bpm?: number) => void;
     setKeyLock: (lock: boolean) => void;
     setTempoBend: (val: number) => void;
+    setPitchRange: (range: number) => void;
     state: DeckState;
     analyser: AnalyserNode | null;
     // Outputs
@@ -155,7 +157,8 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         key: null,
         isStemsActive: false,
         baseRate: 1,
-        tempoBend: 0.5
+        tempoBend: 0.5,
+        pitchRange: 0.08 // Default ±8% like Traktor
     });
 
     // Timing Refs (Robust Sync)
@@ -163,12 +166,19 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
     const offsetTime = useRef<number>(0);
 
     // Sync Playback Rate with BaseRate and TempoBend
+    // Exponential curve: small moves near center = subtle, extreme = dramatic
     useEffect(() => {
         if (!nodes.current.player) return;
 
-        // Sensitivity: +/- 8% range for nudge
-        const Sensitivity = 0.08;
-        const bendFactor = 1 + (state.tempoBend - 0.5) * Sensitivity * 2;
+        // Exponential pitch bend (Traktor-style)
+        // tempoBend is 0-1, center is 0.5
+        // normalized: -1 to +1
+        const normalized = (state.tempoBend - 0.5) * 2;
+        const range = state.pitchRange; // e.g. 0.08 for ±8%
+
+        // Pow curve: center = 1.0, edges = (1 ± range)
+        // Using exponential: 2^(normalized * log2(1+range))
+        const bendFactor = Math.pow(2, normalized * Math.log2(1 + range));
         const finalRate = state.baseRate * bendFactor;
 
         // Apply to Tone player
@@ -176,7 +186,7 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
 
         // Sync state playbackRate for timing calculations
         setState(p => ({ ...p, playbackRate: finalRate }));
-    }, [state.baseRate, state.tempoBend]);
+    }, [state.baseRate, state.tempoBend, state.pitchRange]);
 
     // Initialize Tone Graph
     useEffect(() => {
@@ -672,6 +682,7 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
     const toggleSync = () => { };
     const setKeyLock = (l: boolean) => setState(p => ({ ...p, keyLock: l }));
     const setTempoBend = (v: number) => setState(p => ({ ...p, tempoBend: v }));
+    const setPitchRange = (r: number) => setState(p => ({ ...p, pitchRange: r }));
 
 
     // FX Chain Integration
@@ -715,7 +726,7 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         play, pause, cue, seek, setRate, setVolume, setTrim, setPitch, setEQ, toggleEQKill, setFilter, setStemVolume,
         toggleLoop, loopIn, loopOut, loopHalf, loopDouble, loopShift, setLoopPoints, quantizedLoop, loadTrack, loadStems: () => { },
         toggleStems,
-        setKeyLock, setTempoBend, toggleSync,
+        setKeyLock, setTempoBend, setPitchRange, toggleSync,
         state,
         analyser: analyserState,
         masterOutput: nodes.current.volume,

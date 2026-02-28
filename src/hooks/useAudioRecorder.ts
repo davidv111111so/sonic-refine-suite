@@ -1,11 +1,72 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import * as Tone from 'tone';
+
+const MAX_DURATION_SECONDS = 7200; // 2 hours
+
+/**
+ * Encode an AudioBuffer as a WAV Blob (PCM 16-bit, stereo).
+ */
+function audioBufferToWav(buffer: AudioBuffer): Blob {
+    const numChannels = buffer.numberOfChannels;
+    const sampleRate = buffer.sampleRate;
+    const bitsPerSample = 16;
+    const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
+    const blockAlign = numChannels * (bitsPerSample / 8);
+    const dataLength = buffer.length * numChannels * (bitsPerSample / 8);
+    const headerLength = 44;
+    const totalLength = headerLength + dataLength;
+
+    const arrayBuffer = new ArrayBuffer(totalLength);
+    const view = new DataView(arrayBuffer);
+
+    // WAV Header
+    const writeString = (offset: number, str: string) => {
+        for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+    };
+
+    writeString(0, 'RIFF');
+    view.setUint32(4, totalLength - 8, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true); // Subchunk1Size (PCM)
+    view.setUint16(20, 1, true);  // AudioFormat (PCM)
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, byteRate, true);
+    view.setUint16(32, blockAlign, true);
+    view.setUint16(34, bitsPerSample, true);
+    writeString(36, 'data');
+    view.setUint32(40, dataLength, true);
+
+    // Interleave channels and write PCM samples
+    const channels: Float32Array[] = [];
+    for (let ch = 0; ch < numChannels; ch++) {
+        channels.push(buffer.getChannelData(ch));
+    }
+
+    let offset = 44;
+    for (let i = 0; i < buffer.length; i++) {
+        for (let ch = 0; ch < numChannels; ch++) {
+            const sample = Math.max(-1, Math.min(1, channels[ch][i]));
+            const int16 = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+            view.setInt16(offset, int16, true);
+            offset += 2;
+        }
+    }
+
+    return new Blob([arrayBuffer], { type: 'audio/wav' });
+}
 
 export const useAudioRecorder = (limiterNode: Tone.Limiter | null) => {
     const [recorder, setRecorder] = useState<Tone.Recorder | null>(null);
     const [isRecording, setIsRecording] = useState(false);
+    const [elapsedSeconds, setElapsedSeconds] = useState(0);
+    const [isConverting, setIsConverting] = useState(false);
 
-    // Initialize recorder when node is available
+    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const startTimeRef = useRef<number>(0);
+
+    // Initialize recorder when limiter node is available
     const initRecorder = useCallback(() => {
         if (!limiterNode || recorder) return;
         const newRecorder = new Tone.Recorder();
@@ -13,38 +74,85 @@ export const useAudioRecorder = (limiterNode: Tone.Limiter | null) => {
         setRecorder(newRecorder);
     }, [limiterNode, recorder]);
 
+    // Auto-stop when 2 hours is reached
+    useEffect(() => {
+        if (isRecording && elapsedSeconds >= MAX_DURATION_SECONDS) {
+            console.log("[useAudioRecorder] 2-hour limit reached, auto-stopping...");
+            stopRecording();
+        }
+    }, [elapsedSeconds, isRecording]);
+
     const startRecording = useCallback(() => {
         if (!recorder) return;
         recorder.start();
         setIsRecording(true);
+        setElapsedSeconds(0);
+        startTimeRef.current = Date.now();
+
+        // Start elapsed timer
+        timerRef.current = setInterval(() => {
+            const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+            setElapsedSeconds(elapsed);
+        }, 500);
+
         console.log("[useAudioRecorder] Started Master Recording");
     }, [recorder]);
 
     const stopRecording = useCallback(async () => {
         if (!recorder || !isRecording) return;
         console.log("[useAudioRecorder] Stopping Master Recording...");
-        try {
-            const recording = await recorder.stop();
-            setIsRecording(false);
 
-            // Create a download link for the recording
-            const url = URL.createObjectURL(recording);
+        // Clear timer
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+        }
+
+        try {
+            const webmBlob = await recorder.stop();
+            setIsRecording(false);
+            setIsConverting(true);
+
+            // Convert WebM → WAV
+            console.log("[useAudioRecorder] Converting to WAV...");
+            const arrayBuffer = await webmBlob.arrayBuffer();
+            const audioCtx = new AudioContext();
+            const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+            const wavBlob = audioBufferToWav(audioBuffer);
+            audioCtx.close();
+
+            // Trigger download
+            const url = URL.createObjectURL(wavBlob);
             const anchor = document.createElement('a');
-            anchor.download = `sonic-refine-mix-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.webm`;
+            anchor.download = `sonic-refine-mix-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.wav`;
             anchor.href = url;
             anchor.click();
-            console.log("[useAudioRecorder] Download triggered");
+            URL.revokeObjectURL(url);
+
+            setIsConverting(false);
+            console.log("[useAudioRecorder] WAV download triggered");
         } catch (err) {
             console.error("[useAudioRecorder] Error stopping recording:", err);
             setIsRecording(false);
+            setIsConverting(false);
         }
     }, [recorder, isRecording]);
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current);
+        };
+    }, []);
 
     return {
         recorder,
         initRecorder,
         isRecording,
+        isConverting,
         startRecording,
-        stopRecording
+        stopRecording,
+        elapsedSeconds,
+        maxDuration: MAX_DURATION_SECONDS
     };
 };

@@ -1,77 +1,191 @@
--- 1. Add "vip" to the user_tier enum (if not exists)
-ALTER TYPE user_tier ADD VALUE IF NOT EXISTS 'vip';
+-- =====================================================
+-- Sonic Refine Suite - Full Subscription & Usage Track DB Setup
+-- This script creates the required tables if they are missing
+-- and updates the functions for the new 4-tier system.
+-- =====================================================
 
--- 2. Add new columns to track monthly usage, if not exists
-ALTER TABLE user_usage 
+-- 1. Ensure tier "vip" exists in a "user_tier" enum if you are using one. 
+-- If profiles.tier is just a text column, this does nothing but is safe to run.
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_tier') THEN
+        ALTER TYPE user_tier ADD VALUE IF NOT EXISTS 'vip';
+    END IF;
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+
+-- 2. CREATE SUBSCRIPTIONS TABLE (if missing)
+CREATE TABLE IF NOT EXISTS public.subscriptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    paddle_customer_id TEXT,
+    paddle_subscription_id TEXT,
+    coinbase_charge_id TEXT,
+    coinbase_charge_code TEXT,
+    status TEXT NOT NULL DEFAULT 'free' CHECK (status IN ('free', 'active', 'trialing', 'past_due', 'canceled', 'paused')),
+    plan_type TEXT NOT NULL DEFAULT 'free',
+    current_period_start TIMESTAMPTZ,
+    current_period_end TIMESTAMPTZ,
+    payment_provider TEXT CHECK (payment_provider IN ('paddle', 'coinbase', NULL)),
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE(user_id)
+);
+
+ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view own subscription" ON public.subscriptions;
+CREATE POLICY "Users can view own subscription" ON public.subscriptions
+    FOR SELECT USING (auth.uid() = user_id);
+
+
+-- 3. CREATE OR UPDATE USAGE_TRACKING TABLE
+CREATE TABLE IF NOT EXISTS public.usage_tracking (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    files_enhanced_count INTEGER DEFAULT 0,
+    monthly_quota_reset_date DATE DEFAULT CURRENT_DATE,
+    mastering_daily_count INTEGER DEFAULT 0,
+    stems_daily_count INTEGER DEFAULT 0,
+    stems_monthly_count INTEGER DEFAULT 0,
+    mastering_monthly_count INTEGER DEFAULT 0,
+    daily_quota_reset_date DATE DEFAULT CURRENT_DATE,
+    mixer_minutes_used INTEGER DEFAULT 0,
+    mixer_session_date DATE DEFAULT CURRENT_DATE,
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE(user_id)
+);
+
+-- Force add columns if the table already existed but was missing them
+ALTER TABLE public.usage_tracking 
   ADD COLUMN IF NOT EXISTS stems_monthly_count INT DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS stems_daily_count INT DEFAULT 0,
   ADD COLUMN IF NOT EXISTS mastering_monthly_count INT DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS enhance_monthly_count INT DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS monthly_reset_at DATE DEFAULT CURRENT_DATE;
+  ADD COLUMN IF NOT EXISTS monthly_quota_reset_date DATE DEFAULT CURRENT_DATE;
 
--- 3. Replace/Update the get_user_usage function
-CREATE OR REPLACE FUNCTION get_user_usage(p_user_id UUID)
-RETURNS TABLE (
-  files_enhanced_count INT,
-  mastering_daily_count INT,
-  stems_daily_count INT,
-  mixer_minutes_used INT
-) AS $$
-DECLARE
-  v_usage RECORD;
-  v_is_new_day BOOLEAN;
-  v_is_new_month BOOLEAN;
+ALTER TABLE public.usage_tracking ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view own usage" ON public.usage_tracking;
+CREATE POLICY "Users can view own usage" ON public.usage_tracking
+    FOR SELECT USING (auth.uid() = user_id);
+
+
+-- 4. CREATE QUOTA RESET FUNCTIONS
+CREATE OR REPLACE FUNCTION public.check_and_reset_daily_quotas(p_user_id UUID)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
 BEGIN
-  -- Get existing or insert
-  SELECT * INTO v_usage FROM user_usage WHERE user_id = p_user_id;
-  
-  IF NOT FOUND THEN
-    INSERT INTO user_usage (user_id) VALUES (p_user_id) RETURNING * INTO v_usage;
-  END IF;
-
-  -- Check if it's a new day (for mixer lab)
-  v_is_new_day := v_usage.last_reset_at < CURRENT_DATE;
-  
-  -- Check if it's a new month (for the monthly limits)
-  v_is_new_month := date_trunc('month', v_usage.monthly_reset_at) < date_trunc('month', CURRENT_DATE);
-
-  -- Handle resets if needed
-  IF v_is_new_day OR v_is_new_month THEN
-    UPDATE user_usage 
+    UPDATE public.usage_tracking
     SET 
-      mixer_minutes_used = CASE WHEN v_is_new_day THEN 0 ELSE mixer_minutes_used END,
-      last_reset_at = CASE WHEN v_is_new_day THEN CURRENT_DATE ELSE last_reset_at END,
-      
-      -- Map daily usage to monthly as a proxy for stems and mastering to avoid breaking frontend field maps
-      stems_daily_count = CASE WHEN v_is_new_month THEN 0 ELSE stems_daily_count END,
-      mastering_daily_count = CASE WHEN v_is_new_month THEN 0 ELSE mastering_daily_count END,
-      files_enhanced_count = CASE WHEN v_is_new_month THEN 0 ELSE files_enhanced_count END,
-      monthly_reset_at = CASE WHEN v_is_new_month THEN CURRENT_DATE ELSE monthly_reset_at END
+        mixer_minutes_used = CASE WHEN mixer_session_date < CURRENT_DATE THEN 0 ELSE mixer_minutes_used END,
+        daily_quota_reset_date = CURRENT_DATE,
+        mixer_session_date = CURRENT_DATE,
+        updated_at = now()
     WHERE user_id = p_user_id
-    RETURNING * INTO v_usage;
-  END IF;
-
-  RETURN QUERY SELECT 
-    v_usage.files_enhanced_count,
-    v_usage.mastering_daily_count,
-    v_usage.stems_daily_count,
-    v_usage.mixer_minutes_used;
+    AND (daily_quota_reset_date < CURRENT_DATE OR mixer_session_date < CURRENT_DATE);
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
--- 4. Replace/Update the increment_usage function
-CREATE OR REPLACE FUNCTION increment_usage(p_user_id UUID, p_field TEXT, p_amount INT)
-RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION public.check_and_reset_monthly_quotas(p_user_id UUID)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    first_of_month DATE := date_trunc('month', CURRENT_DATE)::DATE;
 BEGIN
-  IF p_field = 'files_enhanced_count' THEN
-    UPDATE user_usage SET files_enhanced_count = files_enhanced_count + p_amount WHERE user_id = p_user_id;
-  ELSIF p_field = 'mastering_daily_count' THEN
-    UPDATE user_usage SET mastering_daily_count = mastering_daily_count + p_amount WHERE user_id = p_user_id;
-  ELSIF p_field = 'stems_daily_count' THEN
-    UPDATE user_usage SET stems_daily_count = stems_daily_count + p_amount WHERE user_id = p_user_id;
-  ELSIF p_field = 'mixer_minutes_used' THEN
-    UPDATE user_usage SET mixer_minutes_used = mixer_minutes_used + p_amount WHERE user_id = p_user_id;
-  ELSE
-    RAISE EXCEPTION 'Invalid field to increment';
-  END IF;
+    UPDATE public.usage_tracking
+    SET 
+        files_enhanced_count = 0,
+        mastering_monthly_count = 0,
+        stems_monthly_count = 0,
+        monthly_quota_reset_date = first_of_month,
+        updated_at = now()
+    WHERE user_id = p_user_id
+    AND monthly_quota_reset_date < first_of_month;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
+
+
+-- 5. CREATE RPC READ FUNCTION
+CREATE OR REPLACE FUNCTION public.get_user_usage(p_user_id UUID)
+RETURNS TABLE (
+    files_enhanced_count INTEGER,
+    mastering_daily_count INTEGER,
+    stems_daily_count INTEGER,
+    mixer_minutes_used INTEGER
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    -- Ensure tracking record exists
+    INSERT INTO public.usage_tracking (user_id)
+    VALUES (p_user_id)
+    ON CONFLICT (user_id) DO NOTHING;
+    
+    -- Reset quotas if needed
+    PERFORM public.check_and_reset_daily_quotas(p_user_id);
+    PERFORM public.check_and_reset_monthly_quotas(p_user_id);
+    
+    -- Return current usage map (returning monthly columns as daily to avoid frontend breaks)
+    RETURN QUERY
+    SELECT 
+        ut.files_enhanced_count,
+        ut.mastering_monthly_count as mastering_daily_count,
+        ut.stems_monthly_count as stems_daily_count,
+        ut.mixer_minutes_used
+    FROM public.usage_tracking ut
+    WHERE ut.user_id = p_user_id;
+END;
+$$;
+
+
+-- 6. CREATE RPC WRITE/INCREMENT FUNCTION
+CREATE OR REPLACE FUNCTION public.increment_usage(
+    p_user_id UUID,
+    p_field TEXT,
+    p_amount INTEGER DEFAULT 1
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    -- Ensure user has a tracking record
+    INSERT INTO public.usage_tracking (user_id)
+    VALUES (p_user_id)
+    ON CONFLICT (user_id) DO NOTHING;
+    
+    -- Update the specific field
+    IF p_field = 'files_enhanced_count' THEN
+        UPDATE public.usage_tracking 
+        SET files_enhanced_count = files_enhanced_count + p_amount,
+            updated_at = now()
+        WHERE user_id = p_user_id;
+    ELSIF p_field = 'mastering_daily_count' THEN
+        UPDATE public.usage_tracking 
+        SET mastering_monthly_count = mastering_monthly_count + p_amount,
+            updated_at = now()
+        WHERE user_id = p_user_id;
+    ELSIF p_field = 'stems_daily_count' THEN
+        UPDATE public.usage_tracking 
+        SET stems_monthly_count = stems_monthly_count + p_amount,
+            updated_at = now()
+        WHERE user_id = p_user_id;
+    ELSIF p_field = 'mixer_minutes_used' THEN
+        UPDATE public.usage_tracking 
+        SET mixer_minutes_used = mixer_minutes_used + p_amount,
+            updated_at = now()
+        WHERE user_id = p_user_id;
+    END IF;
+END;
+$$;
+
+-- Ensure authenticated users can execute the new functions
+GRANT EXECUTE ON FUNCTION public.increment_usage(UUID, TEXT, INTEGER) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_user_usage(UUID) TO authenticated;

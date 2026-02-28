@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { LibraryProvider } from '@/contexts/LibraryContext';
 import { LibraryBrowser } from './library/LibraryBrowser';
 import { SyncProvider, useSync } from '@/contexts/SyncContext';
+import { RecordingPanel } from './RecordingPanel';
 
 interface Track {
     id: string;
@@ -60,7 +61,8 @@ const ProMixerContent = () => {
         headphoneMix, setHeadphoneMix, headphoneVol, setHeadphoneVol,
         analysers, handleSync, masterDeckId, setMaster, cueA, setCueA, cueB, setCueB,
         routingMode, setRoutingMode,
-        isRecording, startRecording, stopRecording
+        isRecording, startRecording, stopRecording,
+        elapsedSeconds, maxDuration, isConverting
     } = useWebAudio();
 
     // MIDI Initialization
@@ -148,6 +150,16 @@ const ProMixerContent = () => {
                     <SyncSettingsButton />
                 </div>
             </div>
+
+            {/* Recording Mini Panel */}
+            {(isRecording || isConverting) && (
+                <RecordingPanel
+                    elapsedSeconds={elapsedSeconds}
+                    maxDuration={maxDuration}
+                    isConverting={isConverting}
+                    onStop={stopRecording}
+                />
+            )}
 
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col min-h-0 bg-[#0d0d0d] relative pt-0 gap-0">
