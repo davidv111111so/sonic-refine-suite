@@ -720,12 +720,23 @@ def get_task_status(task_id):
     # Try local store first as it's the most up-to-date and reliable fallback
     if task_id in TASKS:
         task = TASKS[task_id]
+        error_msg = task.get('error_message') or task.get('error')
+        metadata = None
+        
+        if task['status'] == 'completed' and error_msg and error_msg.startswith('{'):
+            try:
+                metadata = json.loads(error_msg)
+                error_msg = None
+            except:
+                pass
+                
         return jsonify({
             "id": task_id,
             "status": task['status'],
             "progress": task.get('progress', 0),
-            "error": task.get('error_message') or task.get('error'),
-            "output_url": task.get('output_url')
+            "error": error_msg,
+            "output_url": task.get('output_url'),
+            "metadata": metadata
         })
 
     try:

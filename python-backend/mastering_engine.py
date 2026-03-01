@@ -22,7 +22,7 @@ class MasteringEngine:
         try:
             if ext == '.wav':
                 # soundfile is much faster for wav
-                y, sr = sf.read(file_path, always_2d=True)
+                y, sr = sf.read(file_path, always_2d=True, dtype='float32')
                 y = y.T # Back to [channels, samples]
             else:
                 # Use librosa for compressed formats
@@ -160,6 +160,9 @@ class MasteringEngine:
         print(f"   📥 Loading Reference: {os.path.basename(reference_path)}")
         y_ref, _ = self.load_audio(reference_path)
         
+        import gc
+        gc.collect()
+        
         # 2. Analyze
         print("   🔍 Analyzing tracks...")
         ref_stats = self.analyze_track(y_ref, self.sr)
@@ -167,6 +170,11 @@ class MasteringEngine:
         # 3. Match EQ
         print("   🎛️ Matching EQ...")
         y_eq = self.match_eq(y_tar, self.sr, y_ref)
+        
+        # Free memory associated with targets
+        del y_tar
+        del y_ref
+        gc.collect()
         
         # 4. Match Loudness
         print("   🔊 Normalizing Loudness...")
@@ -190,6 +198,11 @@ class MasteringEngine:
         # 6. Export
         print(f"[INFO] Exporting to {output_path}")
         sf.write(output_path, y_master.T, self.sr)
+        
+        # Cleanup
+        del y_eq
+        del y_master
+        gc.collect()
         
         return {
             "success": True,

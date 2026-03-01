@@ -459,15 +459,17 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
     // Smooth progress simulation
     let simulatedProgress = 0;
     const progressInterval = setInterval(() => {
-      simulatedProgress += Math.random() * 1.5 + 0.3; // Small random increments (0.3-1.8%)
+      // Very slow progression to avoid hitting 92% within the first 60 seconds
+      // Aims to reach 92% in about 3-5 minutes depending on math.random
+      simulatedProgress += Math.random() * 0.4 + 0.1;
       if (simulatedProgress > 92) simulatedProgress = 92; // Cap at 92% until real completion
       setProgress(prev => Math.max(prev, simulatedProgress));
-    }, 800);
+    }, 1000);
 
     try {
       toast.info("Mastering Started", {
-        description: "AI Mastering can take 5-15 minutes depending on track length and hardware performance. Please stay on this page.",
-        duration: 10000,
+        description: "AI Mastering can take 8-15 minutes depending on track length and hardware performance. Please stay on this page.",
+        duration: 12000,
       });
 
       console.log("🚀 Starting Matchering AI Mastering...");
