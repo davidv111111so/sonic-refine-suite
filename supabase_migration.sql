@@ -114,6 +114,8 @@ $$;
 
 
 -- 5. CREATE RPC READ FUNCTION
+DROP FUNCTION IF EXISTS public.get_user_usage(UUID);
+
 CREATE OR REPLACE FUNCTION public.get_user_usage(p_user_id UUID)
 RETURNS TABLE (
     files_enhanced_count INTEGER,
