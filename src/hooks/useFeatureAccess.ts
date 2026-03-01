@@ -18,7 +18,7 @@ export type Feature =
     | 'stems_2'          // 2-stem separation (Vocals/Instrumental)
     | 'stems_4'          // 4-stem separation
     | 'stems_6'          // 6-stem separation
-    | 'stems_daily'      // Daily stem separation limit
+    | 'stems_daily'      // Monthly stem separation limit
     | 'mastering'        // AI Mastering
     | 'mixer'            // Mixer Lab
     | 'mixer_export'     // Mixer Lab export
@@ -211,7 +211,7 @@ export const useFeatureAccess = () => {
                 if (current >= limit) {
                     return {
                         allowed: false,
-                        reason: `Daily mastering limit reached (${limit} files). Try again tomorrow!`,
+                        reason: `Monthly mastering limit reached (${limit} files). Upgrade for more!`,
                         remaining: 0,
                         limit,
                     };
@@ -224,7 +224,7 @@ export const useFeatureAccess = () => {
                 if (current >= limit) {
                     return {
                         allowed: false,
-                        reason: `Daily stem separation limit reached (${limit}). Try again tomorrow!`,
+                        reason: `Monthly stem separation limit reached (${limit}). Upgrade for more!`,
                         remaining: 0,
                         limit,
                     };
@@ -254,12 +254,13 @@ export const useFeatureAccess = () => {
      * Increment usage counter after a feature is used
      */
     const incrementUsage = useCallback(
-        async (feature: 'enhancement' | 'mastering' | 'mixer', amount = 1): Promise<void> => {
+        async (feature: 'enhancement' | 'mastering' | 'stems_daily' | 'mixer', amount = 1): Promise<void> => {
             if (!profile?.id) return;
 
             const fieldMap: Record<string, string> = {
                 enhancement: 'files_enhanced_count',
                 mastering: 'mastering_daily_count',
+                stems_daily: 'stems_daily_count',
                 mixer: 'mixer_minutes_used',
             };
 

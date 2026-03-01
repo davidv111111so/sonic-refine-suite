@@ -17,7 +17,13 @@ interface StemPlayerProps {
 export const StemPlayerComponent = ({ url, name, color, isMuted, isSoloed, onMute, onSolo, onReady }: StemPlayerProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const wavesurferRef = useRef<WaveSurfer | null>(null);
+    const urlRef = useRef<string>(url);
     const [isPlaying, setIsPlaying] = useState(false);
+
+    // Track the URL for cleanup
+    useEffect(() => {
+        urlRef.current = url;
+    }, [url]);
 
     useEffect(() => {
         if (!containerRef.current) return;
@@ -27,29 +33,29 @@ export const StemPlayerComponent = ({ url, name, color, isMuted, isSoloed, onMut
         // Destroy previous instance if it exists
         if (wavesurferRef.current) {
             wavesurferRef.current.destroy();
+            wavesurferRef.current = null;
         }
 
         const wavesurfer = WaveSurfer.create({
             container: containerRef.current,
             waveColor: color,
-            progressColor: 'rgba(255, 255, 255, 0.2)', // Subtle progress
+            progressColor: 'rgba(255, 255, 255, 0.2)',
             cursorColor: 'transparent',
             barWidth: 2,
             barGap: 1,
             barRadius: 2,
             height: 48,
             normalize: true,
-            fillParent: true, // Ensure it fits the container
-            interact: true, // Enable interaction for seeking
+            fillParent: true,
+            interact: true,
             hideScrollbar: true,
-            url: url, // Load URL directly in create options
+            url: url,
         });
 
         wavesurferRef.current = wavesurfer;
 
         wavesurfer.on('ready', () => {
             onReady(wavesurfer);
-            // Apply initial mute state
             wavesurfer.setMuted(isMuted);
         });
 
@@ -57,21 +63,30 @@ export const StemPlayerComponent = ({ url, name, color, isMuted, isSoloed, onMut
         wavesurfer.on('pause', () => setIsPlaying(false));
         wavesurfer.on('finish', () => setIsPlaying(false));
 
-        wavesurfer.on('interaction', (newTime) => {
-            // Optional: Notify parent to sync others? 
-            // For now, this allows seeking in this individual stem.
+        wavesurfer.on('interaction', () => {
+            // Allows seeking in this individual stem
         });
 
-        const onError = (err: Error) => {
+        wavesurfer.on('error', (err: Error) => {
             console.error("WaveSurfer error:", err);
-        };
-        wavesurfer.on('error', onError);
+        });
 
         return () => {
             try {
                 wavesurfer.destroy();
             } catch (e) {
                 // Ignore abort errors during cleanup
+            }
+            wavesurferRef.current = null;
+
+            // Revoke blob ObjectURLs to free memory (only for blob: URLs)
+            if (urlRef.current && urlRef.current.startsWith('blob:')) {
+                try {
+                    URL.revokeObjectURL(urlRef.current);
+                    console.log(`[StemPlayer] Revoked ObjectURL for ${name}`);
+                } catch (e) {
+                    // Ignore if already revoked
+                }
             }
         };
     }, [url, color]); // Re-create if URL or color changes

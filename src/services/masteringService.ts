@@ -24,6 +24,22 @@ export class MasteringService {
   })();
 
   /**
+   * Get the appropriate backend URL based on VIP status
+   * VIP users are routed to a GPU-accelerated Cloud Run service for faster processing
+   */
+  private getBackendUrl(isVip: boolean = false): string {
+    if (isVip) {
+      const vipUrl = import.meta.env.VITE_VIP_BACKEND_URL;
+      if (vipUrl) {
+        const sanitized = vipUrl.endsWith('/') ? vipUrl.slice(0, -1) : vipUrl;
+        console.log(`⚡ VIP GPU routing active → ${sanitized}`);
+        return sanitized;
+      }
+    }
+    return this.backendUrl;
+  }
+
+  /**
    * Get auth token from Supabase session
    */
   private async getAuthToken(): Promise<string> {
@@ -131,7 +147,8 @@ export class MasteringService {
     targetFile: File,
     referenceFile: File,
     settings?: MasteringSettingsData,
-    onProgress?: (stage: string, percent: number) => void
+    onProgress?: (stage: string, percent: number) => void,
+    isVip: boolean = false
   ): Promise<{ blob: Blob; analysis: any | null }> {
     try {
       console.log('🚀 Starting Mastering Flow...');
@@ -154,7 +171,7 @@ export class MasteringService {
         settings: settings || {}
       };
 
-      const response = await fetch(`${this.backendUrl}/api/master-audio`, {
+      const response = await fetch(`${this.getBackendUrl(isVip)}/api/master-audio`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -250,7 +267,8 @@ export class MasteringService {
     stemCount: string = '4',
     speedMode: string = 'fast',
     library: string = 'demucs',
-    onProgress?: (stage: string, percent: number) => void
+    onProgress?: (stage: string, percent: number) => void,
+    isVip: boolean = false
   ): Promise<{ task_id: string }> {
     try {
       console.log(`🚀 Starting stem separation (via storage, library: ${library}, mode: ${speedMode})...`);
@@ -276,7 +294,7 @@ export class MasteringService {
         speed_mode: speedMode
       };
 
-      const response = await fetch(`${this.backendUrl}/api/separate-audio`, {
+      const response = await fetch(`${this.getBackendUrl(isVip)}/api/separate-audio`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
