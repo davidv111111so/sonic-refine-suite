@@ -19,6 +19,8 @@ import { LibraryProvider } from '@/contexts/LibraryContext';
 import { LibraryBrowser } from './library/LibraryBrowser';
 import { SyncProvider, useSync } from '@/contexts/SyncContext';
 import { RecordingPanel } from './RecordingPanel';
+import { SettingsModal } from './SettingsModal';
+import { useMIDILearn } from '@/hooks/useMIDILearn';
 
 interface Track {
     id: string;
@@ -66,6 +68,40 @@ const ProMixerContent = () => {
         elapsedSeconds, maxDuration, isConverting
     } = useWebAudio();
 
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const midiLearn = useMIDILearn();
+
+    // Map MIDI parameters to actual audio controls
+    React.useEffect(() => {
+        // Deck A
+        midiLearn.registerParam('deck-a-volume', deckA.setVolume);
+        midiLearn.registerParam('deck-a-eq-low', (val) => deckA.setEQ('low', val));
+        midiLearn.registerParam('deck-a-eq-mid', (val) => deckA.setEQ('mid', val));
+        midiLearn.registerParam('deck-a-eq-high', (val) => deckA.setEQ('high', val));
+        midiLearn.registerParam('deck-a-filter', deckA.setFilter);
+        midiLearn.registerParam('deck-a-trim', deckA.setTrim);
+
+        // Deck B
+        midiLearn.registerParam('deck-b-volume', deckB.setVolume);
+        midiLearn.registerParam('deck-b-eq-low', (val) => deckB.setEQ('low', val));
+        midiLearn.registerParam('deck-b-eq-mid', (val) => deckB.setEQ('mid', val));
+        midiLearn.registerParam('deck-b-eq-high', (val) => deckB.setEQ('high', val));
+        midiLearn.registerParam('deck-b-filter', deckB.setFilter);
+        midiLearn.registerParam('deck-b-trim', deckB.setTrim);
+
+        // Mixer
+        midiLearn.registerParam('crossfader', setCrossfader);
+        midiLearn.registerParam('headphone-mix', setHeadphoneMix);
+        midiLearn.registerParam('headphone-vol', setHeadphoneVol);
+
+        return () => {
+            // Cleanup
+            ['deck-a-volume', 'deck-a-eq-low', 'deck-a-eq-mid', 'deck-a-eq-high', 'deck-a-filter', 'deck-a-trim',
+                'deck-b-volume', 'deck-b-eq-low', 'deck-b-eq-mid', 'deck-b-eq-high', 'deck-b-filter', 'deck-b-trim',
+                'crossfader', 'headphone-mix', 'headphone-vol'].forEach(p => midiLearn.unregisterParam(p));
+        };
+    }, [deckA, deckB, setCrossfader, setHeadphoneMix, setHeadphoneVol, midiLearn]);
+
     // MIDI Initialization
     React.useEffect(() => {
         if (deckA && deckB) {
@@ -74,6 +110,14 @@ const ProMixerContent = () => {
             midi.init();
         }
     }, [deckA, deckB]);
+
+    // FX Beat Sync
+    React.useEffect(() => {
+        if (transportState.masterBpm > 0) {
+            deckA?.fx.syncToBpm(transportState.masterBpm);
+            deckB?.fx.syncToBpm(transportState.masterBpm);
+        }
+    }, [transportState.masterBpm, deckA, deckB]);
 
     const loadTrackToDeck = async (track: Track) => {
         const fileOrUrl = track.file || track.url;
@@ -130,9 +174,19 @@ const ProMixerContent = () => {
                 </div>
 
                 {/* Cloud Sync Status */}
-                <div className="flex items-center gap-2 text-[9px] text-[#666] font-mono">
-                    <Cpu className="w-2.5 h-2.5 text-cyan-500 animate-pulse" />
-                    <span>CLOUD SYNC ACTIVE</span>
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 text-[9px] text-[#666] font-mono">
+                        <Cpu className="w-2.5 h-2.5 text-cyan-500 animate-pulse" />
+                        <span>CLOUD SYNC ACTIVE</span>
+                    </div>
+                    <button
+                        onClick={() => setIsSettingsOpen(true)}
+                        className="text-neutral-500 hover:text-white transition-colors"
+                        title="Settings (MIDI Learn, Audio Routing)"
+                    >
+                        <Settings2 className="w-4 h-4" />
+                    </button>
+                    <div className="w-px h-4 bg-[#333]" />
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -226,6 +280,23 @@ const ProMixerContent = () => {
                     </LibraryProvider>
                 </div>
             </div>
+
+            <SettingsModal
+                isOpen={isSettingsOpen}
+                onClose={() => setIsSettingsOpen(false)}
+                midiDevices={midiLearn.devices}
+                midiMappings={midiLearn.mappings}
+                isLearning={midiLearn.isLearning}
+                learningParamName={midiLearn.learningParamName}
+                onStartLearning={midiLearn.startLearning}
+                onCancelLearning={midiLearn.cancelLearning}
+                onDeleteMapping={midiLearn.deleteMapping}
+                onClearAllMappings={midiLearn.clearAllMappings}
+                crossfaderCurve={crossfaderCurve}
+                onSetCrossfaderCurve={setCrossfaderCurve}
+                routingMode={routingMode}
+                onSetRoutingMode={setRoutingMode}
+            />
         </div>
     );
 };

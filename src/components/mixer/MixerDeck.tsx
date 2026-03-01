@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Loader2 } from 'lucide-react';
 import { useCueLogic } from '../../hooks/useCueLogic';
+import { HotCuePad } from './HotCuePad';
 
 interface MixerDeckProps {
     id: string;
@@ -490,18 +491,30 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                     </div>
                 </div>
 
-                <div className="flex-1 min-w-0 h-full border-r border-[#27272a]">
-                    <FXUnitGroup
-                        label={`FX UNIT ${id}`}
-                        masterMix={controls.fx.masterMix}
-                        setMasterMix={controls.fx.setMasterMix}
-                        masterOn={controls.fx.masterOn}
-                        setMasterOn={controls.fx.setMasterOn}
-                        slots={controls.fx.slots}
-                        setSlotType={controls.fx.setSlotType}
-                        setSlotAmount={controls.fx.setSlotAmount}
-                        setSlotOn={controls.fx.setSlotOn}
-                    />
+                <div className="flex-1 min-w-0 h-full border-r border-[#27272a] flex flex-col">
+                    <div className="px-2 pt-2">
+                        <HotCuePad
+                            cues={controls.hotCues.cues}
+                            currentTime={controls.state.currentTime}
+                            onSetCue={controls.hotCues.setCue}
+                            onJumpToCue={controls.hotCues.jumpToCue}
+                            onDeleteCue={controls.hotCues.deleteCue}
+                            accentColor={isCyan ? "cyan" : "purple"}
+                        />
+                    </div>
+                    <div className="flex-1 min-h-0">
+                        <FXUnitGroup
+                            label={`FX UNIT ${id}`}
+                            masterMix={controls.fx.state.masterMix}
+                            setMasterMix={controls.fx.setMasterMix}
+                            masterOn={controls.fx.state.masterOn}
+                            setMasterOn={controls.fx.setMasterOn}
+                            slots={controls.fx.state.slots}
+                            setSlotType={controls.fx.setSlotType}
+                            setSlotAmount={controls.fx.setSlotAmount}
+                            setSlotOn={controls.fx.setSlotOn}
+                        />
+                    </div>
                 </div>
 
                 <div className="w-28 bg-[#18181b] p-2 flex flex-col gap-2 border-l border-[#27272a]">

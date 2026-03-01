@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import * as Tone from 'tone';
-import { useGroupFXChain, FXType } from './useGroupFXChain';
+import { FXType, useGroupFXChain, FXChainControls } from './useGroupFXChain';
+import { useHotCues, HotCue } from './useHotCues';
 import { detectBPMFromBuffer } from '../utils/bpmDetector';
 
 export interface DeckState {
@@ -63,15 +64,13 @@ export interface DeckControls {
     masterOutput: Tone.ToneAudioNode | null; // Post-Fader
     cueOutput: Tone.Gain | null;    // Pre-Fader
     // FX Controls
-    fx: {
-        masterMix: number;
-        setMasterMix: (val: number) => void;
-        masterOn: boolean;
-        setMasterOn: (val: boolean) => void;
-        slots: { type: FXType; amount: number; isOn: boolean }[];
-        setSlotType: (index: number, type: FXType) => void;
-        setSlotAmount: (index: number, val: number) => void;
-        setSlotOn: (index: number, val: boolean) => void;
+    fx: FXChainControls;
+    hotCues: {
+        cues: (HotCue | null)[];
+        setCue: (index: number, time: number) => void;
+        deleteCue: (index: number) => void;
+        jumpToCue: (index: number) => void;
+        clearAll: () => void;
     };
 }
 
@@ -690,6 +689,7 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
     // FX Chain Integration
     const rawContext = Tone.getContext().rawContext as AudioContext;
     const fxChain = useGroupFXChain(rawContext, null, null);
+    const hotCuesState = useHotCues(8);
 
     // Connect FX Chain dynamically
     useEffect(() => {
@@ -733,15 +733,16 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         analyser: analyserState,
         masterOutput: nodes.current.volume,
         cueOutput: nodes.current.cueGate,
-        fx: {
-            masterMix: fxChain.state.masterMix,
-            setMasterMix: fxChain.setMasterMix,
-            masterOn: fxChain.state.masterOn,
-            setMasterOn: fxChain.setMasterOn,
-            slots: fxChain.state.slots,
-            setSlotType: fxChain.setSlotType,
-            setSlotAmount: fxChain.setSlotAmount,
-            setSlotOn: fxChain.setSlotOn
+        fx: fxChain as FXChainControls,
+        hotCues: {
+            cues: hotCuesState.cues,
+            setCue: hotCuesState.setCue,
+            deleteCue: hotCuesState.deleteCue,
+            jumpToCue: (index: number) => {
+                const time = hotCuesState.getCueTime(index);
+                if (time !== null) seek(time);
+            },
+            clearAll: hotCuesState.clearAll,
         }
     };
 };

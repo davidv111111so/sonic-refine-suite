@@ -6,6 +6,7 @@ interface FXSlotState {
     type: FXType;
     amount: number; // 0 to 1
     isOn: boolean;
+    beatSync?: boolean; // Lock timing to master BPM
 }
 
 interface FXChainState {
@@ -18,16 +19,12 @@ interface FXInstance {
     input: AudioNode;
     output: AudioNode;
     setAmount: (val: number, time: number) => void;
+    setBeatSync?: (bpm: number, time: number) => void; // Sync delay/LFO to BPM
     nodes: AudioNode[]; // Keep track for disconnection
 }
 
 export interface FXChainControls {
-    state: {
-        active: boolean; // mapped to masterOn
-        amount: number; // mapped to masterMix
-        activeEffect: string; // Not used in Group mode really, but present in FXPanel interface
-        parameter: number; // Not used in Group mode
-    };
+    state: FXChainState;
     toggleActive: () => void;
     setAmount: (val: number) => void;
     setParameter: (val: number) => void;
@@ -38,6 +35,7 @@ export interface FXChainControls {
     setSlotType: (index: number, type: FXType) => void;
     setSlotAmount: (index: number, val: number) => void;
     setSlotOn: (index: number, val: boolean) => void;
+    syncToBpm: (bpm: number) => void;
 }
 
 export const useGroupFXChain = (audioContext: AudioContext | null, sourceNode: AudioNode | null, destinationNode: AudioNode | null) => {
@@ -260,12 +258,19 @@ export const useGroupFXChain = (audioContext: AudioContext | null, sourceNode: A
                 feedback.connect(delay);
 
                 const setAmount = (val: number, time: number) => {
-                    // Map Amount to Feedback (0 to 0.95)
                     const fb = val * 0.95;
                     feedback.gain.linearRampToValueAtTime(fb, time + 0.05);
                 };
 
-                return { input: delay, output: delay, setAmount, nodes: [delay, feedback] };
+                // Beat-sync: set delay time to beat subdivision
+                const setBeatSync = (bpm: number, time: number) => {
+                    if (bpm <= 0) return;
+                    const beatDuration = 60 / bpm;
+                    // Use 3/4 beat for musical delay
+                    delay.delayTime.linearRampToValueAtTime(beatDuration * 0.75, time + 0.05);
+                };
+
+                return { input: delay, output: delay, setAmount, setBeatSync, nodes: [delay, feedback] };
             }
             case 'reverb': {
                 const convolver = ctx.createConvolver();
@@ -425,7 +430,14 @@ export const useGroupFXChain = (audioContext: AudioContext | null, sourceNode: A
                     const fb = val * 0.95;
                     feedback.gain.linearRampToValueAtTime(fb, time + 0.05);
                 };
-                return { input: delay, output: delay, setAmount, nodes: [delay, feedback, filter] };
+
+                const setBeatSync = (bpm: number, time: number) => {
+                    if (bpm <= 0) return;
+                    const beatDuration = 60 / bpm;
+                    delay.delayTime.linearRampToValueAtTime(beatDuration, time + 0.05);
+                };
+
+                return { input: delay, output: delay, setAmount, setBeatSync, nodes: [delay, feedback, filter] };
             }
             // For others, return simple passthrough placeholder or unimplemented
             default:
@@ -516,6 +528,8 @@ export const useGroupFXChain = (audioContext: AudioContext | null, sourceNode: A
         state, // { masterMix, masterOn, slots }
         toggleActive: () => setState(s => ({ ...s, masterOn: !s.masterOn })),
         setAmount: (val) => setState(s => ({ ...s, masterMix: val })),
+        setParameter: (val) => { }, // Stub for old interface compatibility
+        setEffect: (type) => { },   // Stub for old interface compatibility
 
         // Group Controls
         setMasterMix: (val: number) => setState(s => ({ ...s, masterMix: val })),
@@ -526,6 +540,17 @@ export const useGroupFXChain = (audioContext: AudioContext | null, sourceNode: A
 
         // Expose Nodes for manual routing
         inputNode: graphRef.current?.input || null,
-        outputNode: graphRef.current?.output || null
+        outputNode: graphRef.current?.output || null,
+
+        // Beat-Sync Control
+        syncToBpm: (bpm: number) => {
+            if (!graphRef.current || !audioContext) return;
+            const t = audioContext.currentTime;
+            graphRef.current.fxInstances.forEach((inst, i) => {
+                if (inst?.setBeatSync && state.slots[i].isOn) {
+                    inst.setBeatSync(bpm, t);
+                }
+            });
+        },
     };
 };
