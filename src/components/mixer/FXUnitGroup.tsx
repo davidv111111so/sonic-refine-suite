@@ -102,18 +102,21 @@ export const FXUnitGroup = ({
                     <span className="text-cyan-500 font-bold text-sm tracking-widest shadow-cyan-glow">{label}</span>
                 </div>
 
-                {/* 2. D/W Knob (Center) - Label on Right */}
-                <div className="flex items-center justify-center gap-2 -mt-1 h-full scale-110">
-                    <Knob
-                        label=""
-                        value={masterMix}
-                        min={0}
-                        max={1}
-                        onChange={setMasterMix}
-                        color="cyan"
-                        size={48}
-                    />
-                    <span className="text-[10px] font-bold text-cyan-400 tracking-tighter uppercase">Dry / Wet</span>
+                {/* 2. D/W Knob (Center) - Compact with neon border */}
+                <div className="flex items-center justify-center gap-1.5 h-full">
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-cyan-500/40 bg-cyan-500/5 shadow-[0_0_6px_rgba(6,182,212,0.15)]">
+                        <Knob
+                            label=""
+                            value={masterMix}
+                            min={0}
+                            max={1}
+                            onChange={setMasterMix}
+                            color="cyan"
+                            size={24}
+                            defaultValue={0}
+                        />
+                        <span className="text-[8px] font-bold text-cyan-400/80 tracking-tighter uppercase whitespace-nowrap">D/W</span>
+                    </div>
                 </div>
 
                 {/* 3. Power Button (Right) */}

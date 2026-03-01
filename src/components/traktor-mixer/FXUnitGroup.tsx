@@ -106,18 +106,19 @@ export const FXUnitGroup = ({
                 </div>
 
                 {/* Master Controls */}
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-neutral-500 font-bold">D/W</span>
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-cyan-500/40 bg-cyan-500/5 shadow-[0_0_6px_rgba(6,182,212,0.15)]">
                         <Knob
                             label=""
                             value={masterMix}
                             min={0}
                             max={1}
                             onChange={setMasterMix}
-                            color="white"
-                            size={28}
+                            color="cyan"
+                            size={22}
+                            defaultValue={0}
                         />
+                        <span className="text-[8px] text-cyan-400/80 font-bold whitespace-nowrap">D/W</span>
                     </div>
                     <button
                         className={cn(

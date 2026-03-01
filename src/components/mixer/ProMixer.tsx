@@ -61,6 +61,7 @@ const ProMixerContent = () => {
         headphoneMix, setHeadphoneMix, headphoneVol, setHeadphoneVol,
         analysers, handleSync, masterDeckId, setMaster, cueA, setCueA, cueB, setCueB,
         routingMode, setRoutingMode,
+        crossfaderCurve, setCrossfaderCurve,
         isRecording, startRecording, stopRecording,
         elapsedSeconds, maxDuration, isConverting
     } = useWebAudio();
@@ -193,6 +194,7 @@ const ProMixerContent = () => {
                                 setHeadphoneMix={setHeadphoneMix} headphoneVol={headphoneVol} setHeadphoneVol={setHeadphoneVol}
                                 cueA={cueA} setCueA={setCueA} cueB={cueB} setCueB={setCueB} analysers={analysers}
                                 routingMode={routingMode} setRoutingMode={setRoutingMode}
+                                crossfaderCurve={crossfaderCurve} setCrossfaderCurve={setCrossfaderCurve}
                             />
                         </div>
                     </div>

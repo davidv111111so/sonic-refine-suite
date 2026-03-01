@@ -9,6 +9,8 @@ import { useBeatSync } from './useBeatSync';
 // Re-export types
 export type { DeckControls, DeckState };
 
+export type CrossfaderCurve = 'smooth' | 'sharp' | 'constantPower' | 'cut';
+
 export const useWebAudio = () => {
     const isReadyRef = useRef(false);
     const [isReady, setIsReady] = useState(false);
@@ -195,16 +197,56 @@ export const useWebAudio = () => {
         }
     }, [routingMode, isReady]);
 
-    // Crossfader Logic
+    // Crossfader Logic with adjustable curve
     const [crossfader, setCrossfader] = useState(0.5);
+    const [crossfaderCurve, setCrossfaderCurve] = useState<CrossfaderCurve>('smooth');
+
+    const applyCrossfaderCurve = useCallback((value: number, curve: CrossfaderCurve) => {
+        // Returns [gainA, gainB] based on curve type
+        switch (curve) {
+            case 'smooth': // Constant Power (default DJ curve)
+                return {
+                    a: Math.cos(value * Math.PI / 2),
+                    b: Math.sin(value * Math.PI / 2)
+                };
+            case 'sharp': // Linear (basic)
+                return {
+                    a: 1 - value,
+                    b: value
+                };
+            case 'constantPower': // Additive (no dip in center)
+                return {
+                    a: Math.sqrt(1 - value),
+                    b: Math.sqrt(value)
+                };
+            case 'cut': // Hard cut (instant switch at edges)
+                return {
+                    a: value < 0.05 ? 1 : (value < 0.5 ? 1 - (value - 0.05) / 0.45 * 0.1 : (value > 0.95 ? 0 : 0.9 - (value - 0.5) / 0.45 * 0.9)),
+                    b: value > 0.95 ? 1 : (value > 0.5 ? 1 - (0.95 - value) / 0.45 * 0.1 : (value < 0.05 ? 0 : 0.9 - (0.5 - value) / 0.45 * 0.9))
+                };
+            default:
+                return { a: 1 - value, b: value };
+        }
+    }, []);
 
     const updateCrossfader = useCallback((value: number) => {
         setCrossfader(value);
         if (mixerRef.current.crossfade) {
-            // Tone.CrossFade.fade is 0 to 1
+            // Tone.CrossFade uses equal-power internally. We override with our curve.
+            // Since Tone.CrossFade.fade is 0-1 with built-in curve, we use it directly
+            // but the curve selection changes how we interpolate.
+            const { a, b } = applyCrossfaderCurve(value, crossfaderCurve);
+            // Apply as volume multipliers to the deck outputs
+            if (deckA.masterOutput) {
+                (deckA.masterOutput as any).gain?.rampTo?.(a * deckA.state.volume * 0.75, 0.03);
+            }
+            if (deckB.masterOutput) {
+                (deckB.masterOutput as any).gain?.rampTo?.(b * deckB.state.volume * 0.75, 0.03);
+            }
+            // Keep the visual crossfade state in sync
             mixerRef.current.crossfade.fade.rampTo(value, 0.05);
         }
-    }, []);
+    }, [crossfaderCurve, applyCrossfaderCurve, deckA, deckB]);
 
     // Nudge & AutoFade (Simplified with Tone Ramps)
     const nudgeCrossfader = useCallback((direction: 'left' | 'right') => {
@@ -292,6 +334,8 @@ export const useWebAudio = () => {
         setCueB,
         routingMode,
         setRoutingMode,
+        crossfaderCurve,
+        setCrossfaderCurve,
         analysers: { A: deckA.analyser, B: deckB.analyser },
         context: Tone.getContext().rawContext as AudioContext,
         isRecording,

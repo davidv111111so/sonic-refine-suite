@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Play, Pause, Square, Repeat, Music2, RotateCw, ZoomIn, ZoomOut, Save, Power, Activity, Disc, ChevronDown, Headphones, Mic2, Disc3, Zap, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useDJDeck, DeckControls } from '../../hooks/useDJDeck';
 import { cn } from '@/lib/utils';
@@ -46,6 +46,15 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
         onPlay: controls.play,
         onPause: controls.pause
     });
+
+    // Beat Counter (1-2-3-4)
+    const currentBeat = useMemo(() => {
+        if (!controls.state.bpm || !controls.state.isPlaying) return 0;
+        const beatDuration = 60 / (controls.state.bpm * controls.state.playbackRate);
+        if (beatDuration <= 0) return 0;
+        const beatIndex = Math.floor(controls.state.currentTime / beatDuration);
+        return (beatIndex % 4) + 1; // 1-4
+    }, [controls.state.currentTime, controls.state.bpm, controls.state.playbackRate, controls.state.isPlaying]);
 
     // Track Name
     const meta = controls.state.meta;
@@ -226,6 +235,24 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
 
                     <div className="flex items-center justify-between text-[10px] font-bold text-neutral-400 uppercase tracking-widest leading-none">
                         <span className="font-mono text-xs">{controls.state.buffer ? (controls.state.duration / 60).toFixed(2).replace('.', ':') : "00:00"}</span>
+                        {/* Beat Counter */}
+                        <div className="flex items-center gap-[3px]">
+                            {[1, 2, 3, 4].map(beat => (
+                                <div
+                                    key={beat}
+                                    className={cn(
+                                        "w-3 h-3 rounded-[2px] flex items-center justify-center text-[8px] font-black transition-all duration-75",
+                                        currentBeat === beat && controls.state.isPlaying
+                                            ? (isCyan
+                                                ? "bg-cyan-500 text-black shadow-[0_0_6px_rgba(6,182,212,0.6)]"
+                                                : "bg-purple-500 text-white shadow-[0_0_6px_rgba(168,85,247,0.6)]")
+                                            : "bg-[#27272a] text-neutral-600"
+                                    )}
+                                >
+                                    {beat}
+                                </div>
+                            ))}
+                        </div>
                         <span className={cn(isCyan ? "text-cyan-200" : "text-purple-200", "font-mono")}>{controls.state.key || "--"}</span>
                     </div>
                 </div>
@@ -356,6 +383,30 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                     >
                         <span className={cn("text-[9px] font-bold", controls.state.isSynced ? (isCyan ? "text-black" : "text-white") : "text-neutral-400")}>SYNC</span>
                     </Button>
+                </div>
+
+                {/* Quick Loop Buttons (Traktor-style 1/2/4/8) */}
+                <div className="flex items-center gap-1">
+                    {[1, 2, 4, 8].map(beats => (
+                        <button
+                            key={beats}
+                            className={cn(
+                                "h-7 w-7 rounded-sm border text-[10px] font-black flex items-center justify-center transition-all active:scale-95",
+                                controls.state.loop.active &&
+                                    controls.state.bpm &&
+                                    Math.abs(
+                                        (controls.state.loop.end - controls.state.loop.start) -
+                                        (beats * (60 / (controls.state.bpm * controls.state.playbackRate)))
+                                    ) < 0.05
+                                    ? "border-[#39ff14] text-[#39ff14] bg-[#39ff14]/10 shadow-[0_0_6px_rgba(57,255,20,0.3)]"
+                                    : "border-[#3f3f46] bg-[#27272a] text-neutral-400 hover:text-white hover:bg-[#3f3f46]"
+                            )}
+                            onClick={() => controls.quantizedLoop(beats)}
+                            title={`${beats} beat loop`}
+                        >
+                            {beats}
+                        </button>
+                    ))}
                 </div>
             </div>
 
