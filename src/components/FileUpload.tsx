@@ -2,6 +2,8 @@ import React, { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Card, CardContent } from '@/components/ui/card';
 import { Upload, Music, FileAudio } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 interface FileUploadProps {
   onFilesAdded: (files: File[]) => void;
@@ -10,15 +12,30 @@ interface FileUploadProps {
   className?: string;
 }
 
+const BATCH_LIMIT = 10; // Max files per single upload action
+const TIER_LIMITS = { free: 10, premium: 50, vip: 100 };
+
 export const FileUpload: React.FC<FileUploadProps> = ({
   onFilesAdded,
   maxFiles = 20,
   maxSize = 100 * 1024 * 1024, // 100MB
   className = ""
 }) => {
+  const { isPremium, isVip } = useAuth();
+  const tierLimit = isVip ? TIER_LIMITS.vip : isPremium ? TIER_LIMITS.premium : TIER_LIMITS.free;
+
   const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles.length > BATCH_LIMIT) {
+      toast.warning(`Only ${BATCH_LIMIT} files can be processed at a time`, {
+        description: `Your plan allows up to ${tierLimit} simultaneous uploads. Please upload in batches of ${BATCH_LIMIT}.`,
+        duration: 5000,
+      });
+      // Still process up to the batch limit
+      onFilesAdded(acceptedFiles.slice(0, BATCH_LIMIT));
+      return;
+    }
     onFilesAdded(acceptedFiles);
-  }, [onFilesAdded]);
+  }, [onFilesAdded, tierLimit]);
 
   const {
     getRootProps,
@@ -38,21 +55,21 @@ export const FileUpload: React.FC<FileUploadProps> = ({
 
   return (
     <div className={className}>
-      <Card 
+      <Card
         {...getRootProps()}
         className={`
           cursor-pointer transition-all duration-200 border-2 border-dashed
-          ${isDragActive && !isDragReject 
-            ? 'border-blue-400 bg-blue-400/10 scale-102' 
-            : isDragReject 
-            ? 'border-red-400 bg-red-400/10' 
-            : 'border-slate-700 dark:border-slate-700 bg-slate-900/90 dark:bg-black/90 hover:border-blue-400/50 hover:bg-slate-800/90'
+          ${isDragActive && !isDragReject
+            ? 'border-blue-400 bg-blue-400/10 scale-102'
+            : isDragReject
+              ? 'border-red-400 bg-red-400/10'
+              : 'border-slate-700 dark:border-slate-700 bg-slate-900/90 dark:bg-black/90 hover:border-blue-400/50 hover:bg-slate-800/90'
           }
         `}
       >
         <CardContent className="flex flex-col items-center justify-center p-12 text-center">
           <input {...getInputProps()} />
-          
+
           <div className="mb-4">
             {isDragActive ? (
               <FileAudio className="h-16 w-16 text-blue-400 animate-bounce" />
@@ -76,7 +93,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                 </p>
               </>
             )}
-            
+
             <div className="flex items-center justify-center gap-2 mt-3">
               <Music className="h-4 w-4 text-slate-500" />
               <span className="text-xs text-slate-500">

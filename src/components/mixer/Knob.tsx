@@ -9,9 +9,10 @@ interface KnobProps {
     label: string;
     color?: string;
     size?: number;
+    defaultValue?: number; // Value to reset to on double-click
 }
 
-export const Knob = ({ value, min, max, onChange, label, color = "cyan", size = 54 }: KnobProps) => {
+export const Knob = ({ value, min, max, onChange, label, color = "cyan", size = 54, defaultValue }: KnobProps) => {
     const [isDragging, setIsDragging] = useState(false);
     const startY = useRef<number>(0);
     const startValue = useRef<number>(0);
@@ -20,6 +21,12 @@ export const Knob = ({ value, min, max, onChange, label, color = "cyan", size = 
         setIsDragging(true);
         startY.current = e.clientY;
         startValue.current = value;
+    };
+
+    const handleDoubleClick = () => {
+        // Reset to the provided default, or the midpoint of the range
+        const resetValue = defaultValue ?? (min + max) / 2;
+        onChange(resetValue);
     };
 
     useEffect(() => {
@@ -81,6 +88,7 @@ export const Knob = ({ value, min, max, onChange, label, color = "cyan", size = 
                 className="relative cursor-ns-resize group"
                 style={{ width: size, height: size }}
                 onMouseDown={handleMouseDown}
+                onDoubleClick={handleDoubleClick}
             >
                 {/* Background Track */}
                 <svg width={size} height={size} viewBox="0 0 100 100">

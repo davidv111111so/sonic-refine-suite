@@ -25,6 +25,7 @@ export const EQKnobWithKill = ({
                 onChange={onChange}
                 color={kill ? "white" : color}
                 size={size}
+                defaultValue={0}
             />
             <button
                 className={cn(

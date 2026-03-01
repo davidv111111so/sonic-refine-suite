@@ -59,6 +59,7 @@ export const MixerControls = ({
                             onChange={(v) => deckA.setTrim(v)}
                             color="cyan"
                             size={28}
+                            defaultValue={1}
                         />
                         <Knob
                             label="TRIM B"
@@ -68,6 +69,7 @@ export const MixerControls = ({
                             onChange={(v) => deckB.setTrim(v)}
                             color="purple"
                             size={28}
+                            defaultValue={1}
                         />
                     </div>
 
@@ -91,6 +93,7 @@ export const MixerControls = ({
                             onChange={setHeadphoneMix}
                             color="white"
                             size={28}
+                            defaultValue={0.5}
                         />
                         <Knob
                             label="VOL"
@@ -100,6 +103,7 @@ export const MixerControls = ({
                             onChange={setHeadphoneVol}
                             color="white"
                             size={28}
+                            defaultValue={0.5}
                         />
                         <Headphones className="w-4 h-4 text-neutral-500" />
                     </div>

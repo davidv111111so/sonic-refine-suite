@@ -49,6 +49,8 @@ const Index = () => {
   const [eqEnabled, setEqEnabled] = useState(true);
   const [processingQueue, setProcessingQueue] = useState<AudioFile[]>([]);
   const [enhancedHistory, setEnhancedHistory] = useState<AudioFile[]>([]);
+  const [sessionMastered, setSessionMastered] = useState(0);
+  const [sessionStems, setSessionStems] = useState(0);
 
   const { toast } = useToast();
   const { addToHistory } = useEnhancementHistory();
@@ -433,10 +435,12 @@ const Index = () => {
   }, [enhancedHistory, toast]);
 
   const stats: AudioStats = {
-    total: audioFiles.length + enhancedHistory.length,
+    total: audioFiles.length + enhancedHistory.length + sessionMastered + sessionStems,
     uploaded: audioFiles.filter(f => f.status === 'uploaded').length,
     processing: audioFiles.filter(f => f.status === 'processing').length,
-    enhanced: enhancedHistory.length
+    enhanced: enhancedHistory.length,
+    mastered: sessionMastered,
+    stems: sessionStems,
   };
   const processingFiles = audioFiles.filter(f => f.status === 'processing');
 
@@ -610,9 +614,14 @@ const Index = () => {
             <span className="text-[9px] uppercase tracking-[0.15em] font-medium text-orange-500/70">Processing</span>
           </div>
           <div className="flex flex-col items-center relative">
-            {stats.enhanced > 0 && <span className="absolute -top-1 -right-3 h-2 w-2 rounded-full bg-emerald-400 animate-ping"></span>}
-            <span className="text-lg font-black text-emerald-400 leading-none mb-1">{stats.enhanced}</span>
-            <span className="text-[9px] uppercase tracking-[0.15em] font-medium text-emerald-500/70">Completed</span>
+            {(stats.enhanced + stats.mastered + stats.stems) > 0 && <span className="absolute -top-1 -right-3 h-2 w-2 rounded-full bg-emerald-400 animate-ping"></span>}
+            <span className="text-lg font-black text-emerald-400 leading-none mb-1">{stats.enhanced + stats.mastered + stats.stems}</span>
+            <div className="flex items-center gap-1">
+              <span className="text-[9px] uppercase tracking-[0.15em] font-medium text-emerald-500/70">Done</span>
+              {stats.enhanced > 0 && <span className="text-[8px] px-1 rounded bg-emerald-500/20 text-emerald-400 font-bold">{stats.enhanced}⚡</span>}
+              {stats.mastered > 0 && <span className="text-[8px] px-1 rounded bg-purple-500/20 text-purple-400 font-bold">{stats.mastered}🎧</span>}
+              {stats.stems > 0 && <span className="text-[8px] px-1 rounded bg-cyan-500/20 text-cyan-400 font-bold">{stats.stems}🎵</span>}
+            </div>
           </div>
         </div>
       )}

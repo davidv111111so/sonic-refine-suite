@@ -35,4 +35,6 @@ export interface AudioStats {
   uploaded: number;
   processing: number;
   enhanced: number;
+  mastered: number;
+  stems: number;
 }
