@@ -57,8 +57,8 @@ const LIMITS = {
         stems_2: Infinity,
         stems_4: Infinity,
         stems_6: Infinity,
-        stems_daily: 100,          // 100 per month
-        mastering: 100,            // 100 per month
+        stems_daily: 150,          // 150 per month
+        mastering: 150,            // 150 per month
         mixer: Infinity,
         mixer_export: true,
         enhance_24bit: true,
@@ -72,8 +72,8 @@ const LIMITS = {
         stems_2: Infinity,
         stems_4: Infinity,
         stems_6: Infinity,
-        stems_daily: 300,          // 300 per month
-        mastering: 300,            // 300 per month
+        stems_daily: 500,          // 500 per month
+        mastering: 500,            // 500 per month
         mixer: Infinity,
         mixer_export: true,
         enhance_24bit: true,
