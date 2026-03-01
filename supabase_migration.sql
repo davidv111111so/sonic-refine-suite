@@ -82,6 +82,8 @@ BEGIN
     UPDATE public.usage_tracking
     SET 
         mixer_minutes_used = CASE WHEN mixer_session_date < CURRENT_DATE THEN 0 ELSE mixer_minutes_used END,
+        mastering_daily_count = 0,
+        stems_daily_count = 0,
         daily_quota_reset_date = CURRENT_DATE,
         mixer_session_date = CURRENT_DATE,
         updated_at = now()
@@ -116,7 +118,9 @@ CREATE OR REPLACE FUNCTION public.get_user_usage(p_user_id UUID)
 RETURNS TABLE (
     files_enhanced_count INTEGER,
     mastering_daily_count INTEGER,
+    mastering_monthly_count INTEGER,
     stems_daily_count INTEGER,
+    stems_monthly_count INTEGER,
     mixer_minutes_used INTEGER
 )
 LANGUAGE plpgsql
@@ -132,12 +136,13 @@ BEGIN
     PERFORM public.check_and_reset_daily_quotas(p_user_id);
     PERFORM public.check_and_reset_monthly_quotas(p_user_id);
     
-    -- Return current usage map (returning monthly columns as daily to avoid frontend breaks)
     RETURN QUERY
     SELECT 
         ut.files_enhanced_count,
-        ut.mastering_monthly_count as mastering_daily_count,
-        ut.stems_monthly_count as stems_daily_count,
+        ut.mastering_daily_count,
+        ut.mastering_monthly_count,
+        ut.stems_daily_count,
+        ut.stems_monthly_count,
         ut.mixer_minutes_used
     FROM public.usage_tracking ut
     WHERE ut.user_id = p_user_id;
@@ -167,14 +172,16 @@ BEGIN
         SET files_enhanced_count = files_enhanced_count + p_amount,
             updated_at = now()
         WHERE user_id = p_user_id;
-    ELSIF p_field = 'mastering_daily_count' THEN
+    ELSIF p_field = 'mastering_increment' THEN
         UPDATE public.usage_tracking 
-        SET mastering_monthly_count = mastering_monthly_count + p_amount,
+        SET mastering_daily_count = mastering_daily_count + p_amount,
+            mastering_monthly_count = mastering_monthly_count + p_amount,
             updated_at = now()
         WHERE user_id = p_user_id;
-    ELSIF p_field = 'stems_daily_count' THEN
+    ELSIF p_field = 'stems_increment' THEN
         UPDATE public.usage_tracking 
-        SET stems_monthly_count = stems_monthly_count + p_amount,
+        SET stems_daily_count = stems_daily_count + p_amount,
+            stems_monthly_count = stems_monthly_count + p_amount,
             updated_at = now()
         WHERE user_id = p_user_id;
     ELSIF p_field = 'mixer_minutes_used' THEN

@@ -18,8 +18,10 @@ export type Feature =
     | 'stems_2'          // 2-stem separation (Vocals/Instrumental)
     | 'stems_4'          // 4-stem separation
     | 'stems_6'          // 6-stem separation
-    | 'stems_daily'      // Monthly stem separation limit
-    | 'mastering'        // AI Mastering
+    | 'stems_daily'      // Daily stem separation limit
+    | 'stems_monthly'    // Monthly stem separation limit
+    | 'mastering_daily'  // AI Mastering daily
+    | 'mastering_monthly'// AI Mastering monthly
     | 'mixer'            // Mixer Lab
     | 'mixer_export'     // Mixer Lab export
     | 'enhance_24bit'    // 24-bit enhancement
@@ -32,7 +34,9 @@ export type Feature =
 interface UsageData {
     files_enhanced_count: number;
     mastering_daily_count: number;
+    mastering_monthly_count: number;
     stems_daily_count: number;
+    stems_monthly_count: number;
     mixer_minutes_used: number;
 }
 
@@ -42,8 +46,10 @@ const LIMITS = {
         stems_2: 0,                // blocked (30s preview only, handled in UI)
         stems_4: 0,                // blocked
         stems_6: 0,                // blocked
-        stems_daily: 0,            // no daily stems
-        mastering: 0,              // blocked (30s preview only)
+        stems_daily: 0,
+        stems_monthly: 0,
+        mastering_daily: 0,
+        mastering_monthly: 0,
         mixer: 120,                // 2 hours per day (in minutes)
         mixer_export: false,       // no export for free
         enhance_24bit: false,      // 16-bit only
@@ -57,8 +63,10 @@ const LIMITS = {
         stems_2: Infinity,
         stems_4: Infinity,
         stems_6: Infinity,
-        stems_daily: 150,          // 150 per month
-        mastering: 150,            // 150 per month
+        stems_daily: 20,
+        stems_monthly: 150,
+        mastering_daily: 20,
+        mastering_monthly: 150,
         mixer: Infinity,
         mixer_export: true,
         enhance_24bit: true,
@@ -72,8 +80,10 @@ const LIMITS = {
         stems_2: Infinity,
         stems_4: Infinity,
         stems_6: Infinity,
-        stems_daily: 500,          // 500 per month
-        mastering: 500,            // 500 per month
+        stems_daily: 30,
+        stems_monthly: 350,
+        mastering_daily: 30,
+        mastering_monthly: 350,
         mixer: Infinity,
         mixer_export: true,
         enhance_24bit: true,
@@ -88,7 +98,9 @@ const LIMITS = {
         stems_4: Infinity,
         stems_6: Infinity,
         stems_daily: Infinity,
-        mastering: Infinity,
+        stems_monthly: Infinity,
+        mastering_daily: Infinity,
+        mastering_monthly: Infinity,
         mixer: Infinity,
         mixer_export: true,
         enhance_24bit: true,
@@ -206,30 +218,74 @@ export const useFeatureAccess = () => {
                 return { allowed: true, remaining: limit - current, limit };
             }
 
-            if (feature === 'mastering') {
-                const current = usage.mastering_daily_count || 0;
-                if (current >= limit) {
+            if (feature === 'mastering_daily' || feature === 'mastering_monthly') {
+                const currentDaily = usage.mastering_daily_count || 0;
+                const currentMonthly = usage.mastering_monthly_count || 0;
+
+                const tier = isVip ? 'vip' : 'premium';
+                const dailyLimit = LIMITS[tier].mastering_daily as number;
+                const monthlyLimit = LIMITS[tier].mastering_monthly as number;
+
+                if (currentDaily >= dailyLimit) {
                     return {
                         allowed: false,
-                        reason: `Monthly mastering limit reached (${limit} files). Upgrade for more!`,
+                        reason: `Daily mastering limit reached (${dailyLimit} files). Try again tomorrow!`,
                         remaining: 0,
-                        limit,
+                        limit: dailyLimit,
                     };
                 }
-                return { allowed: true, remaining: limit - current, limit };
+
+                if (currentMonthly >= monthlyLimit) {
+                    return {
+                        allowed: false,
+                        reason: `Monthly mastering limit reached (${monthlyLimit} files). Upgrade for more!`,
+                        remaining: 0,
+                        limit: monthlyLimit,
+                    };
+                }
+
+                const remainingDaily = dailyLimit - currentDaily;
+                const remainingMonthly = monthlyLimit - currentMonthly;
+                return {
+                    allowed: true,
+                    remaining: Math.min(remainingDaily, remainingMonthly),
+                    limit: remainingDaily < remainingMonthly ? dailyLimit : monthlyLimit
+                };
             }
 
-            if (feature === 'stems_daily') {
-                const current = (usage as any).stems_daily_count || 0;
-                if (current >= limit) {
+            if (feature === 'stems_daily' || feature === 'stems_monthly') {
+                const currentDaily = usage.stems_daily_count || 0;
+                const currentMonthly = usage.stems_monthly_count || 0;
+
+                const tier = isVip ? 'vip' : 'premium';
+                const dailyLimit = LIMITS[tier].stems_daily as number;
+                const monthlyLimit = LIMITS[tier].stems_monthly as number;
+
+                if (currentDaily >= dailyLimit) {
                     return {
                         allowed: false,
-                        reason: `Monthly stem separation limit reached (${limit}). Upgrade for more!`,
+                        reason: `Daily stem separation limit reached (${dailyLimit}). Try again tomorrow!`,
                         remaining: 0,
-                        limit,
+                        limit: dailyLimit,
                     };
                 }
-                return { allowed: true, remaining: limit - current, limit };
+
+                if (currentMonthly >= monthlyLimit) {
+                    return {
+                        allowed: false,
+                        reason: `Monthly stem separation limit reached (${monthlyLimit}). Upgrade for more!`,
+                        remaining: 0,
+                        limit: monthlyLimit,
+                    };
+                }
+
+                const remainingDaily = dailyLimit - currentDaily;
+                const remainingMonthly = monthlyLimit - currentMonthly;
+                return {
+                    allowed: true,
+                    remaining: Math.min(remainingDaily, remainingMonthly),
+                    limit: remainingDaily < remainingMonthly ? dailyLimit : monthlyLimit
+                };
             }
 
             if (feature === 'mixer') {
@@ -254,13 +310,13 @@ export const useFeatureAccess = () => {
      * Increment usage counter after a feature is used
      */
     const incrementUsage = useCallback(
-        async (feature: 'enhancement' | 'mastering' | 'stems_daily' | 'mixer', amount = 1): Promise<void> => {
+        async (feature: 'enhancement' | 'mastering' | 'stems' | 'mixer', amount = 1): Promise<void> => {
             if (!profile?.id) return;
 
             const fieldMap: Record<string, string> = {
                 enhancement: 'files_enhanced_count',
-                mastering: 'mastering_daily_count',
-                stems_daily: 'stems_daily_count',
+                mastering: 'mastering_increment', // Backend will increment both daily and monthly
+                stems: 'stems_increment', // Backend will increment both daily and monthly
                 mixer: 'mixer_minutes_used',
             };
 

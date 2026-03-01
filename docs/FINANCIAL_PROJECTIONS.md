@@ -20,8 +20,8 @@
 | Tier | Avg Tasks/Month | CPU-sec/Task | Cost/Task | Monthly Cost/User |
 |---|---|---|---|---|
 | **Free** | 5 enhancements (local) | 0 | $0.00 | **~$0.01** (auth only) |
-| **Premium** | 30 mastering + 20 stems | ~240s + ~120s | ~$0.008 + $0.004 | **~$0.36** |
-| **VIP Cloud** | 80 mastering + 60 stems (GPU) | ~60s + ~30s | ~$0.015 + $0.008 | **~$1.90** |
+| **Premium** | 150 mastering (max) + 150 stems (max) | ~240s + ~120s (CPU) | ~$0.008 + $0.004 | **~$1.80** (max) |
+| **VIP Cloud** | 350 mastering (max) + 350 stems (max) | ~20s + ~10s (GPU) | ~$0.008 + $0.004 | **~$4.20** (max) |
 | **Desktop Pro** | 0 (runs locally) | 0 | $0.00 | **$0.00** |
 
 > **Note:** Cloud Run charges per vCPU-second (~$0.0000267/vCPU-s) and per GiB-second (~$0.0000029/GiB-s). GPU instances cost ~$0.0004/GPU-s in preview pricing.
@@ -33,8 +33,8 @@
 | Tier | Revenue | Server Cost | **Profit/User** | **Margin** |
 |---|---|---|---|---|
 | **Free** | $0.00 | $0.01 | **-$0.01** | — |
-| **Premium** | $9.99 | $0.36 | **$9.63** | 96.4% |
-| **VIP Cloud** | $29.99 | $1.90 | **$28.09** | 93.7% |
+| **Premium** | $9.99 | $1.80 (max) | **$8.19** (min) | 81.9% (min) |
+| **VIP Cloud** | $29.99 | $4.20 (max) | **$25.79** (min) | 85.9% (min) |
 | **Desktop Pro** | $49.99 (once) | $0.00 | **$49.99** | 100% |
 
 ---
@@ -150,5 +150,5 @@ With just **3 paying users at $9.99/mo**, the product covers all infrastructure 
 | Cloud cost per mastering task | ~$0.008 |
 | Cloud cost per stem separation | ~$0.004 |
 | Break-even subscribers | **3** |
-| Max cloud cost at 10K Premium users (100% usage) | ~$3,600/mo |
+| Max cloud cost at 10K Premium users (100% max usage) | ~$18,000/mo (Profit: ~$81,900) |
 
