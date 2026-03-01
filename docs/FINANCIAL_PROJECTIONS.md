@@ -10,7 +10,7 @@
 |---|---|---|
 | **Free** | $0 | — |
 | **Premium** | $9.99/mo | Monthly subscription |
-| **VIP Cloud** | $29.99/mo | Monthly subscription |
+| **VIP Cloud** | $24.99/mo | Monthly subscription (Launch Promo) |
 | **Desktop Pro** | $49.99 | One-time purchase (launch offer) |
 
 ---
@@ -34,7 +34,7 @@
 |---|---|---|---|---|
 | **Free** | $0.00 | $0.01 | **-$0.01** | — |
 | **Premium** | $9.99 | $1.80 (max) | **$8.19** (min) | 81.9% (min) |
-| **VIP Cloud** | $29.99 | $6.00 (max) | **$23.99** (min) | 80.0% (min) |
+| **VIP Cloud** | $24.99 | $6.00 (max) | **$18.99** (min) | 76.0% (min) |
 | **Desktop Pro** | $49.99 (once) | $0.00 | **$49.99** | 100% |
 
 ---
