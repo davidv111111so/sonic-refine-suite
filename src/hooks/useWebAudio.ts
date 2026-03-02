@@ -61,8 +61,9 @@ export const useWebAudio = () => {
             const masterBus = new Tone.Gain(0.5); // Lowered from 0.8
             const limiter = new Tone.Limiter(-2); // Threshold -2dB
 
-            const cueBus = new Tone.Gain(1); // Accumulates Cue Signals
-            const cueVolume = new Tone.Gain(1);
+            // Reduced default gains to prevent clipping and volume spikes vs master
+            const cueBus = new Tone.Gain(0.5); // Matches masterBus for balanced summing
+            const cueVolume = new Tone.Gain(0.5); // Matches initial headphoneVol state
 
             // Cue Mix: Fade between CueBus (0) and MasterBus (1)
             const cueMix = new Tone.CrossFade(0);
@@ -115,6 +116,14 @@ export const useWebAudio = () => {
     const deckA = useDJDeck();
     const deckB = useDJDeck();
 
+    useEffect(() => {
+        if (isReady && mixerRef.current.cueVolume && mixerRef.current.cueMix) {
+            // Force-sync initial state to nodes if not already
+            mixerRef.current.cueVolume.gain.value = headphoneVol;
+            mixerRef.current.cueMix.fade.value = headphoneMix;
+        }
+    }, [isReady]);
+
     // Custom Hooks
     const { initRecorder, isRecording, startRecording, stopRecording, elapsedSeconds, maxDuration, isConverting } = useAudioRecorder(mixerRef.current.limiter);
     const { handleSync, masterDeckId, setMasterDeckId } = useBeatSync(deckA, deckB);
@@ -156,7 +165,7 @@ export const useWebAudio = () => {
     // Handle Output Routing
     useEffect(() => {
         if (!isReady || !mixerRef.current.limiter || !mixerRef.current.cueVolume) return;
-        const { limiter, cueVolume, masterMono, cueMono, splitMerger } = mixerRef.current;
+        const { limiter, cueVolume, masterMono, cueMono, splitMerger, masterBus } = mixerRef.current;
 
         // Disconnect everything first
         limiter.disconnect();
@@ -192,6 +201,9 @@ export const useWebAudio = () => {
             multichannel.connect(rawCtx.destination);
         } else {
             // Normal Stereo (Both to 1-2)
+            // COMPENSATE: In stereo mode, master + cue sum in speakers. Lower the master/cue ratio for comfort.
+            if (masterBus) masterBus.gain.rampTo(0.4, 0.1);
+            cueVolume.gain.rampTo(0.3 * headphoneVol, 0.1);
             limiter.toDestination();
             cueVolume.toDestination();
         }
@@ -295,7 +307,6 @@ export const useWebAudio = () => {
             mixerRef.current.cueVolume.gain.rampTo(val, 0.1);
         }
     }, []);
-
 
 
     // Cue Switch Logic handled in deck (gain gate)

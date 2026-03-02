@@ -581,9 +581,14 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
 
         if (state.isStemsActive) {
             // Player -> StemFilters
+            // COMPENSATE: Sum of parallel filters often exceeds 1.0. Applied a 0.70x (-3dB) pad.
             Object.keys(stemFilters).forEach((key) => {
                 const k = key as keyof typeof stemFilters;
                 player.connect(stemFilters[k]);
+                // Ensure stem gains are initialized
+                if (nodes.current.stemGains) {
+                    nodes.current.stemGains[k].gain.value = state.stemVolumes[k] * 0.70;
+                }
             });
         } else {
             // Direct Route
@@ -598,7 +603,8 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
             isStemsActive: true // Auto-activate stems when adjusting
         }));
         if (nodes.current.stemGains) {
-            nodes.current.stemGains[stem].gain.rampTo(value, 0.1);
+            // COMPENSATE: Sum of parallel filters often exceeds 1.0. Applied a 0.70x (-3dB) pad.
+            nodes.current.stemGains[stem].gain.rampTo(value * 0.70, 0.1);
         }
     }, []);
 
