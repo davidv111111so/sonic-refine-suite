@@ -58,7 +58,7 @@ export const DeckPitchFader = ({ deck, color }: DeckPitchFaderProps) => {
                     <button
                         key={r.value}
                         className={cn(
-                            "h-3 rounded-[1px] text-[6px] font-bold transition-all border leading-none",
+                            "h-3 rounded-[1px] text-[10px] font-bold transition-all border leading-none",
                             deck.state.pitchRange === r.value
                                 ? `bg-${accentColor}-500/20 text-${accentColor}-400 border-${accentColor}-500/60`
                                 : "bg-black/40 text-neutral-600 border-neutral-800 hover:border-neutral-600"

@@ -82,33 +82,30 @@ export const Meter = ({ active, analyser }: MeterProps) => {
                 const isActive = i <= currentLevel;
                 const isPeak = Math.floor(peakLevelRef.current) === i;
 
-                // Colors
+                // Standard VU LED Colors
                 let color = '#111'; // Off
                 if (isActive || isPeak) {
-                    if (i < 16) color = '#00f2ff'; // Cyan (Safe)
-                    else if (i < 21) color = '#ffdf00'; // Yellow (Caution)
-                    else color = '#ff0040'; // Red (Clip)
+                    if (i < 16) color = '#00ff00'; // Green (Safe)
+                    else if (i < 20) color = '#ff8800'; // Orange (Caution)
+                    else color = '#ff0000'; // Red (Clip)
                 }
 
-                // Add glass/glow effect for active segments
-                if (isActive) {
-                    ctx.shadowBlur = 4;
-                    ctx.shadowColor = color;
-                } else if (isPeak) {
-                    ctx.shadowBlur = 8;
-                    ctx.shadowColor = color;
-                } else {
-                    ctx.shadowBlur = 0;
+                // Subdued colors for inactive LEDs
+                if (!active && isActive) {
+                    if (i < 16) color = '#003300';
+                    else if (i < 20) color = '#331a00';
+                    else color = '#330000';
                 }
 
                 ctx.fillStyle = color;
+
+                // Add nice bright shadow for active LEDs
+                ctx.shadowBlur = (active && (isActive || isPeak)) ? 4 : 0;
+                ctx.shadowColor = (active && (isActive || isPeak)) ? color : 'transparent';
+
+                // Draw segment row (which stacks vertically)
                 ctx.fillRect(0, canvas.height - ((i + 1) * (segH + gap)), canvas.width, segH);
             }
-
-            // Draw a subtle overlay for "professional" look
-            ctx.shadowBlur = 0;
-            ctx.fillStyle = 'rgba(255,255,255,0.05)';
-            ctx.fillRect(0, 0, canvas.width / 2, canvas.height);
         };
 
         draw();

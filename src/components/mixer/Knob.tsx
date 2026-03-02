@@ -74,10 +74,25 @@ export const Knob = ({ value, min, max, onChange, label, color = "cyan", size = 
         onChange(newValue);
     };
 
-    // Calculate rotation
-    // Map value to angle: -135deg to +135deg
-    const percentage = (value - min) / (max - min);
-    const angle = -135 + (percentage * 270);
+    // Calculate rotation and visual fill percentage
+    let percentage = 0;
+    let angle = -135;
+
+    // Support asymmetric ranges by mapping the defaultValue to visually be 12 o'clock
+    if (defaultValue !== undefined && defaultValue !== (min + max) / 2) {
+        if (value <= defaultValue) {
+            const p = (value - min) / (defaultValue - min); // 0.0 to 1.0 (left half)
+            angle = -135 + (p * 135);
+            percentage = p * 0.5;
+        } else {
+            const p = (value - defaultValue) / (max - defaultValue); // 0.0 to 1.0 (right half)
+            angle = p * 135;
+            percentage = 0.5 + p * 0.5;
+        }
+    } else {
+        percentage = (value - min) / (max - min);
+        angle = -135 + (percentage * 270);
+    }
 
     return (
         <div

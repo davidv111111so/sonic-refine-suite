@@ -268,9 +268,13 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         // Expose analyser via state so React consumers re-render when it's ready
         setAnalyserState(analyser);
 
-        // Stem Routing (Parallel)
-        // Player -> StemFilters -> StemGains -> Trim
-        // For now, we only connect them if stems are active. Default is direct.
+        // Pre-wire static Stem Routing Engine (Filters -> Gains -> Trim)
+        // We only dynamically route the player to these inputs when stems are active
+        Object.keys(nodes.current.stemFilters).forEach((key) => {
+            const k = key as keyof typeof nodes.current.stemFilters;
+            nodes.current.stemFilters![k].connect(nodes.current.stemGains![k]);
+            nodes.current.stemGains![k].connect(trim);
+        });
 
         return () => {
             // Dispose Tone nodes
@@ -576,12 +580,10 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         player.disconnect();
 
         if (state.isStemsActive) {
-            // Connect Parallel Stem Filters -> Gains -> Trim
+            // Player -> StemFilters
             Object.keys(stemFilters).forEach((key) => {
                 const k = key as keyof typeof stemFilters;
                 player.connect(stemFilters[k]);
-                stemFilters[k].connect(stemGains[k]);
-                stemGains[k].connect(trim);
             });
         } else {
             // Direct Route

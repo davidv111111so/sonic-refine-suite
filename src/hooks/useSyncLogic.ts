@@ -64,7 +64,10 @@ export const useSyncLogic = (
         const myTime = controls.state.currentTime;
 
         const beatsFromAnchor = Math.round((myTime - masterAnchor) / beatDur);
-        const targetTime = masterAnchor + (beatsFromAnchor * beatDur);
+        let targetTime = masterAnchor + (beatsFromAnchor * beatDur);
+
+        // Prevent negative time seeks when matching downbeats near the start
+        targetTime = Math.max(0, targetTime);
 
         // Immediate Seek to match phases
         controls.seek(targetTime);
