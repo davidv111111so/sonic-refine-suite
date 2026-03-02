@@ -20,12 +20,12 @@ export const EQKnobWithKill = ({
             <Knob
                 label={label}
                 value={value}
-                min={-24}
-                max={6}
+                min={0}
+                max={1}
                 onChange={onChange}
                 color={kill ? "white" : color}
                 size={size}
-                defaultValue={0}
+                defaultValue={0.5}
             />
             <button
                 className={cn(
