@@ -14,6 +14,13 @@ export type CrossfaderCurve = 'smooth' | 'sharp' | 'constantPower' | 'cut';
 export const useWebAudio = () => {
     const isReadyRef = useRef(false);
     const [isReady, setIsReady] = useState(false);
+    const [routingMode, setRoutingMode] = useState<'stereo' | 'split' | 'multichannel'>('stereo');
+    const [crossfader, setCrossfader] = useState(0.5);
+    const [crossfaderCurve, setCrossfaderCurve] = useState<CrossfaderCurve>('smooth');
+    const [headphoneMix, setHeadphoneMix] = useState(0);
+    const [headphoneVol, setHeadphoneVol] = useState(0.5);
+    const [cueA, setCueA] = useState(false);
+    const [cueB, setCueB] = useState(false);
 
     // Mixer Nodes
     const mixerRef = useRef<{
@@ -38,200 +45,24 @@ export const useWebAudio = () => {
         cueMono: null,
     });
 
-    const [routingMode, setRoutingMode] = useState<'stereo' | 'split' | 'multichannel'>('stereo');
-
-    // Initialize Tone Context & Mixer
-    useEffect(() => {
-        const initAudio = async () => {
-            if (isReadyRef.current) return;
-
-            // Start Tone (user interaction usually required, but we init nodes first)
-            // Note: Tone.start() should be called on first user click.
-
-            // Set Latency Hint for Performance (audio-perf-analyzer optimization)
-            try {
-                // Tone.context is usually a Tone.Context instance in v14
-                (Tone.context as any).latencyHint = 'interactive';
-            } catch (e) {
-                console.warn("Could not set Tone.js latencyHint:", e);
-            }
-
-            // 1. Create Nodes
-            const crossfade = new Tone.CrossFade(0.5);
-            const masterBus = new Tone.Gain(0.5); // Lowered from 0.8
-            const limiter = new Tone.Limiter(-2); // Threshold -2dB
-
-            // Reduced default gains to prevent clipping and volume spikes vs master
-            const cueBus = new Tone.Gain(0.5); // Matches masterBus for balanced summing
-            const cueVolume = new Tone.Gain(0.5); // Matches initial headphoneVol state
-
-            // Cue Mix: Fade between CueBus (0) and MasterBus (1)
-            const cueMix = new Tone.CrossFade(0);
-
-            // 2. Connect Master Path
-            // Decks connect to Crossfade A/B externally
-            crossfade.connect(masterBus);
-            masterBus.connect(limiter);
-            limiter.toDestination();
-
-            // 3. Connect Monitor Path
-            // Cue Bus -> Cue Mix A
-            // Master Bus -> Cue Mix B
-            cueBus.connect(cueMix.a);
-            masterBus.connect(cueMix.b);
-
-            cueMix.connect(cueVolume);
-            cueVolume.toDestination(); // In browser, same output, but logic separates them
-
-            const splitMerger = new Tone.Merge();
-            const masterMono = new Tone.Mono();
-            const cueMono = new Tone.Mono();
-
-            mixerRef.current = {
-                crossfade,
-                limiter,
-                masterBus,
-                cueBus,
-                cueVolume,
-                cueMix,
-                splitMerger,
-                masterMono,
-                cueMono,
-            };
-
-            isReadyRef.current = true;
-            setIsReady(true);
-        };
-
-        initAudio();
-
-        return () => {
-            // Cleanup (?)
-            // Tone.Context is global, disposing nodes might be safer if component unmounts
-            // but usually this hook sits at app root.
-        };
-    }, []);
-
-    // Initialize Decks
+    // Initialize Decks (Custom Hooks)
     const deckA = useDJDeck();
     const deckB = useDJDeck();
 
-    useEffect(() => {
-        if (isReady && mixerRef.current.cueVolume && mixerRef.current.cueMix) {
-            // Force-sync initial state to nodes if not already
-            mixerRef.current.cueVolume.gain.value = headphoneVol;
-            mixerRef.current.cueMix.fade.value = headphoneMix;
-        }
-    }, [isReady]);
-
-    // Custom Hooks
+    // Secondary Hooks
     const { initRecorder, isRecording, startRecording, stopRecording, elapsedSeconds, maxDuration, isConverting } = useAudioRecorder(mixerRef.current.limiter);
     const { handleSync, masterDeckId, setMasterDeckId } = useBeatSync(deckA, deckB);
 
-    useEffect(() => {
-        if (isReady && mixerRef.current.limiter) {
-            initRecorder();
-        }
-    }, [isReady, mixerRef.current.limiter, initRecorder]);
-
-    // Connect Decks to Mixer
-    useEffect(() => {
-        if (!isReady || !mixerRef.current.crossfade) return;
-
-        // 1. Connect Master Outputs -> Crossfader
-        if (deckA.masterOutput) {
-            deckA.masterOutput.disconnect(); // Safety
-            deckA.masterOutput.connect(mixerRef.current.crossfade.a);
-        }
-
-        if (deckB.masterOutput) {
-            deckB.masterOutput.disconnect();
-            deckB.masterOutput.connect(mixerRef.current.crossfade.b);
-        }
-
-        // 2. Connect Cue Outputs -> Cue Bus
-        if (deckA.cueOutput && mixerRef.current.cueBus) {
-            deckA.cueOutput.disconnect();
-            deckA.cueOutput.connect(mixerRef.current.cueBus);
-        }
-
-        if (deckB.cueOutput && mixerRef.current.cueBus) {
-            deckB.cueOutput.disconnect();
-            deckB.cueOutput.connect(mixerRef.current.cueBus);
-        }
-
-    }, [deckA.masterOutput, deckB.masterOutput, deckA.cueOutput, deckB.cueOutput, isReady]);
-
-    // Handle Output Routing
-    useEffect(() => {
-        if (!isReady || !mixerRef.current.limiter || !mixerRef.current.cueVolume) return;
-        const { limiter, cueVolume, masterMono, cueMono, splitMerger, masterBus } = mixerRef.current;
-
-        // Disconnect everything first
-        limiter.disconnect();
-        cueVolume.disconnect();
-        masterMono?.disconnect();
-        cueMono?.disconnect();
-        splitMerger?.disconnect();
-
-        if (routingMode === 'split') {
-            // Master -> Left (Channel 0)
-            limiter.connect(masterMono!);
-            masterMono!.connect(splitMerger!, 0, 0);
-
-            // Cue -> Right (Channel 1)
-            cueVolume.connect(cueMono!);
-            cueMono!.connect(splitMerger!, 0, 1);
-
-            splitMerger!.toDestination();
-        } else if (routingMode === 'multichannel') {
-            // Requires 4 channels. 
-            const rawCtx = Tone.getContext().rawContext as AudioContext;
-            const multichannel = rawCtx.createChannelMerger(4);
-
-            // Connect through native nodes
-            const limiterNative = (limiter as any).output || limiter;
-            const cueNative = (cueVolume as any).output || cueVolume;
-
-            limiterNative.connect(multichannel, 0, 0); // L
-            limiterNative.connect(multichannel, 0, 1); // R
-            cueNative.connect(multichannel, 0, 2); // Cue L
-            cueNative.connect(multichannel, 0, 3); // Cue R
-
-            multichannel.connect(rawCtx.destination);
-        } else {
-            // Normal Stereo (Both to 1-2)
-            // COMPENSATE: In stereo mode, master + cue sum in speakers. Lower the master/cue ratio for comfort.
-            if (masterBus) masterBus.gain.rampTo(0.4, 0.1);
-            cueVolume.gain.rampTo(0.3 * headphoneVol, 0.1);
-            limiter.toDestination();
-            cueVolume.toDestination();
-        }
-    }, [routingMode, isReady]);
-
-    // Crossfader Logic with adjustable curve
-    const [crossfader, setCrossfader] = useState(0.5);
-    const [crossfaderCurve, setCrossfaderCurve] = useState<CrossfaderCurve>('smooth');
-
+    // Callbacks
     const applyCrossfaderCurve = useCallback((value: number, curve: CrossfaderCurve) => {
-        // Returns [gainA, gainB] based on curve type
         switch (curve) {
-            case 'smooth': // Constant Power (default DJ curve)
-                return {
-                    a: Math.cos(value * Math.PI / 2),
-                    b: Math.sin(value * Math.PI / 2)
-                };
-            case 'sharp': // Linear (basic)
-                return {
-                    a: 1 - value,
-                    b: value
-                };
-            case 'constantPower': // Additive (no dip in center)
-                return {
-                    a: Math.sqrt(1 - value),
-                    b: Math.sqrt(value)
-                };
-            case 'cut': // Hard cut (instant switch at edges)
+            case 'smooth':
+                return { a: Math.cos(value * Math.PI / 2), b: Math.sin(value * Math.PI / 2) };
+            case 'sharp':
+                return { a: 1 - value, b: value };
+            case 'constantPower':
+                return { a: Math.sqrt(1 - value), b: Math.sqrt(value) };
+            case 'cut':
                 return {
                     a: value < 0.05 ? 1 : (value < 0.5 ? 1 - (value - 0.05) / 0.45 * 0.1 : (value > 0.95 ? 0 : 0.9 - (value - 0.5) / 0.45 * 0.9)),
                     b: value > 0.95 ? 1 : (value > 0.5 ? 1 - (0.95 - value) / 0.45 * 0.1 : (value < 0.05 ? 0 : 0.9 - (0.5 - value) / 0.45 * 0.9))
@@ -244,42 +75,28 @@ export const useWebAudio = () => {
     const updateCrossfader = useCallback((value: number) => {
         setCrossfader(value);
         if (mixerRef.current.crossfade) {
-            // Tone.CrossFade uses equal-power internally. We override with our curve.
-            // Since Tone.CrossFade.fade is 0-1 with built-in curve, we use it directly
-            // but the curve selection changes how we interpolate.
             const { a, b } = applyCrossfaderCurve(value, crossfaderCurve);
-            // Apply as volume multipliers to the deck outputs
-            if (deckA.masterOutput) {
-                (deckA.masterOutput as any).gain?.rampTo?.(a * deckA.state.volume * 0.75, 0.03);
-            }
-            if (deckB.masterOutput) {
-                (deckB.masterOutput as any).gain?.rampTo?.(b * deckB.state.volume * 0.75, 0.03);
-            }
-            // Keep the visual crossfade state in sync
+            if (deckA.masterOutput) (deckA.masterOutput as any).gain?.rampTo?.(a * deckA.state.volume * 0.75, 0.03);
+            if (deckB.masterOutput) (deckB.masterOutput as any).gain?.rampTo?.(b * deckB.state.volume * 0.75, 0.03);
             mixerRef.current.crossfade.fade.rampTo(value, 0.05);
         }
     }, [crossfaderCurve, applyCrossfaderCurve, deckA, deckB]);
 
-    // Nudge & AutoFade (Simplified with Tone Ramps)
     const nudgeCrossfader = useCallback((direction: 'left' | 'right') => {
         setCrossfader(prev => {
             const delta = direction === 'left' ? -0.1 : 0.1;
             const next = Math.max(0, Math.min(1, prev + delta));
-            if (mixerRef.current.crossfade) {
-                mixerRef.current.crossfade.fade.rampTo(next, 0.1);
-            }
+            if (mixerRef.current.crossfade) mixerRef.current.crossfade.fade.rampTo(next, 0.1);
             return next;
         });
     }, []);
 
     const autoFade = useCallback((target: 0 | 1) => {
         if (mixerRef.current.crossfade) {
-            mixerRef.current.crossfade.fade.rampTo(target, 4); // 4 seconds
-            // Animate State
+            mixerRef.current.crossfade.fade.rampTo(target, 4);
             const start = crossfader;
             const startTime = Date.now();
             const duration = 4000;
-
             const interval = setInterval(() => {
                 const elapsed = Date.now() - startTime;
                 const p = Math.min(1, elapsed / duration);
@@ -290,33 +107,134 @@ export const useWebAudio = () => {
         }
     }, [crossfader]);
 
-    // Headphone Logic
-    const [headphoneMix, setHeadphoneMix] = useState(0);
-    const [headphoneVol, setHeadphoneVol] = useState(0.5);
-
     const updateHeadphoneMix = useCallback((val: number) => {
-        setHeadphoneMix(val); // 0 = Cue, 1 = Master
-        if (mixerRef.current.cueMix) {
-            mixerRef.current.cueMix.fade.rampTo(val, 0.1);
-        }
+        setHeadphoneMix(val);
+        if (mixerRef.current.cueMix) mixerRef.current.cueMix.fade.rampTo(val, 0.1);
     }, []);
 
     const updateHeadphoneVol = useCallback((val: number) => {
         setHeadphoneVol(val);
-        if (mixerRef.current.cueVolume) {
-            mixerRef.current.cueVolume.gain.rampTo(val, 0.1);
+        if (mixerRef.current.cueVolume) mixerRef.current.cueVolume.gain.rampTo(val, 0.1);
+    }, []);
+
+    // Initialize Tone Context & Mixer
+    useEffect(() => {
+        const initAudio = async () => {
+            if (isReadyRef.current) return;
+
+            try {
+                (Tone.context as any).latencyHint = 'interactive';
+            } catch (e) {
+                console.warn("Could not set Tone.js latencyHint:", e);
+            }
+
+            const crossfade = new Tone.CrossFade(0.5);
+            const masterBus = new Tone.Gain(0.5);
+            const limiter = new Tone.Limiter(-2);
+
+            const cueBus = new Tone.Gain(0.5);
+            const cueVolume = new Tone.Gain(0.5);
+            const cueMix = new Tone.CrossFade(0);
+
+            crossfade.connect(masterBus);
+            masterBus.connect(limiter);
+            limiter.toDestination();
+
+            cueBus.connect(cueMix.a);
+            masterBus.connect(cueMix.b);
+            cueMix.connect(cueVolume);
+            cueVolume.toDestination();
+
+            const splitMerger = new Tone.Merge();
+            const masterMono = new Tone.Mono();
+            const cueMono = new Tone.Mono();
+
+            mixerRef.current = {
+                crossfade, limiter, masterBus, cueBus, cueVolume, cueMix,
+                splitMerger, masterMono, cueMono,
+            };
+
+            isReadyRef.current = true;
+            setIsReady(true);
+        };
+
+        if (typeof window !== 'undefined') {
+            initAudio();
         }
     }, []);
 
+    useEffect(() => {
+        if (isReady && mixerRef.current.cueVolume && mixerRef.current.cueMix) {
+            mixerRef.current.cueVolume.gain.value = headphoneVol;
+            mixerRef.current.cueMix.fade.value = headphoneMix;
+        }
+    }, [isReady, headphoneVol, headphoneMix]); // Added headphoneMix to dependencies
 
-    // Cue Switch Logic handled in deck (gain gate)
-    // We control the gate here
-    const [cueA, setCueA] = useState(false);
-    const [cueB, setCueB] = useState(false);
+    useEffect(() => {
+        if (isReady && mixerRef.current.limiter) {
+            initRecorder();
+        }
+    }, [isReady, mixerRef.current.limiter, initRecorder]);
+
+    // Graph Connection
+    useEffect(() => {
+        if (!isReady || !mixerRef.current.crossfade) return;
+
+        if (deckA.masterOutput) {
+            deckA.masterOutput.disconnect();
+            deckA.masterOutput.connect(mixerRef.current.crossfade.a);
+        }
+        if (deckB.masterOutput) {
+            deckB.masterOutput.disconnect();
+            deckB.masterOutput.connect(mixerRef.current.crossfade.b);
+        }
+        if (deckA.cueOutput && mixerRef.current.cueBus) {
+            deckA.cueOutput.disconnect();
+            deckA.cueOutput.connect(mixerRef.current.cueBus);
+        }
+        if (deckB.cueOutput && mixerRef.current.cueBus) {
+            deckB.cueOutput.disconnect();
+            deckB.cueOutput.connect(mixerRef.current.cueBus);
+        }
+    }, [deckA.masterOutput, deckB.masterOutput, deckA.cueOutput, deckB.cueOutput, isReady]);
+
+    // Routing Mode logic
+    useEffect(() => {
+        if (!isReady || !mixerRef.current.limiter || !mixerRef.current.cueVolume) return;
+        const { limiter, cueVolume, masterMono, cueMono, splitMerger, masterBus } = mixerRef.current;
+
+        limiter.disconnect();
+        cueVolume.disconnect();
+        masterMono?.disconnect();
+        cueMono?.disconnect();
+        splitMerger?.disconnect();
+
+        if (routingMode === 'split') {
+            limiter.connect(masterMono!);
+            masterMono!.connect(splitMerger!, 0, 0);
+            cueVolume.connect(cueMono!);
+            cueMono!.connect(splitMerger!, 0, 1);
+            splitMerger!.toDestination();
+        } else if (routingMode === 'multichannel') {
+            const rawCtx = Tone.getContext().rawContext as AudioContext;
+            const multichannel = rawCtx.createChannelMerger(4);
+            const limiterNative = (limiter as any).output || limiter;
+            const cueNative = (cueVolume as any).output || cueVolume;
+            limiterNative.connect(multichannel, 0, 0);
+            limiterNative.connect(multichannel, 0, 1);
+            cueNative.connect(multichannel, 0, 2);
+            cueNative.connect(multichannel, 0, 3);
+            multichannel.connect(rawCtx.destination);
+        } else {
+            if (masterBus) masterBus.gain.rampTo(0.4, 0.1);
+            cueVolume.gain.rampTo(0.3 * headphoneVol, 0.1);
+            limiter.toDestination();
+            cueVolume.toDestination();
+        }
+    }, [routingMode, isReady, headphoneVol]);
 
     useEffect(() => {
         if (!deckA.cueOutput) return;
-        // rampTo is Tone.Param method. deck.cueOutput is Tone.Gain
         deckA.cueOutput.gain.rampTo(cueA ? 1 : 0, 0.05);
     }, [cueA, deckA.cueOutput]);
 
@@ -326,34 +244,13 @@ export const useWebAudio = () => {
     }, [cueB, deckB.cueOutput]);
 
     return {
-        deckA,
-        deckB,
-        crossfader,
-        setCrossfader: updateCrossfader,
-        headphoneMix,
-        setHeadphoneMix: updateHeadphoneMix,
-        headphoneVol,
-        setHeadphoneVol: updateHeadphoneVol,
-        nudgeCrossfader,
-        autoFade,
-        handleSync,
-        masterDeckId,
-        setMaster: setMasterDeckId,
-        cueA,
-        setCueA,
-        cueB,
-        setCueB,
-        routingMode,
-        setRoutingMode,
-        crossfaderCurve,
-        setCrossfaderCurve,
-        analysers: { A: deckA.analyser, B: deckB.analyser },
+        deckA, deckB, crossfader, setCrossfader: updateCrossfader,
+        headphoneMix, setHeadphoneMix: updateHeadphoneMix,
+        headphoneVol, setHeadphoneVol: updateHeadphoneVol,
+        nudgeCrossfader, autoFade, handleSync, masterDeckId, setMaster: setMasterDeckId,
+        cueA, setCueA, cueB, setCueB, routingMode, setRoutingMode,
+        crossfaderCurve, setCrossfaderCurve, analysers: { A: deckA.analyser, B: deckB.analyser },
         context: Tone.getContext().rawContext as AudioContext,
-        isRecording,
-        startRecording,
-        stopRecording,
-        elapsedSeconds,
-        maxDuration,
-        isConverting
+        isRecording, startRecording, stopRecording, elapsedSeconds, maxDuration, isConverting
     };
 };

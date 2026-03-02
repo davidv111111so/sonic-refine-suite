@@ -226,20 +226,17 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         // Cue Path (Pre-Fader)
         hpf.connect(cueGate);
 
-        // Analysis: Connect the native output of the Tone.Gain node directly to the native AnalyserNode.
-        // Tone's .connect() to a native node can silently fail with some Tone versions.
-        // Using the underlying AudioNode ensures the connection is always made correctly.
+        // Analysis: Connect the hpf output (pre-fader, post-EQ/Filter) to the native AnalyserNode.
+        // This ensures VU meters work even when the fader is down.
         try {
-            const nativeVolumeOutput = (volume as any).output?.input ?? (volume as any)._gainNode ?? (volume as any).input;
-            if (nativeVolumeOutput) {
-                nativeVolumeOutput.connect(analyser);
+            const nativeHpfOutput = (hpf as any).output?.input ?? (hpf as any)._filters?.[0] ?? (hpf as any).input ?? hpf;
+            if (nativeHpfOutput && typeof nativeHpfOutput.connect === 'function') {
+                nativeHpfOutput.connect(analyser);
             } else {
-                // Fallback: use Tone.connect static helper
-                Tone.connect(volume, analyser);
+                Tone.connect(hpf, analyser);
             }
         } catch (e) {
-            // Final fallback
-            try { Tone.connect(volume, analyser); } catch (_) { }
+            try { Tone.connect(hpf, analyser); } catch (_) { }
         }
         nodes.current = {
             player,
