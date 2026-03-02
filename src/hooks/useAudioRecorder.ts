@@ -118,10 +118,12 @@ export const useAudioRecorder = (limiterNode: Tone.Limiter | null) => {
             // Convert WebM → WAV
             console.log("[useAudioRecorder] Converting to WAV...");
             const arrayBuffer = await webmBlob.arrayBuffer();
-            const audioCtx = new AudioContext();
+            const audioCtx = Tone.getContext().rawContext as AudioContext;
+
+            // Note: decodeAudioData doesn't strictly need a fresh context. 
+            // We use Tone's existing, unlocked context to decode safely.
             const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
             const wavBlob = audioBufferToWav(audioBuffer);
-            audioCtx.close();
 
             // Trigger download
             const url = URL.createObjectURL(wavBlob);
