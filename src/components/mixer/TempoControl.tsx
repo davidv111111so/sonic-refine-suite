@@ -64,7 +64,7 @@ export const TempoControl = ({
                 {/* Up Arrow (Fast/Increase) */}
                 <button
                     className={cn(
-                        "transition-all active:scale-95 p-1 rounded-full hover:bg-white/5",
+                        "transition-all active:scale-95 p-1.5 rounded-md bg-white/5 border border-white/10 hover:bg-white/10 shadow-sm mb-1",
                         accentColor,
                         "hover:shadow-[0_0_8px_currentColor]"
                     )}
@@ -72,11 +72,11 @@ export const TempoControl = ({
                     onMouseUp={() => onStepUp?.()}
                     onMouseLeave={() => onStepUp?.()}
                 >
-                    <ChevronUp className="w-5 h-5 font-bold" strokeWidth={3} />
+                    <ChevronUp className="w-6 h-6 font-bold" strokeWidth={3} />
                 </button>
 
                 <div
-                    className="h-full w-8"
+                    className="h-32 w-8"
                     onDoubleClick={() => setPitch(0.5)}
                     title="Double-click to reset (0%)"
                 >
@@ -93,7 +93,7 @@ export const TempoControl = ({
                 {/* Down Arrow (Slow/Decrease) */}
                 <button
                     className={cn(
-                        "transition-all active:scale-95 p-1 rounded-full hover:bg-white/5",
+                        "transition-all active:scale-95 p-1.5 rounded-md bg-white/5 border border-white/10 hover:bg-white/10 shadow-sm mt-1",
                         accentColor,
                         "hover:shadow-[0_0_8px_currentColor]"
                     )}
@@ -101,7 +101,7 @@ export const TempoControl = ({
                     onMouseUp={() => onStepUp?.()}
                     onMouseLeave={() => onStepUp?.()}
                 >
-                    <ChevronDown className="w-5 h-5 font-bold" strokeWidth={3} />
+                    <ChevronDown className="w-6 h-6 font-bold" strokeWidth={3} />
                 </button>
 
                 {/* Center Detent Marker */}

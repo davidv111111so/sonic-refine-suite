@@ -687,9 +687,9 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
       </div>
 
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
         {/* Left Column: Waveform & EQ */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 flex flex-col gap-6 h-full">
           {/* Waveform Player */}
           <Card className="bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 p-6">
             <div className="flex items-center justify-between mb-4">
@@ -848,7 +848,7 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
         </div>
 
         {/* Right Column: Audio Effects, Compressor & Visualizer */}
-        <div className="space-y-6 flex flex-col">
+        <div className="flex flex-col gap-6 h-full">
           {/* Audio Effects (Top) */}
           <AudioEffectsControls
             settings={effectsSettings}

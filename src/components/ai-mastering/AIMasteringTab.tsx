@@ -640,9 +640,9 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
         </Alert>
         <AIMasteringGuide open={showGuide} onOpenChange={setShowGuide} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch min-h-0 flex-1">
           {/* Left Column: Target & Presets */}
-          <div className="space-y-8">
+          <div className="flex flex-col gap-8 h-full min-h-0">
             {/* Target Upload Card */}
             <Card className="bg-slate-900/80 border-slate-800 shadow-xl backdrop-blur-sm overflow-hidden group">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 to-blue-600 opacity-50 group-hover:opacity-100 transition-opacity" />
@@ -717,8 +717,8 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
             </Card>
 
             {/* Presets Grid */}
-            <Card className="bg-slate-900/80 border-slate-800 shadow-xl backdrop-blur-sm">
-              <CardHeader className="flex flex-row items-center justify-between">
+            <Card className="bg-slate-900/80 border-slate-800 shadow-xl backdrop-blur-sm flex-1 flex flex-col min-h-[450px]">
+              <CardHeader className="flex flex-row items-center justify-between shrink-0">
                 <CardTitle className="flex items-center gap-2 text-xl text-slate-100">
                   <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
                     <Zap className="h-5 w-5" />
@@ -727,8 +727,8 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
                 </CardTitle>
                 {isAdmin && <Badge variant="outline" className="border-purple-500/30 text-purple-400">Admin</Badge>}
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+              <CardContent className="flex-1 min-h-0 pt-0 pb-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 h-full overflow-y-auto pr-2 custom-scrollbar">
                   {MASTERING_PRESETS.map((preset) => {
                     const isSelected = selectedPreset === preset.id && activeMode === "preset";
                     return (
@@ -776,7 +776,7 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
           </div>
 
           {/* Right Column: Reference & Actions */}
-          <div className="space-y-8">
+          <div className="flex flex-col gap-8 h-full">
             {/* Custom Reference Card */}
             {/* Custom Reference Card */}
             <Card className="bg-slate-900/80 border-slate-800 shadow-xl backdrop-blur-sm relative overflow-hidden">
@@ -904,7 +904,7 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
             />
 
             {/* Action Area */}
-            <div className="space-y-6">
+            <div className="space-y-6 mt-auto">
               {isMasteringComplete ? (
                 <Button
                   onClick={handleClear}

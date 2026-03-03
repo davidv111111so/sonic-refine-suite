@@ -136,6 +136,9 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
             // Optimization: Only iterate visible range
             const step = 2; // Skip pixels for style/perf
 
+            // Pre-calculate heights to avoid repeating math and allow batching paths
+            const lineData: { x: number, lowH: number, midH: number, highH: number, rmsVal: number, highIntensity: number, lowIntensity: number }[] = [];
+
             for (let x = 0; x < width; x += step) {
                 const time = startTime + (x / zoom);
                 if (time < 0 || time > buffer.duration) continue;
@@ -158,39 +161,45 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
                     const highIntensity = Math.min(1, midHighVal * 1.8);
                     const lowIntensity = Math.min(1, lowVal * 2.2);
 
-                    // 1. Draw Bass (Blue/Indigo)
-                    ctx.strokeStyle = color === 'cyan' ? '#1e40af' : '#4c1d95'; // Darker base for contrast
-                    ctx.lineWidth = 2.5;
-                    ctx.beginPath();
-                    ctx.moveTo(x, center - lowH);
-                    ctx.lineTo(x, center + lowH);
-                    ctx.stroke();
-
-                    // 2. Draw Mid Range (Cyan/Green or Purple/Lavender)
-                    ctx.strokeStyle = color === 'cyan' ? '#06b6d4' : '#a855f7';
-                    ctx.lineWidth = 1.5;
-                    ctx.globalAlpha = 0.7;
-                    ctx.beginPath();
-                    ctx.moveTo(x, center - midH);
-                    ctx.lineTo(x, center + midH);
-                    ctx.stroke();
-
-                    // 3. Draw High Frequencies / Transients (Bright Orange/Red for Cyan, Pink/Yellow for Purple)
-                    // This makes the SNAPHOT/HATS pop
-                    ctx.strokeStyle = color === 'cyan'
-                        ? `rgba(255, ${150 + highIntensity * 105}, 0, ${highIntensity * 0.9 + 0.1})`
-                        : `rgba(255, 0, ${255 - highIntensity * 155}, ${highIntensity * 0.9 + 0.1})`;
-
-                    ctx.lineWidth = 1;
-                    const hDisp = highH + (rmsVal * 4);
-                    ctx.beginPath();
-                    ctx.moveTo(x, center - hDisp);
-                    ctx.lineTo(x, center + hDisp);
-                    ctx.stroke();
-
-                    ctx.globalAlpha = 1.0;
+                    lineData.push({ x, lowH, midH, highH, rmsVal, highIntensity, lowIntensity });
                 }
             }
+
+            // 1. Draw Bass (Blue/Indigo)
+            ctx.strokeStyle = color === 'cyan' ? '#1e40af' : '#4c1d95'; // Darker base for contrast
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            for (const d of lineData) {
+                ctx.moveTo(d.x, center - d.lowH);
+                ctx.lineTo(d.x, center + d.lowH);
+            }
+            ctx.stroke();
+
+            // 2. Draw Mid Range (Cyan/Green or Purple/Lavender)
+            ctx.strokeStyle = color === 'cyan' ? '#06b6d4' : '#a855f7';
+            ctx.lineWidth = 1.5;
+            ctx.globalAlpha = 0.7;
+            ctx.beginPath();
+            for (const d of lineData) {
+                ctx.moveTo(d.x, center - d.midH);
+                ctx.lineTo(d.x, center + d.midH);
+            }
+            ctx.stroke();
+
+            // 3. Draw High Frequencies / Transients (Bright Orange/Red for Cyan, Pink/Yellow for Purple)
+            ctx.lineWidth = 1;
+            for (const d of lineData) {
+                ctx.strokeStyle = color === 'cyan'
+                    ? `rgba(255, ${Math.floor(150 + d.highIntensity * 105)}, 0, ${d.highIntensity * 0.9 + 0.1})`
+                    : `rgba(255, 0, ${Math.floor(255 - d.highIntensity * 155)}, ${d.highIntensity * 0.9 + 0.1})`;
+
+                const hDisp = d.highH + (d.rmsVal * 4);
+                ctx.beginPath();
+                ctx.moveTo(d.x, center - hDisp);
+                ctx.lineTo(d.x, center + hDisp);
+                ctx.stroke();
+            }
+
             ctx.globalAlpha = 1.0;
 
             // Markers

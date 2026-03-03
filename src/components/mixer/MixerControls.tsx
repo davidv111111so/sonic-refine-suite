@@ -198,28 +198,6 @@ export const MixerControls = ({
                     AUTO
                 </button>
             </div>
-
-            {/* Crossfader Curve Selector */}
-            {setCrossfaderCurve && (
-                <div className="flex-none h-6 bg-[#0d0d0d] flex items-center justify-center gap-1 px-2 mx-1 mb-0.5">
-                    <span className="text-[7px] font-bold text-neutral-600 uppercase tracking-wider mr-1">Curve</span>
-                    {(['smooth', 'sharp', 'constantPower', 'cut'] as CrossfaderCurve[]).map(curve => (
-                        <button
-                            key={curve}
-                            className={cn(
-                                "h-4 px-1.5 rounded-[2px] text-[7px] font-bold uppercase transition-all border",
-                                crossfaderCurve === curve
-                                    ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/60 shadow-[0_0_4px_rgba(6,182,212,0.3)]"
-                                    : "bg-black/40 text-neutral-600 border-neutral-800 hover:border-neutral-600 hover:text-neutral-400"
-                            )}
-                            onClick={() => setCrossfaderCurve(curve)}
-                            title={`${curve} crossfader curve`}
-                        >
-                            {curve === 'constantPower' ? 'C.PWR' : curve}
-                        </button>
-                    ))}
-                </div>
-            )}
         </div>
     );
 };

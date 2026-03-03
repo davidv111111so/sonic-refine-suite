@@ -11,14 +11,48 @@ interface TrackListProps {
 export const TrackList: React.FC<TrackListProps> = ({ onLoadTrack }) => {
     const { state, removeTrack } = useLibrary();
 
+    const [sortConfig, setSortConfig] = React.useState<{ key: keyof LibraryTrack, direction: 'asc' | 'desc' } | null>(null);
+
     const filteredTracks = React.useMemo(() => {
-        if (!state.searchQuery) return state.currentTracks;
-        const q = state.searchQuery.toLowerCase();
-        return state.currentTracks.filter(t =>
-            t.title.toLowerCase().includes(q) ||
-            t.artist.toLowerCase().includes(q)
-        );
-    }, [state.currentTracks, state.searchQuery]);
+        let tracks = state.currentTracks;
+        if (state.searchQuery) {
+            const q = state.searchQuery.toLowerCase();
+            tracks = tracks.filter(t =>
+                t.title.toLowerCase().includes(q) ||
+                t.artist.toLowerCase().includes(q)
+            );
+        }
+
+        if (sortConfig) {
+            tracks = [...tracks].sort((a, b) => {
+                const aVal = a[sortConfig.key];
+                const bVal = b[sortConfig.key];
+
+                if (typeof aVal === 'string' && typeof bVal === 'string') {
+                    return sortConfig.direction === 'asc'
+                        ? aVal.localeCompare(bVal)
+                        : bVal.localeCompare(aVal);
+                } else if (typeof aVal === 'number' && typeof bVal === 'number') {
+                    return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
+                }
+                return 0;
+            });
+        }
+        return tracks;
+    }, [state.currentTracks, state.searchQuery, sortConfig]);
+
+    const handleSort = (key: keyof LibraryTrack) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const getSortIndicator = (key: keyof LibraryTrack) => {
+        if (!sortConfig || sortConfig.key !== key) return null;
+        return <span className="ml-1 text-[#00deea] text-[10px]">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>;
+    };
 
     const handleDragStart = (e: React.DragEvent, track: LibraryTrack) => {
         // Custom data format compatible with ProMixer 'drop' logic
@@ -48,13 +82,38 @@ export const TrackList: React.FC<TrackListProps> = ({ onLoadTrack }) => {
             <table className="w-full text-left border-collapse table-fixed">
                 <thead className="sticky top-0 bg-[#1a1a1a] z-10 text-[9px] font-bold text-[#888] uppercase shadow-sm">
                     <tr>
-                        <th className="w-8 px-2 py-1 border-r border-[#333] border-b">#</th>
-                        <th className="px-2 py-1 border-r border-[#333] border-b">Title</th>
-                        <th className="px-2 py-1 border-r border-[#333] border-b w-32">Artist</th>
-                        <th className="w-12 px-2 py-1 border-r border-[#333] border-b text-center">BPM</th>
-                        <th className="w-12 px-2 py-1 border-r border-[#333] border-b text-center">Key</th>
-                        <th className="w-14 px-2 py-1 border-r border-[#333] border-b text-center">
-                            <Clock className="w-3 h-3 mx-auto" />
+                        <th className="w-8 px-2 py-1 border-r border-[#333] border-b text-center">#</th>
+                        <th
+                            className="px-2 py-1 border-r border-[#333] border-b cursor-pointer hover:bg-[#333] transition-colors"
+                            onClick={() => handleSort('title')}
+                        >
+                            Title {getSortIndicator('title')}
+                        </th>
+                        <th
+                            className="px-2 py-1 border-r border-[#333] border-b w-32 cursor-pointer hover:bg-[#333] transition-colors"
+                            onClick={() => handleSort('artist')}
+                        >
+                            Artist {getSortIndicator('artist')}
+                        </th>
+                        <th
+                            className="w-16 px-2 py-1 border-r border-[#333] border-b text-center cursor-pointer hover:bg-[#333] transition-colors"
+                            onClick={() => handleSort('bpm')}
+                        >
+                            BPM {getSortIndicator('bpm')}
+                        </th>
+                        <th
+                            className="w-16 px-2 py-1 border-r border-[#333] border-b text-center cursor-pointer hover:bg-[#333] transition-colors"
+                            onClick={() => handleSort('key')}
+                        >
+                            Key {getSortIndicator('key')}
+                        </th>
+                        <th
+                            className="w-16 px-2 py-1 border-r border-[#333] border-b text-center cursor-pointer hover:bg-[#333] transition-colors"
+                            onClick={() => handleSort('time')}
+                        >
+                            <div className="flex items-center justify-center">
+                                <Clock className="w-3 h-3" /> {getSortIndicator('time')}
+                            </div>
                         </th>
                         <th className="w-8 px-2 py-1 border-b border-[#333] text-center"></th>
                     </tr>

@@ -33,29 +33,6 @@ interface Track {
     file?: File;
 }
 
-const SyncSettingsButton = () => {
-    const { syncMode, setSyncMode } = useSync();
-
-    return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-neutral-400 hover:text-white">
-                    <Settings2 className="w-4 h-4" />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 bg-[#1e1e1e] border-[#333] text-white">
-                <div className="p-2 text-[10px] font-bold text-neutral-500 uppercase">Sync Mode</div>
-                <DropdownMenuItem onClick={() => setSyncMode('tempo')} className={cn(syncMode === 'tempo' && "text-cyan-400")}>
-                    Tempo Only (Vinyl)
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSyncMode('beat')} className={cn(syncMode === 'beat' && "text-cyan-400")}>
-                    Beat Sync (Quantized)
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
-    );
-};
-
 const ProMixerContent = () => {
     const { state: transportState, toggleAutoMaster } = useTransport();
     const {
@@ -67,6 +44,8 @@ const ProMixerContent = () => {
         isRecording, startRecording, stopRecording,
         elapsedSeconds, maxDuration, isConverting
     } = useWebAudio();
+
+    const { syncMode, setSyncMode } = useSync();
 
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const midiLearn = useMIDILearn();
@@ -202,7 +181,6 @@ const ProMixerContent = () => {
                         <div className={cn("w-2 h-2 rounded-full", isRecording ? "bg-red-500" : "bg-[#666]")} />
                         {isRecording ? "RECORDING" : "REC"}
                     </button>
-                    <SyncSettingsButton />
                 </div>
             </div>
 
@@ -296,6 +274,8 @@ const ProMixerContent = () => {
                 onSetCrossfaderCurve={setCrossfaderCurve}
                 routingMode={routingMode}
                 onSetRoutingMode={setRoutingMode}
+                syncMode={syncMode}
+                onSetSyncMode={setSyncMode}
             />
         </div>
     );

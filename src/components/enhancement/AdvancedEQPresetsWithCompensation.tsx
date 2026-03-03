@@ -13,6 +13,7 @@ import {
   Headphones,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 interface AdvancedEQPresetsWithCompensationProps {
   onEQBandChange: (bandIndex: number, value: number) => void;
 }
@@ -23,60 +24,80 @@ const EQ_PRESETS = [
   {
     name: "Modern Punch",
     nameES: "Modern Punch",
+    desc: "Increases low-end punch and high-end clarity.",
+    descES: "Aumenta la fuerza de graves y claridad de agudos.",
     icon: Volume2,
     values: [1.5, 1.0, -2.0, 0.5, 2.0],
   },
   {
     name: "Vocal Presence",
     nameES: "Presencia Vocal",
+    desc: "Boosts vocal frequencies for better intelligibility.",
+    descES: "Destaca las frecuencias vocales para mayor inteligibilidad.",
     icon: Mic,
     values: [-1.5, -2.0, 1.5, 2.0, 0.5],
   },
   {
     name: "Bass Foundation",
     nameES: "Fundamento de Graves",
+    desc: "Enhances deep bass and sub frequencies.",
+    descES: "Mejora los graves profundos y subfrecuencias.",
     icon: Music,
     values: [2.0, 1.0, -1.0, 0.0, -0.5],
   },
   {
     name: "Clarity & Air",
     nameES: "Claridad y Aire",
+    desc: "Adds high-end shimmer and openness.",
+    descES: "Añade brillo y apertura en las frecuencias altas.",
     icon: Waves,
     values: [-0.5, 0.0, -1.0, 1.5, 2.5],
   },
   {
     name: "De-Box / Clean Mid",
     nameES: "De-Box / Medio Limpio",
+    desc: "Removes muddy and boxy mid frequencies.",
+    descES: "Elimina las frecuencias medias fangosas y opacas.",
     icon: Disc3,
     values: [-1.0, -1.5, -2.5, 1.0, 0.5],
   },
   {
     name: "Warmth & Body",
     nameES: "Calidez y Cuerpo",
+    desc: "Adds fullness and warmth to thin tracks.",
+    descES: "Agrega plenitud y calidez a pistas delgadas.",
     icon: Music2,
     values: [0.5, 1.5, 1.0, -1.0, -1.5],
   },
   {
     name: "Live Energy (Subtle V)",
     nameES: "Energía en Vivo (V Sutil)",
+    desc: "A slight V-curve for energetic, live-sounding mixes.",
+    descES: "Una ligera curva en V para mezclas con sonido en vivo.",
     icon: Guitar,
     values: [1.0, 0.5, -1.5, 0.5, 1.5],
   },
   {
     name: "Acoustic / Orchestral",
     nameES: "Acústica / Orquestal",
+    desc: "Balanced EQ tailored for acoustic instruments.",
+    descES: "Ecualización equilibrada para instrumentos acústicos.",
     icon: Headphones,
     values: [0.5, -1.0, 0.0, 0.5, 1.0],
   },
   {
     name: "Digital De-Harsh",
     nameES: "Digital De-Harsh",
+    desc: "Tames harsh upper-mid digital glare.",
+    descES: "Suaviza el brillo digital áspero en medios altos.",
     icon: Lightbulb,
     values: [0.0, 0.0, 0.5, -1.5, -1.0],
   },
   {
     name: "Voiceover / Podcast",
     nameES: "Locución / Podcast",
+    desc: "Optimized for speech intelligibility and podcasting.",
+    descES: "Optimizado para inteligibilidad de voz y podcasts.",
     icon: MessageSquare,
     values: [-6.0, -2.5, 2.0, 2.5, -1.5],
   },
@@ -152,28 +173,36 @@ export const AdvancedEQPresetsWithCompensation = memo(
             ];
             const gradient = gradients[index % gradients.length];
             return (
-              <Button
-                key={preset.name}
-                onClick={() => applyPreset(preset)}
-                className={`
-                relative flex flex-col items-center gap-1.5 h-auto py-2 px-1
-                bg-gradient-to-br ${gradient}
-                hover:scale-105 active:scale-95
-                border border-white/20 hover:border-white/50
-                shadow-md hover:shadow-lg
-                transition-all duration-300
-                group
-                min-h-[60px]
-              `}
-              >
-                {/* Glow effect */}
-                <div className="absolute inset-0 bg-white/10 rounded-md opacity-0 group-hover:opacity-100 transition-opacity blur-lg -z-10" />
+              <TooltipProvider key={preset.name} delayDuration={300}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={() => applyPreset(preset)}
+                      className={`
+                      relative flex flex-col items-center gap-1.5 h-auto py-2 px-1
+                      bg-white/5 backdrop-blur-md border border-white/10
+                      hover:bg-white/10 hover:border-white/30 hover:scale-105 active:scale-95
+                      shadow-[0_8px_32px_0_rgba(0,0,0,0.2)] hover:shadow-[0_8px_32px_0_rgba(34,211,238,0.2)]
+                      transition-all duration-300 rounded-xl
+                      group
+                      min-h-[60px]
+                      overflow-hidden
+                    `}
+                    >
+                      {/* Glow effect */}
+                      <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-20 group-hover:opacity-40 transition-opacity blur-sm -z-10`} />
 
-                <Icon className="h-4 w-4 text-white drop-shadow-sm group-hover:scale-110 transition-transform" />
-                <span className="text-[10px] font-bold text-white drop-shadow-sm text-center leading-tight line-clamp-2">
-                  {displayName}
-                </span>
-              </Button>
+                      <Icon className="h-4 w-4 text-white/80 group-hover:text-white drop-shadow-sm group-hover:scale-110 transition-transform" />
+                      <span className="text-[10px] font-bold text-white/80 group-hover:text-white drop-shadow-sm text-center leading-tight line-clamp-2">
+                        {displayName}
+                      </span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-xs bg-slate-900 border-slate-700 max-w-[200px] text-center">
+                    <p>{language === "ES" ? preset.descES : preset.desc}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             );
           })}
         </div>

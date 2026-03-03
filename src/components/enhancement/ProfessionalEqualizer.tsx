@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { RotateCcw, Music2, Mic, Headphones, Guitar, Disc3, Radio, MessageSquare, Volume2, Waves, Music, Lightbulb } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ProfessionalEqualizerProps {
   eqBands: number[];
@@ -19,16 +20,16 @@ interface ProfessionalEqualizerProps {
 // 10 Professional EQ Presets with Full 10-Band Values and Automatic Gain Compensation
 // Each preset now includes values for all 10 bands: 31Hz, 62Hz, 125Hz, 250Hz, 500Hz, 1kHz, 2kHz, 4kHz, 8kHz, 16kHz
 const EQ_PRESETS = [
-  { name: 'Modern Punch', nameES: 'Punch Moderno', icon: Volume2, values: [+1.5, +1.0, +0.5, -2.0, +0.5, +2.0, +1.5, +1.0, +0.5, 0], compensation: -1.2 },
-  { name: 'Vocal Presence', nameES: 'Presencia Vocal', icon: Mic, values: [-1.5, -2.0, -1.0, +1.5, +2.0, +2.5, +2.0, +1.0, +0.5, 0], compensation: -0.6 },
-  { name: 'Bass Foundation', nameES: 'Base de Graves', icon: Waves, values: [+2.0, +1.5, +1.0, -1.0, -0.5, 0, 0, 0, 0, 0], compensation: -0.9 },
-  { name: 'Clarity & Air', nameES: 'Claridad y Aire', icon: Lightbulb, values: [-0.5, -0.5, 0, -1.0, +1.0, +1.5, +2.0, +2.5, +3.0, +2.5], compensation: -0.8 },
-  { name: 'De-Box / Clean Mid', nameES: 'Limpiar Medios', icon: Radio, values: [-1.0, -1.0, -1.5, -2.5, -2.0, +1.0, +1.5, +1.0, +0.5, 0], compensation: -0.5 },
-  { name: 'Warmth & Body', nameES: 'Calidez y Cuerpo', icon: Music2, values: [+0.5, +1.0, +1.5, +1.0, +0.5, -1.0, -1.5, -1.0, -0.5, 0], compensation: -0.4 },
-  { name: 'Live Energy (Subtle V)', nameES: 'Energía en Vivo (V Sutil)', icon: Headphones, values: [+1.0, +1.0, +0.5, -1.5, -1.0, +0.5, +1.0, +1.5, +2.0, +1.5], compensation: -0.7 },
-  { name: 'Acoustic / Orchestral', nameES: 'Acústico / Orquestal', icon: Guitar, values: [+0.5, +0.5, 0, -1.0, -0.5, +0.5, +1.0, +1.0, +0.5, 0], compensation: -0.3 },
-  { name: 'Digital De-Harsh', nameES: 'De-Harsh Digital', icon: Disc3, values: [0, 0, 0, +0.5, 0, -1.5, -2.0, -1.5, -1.0, -0.5], compensation: 0 },
-  { name: 'Voiceover / Podcast', nameES: 'Voz en Off / Podcast', icon: MessageSquare, values: [-6.0, -4.0, -2.5, +2.0, +2.5, +2.0, +1.0, -1.5, -2.0, -1.0], compensation: -1.5 },
+  { name: 'Modern Punch', nameES: 'Punch Moderno', desc: "Increases low-end punch and high-end clarity.", descES: "Aumenta la fuerza de graves y claridad de agudos.", icon: Volume2, values: [+1.5, +1.0, +0.5, -2.0, +0.5, +2.0, +1.5, +1.0, +0.5, 0], compensation: -1.2 },
+  { name: 'Vocal Presence', nameES: 'Presencia Vocal', desc: "Boosts vocal frequencies for better intelligibility.", descES: "Destaca las frecuencias vocales para mayor inteligibilidad.", icon: Mic, values: [-1.5, -2.0, -1.0, +1.5, +2.0, +2.5, +2.0, +1.0, +0.5, 0], compensation: -0.6 },
+  { name: 'Bass Foundation', nameES: 'Base de Graves', desc: "Enhances deep bass and sub frequencies.", descES: "Mejora los graves profundos y subfrecuencias.", icon: Waves, values: [+2.0, +1.5, +1.0, -1.0, -0.5, 0, 0, 0, 0, 0], compensation: -0.9 },
+  { name: 'Clarity & Air', nameES: 'Claridad y Aire', desc: "Adds high-end shimmer and openness.", descES: "Añade brillo y apertura en las frecuencias altas.", icon: Lightbulb, values: [-0.5, -0.5, 0, -1.0, +1.0, +1.5, +2.0, +2.5, +3.0, +2.5], compensation: -0.8 },
+  { name: 'De-Box / Clean Mid', nameES: 'Limpiar Medios', desc: "Removes muddy and boxy mid frequencies.", descES: "Elimina las frecuencias medias fangosas y opacas.", icon: Radio, values: [-1.0, -1.0, -1.5, -2.5, -2.0, +1.0, +1.5, +1.0, +0.5, 0], compensation: -0.5 },
+  { name: 'Warmth & Body', nameES: 'Calidez y Cuerpo', desc: "Adds fullness and warmth to thin tracks.", descES: "Agrega plenitud y calidez a pistas delgadas.", icon: Music2, values: [+0.5, +1.0, +1.5, +1.0, +0.5, -1.0, -1.5, -1.0, -0.5, 0], compensation: -0.4 },
+  { name: 'Live Energy (Subtle V)', nameES: 'Energía en Vivo (V Sutil)', desc: "A slight V-curve for energetic, live-sounding mixes.", descES: "Una ligera curva en V para mezclas con sonido en vivo.", icon: Headphones, values: [+1.0, +1.0, +0.5, -1.5, -1.0, +0.5, +1.0, +1.5, +2.0, +1.5], compensation: -0.7 },
+  { name: 'Acoustic / Orchestral', nameES: 'Acústico / Orquestal', desc: "Balanced EQ tailored for acoustic instruments.", descES: "Ecualización equilibrada para instrumentos acústicos.", icon: Guitar, values: [+0.5, +0.5, 0, -1.0, -0.5, +0.5, +1.0, +1.0, +0.5, 0], compensation: -0.3 },
+  { name: 'Digital De-Harsh', nameES: 'De-Harsh Digital', desc: "Tames harsh upper-mid digital glare.", descES: "Suaviza el brillo digital áspero en medios altos.", icon: Disc3, values: [0, 0, 0, +0.5, 0, -1.5, -2.0, -1.5, -1.0, -0.5], compensation: 0 },
+  { name: 'Voiceover / Podcast', nameES: 'Voz en Off / Podcast', desc: "Optimized for speech intelligibility and podcasting.", descES: "Optimizado para inteligibilidad de voz y podcasts.", icon: MessageSquare, values: [-6.0, -4.0, -2.5, +2.0, +2.5, +2.0, +1.0, -1.5, -2.0, -1.0], compensation: -1.5 },
 ];
 
 export const ProfessionalEqualizer = ({
@@ -171,19 +172,29 @@ export const ProfessionalEqualizer = ({
                   const Icon = preset.icon;
                   const displayName = language === 'ES' ? preset.nameES : preset.name;
                   return (
-                    <Button
-                      key={preset.name}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => applyPreset(preset.values, preset.compensation)}
-                      className="bg-slate-900/50 border-slate-800 hover:bg-cyan-950/30 hover:border-cyan-500/50 text-slate-300 hover:text-cyan-400 h-auto py-2 px-1 flex flex-col items-center gap-1.5 transition-all duration-200 group"
-                      title={`${displayName} (Gain: ${preset.compensation > 0 ? '+' : ''}${preset.compensation} dB)`}
-                    >
-                      <Icon className="h-3 w-3 text-slate-500 group-hover:text-cyan-400 transition-colors" />
-                      <span className="text-[9px] font-medium leading-none text-center opacity-70 group-hover:opacity-100">
-                        {displayName}
-                      </span>
-                    </Button>
+                    <TooltipProvider key={preset.name} delayDuration={300}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => applyPreset(preset.values, preset.compensation)}
+                            className="relative overflow-hidden bg-white/5 backdrop-blur-md border border-white/10 hover:bg-white/10 hover:border-white/30 text-white/80 hover:text-white h-auto py-2 px-1 flex flex-col items-center gap-1.5 transition-all duration-300 group shadow-[0_4px_16px_0_rgba(0,0,0,0.2)] hover:shadow-[0_4px_16px_0_rgba(34,211,238,0.2)] rounded-lg"
+                            title={`${displayName} (Gain: ${preset.compensation > 0 ? '+' : ''}${preset.compensation} dB)`}
+                          >
+                            <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity blur-sm -z-10" />
+                            <Icon className="h-3 w-3 text-white/60 group-hover:text-cyan-300 drop-shadow-sm transition-colors group-hover:scale-110" />
+                            <span className="text-[9px] font-medium leading-none text-center opacity-70 group-hover:opacity-100 drop-shadow-sm">
+                              {displayName}
+                            </span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="text-xs bg-slate-900 border-slate-700 max-w-[200px] text-center">
+                          <p>{language === "ES" ? preset.descES : preset.desc}</p>
+                          <p className="opacity-70 text-[10px] mt-1">Gain: {preset.compensation > 0 ? '+' : ''}{preset.compensation} dB</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   );
                 })}
               </div>

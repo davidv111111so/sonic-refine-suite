@@ -22,6 +22,9 @@ interface SettingsModalProps {
     // Audio Routing
     routingMode: 'stereo' | 'split' | 'multichannel';
     onSetRoutingMode: (mode: 'stereo' | 'split' | 'multichannel') => void;
+    // Sync Mode
+    syncMode: 'off' | 'tempo' | 'beat' | string;
+    onSetSyncMode: (mode: any) => void;
 }
 
 type SettingsTab = 'midi' | 'mixer' | 'audio';
@@ -60,6 +63,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     onSetCrossfaderCurve,
     routingMode,
     onSetRoutingMode,
+    syncMode,
+    onSetSyncMode,
 }) => {
     const [activeTab, setActiveTab] = useState<SettingsTab>('midi');
 
@@ -189,6 +194,31 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
                     {activeTab === 'mixer' && (
                         <div className="space-y-4">
+                            {/* Sync Mode */}
+                            <div>
+                                <h3 className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-2">Sync Mode</h3>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {([
+                                        { value: 'tempo' as const, label: 'Tempo Only', desc: 'Vinyl style matching' },
+                                        { value: 'beat' as const, label: 'Beat Sync', desc: 'Fully quantized' },
+                                    ]).map(mode => (
+                                        <button
+                                            key={mode.value}
+                                            className={cn(
+                                                "flex flex-col items-center gap-1 p-3 rounded border transition-all",
+                                                syncMode === mode.value
+                                                    ? "bg-cyan-500/10 border-cyan-500/50 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.15)]"
+                                                    : "bg-[#18181b] border-[#27272a] text-neutral-400 hover:border-[#3f3f46]"
+                                            )}
+                                            onClick={() => onSetSyncMode(mode.value)}
+                                        >
+                                            <span className="text-xs font-bold">{mode.label}</span>
+                                            <span className="text-[8px] text-neutral-600">{mode.desc}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
                             {/* Crossfader Curve */}
                             <div>
                                 <h3 className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-2">Crossfader Curve</h3>
