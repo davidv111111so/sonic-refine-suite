@@ -190,7 +190,7 @@ export const LevelTabs = ({
   return (
     <>
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full relative z-30">
-        <TabsList className="grid w-full h-[60px] grid-cols-6 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-black dark:via-slate-900 dark:to-black border-2 border-slate-600 dark:border-slate-700 p-1.5 rounded-2xl shadow-xl relative z-50 items-center">
+        <TabsList className="grid w-full h-[60px] grid-cols-5 lg:grid-cols-6 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-black dark:via-slate-900 dark:to-black border-2 border-slate-600 dark:border-slate-700 p-1.5 rounded-2xl shadow-xl relative z-50 items-center">
           <TabsTrigger value="level" className="h-full flex items-center justify-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:via-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-cyan-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-xl cursor-pointer">
             <BarChart3 className="h-5 w-5" />
             <span className="text-lg text-blue-50">Level</span>
@@ -215,7 +215,7 @@ export const LevelTabs = ({
           </TabsTrigger>
           <div
             onClick={() => window.open('/mixer', '_blank')}
-            className="relative group h-full flex items-center justify-center gap-2 px-5 rounded-xl cursor-pointer transition-all duration-500 overflow-hidden bg-gradient-to-r from-pink-600/20 via-purple-600/20 to-indigo-600/20 border border-pink-500/40 hover:border-pink-400/80 hover:shadow-[0_0_25px_rgba(236,72,153,0.5),0_0_50px_rgba(147,51,234,0.3)] animate-[mixerPulse_3s_ease-in-out_infinite]"
+            className="hidden lg:flex relative group h-full items-center justify-center gap-2 px-5 rounded-xl cursor-pointer transition-all duration-500 overflow-hidden bg-gradient-to-r from-pink-600/20 via-purple-600/20 to-indigo-600/20 border border-pink-500/40 hover:border-pink-400/80 hover:shadow-[0_0_25px_rgba(236,72,153,0.5),0_0_50px_rgba(147,51,234,0.3)] animate-[mixerPulse_3s_ease-in-out_infinite]"
             role="button"
             title="Open Mixer Lab in new window"
             style={{

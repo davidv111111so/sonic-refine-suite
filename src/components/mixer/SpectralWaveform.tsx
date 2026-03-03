@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { getCachedPeaks, setCachedPeaks, generateBufferKey } from '@/utils/audioCache';
 
 interface WaveformChunk {
     min: number;
@@ -36,34 +37,55 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
 
     // 1. Analyze Audio
     useEffect(() => {
-        if (!buffer) {
-            setPeaks(null);
-            return;
-        }
+        let isMounted = true;
 
-        const worker = new Worker(new URL('../../workers/waveformAnalysis.worker.ts', import.meta.url), { type: 'module' });
-        workerRef.current = worker;
-
-        const channelData = buffer.getChannelData(0);
-        // Copy for transfer (mandatory unless SharedArrayBuffer)
-        const transferBuffer = new Float32Array(channelData);
-
-        worker.postMessage({
-            channelData: transferBuffer,
-            sampleRate: buffer.sampleRate,
-            samplesPerPixel: 512 // High Res
-        }, [transferBuffer.buffer]);
-
-        worker.onmessage = (e) => {
-            if (e.data.peaks && e.data.peaks instanceof Float32Array) {
-                setPeaks(e.data.peaks);
-            } else if (e.data.peaks) {
-                // Legacy fallback or error (shouldn't happen with new worker)
-                console.warn("Worker returned non-Float32Array", e.data.peaks);
+        const loadPeaks = async () => {
+            if (!buffer) {
+                if (isMounted) setPeaks(null);
+                return;
             }
+
+            const cacheKey = generateBufferKey(buffer);
+            const cached = await getCachedPeaks(cacheKey);
+
+            if (cached && isMounted) {
+                setPeaks(cached);
+                return;
+            }
+
+            // Not in cache, compute using worker
+            const worker = new Worker(new URL('../../workers/waveformAnalysis.worker.ts', import.meta.url), { type: 'module' });
+            workerRef.current = worker;
+
+            const channelData = buffer.getChannelData(0);
+            const transferBuffer = new Float32Array(channelData);
+
+            worker.postMessage({
+                channelData: transferBuffer,
+                sampleRate: buffer.sampleRate,
+                samplesPerPixel: 512 // High Res
+            }, [transferBuffer.buffer]);
+
+            worker.onmessage = async (e) => {
+                const generatedPeaks = e.data.peaks;
+                if (generatedPeaks && generatedPeaks instanceof Float32Array) {
+                    if (isMounted) setPeaks(generatedPeaks);
+                    await setCachedPeaks(cacheKey, generatedPeaks);
+                } else if (generatedPeaks) {
+                    console.warn("Worker returned non-Float32Array", generatedPeaks);
+                }
+            };
         };
 
-        return () => worker.terminate();
+        loadPeaks();
+
+        return () => {
+            isMounted = false;
+            if (workerRef.current) {
+                workerRef.current.terminate();
+                workerRef.current = null;
+            }
+        };
     }, [buffer]);
 
     const currentTimeRef = useRef(currentTime);
