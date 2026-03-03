@@ -180,20 +180,21 @@ export const AdvancedEQPresetsWithCompensation = memo(
                       onClick={() => applyPreset(preset)}
                       className={`
                       relative flex flex-col items-center gap-1.5 h-auto py-2 px-1
-                      bg-white/5 backdrop-blur-md border border-white/10
-                      hover:bg-white/10 hover:border-white/30 hover:scale-105 active:scale-95
-                      shadow-[0_8px_32px_0_rgba(0,0,0,0.2)] hover:shadow-[0_8px_32px_0_rgba(34,211,238,0.2)]
-                      transition-all duration-300 rounded-xl
+                      bg-slate-900/40 backdrop-blur-xl border border-white/5
+                      hover:bg-slate-800/60 hover:border-cyan-500/30 hover:scale-105 active:scale-95
+                      shadow-[0_4px_16px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_32px_rgba(34,211,238,0.15)]
+                      transition-all duration-500 rounded-xl
                       group
                       min-h-[60px]
                       overflow-hidden
                     `}
                     >
-                      {/* Glow effect */}
-                      <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-20 group-hover:opacity-40 transition-opacity blur-sm -z-10`} />
+                      {/* Smooth animated glow background */}
+                      <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-5 group-hover:opacity-20 transition-opacity duration-500 -z-10`} />
+                      <div className="absolute -inset-1 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 -z-10" />
 
-                      <Icon className="h-4 w-4 text-white/80 group-hover:text-white drop-shadow-sm group-hover:scale-110 transition-transform" />
-                      <span className="text-[10px] font-bold text-white/80 group-hover:text-white drop-shadow-sm text-center leading-tight line-clamp-2">
+                      <Icon className="h-4 w-4 text-slate-300 group-hover:text-cyan-400 transition-colors duration-300" />
+                      <span className="text-[10px] font-bold text-slate-400 group-hover:text-white transition-colors duration-300 text-center leading-tight line-clamp-2">
                         {displayName}
                       </span>
                     </Button>

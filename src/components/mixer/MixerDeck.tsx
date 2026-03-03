@@ -337,7 +337,6 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                             <TooltipTrigger asChild>
                                 <Button
                                     variant="ghost"
-
                                     onMouseDown={(e) => {
                                         e.preventDefault();
                                         if (e.shiftKey) {
@@ -360,68 +359,82 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                                     <Disc3 className={cn("w-3.5 h-3.5 mb-[1px]", cueLogic.cuePoint !== null ? "text-red-500" : "text-neutral-300")} />
                                     <span className="text-[8px] font-bold text-neutral-300 leading-none">CUE</span>
                                 </Button>
-                                <TooltipContent side="top" className="bg-slate-900 border-slate-700 text-[10px]">
-                                    <p>Hold Left Click: Play from Cue (stops on release)</p>
-                                    <p>Click: Jump/Set Cue</p>
-                                    <p>Shift+Click or Right Click: Clear Cue</p>
-                                </TooltipContent>
                             </TooltipTrigger>
-                            <TooltipContent side="bottom" className="text-xs bg-slate-900 border-slate-700">Set or jump to cue point</TooltipContent>
+                            <TooltipContent side="top" className="bg-slate-900 border-slate-700 text-[10px] p-2 max-w-[200px] z-[300]">
+                                <p className="font-bold text-cyan-400 mb-1 leading-none">CUE POINT CONTROL</p>
+                                <p>• Hold: Play while held</p>
+                                <p>• Click: Jump to or set Cue</p>
+                                <p>• Shift+Click / Right Click: Clear</p>
+                            </TooltipContent>
                         </Tooltip>
 
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button
                                     variant="ghost"
-                                    className={cn(
-                                        "h-7 w-10 rounded-md border border-white/10 bg-white/5 backdrop-blur-md hover:bg-white/10 hover:border-white/20 flex items-center justify-center p-0 transition-all shadow-sm",
-                                        controls.state.isPlaying && (isCyan ? "bg-cyan-500/20 border-cyan-500 text-cyan-400" : "bg-purple-500/20 border-purple-500 text-purple-400")
-                                    )}
                                     onClick={controls.state.isPlaying ? controls.pause : controls.play}
+                                    className={cn(
+                                        "h-7 w-12 rounded-md border border-white/10 bg-white/5 backdrop-blur-md hover:bg-white/10 hover:border-white/20 flex flex-col items-center justify-center p-0 transition-all active:scale-95 shadow-sm group",
+                                        controls.state.isPlaying ? "border-emerald-500/50 shadow-[0_0_10px_rgba(16,185,129,0.2)]" : ""
+                                    )}
                                 >
-                                    {controls.state.isPlaying ? <Pause className="w-4 h-4 fill-current text-current" /> : <Play className="w-4 h-4 fill-current text-neutral-300" />}
+                                    {controls.state.isPlaying ? (
+                                        <Pause className="w-3.5 h-3.5 mb-[1px] text-emerald-400 fill-emerald-400" />
+                                    ) : (
+                                        <Play className="w-3.5 h-3.5 mb-[1px] text-emerald-300 fill-emerald-300" />
+                                    )}
+                                    <span className="text-[8px] font-bold text-neutral-300 leading-none">{controls.state.isPlaying ? 'STOP' : 'PLAY'}</span>
                                 </Button>
                             </TooltipTrigger>
-                            <TooltipContent side="bottom" className="text-xs bg-slate-900 border-slate-700">Play/Pause track</TooltipContent>
+                            <TooltipContent side="top" className="bg-slate-900 border-slate-700 text-[10px] p-2 z-[300]">
+                                <p>Toggle Playback (SPACE)</p>
+                            </TooltipContent>
                         </Tooltip>
 
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    className={cn(
-                                        "h-7 w-10 rounded-md border border-white/10 bg-white/5 backdrop-blur-md hover:bg-white/10 hover:border-white/20 flex flex-col items-center justify-center gap-0 p-0 transition-all shadow-sm",
-                                        (isMaster || isDeckMaster) && "bg-yellow-500/20 border-yellow-500 text-yellow-400"
-                                    )}
-                                    onClick={() => {
-                                        if (handleMaster) handleMaster();
-                                        if (onToggleMaster) onToggleMaster();
-                                    }}
-                                >
-                                    <span className="text-[8px] font-bold text-neutral-300">MASTER</span>
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="bottom" className="text-xs bg-slate-900 border-slate-700">Set as Master Deck for Sync</TooltipContent>
-                        </Tooltip>
+                        <div className="flex items-center gap-1 ml-1 scale-[0.85] origin-left">
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <button
+                                        className={cn(
+                                            "px-1.5 py-0.5 rounded border text-[8px] font-black transition-all",
+                                            controls.state.isSynced
+                                                ? "bg-cyan-500 text-black border-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.5)]"
+                                                : "bg-[#27272a] text-neutral-500 border-[#3f3f46] hover:text-neutral-300"
+                                        )}
+                                        onClick={() => onSync && onSync()}
+                                    >
+                                        SYNC
+                                    </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="bg-slate-900 border-slate-700 text-[10px] p-2 z-[300]">
+                                    <p className="font-bold text-cyan-400 mb-1 leading-none">SYNC MODE</p>
+                                    <p>Match BPM with Master deck.</p>
+                                    <p className="text-neutral-500 mt-1 italic leading-none">Settings: Tempo/Beat</p>
+                                </TooltipContent>
+                            </Tooltip>
 
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    className={cn(
-                                        "h-7 w-10 rounded-md border border-white/10 bg-white/5 backdrop-blur-md hover:bg-white/10 hover:border-white/20 flex flex-col items-center justify-center gap-0 p-0 transition-all shadow-sm",
-                                        "active:scale-95",
-                                        controls.state.isSynced && (isCyan
-                                            ? "bg-cyan-500/20 text-cyan-400 border-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.4)] hover:bg-cyan-400/30"
-                                            : "bg-purple-500/20 text-purple-400 border-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.4)] hover:bg-purple-400/30")
-                                    )}
-                                    onClick={onSync}
-                                >
-                                    <span className={cn("text-[8px] font-bold", controls.state.isSynced ? (isCyan ? "text-cyan-400" : "text-purple-400") : "text-neutral-300")}>SYNC</span>
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="bottom" className="text-xs bg-slate-900 border-slate-700">Sync BPM to Master Deck</TooltipContent>
-                        </Tooltip>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <button
+                                        className={cn(
+                                            "px-1.5 py-0.5 rounded border text-[8px] font-black transition-all",
+                                            isMaster
+                                                ? "bg-orange-500 text-black border-orange-400 shadow-[0_0_10px_rgba(249,115,22,0.5)]"
+                                                : "bg-[#27272a] text-neutral-500 border-[#3f3f46] hover:text-neutral-300"
+                                        )}
+                                        onClick={() => {
+                                            if (handleMaster) handleMaster();
+                                            if (onToggleMaster) onToggleMaster();
+                                        }}
+                                    >
+                                        MASTER
+                                    </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="bg-slate-900 border-slate-700 text-[10px] p-2 z-[300]">
+                                    <p>Set as BPM Master</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </div>
                     </div>
                 </TooltipProvider>
 
