@@ -27,5 +27,12 @@ try:
         print("✅ Bucket created!")
     else:
         print("✨ Bucket 'audio-processing' already exists.")
+
+    if "avatars" not in bucket_names:
+        print("🚀 Creating 'avatars' bucket...")
+        supabase.storage.create_bucket("avatars", options={"public": True})
+        print("✅ Bucket 'avatars' created!")
+    else:
+        print("✨ Bucket 'avatars' already exists.")
 except Exception as e:
     print(f"❌ Error: {str(e)}")

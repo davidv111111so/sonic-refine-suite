@@ -158,13 +158,37 @@ const ProMixerContent = () => {
                         <Cpu className="w-2.5 h-2.5 text-cyan-500 animate-pulse" />
                         <span>CLOUD SYNC ACTIVE</span>
                     </div>
-                    <button
-                        onClick={() => setIsSettingsOpen(true)}
-                        className="text-neutral-500 hover:text-white transition-colors"
-                        title="Settings (MIDI Learn, Audio Routing)"
-                    >
-                        <Settings2 className="w-4 h-4" />
-                    </button>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <button
+                                className="text-neutral-500 hover:text-white transition-colors"
+                                title="Settings (MIDI Learn, Audio Routing)"
+                            >
+                                <Settings2 className="w-4 h-4" />
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="bg-[#1e1e1e] border-[#333] text-white w-48">
+                            <DropdownMenuItem className="flex flex-col items-start gap-1 hover:bg-[#2a2a2a] cursor-pointer" onClick={() => setSyncMode('tempo')}>
+                                <div className="flex items-center justify-between w-full">
+                                    <span className="text-xs font-bold">Tempo Only Sync</span>
+                                    {syncMode === 'tempo' && <Zap className="w-3 h-3 text-cyan-400 fill-cyan-400" />}
+                                </div>
+                                <span className="text-[9px] text-neutral-500">Vinyl-style matching (BPM Only)</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="flex flex-col items-start gap-1 hover:bg-[#2a2a2a] cursor-pointer" onClick={() => setSyncMode('beat')}>
+                                <div className="flex items-center justify-between w-full">
+                                    <span className="text-xs font-bold">Beat Sync</span>
+                                    {syncMode === 'beat' && <Zap className="w-3 h-3 text-cyan-400 fill-cyan-400" />}
+                                </div>
+                                <span className="text-[9px] text-neutral-500">Fully quantized (Phase + BPM)</span>
+                            </DropdownMenuItem>
+                            <div className="h-px bg-[#333] my-1" />
+                            <DropdownMenuItem className="flex items-center gap-2 hover:bg-[#2a2a2a] cursor-pointer" onClick={() => setIsSettingsOpen(true)}>
+                                <Settings2 className="w-3 h-3" />
+                                <span className="text-xs">Advanced Settings...</span>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                     <div className="w-px h-4 bg-[#333]" />
                 </div>
 

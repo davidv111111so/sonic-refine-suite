@@ -23,6 +23,7 @@ import { saveAs } from 'file-saver';
 import { useUserSubscription } from "@/hooks/useUserSubscription";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -468,7 +469,7 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
 
     try {
       toast.info("Mastering Started", {
-        description: "AI Mastering can take 8-15 minutes depending on track length and hardware performance. Please stay on this page.",
+        description: "AI Mastering typically takes 5-15 minutes depending on track length and hardware performance. Please stay on this page.",
         duration: 12000,
       });
 
@@ -589,8 +590,8 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
   }
 
   return (
-    <div className="min-h-screen p-4 sm:p-6 md:p-8 bg-transparent text-slate-200">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="h-full p-4 sm:p-6 md:p-8 bg-transparent text-slate-200">
+      <div className="max-w-7xl mx-auto space-y-8 h-full flex flex-col">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
@@ -633,14 +634,14 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
 
         <Alert className="bg-blue-950/20 border-blue-500/50 text-blue-200">
           <AlertCircle className="h-4 w-4 text-blue-400" />
-          <AlertTitle>AI Mastering Limit: 1GB</AlertTitle>
+          <AlertTitle>AI Mastering | 2-12 Min Estimated</AlertTitle>
           <AlertDescription className="text-sm opacity-90">
-            Professional system supports high-fidelity audio files up to 1GB.
+            Professional system supports high-fidelity audio files up to 1GB. Processing typically takes 2-12 minutes depending on track length.
           </AlertDescription>
         </Alert>
         <AIMasteringGuide open={showGuide} onOpenChange={setShowGuide} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch min-h-0 flex-1">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start flex-1 min-h-0 overflow-visible pb-12">
           {/* Left Column: Target & Presets */}
           <div className="flex flex-col gap-8 h-full min-h-0">
             {/* Target Upload Card */}
@@ -717,7 +718,7 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
             </Card>
 
             {/* Presets Grid */}
-            <Card className="bg-slate-900/80 border-slate-800 shadow-xl backdrop-blur-sm flex-1 flex flex-col min-h-[450px]">
+            <Card className="bg-slate-900/40 border-slate-800/50 shadow-2xl backdrop-blur-xl flex-1 flex flex-col min-h-[450px] h-full">
               <CardHeader className="flex flex-row items-center justify-between shrink-0">
                 <CardTitle className="flex items-center gap-2 text-xl text-slate-100">
                   <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
@@ -735,19 +736,24 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
                       <button
                         key={preset.id}
                         onClick={() => handlePresetClick(preset.id)}
-                        className={`relative group p-4 rounded-xl transition-all duration-300 border ${isSelected
-                          ? "bg-slate-800 border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.3)] scale-105"
-                          : "bg-slate-950/50 border-slate-800 hover:border-slate-600 hover:bg-slate-900"
-                          }`}
+                        className={cn(
+                          "relative group p-4 rounded-xl transition-all duration-500 border backdrop-blur-md flex flex-col items-center justify-center text-center gap-2",
+                          isSelected
+                            ? "bg-purple-500/20 border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.4)] scale-105"
+                            : "bg-white/5 border-white/5 hover:border-white/20 hover:bg-white/10"
+                        )}
                       >
                         <div className={`absolute inset-0 rounded-xl bg-gradient-to-br ${preset.gradient} opacity-0 group-hover:opacity-10 transition-opacity`} />
-                        <div className="text-2xl mb-2 transform group-hover:scale-110 transition-transform">{preset.icon}</div>
-                        <div className={`text-sm font-medium ${isSelected ? "text-purple-300" : "text-slate-400 group-hover:text-slate-200"}`}>
+                        <div className="text-3xl transform group-hover:scale-110 transition-transform duration-500">{preset.icon}</div>
+                        <div className={cn(
+                          "text-xs font-bold tracking-tight uppercase",
+                          isSelected ? "text-purple-300" : "text-slate-400 group-hover:text-slate-200"
+                        )}>
                           {preset.displayName}
                         </div>
                         {isSelected && (
                           <div className="absolute top-2 right-2">
-                            <CheckCircle className="h-4 w-4 text-purple-500" />
+                            <CheckCircle className="h-4 w-4 text-purple-500 fill-purple-500/20" />
                           </div>
                         )}
                         {isAdmin && (

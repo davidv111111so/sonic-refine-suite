@@ -103,7 +103,10 @@ export const InteractiveProcessingOptions = ({
         {/* Noise Reduction */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-slate-300">Noise Reduction</label>
+            <div className="flex items-center">
+              <label className="text-sm font-medium text-slate-300">Noise Reduction</label>
+              <AudioSettingsTooltip setting="noiseReduction" />
+            </div>
             <div className="flex items-center gap-3">
               {noiseReductionEnabled && <span className="text-xs font-mono text-cyan-400">{noiseReduction}%</span>}
               <Switch checked={noiseReductionEnabled} onCheckedChange={onNoiseReductionEnabledChange} className="data-[state=checked]:bg-cyan-500" />
@@ -125,7 +128,10 @@ export const InteractiveProcessingOptions = ({
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <label className="text-sm font-medium text-slate-300">Audio Normalization</label>
+              <div className="flex items-center">
+                <label className="text-sm font-medium text-slate-300">Audio Normalization</label>
+                <AudioSettingsTooltip setting="normalization" />
+              </div>
               <p className="text-[10px] text-slate-500">LUFS target -14. Optimal for mastering.</p>
             </div>
             <div className="flex items-center gap-3">
@@ -148,7 +154,10 @@ export const InteractiveProcessingOptions = ({
         {/* Dynamic Compression */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-slate-300">Dynamic Compression</label>
+            <div className="flex items-center">
+              <label className="text-sm font-medium text-slate-300">Dynamic Compression</label>
+              <AudioSettingsTooltip setting="compression" />
+            </div>
             <Switch checked={compressionEnabled} onCheckedChange={onCompressionEnabledChange} className="data-[state=checked]:bg-green-500" />
           </div>
           {compressionEnabled && (
@@ -188,7 +197,10 @@ export const InteractiveProcessingOptions = ({
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-slate-300">Stereo Widening</label>
+              <div className="flex items-center">
+                <label className="text-sm font-medium text-slate-300">Stereo Widening</label>
+                <AudioSettingsTooltip setting="stereoWidening" />
+              </div>
               {isPremium && <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30 text-[9px] px-1.5 py-0">PREMIUM</Badge>}
             </div>
             <div className="flex items-center gap-3">

@@ -20,62 +20,66 @@ export const HotCuePad: React.FC<HotCuePadProps> = ({
     onDeleteCue,
     accentColor = 'cyan',
 }) => {
-    return (
-        <div className="flex gap-[3px] items-center">
-            {cues.map((cue, index) => {
-                const color = HOT_CUE_COLORS[index % HOT_CUE_COLORS.length];
-                const isSet = cue !== null;
+    const [deleteMode, setDeleteMode] = React.useState(false);
 
-                return (
-                    <div key={index} className="relative group">
-                        <button
-                            className={cn(
-                                "h-6 w-6 rounded-[3px] text-[9px] font-black flex items-center justify-center transition-all duration-100 active:scale-90 border",
-                                isSet
-                                    ? "border-transparent shadow-[0_0_6px_var(--cue-color)]"
-                                    : "border-[#3f3f46] bg-[#1a1a1a] text-neutral-600 hover:border-neutral-500 hover:text-neutral-400"
-                            )}
-                            style={isSet ? {
-                                backgroundColor: color + '33', // 20% alpha
-                                color: color,
-                                ['--cue-color' as any]: color + '66',
-                                borderColor: color + '80',
-                            } : undefined}
-                            onClick={() => {
-                                if (isSet) {
-                                    onJumpToCue(index);
-                                } else {
-                                    onSetCue(index, currentTime);
-                                }
-                            }}
-                            onContextMenu={(e) => {
-                                e.preventDefault();
-                                if (isSet) {
-                                    onDeleteCue(index);
-                                }
-                            }}
-                            title={isSet
-                                ? `Hot Cue ${index + 1}: ${cue!.time.toFixed(2)}s (right-click to delete)`
-                                : `Set Hot Cue ${index + 1}`
-                            }
-                        >
-                            {index + 1}
-                        </button>
-                        {isSet && (
+    return (
+        <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+                <span className="text-[8px] font-bold text-neutral-500 uppercase tracking-widest">Hot Cues</span>
+                <button
+                    onClick={() => setDeleteMode(!deleteMode)}
+                    className={cn(
+                        "text-[8px] font-bold px-1.5 py-0.5 rounded border transition-all",
+                        deleteMode
+                            ? "bg-red-500/20 text-red-500 border-red-500 shadow-[0_0_5px_rgba(239,68,68,0.3)]"
+                            : "bg-[#27272a] text-neutral-500 border-[#3f3f46] hover:text-white"
+                    )}
+                >
+                    {deleteMode ? "DONE" : "DELETE"}
+                </button>
+            </div>
+            <div className="flex gap-[3px] items-center">
+                {cues.map((cue, index) => {
+                    const color = HOT_CUE_COLORS[index % HOT_CUE_COLORS.length];
+                    const isSet = cue !== null;
+
+                    return (
+                        <div key={index} className="relative group flex-1">
                             <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onDeleteCue(index);
+                                className={cn(
+                                    "h-7 w-full rounded-[2px] text-[10px] font-black flex items-center justify-center transition-all duration-100 active:scale-90 border",
+                                    isSet
+                                        ? "border-transparent shadow-[0_0_6px_var(--cue-color)]"
+                                        : "border-[#3f3f46] bg-[#1a1a1a] text-neutral-600 hover:border-neutral-500 hover:text-neutral-400"
+                                )}
+                                style={isSet ? {
+                                    backgroundColor: color + '33',
+                                    color: color,
+                                    ['--cue-color' as any]: color + '44',
+                                    borderColor: deleteMode ? '#ef4444' : color + '80',
+                                } : undefined}
+                                onClick={() => {
+                                    if (deleteMode) {
+                                        if (isSet) onDeleteCue(index);
+                                    } else {
+                                        if (isSet) {
+                                            onJumpToCue(index);
+                                        } else {
+                                            onSetCue(index, currentTime);
+                                        }
+                                    }
                                 }}
-                                className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 bg-neutral-900 border border-[#3f3f46] rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-neutral-800 transition-opacity z-10 hover:border-red-500"
-                                title="Delete Hot Cue"
+                                title={isSet
+                                    ? `Hot Cue ${index + 1}${deleteMode ? ' (Click to DELETE)' : ''}`
+                                    : `Set Hot Cue ${index + 1}`
+                                }
                             >
-                                <X className="w-2.5 h-2.5 text-neutral-400 hover:text-red-400" />
+                                {deleteMode && isSet ? <X className="w-3 h-3 text-red-500" /> : index + 1}
                             </button>
-                        )}
-                    </div>
-                );
-            })}
+                        </div>
+                    );
+                })}
+            </div>
         </div>
     );
 };

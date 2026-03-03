@@ -66,28 +66,38 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
         return () => worker.terminate();
     }, [buffer]);
 
+    const currentTimeRef = useRef(currentTime);
+    useEffect(() => {
+        currentTimeRef.current = currentTime;
+    }, [currentTime]);
+
     // 2. Rendering Loop
     useEffect(() => {
         if (!canvasRef.current || !peaks || !buffer) return;
 
         const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d', { alpha: true });
+        const ctx = canvas.getContext('2d', { alpha: false }); // Disable alpha for perf
         if (!ctx) return;
 
         // DPI & Sizing
         const dpr = window.devicePixelRatio || 1;
-        const rect = containerRef.current?.getBoundingClientRect();
-        if (rect) {
-            canvas.width = rect.width * dpr;
-            canvas.height = height * dpr;
-            ctx.scale(dpr, dpr);
-        }
-        const width = rect?.width || canvas.width;
+        const updateSize = () => {
+            const rect = containerRef.current?.getBoundingClientRect();
+            if (rect) {
+                canvas.width = rect.width * dpr;
+                canvas.height = height * dpr;
+                ctx.scale(dpr, dpr);
+            }
+        };
+        updateSize();
+
+        const width = canvas.width / dpr;
         const center = height / 2;
 
         let animationFrame: number;
 
         const render = () => {
+            const time_now = currentTimeRef.current;
             ctx.clearRect(0, 0, width, height);
 
             // Background
@@ -100,73 +110,59 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
                 ctx.lineWidth = 1;
                 const beatDuration = 60 / (bpm * playbackRate);
                 const pixelsPerBeat = beatDuration * zoom;
-                const offsetTime = currentTime % beatDuration;
+                const offsetTime = time_now % beatDuration;
                 const offsetPixels = offsetTime * zoom;
 
-                // Draw Grid lines relative to center
-                // Center is currentTime. 
                 const startX = (width / 2) - offsetPixels;
 
+                ctx.beginPath();
                 // Left side
                 for (let x = startX; x > 0; x -= pixelsPerBeat) {
-                    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+                    ctx.moveTo(x, 0); ctx.lineTo(x, height);
                 }
                 // Right side
                 for (let x = startX; x < width; x += pixelsPerBeat) {
-                    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+                    ctx.moveTo(x, 0); ctx.lineTo(x, height);
                 }
+                ctx.stroke();
             }
 
             // Waveform
-            // Viewport: [currTime - width/2/zoom, currTime + width/2/zoom]
-            // We need to map pixels 0..width to peak indices
-
-            const samplesPerPixel = 512; // Must match worker
+            const samplesPerPixel = 512;
             const samplesPerSecond = buffer.sampleRate;
-            const pixelsPerSecond_Data = samplesPerSecond / samplesPerPixel; // ~86 peaks/sec at 44.1k
-
-            // Render logic: Iterate mainly through canvas X pixels to draw lines
-            // Map x -> time -> peakIndex
+            const pixelsPerSecond_Data = samplesPerSecond / samplesPerPixel;
 
             const halfWidth = width / 2;
-            const startTime = currentTime - (halfWidth / zoom);
+            const startTime = time_now - (halfWidth / zoom);
 
-            ctx.lineWidth = 2; // Thicker lines for spectral look
-
-            // Optimization: Only iterate visible range
-            const step = 2; // Skip pixels for style/perf
-
-            // Pre-calculate heights to avoid repeating math and allow batching paths
-            const lineData: { x: number, lowH: number, midH: number, highH: number, rmsVal: number, highIntensity: number, lowIntensity: number }[] = [];
+            const step = 2; // Keep at 2 for performance
+            const lineData: { x: number, lowH: number, midH: number, highH: number, rmsVal: number, highIntensity: number }[] = [];
 
             for (let x = 0; x < width; x += step) {
-                const time = startTime + (x / zoom);
-                if (time < 0 || time > buffer.duration) continue;
+                const t = startTime + (x / zoom);
+                if (t < 0 || t > buffer.duration) continue;
 
-                const peakIndex = Math.floor(time * pixelsPerSecond_Data);
+                const peakIndex = Math.floor(t * pixelsPerSecond_Data);
                 const offset = peakIndex * 5;
 
-                // Ensure bounds
                 if (offset + 4 < peaks.length) {
-                    // Unpack: [min, max, rms, low, midHigh]
                     const lowVal = peaks[offset + 3];
                     const midHighVal = peaks[offset + 4];
                     const rmsVal = peaks[offset + 2];
 
-                    // Calculations
-                    const lowH = lowVal * (height * 0.85);
-                    const highH = midHighVal * (height * 0.65);
-                    const midH = rmsVal * (height * 0.4);
-
-                    const highIntensity = Math.min(1, midHighVal * 1.8);
-                    const lowIntensity = Math.min(1, lowVal * 2.2);
-
-                    lineData.push({ x, lowH, midH, highH, rmsVal, highIntensity, lowIntensity });
+                    lineData.push({
+                        x,
+                        lowH: lowVal * (height * 0.85),
+                        midH: rmsVal * (height * 0.4),
+                        highH: midHighVal * (height * 0.65),
+                        rmsVal,
+                        highIntensity: Math.min(1, midHighVal * 1.8)
+                    });
                 }
             }
 
             // 1. Draw Bass (Blue/Indigo)
-            ctx.strokeStyle = color === 'cyan' ? '#1e40af' : '#4c1d95'; // Darker base for contrast
+            ctx.strokeStyle = color === 'cyan' ? '#1e40af' : '#4c1d95';
             ctx.lineWidth = 2.5;
             ctx.beginPath();
             for (const d of lineData) {
@@ -186,64 +182,59 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
             }
             ctx.stroke();
 
-            // 3. Draw High Frequencies / Transients (Bright Orange/Red for Cyan, Pink/Yellow for Purple)
+            // 3. Draw High Frequencies / Transients (Batched by color/intensity levels)
             ctx.lineWidth = 1;
-            for (const d of lineData) {
-                ctx.strokeStyle = color === 'cyan'
-                    ? `rgba(255, ${Math.floor(150 + d.highIntensity * 105)}, 0, ${d.highIntensity * 0.9 + 0.1})`
-                    : `rgba(255, 0, ${Math.floor(255 - d.highIntensity * 155)}, ${d.highIntensity * 0.9 + 0.1})`;
+            ctx.globalAlpha = 1.0;
 
+            // Group and batch transients to avoid many stroke() calls
+            ctx.beginPath();
+            ctx.strokeStyle = color === 'cyan' ? 'rgba(255, 180, 0, 0.6)' : 'rgba(255, 0, 200, 0.6)';
+            for (const d of lineData) {
+                if (d.highIntensity < 0.1) continue;
                 const hDisp = d.highH + (d.rmsVal * 4);
-                ctx.beginPath();
                 ctx.moveTo(d.x, center - hDisp);
                 ctx.lineTo(d.x, center + hDisp);
-                ctx.stroke();
             }
+            ctx.stroke();
+
+            // Hot transients (Extra bright)
+            ctx.beginPath();
+            ctx.strokeStyle = color === 'cyan' ? 'rgba(255, 255, 200, 1.0)' : 'rgba(255, 255, 255, 1.0)';
+            for (const d of lineData) {
+                if (d.highIntensity < 0.7) continue;
+                const hDisp = d.highH * 0.5; // Only the tip
+                ctx.moveTo(d.x, center - hDisp);
+                ctx.lineTo(d.x, center + hDisp);
+            }
+            ctx.stroke();
 
             ctx.globalAlpha = 1.0;
 
-            // Markers
-
-            // Loop Region
             // Loop Region
             if (loop) {
-                const loopStartX = halfWidth + (loop.start - currentTime) * zoom;
-                const loopEndX = halfWidth + (loop.end - currentTime) * zoom;
-
-                // 1. In Marker (Always show if start is defined/non-zero contextually, or checking active loop)
-                // For 'Manual Loop IN' visualization: we usually want to see the marker if 'loop.start' was just set.
-                // Assuming loop.start defaults to 0, checks if it's > 0 or if likely intentional. 
-                // However, simpler to just draw it if it exists inside view.
+                const loopStartX = halfWidth + (loop.start - time_now) * zoom;
+                const loopEndX = halfWidth + (loop.end - time_now) * zoom;
 
                 if (loop.active) {
-                    // Active Overlay
-                    ctx.fillStyle = 'rgba(0, 255, 0, 0.2)'; // Green Overlay
+                    ctx.fillStyle = 'rgba(0, 255, 0, 0.2)';
                     ctx.fillRect(loopStartX, 0, Math.max(1, loopEndX - loopStartX), height);
 
-                    // Out Marker (Red)
                     ctx.strokeStyle = '#ff003c';
                     ctx.lineWidth = 2;
                     ctx.beginPath();
-                    ctx.moveTo(loopEndX, 0);
-                    ctx.lineTo(loopEndX, height);
+                    ctx.moveTo(loopEndX, 0); ctx.lineTo(loopEndX, height);
                     ctx.stroke();
-                    // Label
                     ctx.fillStyle = '#ff003c';
                     ctx.font = '9px sans-serif';
                     ctx.fillText("OUT", loopEndX + 2, height - 5);
                 }
 
-                // In Marker (Green) - Show if Active OR just "Start set" (user pressed IN)
-                // To distinguish "fresh" start vs default 0, we rely on usage. 
-                // Using loop.start > 0 check as basic filter
                 if (loop.active || loop.start > 0) {
-                    ctx.strokeStyle = '#39ff14'; // Neon Green
+                    ctx.strokeStyle = '#39ff14';
                     ctx.lineWidth = 2;
                     ctx.beginPath();
-                    ctx.moveTo(loopStartX, 0);
-                    ctx.lineTo(loopStartX, height);
+                    ctx.moveTo(loopStartX, 0); ctx.lineTo(loopStartX, height);
                     ctx.stroke();
-                    // Label
                     ctx.fillStyle = '#39ff14';
                     ctx.font = '9px sans-serif';
                     ctx.fillText("IN", loopStartX + 2, 10);
@@ -252,16 +243,13 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
 
             // Cue Point
             if (cuePoint !== null && cuePoint !== undefined) {
-                const cueX = halfWidth + (cuePoint - currentTime) * zoom;
+                const cueX = halfWidth + (cuePoint - time_now) * zoom;
                 if (cueX >= 0 && cueX <= width) {
-                    ctx.fillStyle = '#f43f5e'; // Rose-500
+                    ctx.fillStyle = '#f43f5e';
                     ctx.beginPath();
-                    ctx.moveTo(cueX, 10);
-                    ctx.lineTo(cueX - 6, 0);
-                    ctx.lineTo(cueX + 6, 0);
+                    ctx.moveTo(cueX, 10); ctx.lineTo(cueX - 6, 0); ctx.lineTo(cueX + 6, 0);
                     ctx.fill();
                     ctx.fillRect(cueX - 1, 0, 2, height);
-
                     ctx.font = '10px sans-serif';
                     ctx.fillText("CUE", cueX + 4, 20);
                 }
@@ -274,12 +262,16 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
             ctx.fillRect(width / 2 - 1, 0, 2, height);
             ctx.shadowBlur = 0;
 
-            animationFrame = requestAnimationFrame(render);
+            if (isPlaying) {
+                animationFrame = requestAnimationFrame(render);
+            }
         };
 
-        render();
+        if (isPlaying || !animationFrame) {
+            render();
+        }
         return () => cancelAnimationFrame(animationFrame);
-    }, [buffer, peaks, currentTime, zoom, height, showGrid, bpm, color, loop, cuePoint, playbackRate]);
+    }, [buffer, peaks, zoom, height, showGrid, bpm, color, loop, cuePoint, playbackRate, isPlaying]);
 
     // Zoom Handling (Wheel)
     const handleWheel = (e: React.WheelEvent) => {

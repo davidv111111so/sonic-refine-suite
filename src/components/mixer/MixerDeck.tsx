@@ -337,17 +337,34 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                             <TooltipTrigger asChild>
                                 <Button
                                     variant="ghost"
-                                    className={cn(
-                                        "h-7 w-10 rounded-md border border-white/10 bg-white/5 backdrop-blur-md hover:bg-white/10 hover:border-white/20 flex flex-col items-center justify-center p-0 transition-all active:scale-95 shadow-sm",
-                                        "active:border-white/50"
-                                    )}
-                                    onMouseDown={(e) => { e.preventDefault(); cueLogic.handleCue(true); }}
+
+                                    onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        if (e.shiftKey) {
+                                            cueLogic.clearCuePoint();
+                                        } else {
+                                            cueLogic.handleCue(true);
+                                        }
+                                    }}
                                     onMouseUp={(e) => { e.preventDefault(); cueLogic.handleCue(false); }}
                                     onMouseLeave={(e) => { e.preventDefault(); cueLogic.handleCue(false); }}
+                                    onContextMenu={(e) => {
+                                        e.preventDefault();
+                                        cueLogic.clearCuePoint();
+                                    }}
+                                    className={cn(
+                                        "h-7 w-12 rounded-md border border-white/10 bg-white/5 backdrop-blur-md hover:bg-white/10 hover:border-white/20 flex flex-col items-center justify-center p-0 transition-all active:scale-95 shadow-sm group",
+                                        cueLogic.cuePoint !== null ? "border-red-500/50" : ""
+                                    )}
                                 >
-                                    <Disc3 className="w-3.5 h-3.5 text-neutral-300 mb-[1px]" />
+                                    <Disc3 className={cn("w-3.5 h-3.5 mb-[1px]", cueLogic.cuePoint !== null ? "text-red-500" : "text-neutral-300")} />
                                     <span className="text-[8px] font-bold text-neutral-300 leading-none">CUE</span>
                                 </Button>
+                                <TooltipContent side="top" className="bg-slate-900 border-slate-700 text-[10px]">
+                                    <p>Hold Left Click: Play from Cue (stops on release)</p>
+                                    <p>Click: Jump/Set Cue</p>
+                                    <p>Shift+Click or Right Click: Clear Cue</p>
+                                </TooltipContent>
                             </TooltipTrigger>
                             <TooltipContent side="bottom" className="text-xs bg-slate-900 border-slate-700">Set or jump to cue point</TooltipContent>
                         </Tooltip>

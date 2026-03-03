@@ -44,9 +44,9 @@ const TIME_ESTIMATES: Record<string, Record<string, { min: number; max: number; 
         normal: { min: 2, max: 5, label: '~2-5 min' },
     },
     demucs: {
-        fastest: { min: 0.25, max: 0.5, label: '~15-30 sec ⚡' },
-        fast: { min: 0.5, max: 1, label: '~30-60 sec ⚡' },
-        normal: { min: 0.5, max: 1.5, label: '~30-90 sec ⚡' },
+        fastest: { min: 5, max: 10, label: '~5-10 min' },
+        fast: { min: 5, max: 15, label: '~5-15 min' },
+        normal: { min: 10, max: 20, label: '~10-20 min' },
     },
 };
 
@@ -535,13 +535,13 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                                     </SelectTrigger>
                                     <SelectContent className="bg-slate-900 border-slate-700 text-white">
                                         <SelectItem value="fastest">
-                                            🚀 Fastest (Aggressive Speed)
+                                            🚀 Aggressive (5-10 min)
                                         </SelectItem>
                                         <SelectItem value="fast">
-                                            ⚡ Fast (Balanced)
+                                            ⚡ Fast (5-15 min)
                                         </SelectItem>
                                         <SelectItem value="normal">
-                                            🔬 Normal (Focus on Quality)
+                                            🔬 Standard (10-20 min)
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>

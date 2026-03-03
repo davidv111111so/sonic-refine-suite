@@ -73,21 +73,13 @@ export const StemPlayerComponent = ({ url, name, color, isMuted, isSoloed, onMut
 
         return () => {
             try {
-                wavesurfer.destroy();
+                if (wavesurferRef.current) {
+                    wavesurferRef.current.destroy();
+                }
             } catch (e) {
                 // Ignore abort errors during cleanup
             }
             wavesurferRef.current = null;
-
-            // Revoke blob ObjectURLs to free memory (only for blob: URLs)
-            if (urlRef.current && urlRef.current.startsWith('blob:')) {
-                try {
-                    URL.revokeObjectURL(urlRef.current);
-                    console.log(`[StemPlayer] Revoked ObjectURL for ${name}`);
-                } catch (e) {
-                    // Ignore if already revoked
-                }
-            }
         };
     }, [url, color]); // Re-create if URL or color changes
 
@@ -105,7 +97,7 @@ export const StemPlayerComponent = ({ url, name, color, isMuted, isSoloed, onMut
     };
 
     return (
-        <div className="flex items-center gap-4 bg-slate-950/50 p-3 rounded-lg border border-slate-800 hover:border-slate-700 transition-colors">
+        <div className="flex items-center gap-4 bg-slate-950/50 p-3 rounded-lg border border-slate-800 hover:border-slate-700 transition-colors h-[76px] w-full">
             <div className="flex items-center gap-3 w-32 flex-shrink-0">
                 <Button
                     variant="ghost"
@@ -118,7 +110,7 @@ export const StemPlayerComponent = ({ url, name, color, isMuted, isSoloed, onMut
                 <p className="text-sm font-medium text-slate-200 truncate" title={name}>{name}</p>
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 flex-shrink-0">
                 <Button
                     variant="ghost"
                     size="icon"
@@ -139,7 +131,7 @@ export const StemPlayerComponent = ({ url, name, color, isMuted, isSoloed, onMut
                 </Button>
             </div>
 
-            <div className="flex-1 opacity-80 hover:opacity-100 transition-opacity overflow-hidden" ref={containerRef} />
+            <div className="flex-1 min-w-[200px] w-full h-full opacity-80 hover:opacity-100 transition-opacity" ref={containerRef} />
         </div>
     );
 };

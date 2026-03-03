@@ -42,34 +42,52 @@ export const useCueLogic = ({
         cuePointRef.current = safeT;
     }, [duration, getQuantizedTime]);
 
+    const isHoldingRef = useRef(false);
+
     // Main CUE Button Handler (Traktor Logic)
     const handleCue = useCallback((isDown: boolean) => {
         if (isDown) {
-            // PRESS
+            isHoldingRef.current = true;
             if (isPlaying) {
                 // If Playing: Stop and Jump to last Cue Point
                 onPause();
                 const target = cuePointRef.current !== null ? cuePointRef.current : 0;
                 onSeek(target);
             } else {
-                // If Paused: Set new Cue Point at current location
-                // Traditionally, pressing CUE while paused sets the point AND plays while held (Cue Play)
-                // But simplified "set" logic is often preferred for web.
+                // If Paused:
+                const currentT = currentTime;
+                const cueT = cuePointRef.current !== null ? cuePointRef.current : 0;
 
-                // Let's implement standard Pioneer/Traktor:
-                // If paused, it sets the CUE point to NOW (if not already at cue).
-                // If already at CUE, it plays while held.
+                // If we are already at the cue point, start playing while held (Cue Play)
+                if (Math.abs(currentT - cueT) < 0.1) {
+                    onPlay();
+                } else {
+                    // Set new Cue Point at current location
+                    const newCue = getQuantizedTime(currentT);
+                    setCuePoint(newCue);
+                    onSeek(newCue);
+                }
+            }
+        } else {
+            // RELEASE
+            if (isHoldingRef.current) {
+                isHoldingRef.current = false;
+                // If we are in "Cue Play" (playing because we held CUE), stop and jump back
+                if (!isPlaying) {
+                    // Wait, if it was already playing before we pressed CUE... 
+                    // But our logic pauses it on press if playing.
+                    // So if it's playing now, it must be Cue-Play.
+                }
 
-                // Simplified Logic Phase 1:
-                // Paused -> Set Cue.
-
-                const newCue = getQuantizedTime(currentTime);
-                setCuePoint(newCue);
-                onSeek(newCue); // Snap playhead to it visually
+                // Standard Hardware Logic: 
+                // If we press PLAY while holding CUE, it latches.
+                // If we just release CUE, it stops and jumps back.
+                onPause();
+                const target = cuePointRef.current !== null ? cuePointRef.current : 0;
+                onSeek(target);
             }
         }
-        // RELEASE (Optional Cue Play logic would go here)
-    }, [isPlaying, currentTime, onPause, onSeek, getQuantizedTime, setCuePoint]);
+    }, [isPlaying, currentTime, onPause, onPlay, onSeek, getQuantizedTime, setCuePoint]);
 
     // Jump / HotCue
     const jumpToCue = useCallback(() => {
@@ -77,10 +95,16 @@ export const useCueLogic = ({
         onSeek(target);
     }, [onSeek]);
 
+    const clearCuePoint = useCallback(() => {
+        setCuePointState(null);
+        cuePointRef.current = null;
+    }, []);
+
     return {
         cuePoint,
         setCuePoint,
         handleCue,
-        jumpToCue
+        jumpToCue,
+        clearCuePoint
     };
 };

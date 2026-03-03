@@ -25,6 +25,8 @@ export const AudioSettingsTooltip = ({ setting }: AudioSettingsTooltipProps) => 
         return 'Equalizer adjusts frequency response. Low frequencies (bass) on left, high frequencies (treble) on right. Boost (+) or cut (-) specific ranges.';
       case 'outputFormat':
         return 'MP3: Small files, good quality. FLAC: Lossless compression. WAV: Uncompressed, largest files. OGG: Open source alternative to MP3.';
+      case 'bitDepth':
+        return 'Bit depth determines the dynamic range of the audio. 16-bit is standard (CD quality), while 24-bit is ideal for professional studio results and high-fidelity depth.';
       case 'stereoWidening':
         return 'Enhances stereo image by widening the soundstage. Makes audio feel more spacious and immersive. Use sparingly to avoid phase issues.';
       case 'bassBoost':
@@ -44,7 +46,7 @@ export const AudioSettingsTooltip = ({ setting }: AudioSettingsTooltipProps) => 
     <TooltipProvider>
       <Tooltip delayDuration={200}>
         <TooltipTrigger asChild>
-          <button 
+          <button
             type="button"
             className="ml-1 text-slate-400 hover:text-cyan-400 transition-colors"
             aria-label="Help information"
@@ -52,8 +54,8 @@ export const AudioSettingsTooltip = ({ setting }: AudioSettingsTooltipProps) => 
             <HelpCircle className="h-4 w-4" />
           </button>
         </TooltipTrigger>
-        <TooltipContent 
-          side="right" 
+        <TooltipContent
+          side="right"
           className="max-w-xs bg-blue-900/95 border-blue-600 text-white shadow-xl backdrop-blur-sm"
         >
           <p className="text-sm leading-relaxed">{getTooltipContent(setting)}</p>

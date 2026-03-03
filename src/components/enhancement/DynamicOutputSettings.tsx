@@ -30,7 +30,10 @@ export const DynamicOutputSettings = ({
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <label className="text-xs font-medium text-slate-400">Format</label>
+          <div className="flex items-center">
+            <label className="text-xs font-medium text-slate-400">Format</label>
+            <AudioSettingsTooltip setting="outputFormat" />
+          </div>
           <select
             value={outputFormat}
             onChange={e => onOutputFormatChange(e.target.value as 'mp3' | 'wav' | 'flac')}
@@ -45,7 +48,10 @@ export const DynamicOutputSettings = ({
         {/* Sample Rate - Hidden for MP3, visible for lossless */}
         {outputFormat !== 'mp3' && (
           <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-400">Sample Rate</label>
+            <div className="flex items-center">
+              <label className="text-xs font-medium text-slate-400">Sample Rate</label>
+              <AudioSettingsTooltip setting="sampleRate" />
+            </div>
             <select
               value={sampleRate}
               onChange={e => onSampleRateChange(parseInt(e.target.value))}
@@ -63,7 +69,10 @@ export const DynamicOutputSettings = ({
       <div>
         {outputFormat === 'mp3' ? (
           <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-400">Bitrate</label>
+            <div className="flex items-center">
+              <label className="text-xs font-medium text-slate-400">Bitrate</label>
+              <AudioSettingsTooltip setting="targetBitrate" />
+            </div>
             <select
               value={bitrate || 320}
               onChange={e => onBitrateChange?.(parseInt(e.target.value))}
@@ -80,7 +89,10 @@ export const DynamicOutputSettings = ({
           </div>
         ) : (
           <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-400">Bit Depth</label>
+            <div className="flex items-center">
+              <label className="text-xs font-medium text-slate-400">Bit Depth</label>
+              <AudioSettingsTooltip setting="bitDepth" />
+            </div>
             <select
               value={bitDepth}
               onChange={e => onBitDepthChange(parseInt(e.target.value) as 16 | 24)}

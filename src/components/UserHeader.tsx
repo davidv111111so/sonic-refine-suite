@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { LogOut, User as UserIcon, Shield, Trash2, Zap, Sparkles, Crown } from 'lucide-react';
+import { LogOut, User as UserIcon, Shield, Zap, Sparkles, Crown } from 'lucide-react';
 import { toast } from 'sonner';
 import { ProfileModal } from '@/components/ProfileModal';
 import { useAuth } from '@/contexts/AuthContext';
@@ -28,7 +28,6 @@ export const UserHeader = ({ onLogout }: UserHeaderProps) => {
   const { profile, isAdmin, isPremium, isVip, signOut } = useAuth();
   const [showProfile, setShowProfile] = useState(false);
   const [profileModalTab, setProfileModalTab] = useState("profile");
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -47,25 +46,6 @@ export const UserHeader = ({ onLogout }: UserHeaderProps) => {
     }
   };
 
-  const handleDeleteAccount = async () => {
-    try {
-      // Send password reset email with instructions
-      const { error } = await supabase.auth.updateUser({
-        data: { account_deletion_requested: true }
-      });
-
-      if (error) throw error;
-
-      toast.success('Account deletion request sent. Please check your email for confirmation.');
-      setShowDeleteDialog(false);
-
-      // Sign out after requesting deletion
-      await signOut();
-      navigate('/auth');
-    } catch (error: any) {
-      toast.error('Error requesting account deletion: ' + error.message);
-    }
-  };
 
   if (!profile) {
     return null;
@@ -148,13 +128,6 @@ export const UserHeader = ({ onLogout }: UserHeaderProps) => {
               </DropdownMenuItem>
             )}
             <DropdownMenuItem
-              onClick={() => setShowDeleteDialog(true)}
-              className="text-red-400 hover:bg-slate-800 cursor-pointer"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              <span>Delete Account</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem
               onClick={handleLogout}
               className="text-orange-400 hover:bg-slate-800 cursor-pointer"
             >
@@ -173,28 +146,7 @@ export const UserHeader = ({ onLogout }: UserHeaderProps) => {
         defaultTab={profileModalTab}
       />
 
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="bg-slate-900 border-slate-700 text-white">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-red-400">Delete Account</AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-300">
-              Are you sure you want to delete your account? This action cannot be undone.
-              You will receive an email confirmation to proceed with the deletion.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="bg-slate-800 border-slate-700 text-white hover:bg-slate-700">
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteAccount}
-              className="bg-red-600 hover:bg-red-700 text-white"
-            >
-              Request Deletion
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+
     </>
   );
 };

@@ -145,6 +145,27 @@ export const MixerControls = ({
                 <DeckPitchFader deck={deckB} color="purple" />
             </div>
 
+            {/* Crossfader Options (New row between controls and fader to prevent overlap/clutter) */}
+            <div className="flex-none px-2 py-1 bg-[#09090b] flex items-center justify-between border-t border-[#27272a] gap-2">
+                <div className="flex items-center gap-1.5 overflow-x-auto min-w-0 flex-1 py-0.5">
+                    <span className="text-[7px] font-bold text-neutral-600 uppercase tracking-tighter shrink-0 mx-1">Curve</span>
+                    {(['smooth', 'sharp', 'constantPower', 'cut'] as const).map((curve) => (
+                        <button
+                            key={curve}
+                            onClick={() => setCrossfaderCurve?.(curve)}
+                            className={cn(
+                                "px-1.5 py-0.5 rounded-[1px] text-[7px] font-bold uppercase transition-all border whitespace-nowrap",
+                                crossfaderCurve === curve
+                                    ? "bg-cyan-500/20 text-cyan-400 border-cyan-500 shadow-[0_0_5px_rgba(6,182,212,0.3)]"
+                                    : "bg-black/40 text-neutral-600 border-neutral-800 hover:border-neutral-700"
+                            )}
+                        >
+                            {curve === 'constantPower' ? 'C.PWR' : curve}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
             {/* Crossfader Section (Reduced Height) */}
             <div className="flex-none h-10 bg-[#121212] border-t border-[#27272a] flex items-center justify-between px-2 z-10 mx-1 rounded-sm gap-1 mb-1">
 

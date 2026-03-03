@@ -3,6 +3,7 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { RotateCcw, Save, ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -170,60 +171,64 @@ export const TenBandEqualizer: React.FC<TenBandEqualizerProps> = ({
           </div>
         )}
         {/* Top Bar */}
-        <div className="flex items-center justify-between mb-6 relative z-10">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col gap-4 mb-6 relative z-10">
+          <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold text-slate-200 flex items-center gap-2">
-              <span className="text-cyan-500">EQ</span>
+              <span className="text-cyan-500 font-black">EQ</span>
               <span className="text-slate-600">|</span>
-              <span className="text-sm font-medium text-slate-400">MASTERING GRADE</span>
+              <span className="text-sm font-medium text-slate-400 tracking-wider">MASTERING GRADE</span>
             </h3>
 
-            <DropdownMenu>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-7 text-xs bg-slate-900 border-slate-700 text-slate-300 hover:text-white">
-                      {selectedPreset} <ChevronDown className="ml-2 h-3 w-3" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                </TooltipTrigger>
-                <TooltipContent className="bg-slate-900 border-slate-700 text-slate-200">
-                  <p>Select EQ Preset</p>
-                </TooltipContent>
-              </Tooltip>
-              <DropdownMenuContent className="bg-slate-900 border-slate-700">
-                {Object.entries(PRESETS).map(([name, values]) => (
-                  <DropdownMenuItem
-                    key={name}
-                    onClick={() => applyPreset(name, values)}
-                    className="text-slate-300 focus:bg-slate-800 focus:text-white cursor-pointer"
-                  >
-                    {name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    onReset();
+                    setSelectedPreset("Flat");
+                  }}
+                  className="text-[10px] font-bold text-slate-500 hover:text-cyan-400 hover:bg-cyan-950/20 px-2 h-7"
+                >
+                  <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                  RESET
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="bg-slate-900 border-slate-700 text-slate-200">
+                <p>Reset to Flat EQ</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  onReset();
-                  setSelectedPreset("Flat");
-                }}
-                className="text-xs text-slate-500 hover:text-cyan-400 hover:bg-transparent"
-              >
-                <RotateCcw className="h-3 w-3 mr-1" />
-                RESET
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent className="bg-slate-900 border-slate-700 text-slate-200">
-              <p>Reset to Flat EQ</p>
-            </TooltipContent>
-          </Tooltip>
+          {/* Presets Row - Glass Styled */}
+          <div className="flex flex-wrap gap-2 p-1 bg-white/5 rounded-xl border border-white/10 backdrop-blur-md">
+            {Object.entries(PRESETS).map(([name, values]) => {
+              const isActive = selectedPreset === name;
+              return (
+                <Tooltip key={name}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => applyPreset(name, values)}
+                      className={cn(
+                        "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-300 relative overflow-hidden group flex-1 min-w-[80px]",
+                        isActive
+                          ? "bg-cyan-500 text-white shadow-[0_0_15px_rgba(6,182,212,0.4)]"
+                          : "bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white border border-transparent hover:border-white/10"
+                      )}
+                    >
+                      {isActive && (
+                        <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-shimmer" />
+                      )}
+                      {name}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-slate-900 border-slate-700 text-slate-200">
+                    <p>Apply {name} Preset</p>
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
+          </div>
         </div>
 
         {/* Visualization Canvas */}
