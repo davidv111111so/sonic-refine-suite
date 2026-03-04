@@ -89,6 +89,7 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         lpf: Tone.Filter | null;
         hpf: Tone.Filter | null;
         volume: Tone.Gain | null;
+        limiter: Tone.Limiter | null;
         cueGate: Tone.Gain | null;
         meter: Tone.Meter | null;
         analyser: AnalyserNode | null; // Native Node
@@ -114,6 +115,7 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         lpf: null,
         hpf: null,
         volume: null,
+        limiter: null,
         cueGate: null,
         meter: null,
         stemFilters: null,
@@ -219,11 +221,14 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         // Connect Chain: Player -> Trim -> EQ -> Filter -> Volume -> MasterOutput
         //                                            |-> CueGate -> CueOutput
 
+        const limiter = new Tone.Limiter(-1);
+
         player.connect(trim);
         trim.connect(eq);
         eq.connect(lpf);
         lpf.connect(hpf);
-        hpf.connect(volume);
+        hpf.connect(limiter);
+        limiter.connect(volume);
 
         // Cue Path (Pre-Fader)
         hpf.connect(cueGate);
@@ -245,6 +250,7 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
             trim,
             eq,
             volume,
+            limiter,
             cueGate,
             meter,
             analyser,
@@ -320,10 +326,10 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         if (val >= 0.48 && val <= 0.52) return 0; // Center detent flat response
 
         if (val > 0.5) {
-            // Smooth boost up to +6dB.
+            // Smooth boost up to +4dB (reduced from +6dB to avoid clipping/distortion)
             const norm = (val - 0.5) * 2; // 0 to 1
             // Use a slight curve so the initial turn isn't a massive jump
-            return (norm * norm) * 6;
+            return (norm * norm) * 4;
         } else {
             // Smooth cut down to -24dB before the hard kill
             const norm = (0.5 - val) * 2; // 0 to 1
