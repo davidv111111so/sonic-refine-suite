@@ -402,6 +402,21 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
         setReferenceFile(track.file);
         setReferenceFileInfo({ name: track.name, size: track.size });
         toast.success("Reference track loaded", { description: `Using saved reference for ${presetId}` });
+      } else {
+        // Fallback to default genre sample
+        try {
+          const response = await fetch(`/samples/genres/${presetId}.wav`);
+          if (response.ok) {
+            const blob = await response.blob();
+            const defaultFile = new File([blob], `${presetId}_sample.wav`, { type: 'audio/wav' });
+            setReferenceFile(defaultFile);
+            setReferenceFileInfo({ name: defaultFile.name, size: defaultFile.size });
+          } else {
+            toast.info(`No custom reference saved for ${presetId}. You can upload one in Admin settings.`);
+          }
+        } catch (fetchErr) {
+          console.error("Failed to fetch default sample:", fetchErr);
+        }
       }
     } catch (e) {
       console.error("Failed to load reference track:", e);

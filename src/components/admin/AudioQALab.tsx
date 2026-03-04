@@ -240,7 +240,7 @@ export const AudioQALab = () => {
 
     const backendUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
         ? 'http://localhost:8001'
-        : (import.meta.env.VITE_PYTHON_BACKEND_URL || 'https://mastering-backend-857351913435.us-central1.run.app');
+        : (import.meta.env.VITE_PYTHON_BACKEND_URL || 'https://mastering-backend-azkp62xtaq-uc.a.run.app');
 
     const analyzeFile = async (file: File, side: 'before' | 'after') => {
         const setAnalyzing = side === 'before' ? setAnalyzingBefore : setAnalyzingAfter;
@@ -279,7 +279,6 @@ export const AudioQALab = () => {
         if (files[0]) {
             setBeforeFile(files[0]);
             setBeforeResult(null);
-            analyzeFile(files[0], 'before');
         }
     }, []);
 
@@ -287,7 +286,6 @@ export const AudioQALab = () => {
         if (files[0]) {
             setAfterFile(files[0]);
             setAfterResult(null);
-            analyzeFile(files[0], 'after');
         }
     }, []);
 
@@ -345,6 +343,19 @@ export const AudioQALab = () => {
             {/* Action Buttons */}
             {(beforeFile || afterFile) && (
                 <div className="flex justify-center gap-3">
+                    {((beforeFile && !beforeResult) || (afterFile && !afterResult)) && (
+                        <Button
+                            className="bg-cyan-500 hover:bg-cyan-600 text-black font-bold gap-2 px-8"
+                            onClick={() => {
+                                if (beforeFile && !beforeResult) analyzeFile(beforeFile, 'before');
+                                if (afterFile && !afterResult) analyzeFile(afterFile, 'after');
+                            }}
+                            disabled={isAnalyzing}
+                        >
+                            {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Activity className="w-4 h-4" />}
+                            Start Analysis
+                        </Button>
+                    )}
                     {bothReady && (
                         <Button
                             variant="outline"
