@@ -18,6 +18,7 @@ interface SpectralWaveformProps {
     height?: number;
     showGrid?: boolean;
     bpm?: number;
+    grid?: number[];
     onSeek?: (time: number) => void;
     loop?: { active: boolean; start: number; end: number };
     cuePoint?: number | null;
@@ -27,7 +28,7 @@ interface SpectralWaveformProps {
     playbackRate?: number;
 }
 
-export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, height = 150, showGrid = true, bpm = 128, onSeek, loop, cuePoint, onPlay, onPause, isPlaying, playbackRate = 1 }: SpectralWaveformProps) => {
+export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, height = 150, showGrid = true, bpm = 128, grid = [], onSeek, loop, cuePoint, onPlay, onPause, isPlaying, playbackRate = 1 }: SpectralWaveformProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const workerRef = useRef<Worker | null>(null);
@@ -127,7 +128,35 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
             ctx.fillRect(0, 0, width, height);
 
             // Grid
-            if (showGrid && bpm > 0) {
+            if (showGrid && grid && grid.length > 0) {
+                // Precise Array-Based Beatgrid rendering
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+                ctx.lineWidth = 1;
+
+                ctx.beginPath();
+                for (let i = 0; i < grid.length; i++) {
+                    const beatTime = grid[i];
+                    const x = (width / 2) + ((beatTime - time_now) * zoom);
+
+                    // Only draw if within canvas bounds
+                    if (x > -10 && x < width + 10) {
+                        ctx.moveTo(x, 0); ctx.lineTo(x, height);
+
+                        // Every 4th beat is a downbeat, make it brighter
+                        if (i % 4 === 0) {
+                            ctx.stroke();
+                            ctx.beginPath();
+                            ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)'; // Brighter Downbeat
+                            ctx.moveTo(x, 0); ctx.lineTo(x, height);
+                            ctx.stroke();
+                            ctx.beginPath();
+                            ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+                        }
+                    }
+                }
+                ctx.stroke();
+            } else if (showGrid && bpm > 0) {
+                // Fallback math-based grid
                 ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
                 ctx.lineWidth = 1;
                 const beatDuration = 60 / (bpm * playbackRate);

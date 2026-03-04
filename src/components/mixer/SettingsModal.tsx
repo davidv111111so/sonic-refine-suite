@@ -31,12 +31,18 @@ type SettingsTab = 'midi' | 'mixer' | 'audio';
 
 // Mappable parameters for MIDI Learn
 const LEARNABLE_PARAMS = [
+    { id: 'deck-a-play', name: 'Deck A Play/Pause', group: 'Deck A' },
+    { id: 'deck-a-cue', name: 'Deck A Cue', group: 'Deck A' },
+    { id: 'deck-a-sync', name: 'Deck A Sync', group: 'Deck A' },
     { id: 'deck-a-volume', name: 'Deck A Volume', group: 'Deck A' },
     { id: 'deck-a-eq-low', name: 'Deck A EQ Low', group: 'Deck A' },
     { id: 'deck-a-eq-mid', name: 'Deck A EQ Mid', group: 'Deck A' },
     { id: 'deck-a-eq-high', name: 'Deck A EQ High', group: 'Deck A' },
     { id: 'deck-a-filter', name: 'Deck A Filter', group: 'Deck A' },
     { id: 'deck-a-trim', name: 'Deck A Trim', group: 'Deck A' },
+    { id: 'deck-b-play', name: 'Deck B Play/Pause', group: 'Deck B' },
+    { id: 'deck-b-cue', name: 'Deck B Cue', group: 'Deck B' },
+    { id: 'deck-b-sync', name: 'Deck B Sync', group: 'Deck B' },
     { id: 'deck-b-volume', name: 'Deck B Volume', group: 'Deck B' },
     { id: 'deck-b-eq-low', name: 'Deck B EQ Low', group: 'Deck B' },
     { id: 'deck-b-eq-mid', name: 'Deck B EQ Mid', group: 'Deck B' },
@@ -168,7 +174,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                                     {mapping ? (
                                                         <>
                                                             <span className="text-[9px] font-mono text-cyan-400 bg-cyan-500/10 px-1.5 py-0.5 rounded">
-                                                                CC{mapping.cc} Ch{mapping.channel + 1}
+                                                                {mapping.type === 'note' ? 'Note' : 'CC'}{mapping.controlId} Ch{mapping.channel + 1}
                                                             </span>
                                                             <button onClick={() => onDeleteMapping(mapping.id)} className="text-neutral-600 hover:text-red-400 transition-colors">
                                                                 <Trash2 className="w-3 h-3" />

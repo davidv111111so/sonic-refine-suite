@@ -38,20 +38,55 @@ export const useBeatSync = (deckA: ReturnType<typeof useDJDeck>, deckB: ReturnTy
         const requiredRate = masterEffectiveBPM / targetDeck.state.bpm;
 
         // 2. Phase Sync — Beat Alignment
-        const beatDuration = 60 / masterEffectiveBPM;
         const masterTime = masterDeck.state.currentTime;
         const followerTime = targetDeck.state.currentTime;
 
-        // Bar-aware: align to downbeat (every 4 beats)
-        const barDuration = beatDuration * 4;
-        const masterPhase = masterTime % barDuration;
+        let targetTime = followerTime;
 
-        let targetTime = Math.floor(followerTime / barDuration) * barDuration + masterPhase;
+        // Use Advanced Beatgrid if available
+        if (masterDeck.state.grid && masterDeck.state.grid.length > 0 &&
+            targetDeck.state.grid && targetDeck.state.grid.length > 0) {
 
-        // Nearest bar boundary check
-        if (Math.abs(targetTime - followerTime) > barDuration / 2) {
-            if (targetTime > followerTime) targetTime -= barDuration;
-            else targetTime += barDuration;
+            // Find current beat in Master
+            let mIndex = masterDeck.state.grid.findIndex(t => t > masterTime) - 1;
+            if (mIndex < 0) mIndex = 0;
+            const masterBeatStart = masterDeck.state.grid[mIndex];
+            const masterPhaseOffset = masterTime - masterBeatStart;
+            const masterBeatInBar = mIndex % 4; // 0=downbeat, 1, 2, 3
+
+            // Find current beat in Follower
+            let fIndex = targetDeck.state.grid.findIndex(t => t > followerTime) - 1;
+            if (fIndex < 0) fIndex = 0;
+
+            // Shift follower index to match the same beat in the bar as the master
+            const followerBeatInBar = fIndex % 4;
+            const beatShift = masterBeatInBar - followerBeatInBar;
+
+            let alignedFollowerIndex = fIndex + beatShift;
+            // Ensure we don't jump too far out of bounds
+            if (alignedFollowerIndex < 0) alignedFollowerIndex += 4;
+            if (alignedFollowerIndex >= targetDeck.state.grid.length) alignedFollowerIndex = targetDeck.state.grid.length - 1;
+
+            const followerBeatStart = targetDeck.state.grid[alignedFollowerIndex];
+
+            // To account for playback rate differences while syncing, we multiply the master phase offset by the rate ratio? 
+            // Actually, setting targetDeck.setRate(requiredRate) makes their speeds equal in real-time, 
+            // so we just add the absolute time offset.
+            targetTime = followerBeatStart + masterPhaseOffset * (targetDeck.state.bpm / masterDeck.state.bpm);
+
+        } else {
+            // Fallback: Math-based BPM sync
+            const beatDuration = 60 / masterEffectiveBPM;
+            const barDuration = beatDuration * 4;
+            const masterPhase = masterTime % barDuration;
+
+            targetTime = Math.floor(followerTime / barDuration) * barDuration + masterPhase;
+
+            // Nearest bar boundary check
+            if (Math.abs(targetTime - followerTime) > barDuration / 2) {
+                if (targetTime > followerTime) targetTime -= barDuration;
+                else targetTime += barDuration;
+            }
         }
 
         // Apply both simultaneously

@@ -276,6 +276,7 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                     height={containerRef.current?.clientHeight || 120}
                     showGrid={showGrid}
                     bpm={controls.state.bpm || 128}
+                    grid={controls.state.grid}
                     onSeek={controls.seek}
                     loop={controls.state.loop}
                     cuePoint={cueLogic.cuePoint}

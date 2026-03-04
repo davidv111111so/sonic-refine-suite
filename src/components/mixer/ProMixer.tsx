@@ -53,6 +53,9 @@ const ProMixerContent = () => {
     // Map MIDI parameters to actual audio controls
     React.useEffect(() => {
         // Deck A
+        midiLearn.registerParam('deck-a-play', (val) => { if (val > 0) deckA.state.isPlaying ? deckA.pause() : deckA.play() });
+        midiLearn.registerParam('deck-a-cue', (val) => { if (val > 0) deckA.cue() });
+        midiLearn.registerParam('deck-a-sync', (val) => { if (val > 0) { handleSync('A'); setSyncMode('beat'); } });
         midiLearn.registerParam('deck-a-volume', deckA.setVolume);
         midiLearn.registerParam('deck-a-eq-low', (val) => deckA.setEQ('low', val));
         midiLearn.registerParam('deck-a-eq-mid', (val) => deckA.setEQ('mid', val));
@@ -61,6 +64,9 @@ const ProMixerContent = () => {
         midiLearn.registerParam('deck-a-trim', deckA.setTrim);
 
         // Deck B
+        midiLearn.registerParam('deck-b-play', (val) => { if (val > 0) deckB.state.isPlaying ? deckB.pause() : deckB.play() });
+        midiLearn.registerParam('deck-b-cue', (val) => { if (val > 0) deckB.cue() });
+        midiLearn.registerParam('deck-b-sync', (val) => { if (val > 0) { handleSync('B'); setSyncMode('beat'); } });
         midiLearn.registerParam('deck-b-volume', deckB.setVolume);
         midiLearn.registerParam('deck-b-eq-low', (val) => deckB.setEQ('low', val));
         midiLearn.registerParam('deck-b-eq-mid', (val) => deckB.setEQ('mid', val));
@@ -75,13 +81,13 @@ const ProMixerContent = () => {
 
         return () => {
             // Cleanup
-            ['deck-a-volume', 'deck-a-eq-low', 'deck-a-eq-mid', 'deck-a-eq-high', 'deck-a-filter', 'deck-a-trim',
-                'deck-b-volume', 'deck-b-eq-low', 'deck-b-eq-mid', 'deck-b-eq-high', 'deck-b-filter', 'deck-b-trim',
+            ['deck-a-play', 'deck-a-cue', 'deck-a-sync', 'deck-a-volume', 'deck-a-eq-low', 'deck-a-eq-mid', 'deck-a-eq-high', 'deck-a-filter', 'deck-a-trim',
+                'deck-b-play', 'deck-b-cue', 'deck-b-sync', 'deck-b-volume', 'deck-b-eq-low', 'deck-b-eq-mid', 'deck-b-eq-high', 'deck-b-filter', 'deck-b-trim',
                 'crossfader', 'headphone-mix', 'headphone-vol'].forEach(p => midiLearn.unregisterParam(p));
         };
-    }, [deckA, deckB, setCrossfader, setHeadphoneMix, setHeadphoneVol, midiLearn]);
+    }, [deckA, deckB, setCrossfader, setHeadphoneMix, setHeadphoneVol, handleSync, setSyncMode, midiLearn]);
 
-    // MIDI Initialization
+    // MIDI Initialization (Using generic MIDIHandler.ts for webmidi fallback if needed, but useMIDILearn handles CC natively now)
     React.useEffect(() => {
         if (deckA && deckB) {
             const midi = MIDIHandler.getInstance();

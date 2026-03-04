@@ -4,7 +4,8 @@ export interface MIDIMapping {
     id: string;             // Unique mapping ID
     parameterName: string;  // Human-readable name (e.g., "Deck A Volume")
     channel: number;        // MIDI channel (0-15)
-    cc: number;             // CC number (0-127)
+    type: 'cc' | 'note';    // Type of MIDI message
+    controlId: number;      // CC number (0-127) OR Note number (0-127)
     deviceName: string;     // Input device name
     min: number;            // Parameter min
     max: number;            // Parameter max
@@ -22,7 +23,7 @@ interface MIDILearnState {
     learningParamName: string | null;
     mappings: MIDIMapping[];
     devices: MIDIDevice[];
-    lastMessage: { channel: number; cc: number; value: number } | null;
+    lastMessage: { channel: number; type: 'cc' | 'note'; controlId: number; value: number } | null;
 }
 
 const STORAGE_KEY = 'level-audio-midi-mappings';
@@ -105,30 +106,43 @@ export const useMIDILearn = () => {
         });
     }, []);
 
-    // Handle incoming MIDI CC message
+    // Handle incoming MIDI message
     const handleMIDIMessage = useCallback((event: MIDIMessageEvent) => {
         const data = event.data;
         if (!data || data.length < 3) return;
 
         const status = data[0] & 0xf0;
         const channel = data[0] & 0x0f;
-        const cc = data[1];
-        const value = data[2];
+        const noteOrCC = data[1]; // Note number or CC number
+        const velocityOrValue = data[2];
 
-        // Only handle CC messages (0xB0)
-        if (status !== 0xB0) return;
+        let type: 'cc' | 'note' | null = null;
+        let value = velocityOrValue;
+
+        // Note On (0x90)
+        if (status === 0x90 && velocityOrValue > 0) {
+            type = 'note';
+            value = velocityOrValue; // 0-127
+        }
+        // CC (0xB0)
+        else if (status === 0xB0) {
+            type = 'cc';
+        }
+
+        if (!type) return;
 
         const normalizedValue = value / 127;
 
         setState(prev => {
-            // If learning, capture this CC and create mapping
+            // If learning, capture this CC/Note and create mapping
             if (prev.isLearning && prev.learningParamId) {
                 const deviceName = (event.target as any)?.name || 'Unknown Device';
                 const newMapping: MIDIMapping = {
-                    id: `${prev.learningParamId}-${channel}-${cc}`,
+                    id: `${prev.learningParamId}-${type}-${channel}-${noteOrCC}`,
                     parameterName: prev.learningParamName || prev.learningParamId,
                     channel,
-                    cc,
+                    type,
+                    controlId: noteOrCC,
                     deviceName,
                     min: 0,
                     max: 1,
@@ -145,26 +159,27 @@ export const useMIDILearn = () => {
                     learningParamId: null,
                     learningParamName: null,
                     mappings: newMappings,
-                    lastMessage: { channel, cc, value: normalizedValue },
+                    lastMessage: { channel, type, controlId: noteOrCC, value: normalizedValue },
                 };
             }
 
             // Normal mode: dispatch to mapped callbacks
+            let handled = false;
             for (const mapping of prev.mappings) {
-                if (mapping.channel === channel && mapping.cc === cc) {
-                    // Find callback by parameterName (the registered ID)
-                    // We need to match by the param name pattern
+                // Determine if this mapping matches the incoming event
+                if (mapping.channel === channel && mapping.type === type && mapping.controlId === noteOrCC) {
                     const callback = callbacksRef.current.get(mapping.parameterName);
                     if (callback) {
                         const scaled = mapping.min + normalizedValue * (mapping.max - mapping.min);
                         callback(scaled);
+                        handled = true;
                     }
                 }
             }
 
             return {
                 ...prev,
-                lastMessage: { channel, cc, value: normalizedValue },
+                lastMessage: { channel, type, controlId: noteOrCC, value: normalizedValue },
             };
         });
     }, []);

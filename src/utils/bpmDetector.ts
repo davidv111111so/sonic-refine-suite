@@ -9,7 +9,8 @@ import { getAudioContext } from './audioContextManager';
 export interface BPMAnalysis {
   bpm: number;
   confidence: number;
-  offset?: number;
+  offset: number;     // Time of the first beat (downbeat) in seconds
+  grid: number[];       // Array of timestamp intervals for the beatgrid
 }
 
 /**
@@ -30,14 +31,60 @@ export async function detectBPMFromFile(file: File): Promise<BPMAnalysis> {
 
     console.log(`✅ BPM Detection: ${Math.round(tempo)} BPM (${Date.now() - start}ms)`);
 
+    const bpm = Math.round(tempo);
+    const interval = 60.0 / bpm;
+
+    // Detect first beat offset looking for loud transients in the first few seconds
+    const channelData = audioBuffer.getChannelData(0);
+    const sampleRate = audioBuffer.sampleRate;
+    const maxSearchSamples = Math.min(channelData.length, sampleRate * 5); // search first 5 seconds
+
+    let firstPeakIndex = 0;
+    let maxEnergy = 0;
+    const windowSize = Math.floor(sampleRate * 0.05); // 50ms window
+
+    for (let i = 0; i < maxSearchSamples; i += windowSize) {
+      let energy = 0;
+      for (let j = 0; j < windowSize; j++) {
+        if (i + j < maxSearchSamples) {
+          energy += Math.abs(channelData[i + j]);
+        }
+      }
+      if (energy > maxEnergy) {
+        maxEnergy = energy;
+        firstPeakIndex = i;
+      }
+    }
+
+    // Refine peak exactly
+    let refinedIndex = firstPeakIndex;
+    let localMax = 0;
+    for (let i = firstPeakIndex; i < firstPeakIndex + windowSize && i < maxSearchSamples; i++) {
+      if (channelData[i] > localMax) {
+        localMax = channelData[i];
+        refinedIndex = i;
+      }
+    }
+
+    let offset = refinedIndex / sampleRate;
+
+    // Build beatgrid up to the duration of the track
+    const grid: number[] = [];
+    let currentBeat = offset;
+    while (currentBeat < audioBuffer.duration) {
+      grid.push(currentBeat);
+      currentBeat += interval;
+    }
+
     return {
-      bpm: Math.round(tempo),
+      bpm,
       confidence: 0.8,
-      offset: 0
+      offset,
+      grid
     };
   } catch (error) {
     console.error('❌ BPM detection failed:', error);
-    return { bpm: 120, confidence: 0, offset: 0 }; // Fallback to 120 BPM
+    return { bpm: 120, confidence: 0, offset: 0, grid: [] }; // Fallback to 120 BPM
   }
 }
 
@@ -68,22 +115,33 @@ export async function detectBPMFromBuffer(audioBuffer: AudioBuffer): Promise<BPM
     worker.onmessage = (e) => {
       if (e.data.type === 'BPM_RESULT') {
         console.log(`✅ Worker BPM: ${e.data.bpm}`);
+        const bpm = e.data.bpm;
+        const interval = 60.0 / bpm;
+        const offset = 0; // Worker doesn't calculate offset yet
+        const grid: number[] = [];
+        let currentBeat = offset;
+        while (currentBeat < audioBuffer.duration) {
+          grid.push(currentBeat);
+          currentBeat += interval;
+        }
+
         resolve({
-          bpm: e.data.bpm,
+          bpm,
           confidence: 0.8,
-          offset: 0
+          offset,
+          grid
         });
         worker.terminate();
       } else if (e.data.type === 'ERROR') {
         console.error(e.data.error);
-        resolve({ bpm: 120, confidence: 0 }); // Fallback
+        resolve({ bpm: 120, confidence: 0, offset: 0, grid: [] }); // Fallback
         worker.terminate();
       }
     };
 
     worker.onerror = (err) => {
       console.error("Worker Error:", err);
-      resolve({ bpm: 120, confidence: 0 });
+      resolve({ bpm: 120, confidence: 0, offset: 0, grid: [] });
       worker.terminate();
     };
   });

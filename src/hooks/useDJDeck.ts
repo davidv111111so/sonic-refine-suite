@@ -13,6 +13,7 @@ export interface DeckState {
     duration: number;
     playbackRate: number;
     bpm: number | null;
+    grid: number[];
     volume: number;
     trim: number; // Input Gain
     pitch: number;
@@ -144,6 +145,7 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         duration: 0,
         playbackRate: 1,
         bpm: null,
+        grid: [],
         volume: 1.0, // Default to 100% so it sounds on play
         trim: 1,
         pitch: 0,
@@ -414,6 +416,7 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
 
                 // BPM Detection: Prioritize provided BPM (from Library/Tags)
                 let detectedBPM = (bpm && bpm > 0) ? bpm : 0;
+                let grid: number[] = [];
 
                 if (!detectedBPM) {
                     console.log(`🔍 No BPM provided, analyzing audio buffer...`);
@@ -421,13 +424,21 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
                         const nativeBuf = buffer.get();
                         const analysis = await detectBPMFromBuffer(nativeBuf);
                         detectedBPM = analysis.bpm;
-                        console.log(`✅ Analyzed BPM: ${detectedBPM}`);
+                        grid = analysis.grid || [];
+                        console.log(`✅ Analyzed BPM: ${detectedBPM} | Beatgrid points: ${grid.length}`);
                     } catch (e) {
                         console.error("Analysis failed, using fallback 120", e);
                         detectedBPM = 120;
                     }
                 } else {
                     console.log(`🎯 Using provided BPM: ${detectedBPM}`);
+                    // If BPM is provided but no grid, we generate a basic zero-offset grid
+                    const interval = 60.0 / detectedBPM;
+                    let currentBeat = 0;
+                    while (currentBeat < bufferDuration) {
+                        grid.push(currentBeat);
+                        currentBeat += interval;
+                    }
                 }
 
                 const roundedBPM = Math.round(detectedBPM * 100) / 100;
@@ -437,6 +448,7 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
                     buffer: buffer?.get() || null,
                     duration: bufferDuration,
                     bpm: roundedBPM,
+                    grid,
                     key: key || null,
                     currentTime: 0,
                     isPlaying: false,
