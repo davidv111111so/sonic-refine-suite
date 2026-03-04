@@ -856,17 +856,7 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
             isLocked={!isPremium}
           />
 
-          {/* Compressor (Middle) */}
-          <DynamicsCompressorControls
-            settings={compressorSettings}
-            gainReduction={gainReduction}
-            onSettingsChange={(settings) =>
-              setCompressorSettings({ ...compressorSettings, ...settings })
-            }
-            isLocked={!isPremium}
-          />
-
-          {/* Visualizer - Now in right column, filling remaining height if needed or fixed height */}
+          {/* Visualizer (Middle) */}
           <div className="flex-1 min-h-[200px]">
             <VisualizerDisplay
               analyserNode={analyserNodeRef.current}
@@ -875,6 +865,16 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
               onModeChange={setVisualizerMode}
             />
           </div>
+
+          {/* Compressor (Bottom) */}
+          <DynamicsCompressorControls
+            settings={compressorSettings}
+            gainReduction={gainReduction}
+            onSettingsChange={(settings) =>
+              setCompressorSettings({ ...compressorSettings, ...settings })
+            }
+            isLocked={!isPremium}
+          />
         </div>
       </div>
 

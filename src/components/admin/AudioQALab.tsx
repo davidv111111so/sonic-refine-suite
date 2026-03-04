@@ -346,9 +346,13 @@ export const AudioQALab = () => {
                     {((beforeFile && !beforeResult) || (afterFile && !afterResult)) && (
                         <Button
                             className="bg-cyan-500 hover:bg-cyan-600 text-black font-bold gap-2 px-8"
-                            onClick={() => {
-                                if (beforeFile && !beforeResult) analyzeFile(beforeFile, 'before');
-                                if (afterFile && !afterResult) analyzeFile(afterFile, 'after');
+                            onClick={async () => {
+                                if (beforeFile && !beforeResult) {
+                                    await analyzeFile(beforeFile, 'before');
+                                }
+                                if (afterFile && !afterResult) {
+                                    await analyzeFile(afterFile, 'after');
+                                }
                             }}
                             disabled={isAnalyzing}
                         >

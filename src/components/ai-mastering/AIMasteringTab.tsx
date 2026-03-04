@@ -649,9 +649,9 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
 
         <Alert className="bg-blue-950/20 border-blue-500/50 text-blue-200">
           <AlertCircle className="h-4 w-4 text-blue-400" />
-          <AlertTitle>AI Mastering | 2-12 Min Estimated</AlertTitle>
+          <AlertTitle>AI Mastering | 5 - 10 minutes Estimated</AlertTitle>
           <AlertDescription className="text-sm opacity-90">
-            Professional system supports high-fidelity audio files up to 1GB. Processing typically takes 2-12 minutes depending on track length.
+            Professional system supports high-fidelity audio files up to 1GB. Processing typically takes 5 - 10 minutes depending on track length.
           </AlertDescription>
         </Alert>
         <AIMasteringGuide open={showGuide} onOpenChange={setShowGuide} />

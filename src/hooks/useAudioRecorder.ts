@@ -115,20 +115,28 @@ export const useAudioRecorder = (limiterNode: Tone.Limiter | null) => {
         try {
             const webmBlob = await recorder.stop();
 
-            // Convert WebM → WAV
-            console.log("[useAudioRecorder] Converting to WAV...");
-            const arrayBuffer = await webmBlob.arrayBuffer();
-            const audioCtx = Tone.getContext().rawContext as AudioContext;
+            let finalBlob = webmBlob;
+            let ext = 'webm';
 
-            // Note: decodeAudioData doesn't strictly need a fresh context. 
-            // We use Tone's existing, unlocked context to decode safely.
-            const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-            const wavBlob = audioBufferToWav(audioBuffer);
+            try {
+                // Convert WebM → WAV
+                console.log("[useAudioRecorder] Converting to WAV...");
+                const arrayBuffer = await webmBlob.arrayBuffer();
+                const audioCtx = Tone.getContext().rawContext as AudioContext;
+
+                // Note: decodeAudioData doesn't strictly need a fresh context. 
+                // We use Tone's existing, unlocked context to decode safely.
+                const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+                finalBlob = audioBufferToWav(audioBuffer);
+                ext = 'wav';
+            } catch (decodeErr) {
+                console.warn("[useAudioRecorder] WAV conversion failed, falling back to original WEBM format.", decodeErr);
+            }
 
             // Trigger download
-            const url = URL.createObjectURL(wavBlob);
+            const url = URL.createObjectURL(finalBlob);
             const anchor = document.createElement('a');
-            anchor.download = `sonic-refine-mix-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.wav`;
+            anchor.download = `sonic-refine-mix-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.${ext}`;
             anchor.href = url;
             document.body.appendChild(anchor); // ensure it's in DOM for some browsers
             anchor.click();
@@ -136,7 +144,7 @@ export const useAudioRecorder = (limiterNode: Tone.Limiter | null) => {
             URL.revokeObjectURL(url);
 
             setIsConverting(false);
-            console.log("[useAudioRecorder] WAV download triggered");
+            console.log(`[useAudioRecorder] ${ext.toUpperCase()} download triggered`);
         } catch (err) {
             console.error("[useAudioRecorder] Error stopping recording:", err);
             setIsConverting(false);

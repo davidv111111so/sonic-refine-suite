@@ -5,7 +5,7 @@ interface CueLogicProps {
     duration: number;
     isPlaying: boolean;
     bpm: number;
-    onSeek: (time: number) => void;
+    onSeek: (time: number, forcePause?: boolean) => void;
     onPlay: () => void;
     onPause: () => void;
     quantize?: boolean; // Snap to grid
@@ -52,7 +52,7 @@ export const useCueLogic = ({
                 // If Playing: Stop and Jump to last Cue Point
                 onPause();
                 const target = cuePointRef.current !== null ? cuePointRef.current : 0;
-                onSeek(target);
+                onSeek(target, true);
             } else {
                 // If Paused:
                 const currentT = currentTime;
@@ -65,26 +65,16 @@ export const useCueLogic = ({
                     // Set new Cue Point at current location
                     const newCue = getQuantizedTime(currentT);
                     setCuePoint(newCue);
-                    onSeek(newCue);
+                    onSeek(newCue, true);
                 }
             }
         } else {
             // RELEASE
             if (isHoldingRef.current) {
                 isHoldingRef.current = false;
-                // If we are in "Cue Play" (playing because we held CUE), stop and jump back
-                if (!isPlaying) {
-                    // Wait, if it was already playing before we pressed CUE... 
-                    // But our logic pauses it on press if playing.
-                    // So if it's playing now, it must be Cue-Play.
-                }
-
-                // Standard Hardware Logic: 
-                // If we press PLAY while holding CUE, it latches.
-                // If we just release CUE, it stops and jumps back.
                 onPause();
                 const target = cuePointRef.current !== null ? cuePointRef.current : 0;
-                onSeek(target);
+                onSeek(target, true);
             }
         }
     }, [isPlaying, currentTime, onPause, onPlay, onSeek, getQuantizedTime, setCuePoint]);

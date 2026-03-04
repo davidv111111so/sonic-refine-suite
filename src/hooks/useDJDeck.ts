@@ -504,15 +504,17 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         setState(prev => ({ ...prev, isPlaying: false, currentTime: 0 }));
     }, []);
 
-    const seek = useCallback((time: number) => {
-        const wasPlaying = state.isPlaying;
+    const seek = useCallback((time: number, forcePause = false) => {
+        const wasPlaying = state.isPlaying && !forcePause;
         offsetTime.current = time;
         if (wasPlaying) {
             nodes.current.player?.stop();
             startTime.current = Tone.now();
             nodes.current.player?.start(startTime.current, offsetTime.current);
+        } else if (forcePause && nodes.current.player) {
+            nodes.current.player.stop();
         }
-        setState(prev => ({ ...prev, currentTime: time }));
+        setState(prev => ({ ...prev, currentTime: time, isPlaying: wasPlaying }));
     }, [state.isPlaying]);
 
 

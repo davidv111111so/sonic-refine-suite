@@ -16,7 +16,10 @@ export type VisualizerMode =
     | 'particles3d'
     | 'tunnel3d'
     | 'sphere3d'
-    | 'cybergrid';
+    | 'cybergrid'
+    | 'galaxy'
+    | 'matrix'
+    | 'random';
 
 interface VisualizerDisplayProps {
     analyserNode: AnalyserNode | null;
@@ -37,11 +40,31 @@ export const VisualizerDisplay = ({
     const particlesRef = useRef<any[]>([]);
     const [isFullscreen, setIsFullscreen] = useState(false);
 
-    const is3DMode = mode.startsWith('3d');
+    // Core active mode (handles random cycling)
+    const [activeMode, setActiveMode] = useState<VisualizerMode>(mode === 'random' ? 'cybergrid' : mode);
+
+    const is3DMode = activeMode.startsWith('3d');
 
     useEffect(() => {
-        console.log("🎬 VisualizerDisplay mounted (v3.2 - Cyber Grid Update)");
+        console.log("🎬 VisualizerDisplay mounted (v3.3 - Random & Galaxy Update)");
     }, []);
+
+    // Random Mode Cycler
+    useEffect(() => {
+        if (mode === 'random') {
+            const available2DModes: VisualizerMode[] = [
+                'bars', 'wave', 'circular', 'particles', 'spectrogram',
+                'cybergrid', 'galaxy', 'matrix'
+            ];
+            const interval = setInterval(() => {
+                const nextMode = available2DModes[Math.floor(Math.random() * available2DModes.length)];
+                setActiveMode(nextMode);
+            }, 8000); // cycle every 8 seconds
+            return () => clearInterval(interval);
+        } else {
+            setActiveMode(mode);
+        }
+    }, [mode]);
 
     // Handle fullscreen changes
     useEffect(() => {
@@ -85,15 +108,17 @@ export const VisualizerDisplay = ({
         const dataArray = new Uint8Array(bufferLength);
 
         // Initialize particles if needed
-        if (mode === 'particles' && particlesRef.current.length === 0) {
-            for (let i = 0; i < 100; i++) {
+        if ((activeMode === 'particles' || activeMode === 'galaxy' || activeMode === 'matrix') && particlesRef.current.length === 0) {
+            for (let i = 0; i < 150; i++) {
                 particlesRef.current.push({
                     x: Math.random() * canvas.width,
                     y: Math.random() * canvas.height,
                     vx: (Math.random() - 0.5) * 2,
                     vy: (Math.random() - 0.5) * 2,
                     size: Math.random() * 3 + 1,
-                    color: `hsl(${Math.random() * 360}, 100%, 50%)`
+                    color: `hsl(${Math.random() * 360}, 100%, 50%)`,
+                    angle: Math.random() * Math.PI * 2,
+                    distance: Math.random() * (canvas.width / 2)
                 });
             }
         }
@@ -111,7 +136,7 @@ export const VisualizerDisplay = ({
                 return;
             }
 
-            if (mode === 'bars') {
+            if (activeMode === 'bars') {
                 analyserNode.getByteFrequencyData(dataArray);
                 const barWidth = (width / bufferLength) * 2.5;
                 let barHeight;
@@ -129,7 +154,7 @@ export const VisualizerDisplay = ({
 
                     x += barWidth + 1;
                 }
-            } else if (mode === 'wave') {
+            } else if (activeMode === 'wave') {
                 analyserNode.getByteTimeDomainData(dataArray);
                 ctx.lineWidth = 2;
                 ctx.strokeStyle = '#06b6d4';
@@ -153,7 +178,7 @@ export const VisualizerDisplay = ({
 
                 ctx.lineTo(width, height / 2);
                 ctx.stroke();
-            } else if (mode === 'circular') {
+            } else if (activeMode === 'circular') {
                 analyserNode.getByteFrequencyData(dataArray);
                 const centerX = width / 2;
                 const centerY = height / 2;
@@ -185,7 +210,7 @@ export const VisualizerDisplay = ({
                     ctx.lineCap = 'round';
                     ctx.stroke();
                 }
-            } else if (mode === 'particles') {
+            } else if (activeMode === 'particles') {
                 analyserNode.getByteFrequencyData(dataArray);
                 const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
                 const boost = average / 255; // 0 to 1
@@ -209,7 +234,85 @@ export const VisualizerDisplay = ({
                     ctx.fill();
                     ctx.globalAlpha = 1;
                 });
-            } else if (mode === 'spectrogram') {
+            } else if (activeMode === 'galaxy') {
+                analyserNode.getByteFrequencyData(dataArray);
+                const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+                const boost = average / 255;
+                const centerX = width / 2;
+                const centerY = height / 2;
+
+                // Dark trailing effect
+                ctx.fillStyle = `rgba(0, 0, 0, ${0.1 - boost * 0.05})`;
+                ctx.fillRect(0, 0, width, height);
+
+                particlesRef.current.forEach((p, i) => {
+                    const audioVal = dataArray[i % bufferLength] / 255;
+                    p.angle += (p.size * 0.005) + (audioVal * 0.05); // Orbit speed
+
+                    // Spiral effect based on bass
+                    const bassBoost = (dataArray[1] / 255) * 50;
+                    const targetDist = p.distance + (Math.sin(p.angle) * bassBoost);
+
+                    const x = centerX + Math.cos(p.angle) * targetDist;
+                    const y = centerY + Math.sin(p.angle) * targetDist;
+
+                    const drawSize = p.size * (1 + audioVal * 3);
+
+                    ctx.beginPath();
+                    ctx.arc(x, y, drawSize, 0, Math.PI * 2);
+                    ctx.fillStyle = `hsl(${(p.angle * 180 / Math.PI) + (audioVal * 360)}, 100%, ${50 + audioVal * 50}%)`;
+                    ctx.globalAlpha = 0.5 + audioVal * 0.5;
+                    ctx.fill();
+
+                    // Connect lines for the inner core
+                    if (targetDist < 100 && i % 3 === 0) {
+                        ctx.beginPath();
+                        ctx.moveTo(centerX, centerY);
+                        ctx.lineTo(x, y);
+                        ctx.strokeStyle = `rgba(255, 255, 255, ${audioVal * 0.2})`;
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+                    }
+                });
+                ctx.globalAlpha = 1;
+            } else if (activeMode === 'matrix') {
+                analyserNode.getByteFrequencyData(dataArray);
+                const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+
+                ctx.fillStyle = `rgba(0, 0, 0, 0.15)`;
+                ctx.fillRect(0, 0, width, height);
+
+                ctx.font = '14px monospace';
+                ctx.textAlign = 'center';
+
+                particlesRef.current.forEach((p, i) => {
+                    // Y axis falls down
+                    const speed = p.size + (dataArray[i % bufferLength] / 255) * 10;
+                    p.y += speed;
+
+                    if (p.y > height) {
+                        p.y = 0;
+                        p.x = Math.random() * width;
+                    }
+
+                    const val = dataArray[i % bufferLength];
+                    const char = String.fromCharCode(0x30A0 + Math.random() * 96); // Katakana
+
+                    const isLoud = val > 150;
+                    ctx.fillStyle = isLoud ? '#fff' : `rgba(16, 185, 129, ${val / 255 + 0.2})`; // Emerald green
+
+                    // If bass is hitting hard, add text shadow glow
+                    if (isLoud) {
+                        ctx.shadowBlur = 10;
+                        ctx.shadowColor = '#10b981';
+                    } else {
+                        ctx.shadowBlur = 0;
+                    }
+
+                    ctx.fillText(char, p.x, p.y);
+                });
+                ctx.shadowBlur = 0;
+            } else if (activeMode === 'spectrogram') {
                 analyserNode.getByteFrequencyData(dataArray);
                 const barWidth = (width / bufferLength) * 2;
 
@@ -223,7 +326,7 @@ export const VisualizerDisplay = ({
                     // Left side
                     ctx.fillRect(width / 2 - i * barWidth, height / 2 - barHeight / 2, barWidth, barHeight);
                 }
-            } else if (mode === 'cybergrid') {
+            } else if (activeMode === 'cybergrid') {
                 analyserNode.getByteFrequencyData(dataArray);
                 const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
                 const intensity = average / 255;
@@ -285,7 +388,7 @@ export const VisualizerDisplay = ({
                 cancelAnimationFrame(animationRef.current);
             }
         };
-    }, [analyserNode, isPlaying, mode, is3DMode]);
+    }, [analyserNode, isPlaying, activeMode, is3DMode]);
 
     return (
         <Card
@@ -296,7 +399,7 @@ export const VisualizerDisplay = ({
                 <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-cyan-500">Loading 3D Engine...</div>}>
 
                     <Visualizer3D
-                        mode={mode.replace('3d', '') as any}
+                        mode={activeMode.replace('3d', '') as any}
                         analyser={analyserNode}
                     />
                 </Suspense>
@@ -320,10 +423,13 @@ export const VisualizerDisplay = ({
                             className="h-7 text-xs bg-slate-800/80 border border-purple-500/30 text-slate-300 shadow-lg rounded-md px-2 py-0 focus:outline-none focus:ring-1 focus:ring-purple-500 appearance-none cursor-pointer"
                             style={{ width: '130px' }}
                         >
+                            <option value="random">🌀 RANDOM CYCLE</option>
                             <option value="bars">Bars</option>
                             <option value="wave">Wave</option>
                             <option value="circular">Circular</option>
                             <option value="particles">Particles</option>
+                            <option value="galaxy">Galaxy</option>
+                            <option value="matrix">Matrix Rain</option>
                             <option value="spectrogram">Spectrogram</option>
                             <option value="terrain3d">3D Terrain</option>
                             <option value="particles3d">3D Particles</option>

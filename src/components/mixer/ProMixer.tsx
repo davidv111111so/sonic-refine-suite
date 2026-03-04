@@ -132,7 +132,7 @@ const ProMixerContent = () => {
                     <LevelLogo size="sm" />
                     <div className="flex flex-col">
                         <span className="text-xs font-black text-white uppercase tracking-[0.2em] leading-none">Mixer<span className="text-[#00deea]"> Lab</span></span>
-                        <span className="text-[7px] font-bold text-[#666] uppercase tracking-widest mt-1">Sonic Refine Suite v2.1 (Build 030326)</span>
+                        <span className="text-[7px] font-bold text-[#666] uppercase tracking-widest mt-1">Sonic Refine Suite v2.2 (Build 030426)</span>
                     </div>
                 </div>
 
