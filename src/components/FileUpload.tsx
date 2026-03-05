@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Card, CardContent } from '@/components/ui/card';
-import { Upload, Music, FileAudio } from 'lucide-react';
+import { Upload, Music, FileAudio, Info } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
@@ -98,6 +98,12 @@ export const FileUpload: React.FC<FileUploadProps> = ({
               <Music className="h-4 w-4 text-slate-500" />
               <span className="text-xs text-slate-500">
                 MP3, WAV, FLAC, OGG, M4A, AAC • Max {maxFiles} files • {Math.round(maxSize / (1024 * 1024))}MB each
+              </span>
+            </div>
+            <div className="flex items-center justify-center gap-1.5 mt-2">
+              <Info className="h-3.5 w-3.5 text-cyan-500/60" />
+              <span className="text-[11px] text-cyan-400/60">
+                Max 10 files per upload • Estimated processing: 10-45 seconds
               </span>
             </div>
           </div>

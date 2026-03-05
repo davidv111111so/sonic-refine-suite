@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { WaveformChunk } from '../../workers/waveformAnalysis.worker';
+import { calculateEnergyCurve } from '@/utils/harmonicMixing';
 
 interface StripeOverviewProps {
     buffer: AudioBuffer | null;
@@ -10,6 +11,7 @@ interface StripeOverviewProps {
     height?: number;
     cuePoint?: number | null;
     loop?: { active: boolean; start: number; end: number };
+    showEnergy?: boolean;
 }
 
 export const StripeOverview = ({
@@ -20,16 +22,19 @@ export const StripeOverview = ({
     color,
     height = 48,
     cuePoint,
-    loop
+    loop,
+    showEnergy = true
 }: StripeOverviewProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [peaks, setPeaks] = useState<WaveformChunk[] | null>(null);
+    const [energyCurve, setEnergyCurve] = useState<number[] | null>(null);
 
     // 1. Generate Low-Res Peaks (Main Thread for simplicity/speed on load)
     useEffect(() => {
         if (!buffer) {
             setPeaks(null);
+            setEnergyCurve(null);
             return;
         }
 
@@ -49,7 +54,17 @@ export const StripeOverview = ({
             calculatedPeaks.push({ min: -max, max, rms: max, low: 0, midHigh: 0 });
         }
         setPeaks(calculatedPeaks);
-    }, [buffer]);
+
+        // Calculate energy curve for AI overlay
+        if (showEnergy) {
+            try {
+                const curve = calculateEnergyCurve(buffer, samples);
+                setEnergyCurve(curve);
+            } catch (e) {
+                console.warn('Energy curve calculation failed', e);
+            }
+        }
+    }, [buffer, showEnergy]);
 
     // 2. Render
     useEffect(() => {
@@ -79,6 +94,44 @@ export const StripeOverview = ({
             ctx.fillStyle = color === 'cyan' ? '#0891b2' : '#7c3aed';
             ctx.fillRect(x, center - barHeight / 2, barWidth - 1, barHeight);
         });
+
+        // Energy Curve Overlay
+        if (energyCurve && showEnergy) {
+            const points = energyCurve.length;
+            const segWidth = width / points;
+
+            // Draw energy curve as a gradient line on top
+            ctx.beginPath();
+            ctx.moveTo(0, h);
+            for (let i = 0; i < points; i++) {
+                const x = i * segWidth;
+                const y = h - (energyCurve[i] * h * 0.85); // Scale to 85% canvas height
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+
+            // Stroke the energy curve
+            ctx.strokeStyle = color === 'cyan' ? 'rgba(34, 211, 238, 0.6)' : 'rgba(168, 85, 247, 0.6)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Fill under the curve with a gradient
+            ctx.lineTo(width, h);
+            ctx.lineTo(0, h);
+            ctx.closePath();
+            const gradient = ctx.createLinearGradient(0, 0, 0, h);
+            if (color === 'cyan') {
+                gradient.addColorStop(0, 'rgba(34, 211, 238, 0.15)');
+                gradient.addColorStop(0.5, 'rgba(16, 185, 129, 0.08)');
+                gradient.addColorStop(1, 'rgba(34, 211, 238, 0.0)');
+            } else {
+                gradient.addColorStop(0, 'rgba(168, 85, 247, 0.15)');
+                gradient.addColorStop(0.5, 'rgba(192, 132, 252, 0.08)');
+                gradient.addColorStop(1, 'rgba(168, 85, 247, 0.0)');
+            }
+            ctx.fillStyle = gradient;
+            ctx.fill();
+        }
 
         // Overlays
 
@@ -113,7 +166,7 @@ export const StripeOverview = ({
             ctx.shadowBlur = 0;
         }
 
-    }, [peaks, currentTime, duration, color, height, loop, cuePoint]);
+    }, [peaks, energyCurve, currentTime, duration, color, height, loop, cuePoint, showEnergy]);
 
     // Navigation Handler
     const handleUnseek = (e: React.MouseEvent) => {
@@ -137,6 +190,12 @@ export const StripeOverview = ({
         >
             <canvas ref={canvasRef} width={800} height={height} className="w-full h-full block" />
             <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+            {/* Energy Level Label */}
+            {showEnergy && energyCurve && (
+                <div className="absolute top-0.5 right-1 text-[7px] font-bold uppercase tracking-wider text-white/30 pointer-events-none">
+                    ENERGY
+                </div>
+            )}
         </div>
     );
 };

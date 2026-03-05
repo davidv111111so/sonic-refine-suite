@@ -33,13 +33,13 @@ const FREQUENCIES = [64, 125, 250, 500, 1000, 2000, 4000, 8000];
 
 const PRESETS = {
   "Flat": [0, 0, 0, 0, 0, 0, 0, 0],
-  "Bass Boost": [5, 4, 3, 1, 0, 0, 0, 0],
-  "Treble Boost": [0, 0, 0, 0, 1, 3, 4, 5],
-  "Vocal": [-2, -1, 0, 3, 4, 3, 1, 0],
-  "Rock": [3, 2, -1, -2, -1, 1, 3, 4],
-  "Pop": [2, 1, 2, 1, 0, -1, 2, 3],
-  "Jazz": [2, 1, 0, 2, 2, 1, 0, 1],
-  "Classical": [3, 2, 1, 1, 1, 1, 2, 3],
+  "Bass Boost": [8, 6, 4, 1, 0, -1, -1, 0],
+  "Treble Boost": [-1, 0, 0, 0, 2, 5, 7, 9],
+  "Vocal": [-3, -1, 1, 4, 5, 4, 2, 0],
+  "Rock": [5, 4, -2, -3, -1, 3, 5, 6],
+  "Pop": [3, 2, 3, 1, 0, -1, 3, 4],
+  "Jazz": [4, 3, 0, 2, 3, 2, 0, 2],
+  "Classical": [5, 4, 2, 1, 0, 1, 3, 5],
 };
 
 export const TenBandEqualizer: React.FC<TenBandEqualizerProps> = ({
