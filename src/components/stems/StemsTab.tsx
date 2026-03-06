@@ -19,6 +19,7 @@ import { saveAs } from 'file-saver';
 import { masteringService } from '@/services/masteringService';
 import { useAuth } from '@/contexts/AuthContext';
 import { Lock } from 'lucide-react';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 
 interface StemsTabProps {
     audioFiles: AudioFile[];
@@ -53,6 +54,7 @@ const TIME_ESTIMATES: Record<string, Record<string, { min: number; max: number; 
 export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProcessing, onComplete }: StemsTabProps) => {
     const { toast } = useToast();
     const { isPremium } = useAuth();
+    const { checkAccess, incrementUsage } = useFeatureAccess();
     const [selectedFileId, setSelectedFileId] = useState<string>('');
     const [stemCount, setStemCount] = useState<string>('4');
     const [speedMode, setSpeedMode] = useState<string>('fast');
@@ -231,6 +233,9 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                 setProcessingStage('Complete!');
                 setProgress(100);
 
+                // Track usage
+                incrementUsage('stems', 1);
+
                 toast({
                     title: "Separation Complete",
                     description: "Stems are ready for playback and download.",
@@ -276,12 +281,22 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
         }
 
         setIsProcessing(true);
-        setProcessingStage('Preparing file...');
+        setProcessingStage('Checking limits...');
         setProgress(0);
         setResults(null);
         setStems([]);
 
         try {
+            const access = await checkAccess('stems_daily');
+            if (!access.allowed) {
+                window.dispatchEvent(new CustomEvent('limit_reached', { detail: 'stems' }));
+                setIsProcessing(false);
+                setProcessingStage('');
+                return;
+            }
+
+            setProcessingStage('Preparing file...');
+
             // Get the file content
             let fileBlob: Blob;
             if (file.originalFile) {

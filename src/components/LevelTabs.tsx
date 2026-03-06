@@ -202,12 +202,10 @@ export const LevelTabs = ({
           <TabsTrigger value="stems" className="h-full flex items-center justify-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:via-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-xl cursor-pointer">
             <Package className="h-5 w-5" />
             <span className="text-lg text-indigo-50">Stems</span>
-            <PremiumBadge locked={!hasPremiumAccess} />
           </TabsTrigger>
           <TabsTrigger value="ai-mastering" className="h-full flex items-center justify-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:via-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-xl cursor-pointer">
             <Zap className="h-5 w-5" />
             <span className="text-lg text-cyan-50">AI Mastering</span>
-            <PremiumBadge locked={!hasPremiumAccess} />
           </TabsTrigger>
           <TabsTrigger value="media-player" className="h-full flex items-center justify-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:via-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-green-500/50 data-[state=active]:scale-105 transition-all duration-300 font-bold rounded-xl cursor-pointer">
             <Music className="h-5 w-5" />
@@ -231,7 +229,6 @@ export const LevelTabs = ({
             <div className="absolute inset-0 bg-gradient-to-r from-pink-500/15 via-purple-500/15 to-indigo-500/15 group-hover:from-pink-500/30 group-hover:via-purple-500/30 group-hover:to-indigo-500/30 transition-all duration-500"></div>
             <ExternalLink className="h-4 w-4 text-pink-300 drop-shadow-[0_0_10px_rgba(236,72,153,1)] group-hover:scale-125 transition-transform duration-300" />
             <span className="text-lg font-black tracking-wider bg-gradient-to-r from-pink-300 via-fuchsia-300 to-indigo-300 bg-clip-text text-transparent drop-shadow-[0_0_20px_rgba(236,72,153,0.8)] group-hover:drop-shadow-[0_0_30px_rgba(236,72,153,1)] transition-all duration-300">Mixer Lab</span>
-            <PremiumBadge locked={!hasPremiumAccess} />
           </div>
         </TabsList>
 
@@ -270,24 +267,20 @@ export const LevelTabs = ({
         </TabsContent>
 
         <TabsContent value="stems" forceMount={true} className={activeTab !== 'stems' ? 'hidden' : ''}>
-          <PremiumGate isLocked={!hasPremiumAccess} featureName="Stem Separation">
-            <StemsTab
-              audioFiles={audioFiles}
-              onFilesUploaded={handleFilesUploaded}
-              isProcessing={isStemsProcessing}
-              setIsProcessing={setIsStemsProcessing}
-              onComplete={handleStemsComplete}
-            />
-          </PremiumGate>
+          <StemsTab
+            audioFiles={audioFiles}
+            onFilesUploaded={handleFilesUploaded}
+            isProcessing={isStemsProcessing}
+            setIsProcessing={setIsStemsProcessing}
+            onComplete={handleStemsComplete}
+          />
         </TabsContent>
 
         <TabsContent value="ai-mastering" forceMount={true} className={activeTab !== 'ai-mastering' ? 'hidden' : ''}>
-          <PremiumGate isLocked={!hasPremiumAccess} featureName="AI Mastering">
-            <AIMasteringTab
-              isProcessing={isMasteringProcessing}
-              setIsProcessing={setIsMasteringProcessing}
-            />
-          </PremiumGate>
+          <AIMasteringTab
+            isProcessing={isMasteringProcessing}
+            setIsProcessing={setIsMasteringProcessing}
+          />
         </TabsContent>
 
         <TabsContent value="media-player" forceMount={true} className={activeTab !== 'media-player' ? 'hidden' : ''}>

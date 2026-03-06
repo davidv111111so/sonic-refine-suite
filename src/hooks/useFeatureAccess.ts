@@ -11,6 +11,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useDeviceFingerprint } from './useDeviceFingerprint';
 
 // Feature types that can be gated
 export type Feature =
@@ -42,20 +43,37 @@ interface UsageData {
 
 const LIMITS = {
     free: {
-        enhancement: 20,           // per month
-        stems_2: 0,                // blocked (30s preview only, handled in UI)
-        stems_4: 0,                // blocked
-        stems_6: 0,                // blocked
-        stems_daily: 0,
-        stems_monthly: 0,
-        mastering_daily: 0,
-        mastering_monthly: 0,
-        mixer: 120,                // 2 hours per day (in minutes)
+        enhancement: 10,           // 10 enhancements total
+        stems_2: 3,                // 3 stems total
+        stems_4: 3,
+        stems_6: 3,
+        stems_daily: 3,
+        stems_monthly: 3,
+        mastering_daily: 2,        // 2 masters total
+        mastering_monthly: 2,
+        mixer: 180,                // 3 hours total (in minutes)
         mixer_export: false,       // no export for free
         enhance_24bit: false,      // 16-bit only
         wav_download: false,
         effects: false,            // player effects locked
         compression: false,        // player compression locked
+        priority_processing: false,
+    },
+    basic: {
+        enhancement: 0,
+        stems_2: 0,
+        stems_4: 0,
+        stems_6: 0,
+        stems_daily: 0,
+        stems_monthly: 0,
+        mastering_daily: 0,
+        mastering_monthly: 0,
+        mixer: 1200,                // 20 hours a month (in minutes)
+        mixer_export: false,
+        enhance_24bit: false,
+        wav_download: false,
+        effects: false,
+        compression: false,
         priority_processing: false,
     },
     premium: {
@@ -120,53 +138,68 @@ interface AccessResult {
 
 export const useFeatureAccess = () => {
     const { profile, isPremium, isVip, isAdmin } = useAuth();
+    const { deviceId } = useDeviceFingerprint();
     const [usage, setUsage] = useState<UsageData | null>(null);
     const [loading, setLoading] = useState(true);
 
     // Fetch current usage on mount
     useEffect(() => {
         const fetchUsage = async () => {
-            if (!profile?.id) {
-                setLoading(false);
-                return;
-            }
+            if (profile?.id) {
+                try {
+                    // Call the get_user_usage function which auto-resets quotas
+                    const { data, error } = await (supabase.rpc as any)('get_user_usage', {
+                        p_user_id: profile.id,
+                    });
 
-            try {
-                // Call the get_user_usage function which auto-resets quotas
-                const { data, error } = await (supabase.rpc as any)('get_user_usage', {
-                    p_user_id: profile.id,
-                });
-
-                if (error) {
-                    console.error('Error fetching usage:', error);
-                } else if (data && data.length > 0) {
-                    setUsage(data[0]);
+                    if (error) {
+                        console.error('Error fetching user usage:', error);
+                    } else if (data && data.length > 0) {
+                        setUsage(data[0]);
+                    }
+                } catch (error) {
+                    console.error('Error in fetchUsage:', error);
                 }
-            } catch (error) {
-                console.error('Error in fetchUsage:', error);
-            } finally {
-                setLoading(false);
+            } else if (deviceId) {
+                try {
+                    const { data, error } = await (supabase.rpc as any)('get_device_usage', {
+                        p_device_hash: deviceId,
+                    });
+
+                    if (error) {
+                        console.error('Error fetching device usage:', error);
+                    } else if (data && data.length > 0) {
+                        setUsage({
+                            files_enhanced_count: data[0].enhancements_used,
+                            mastering_daily_count: data[0].mastering_used,
+                            mastering_monthly_count: data[0].mastering_used,
+                            stems_daily_count: data[0].stems_used,
+                            stems_monthly_count: data[0].stems_used,
+                            mixer_minutes_used: data[0].mixer_minutes_used,
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error in fetch device usage:', error);
+                }
             }
+            setLoading(false);
         };
 
         fetchUsage();
-    }, [profile?.id]);
+    }, [profile?.id, deviceId]);
 
     /**
      * Check if user has access to a feature
      */
     const checkAccess = useCallback(
         async (feature: Feature): Promise<AccessResult> => {
-            if (!profile) {
-                return { allowed: false, reason: 'Please log in to use this feature' };
-            }
-
             // Admins bypass all limits
             if (isAdmin) {
                 return { allowed: true };
             }
 
-            const tier = isVip ? 'vip' : (isPremium ? 'premium' : 'free');
+            // Treat no profile as free tier
+            const tier = profile ? (isVip ? 'vip' : (isPremium ? 'premium' : 'free')) : 'free';
             const limit = LIMITS[tier][feature as keyof typeof LIMITS[typeof tier]];
 
             // Boolean features (like wav_download, priority_processing)
@@ -288,6 +321,36 @@ export const useFeatureAccess = () => {
                 };
             }
 
+            // 7-Day Trial Expiration Logic
+            const trialStartDate = profile?.created_at || (usage as any)?.created_at;
+            if (trialStartDate && !isPremium && !isAdmin && !isVip) {
+                const startDate = new Date(trialStartDate);
+                const now = new Date();
+                const diffTime = Math.abs(now.getTime() - startDate.getTime());
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                if (diffDays > 7) {
+                    // Trial expired, switch to basic limits
+                    const basicLimit = LIMITS.basic[feature as keyof typeof LIMITS.basic];
+                    if (typeof basicLimit === 'boolean') {
+                        return { allowed: basicLimit, reason: 'Trial expired. Upgrade to Premium for full access!' };
+                    }
+                    if (feature === 'mixer') {
+                        const current = usage.mixer_minutes_used || 0;
+                        if (current >= (basicLimit as number)) {
+                            return {
+                                allowed: false,
+                                reason: `Monthly mixer limit reached (20 hours). Upgrade to Premium for unlimited!`,
+                                remaining: 0,
+                                limit: basicLimit as number
+                            };
+                        }
+                        return { allowed: true, remaining: (basicLimit as number) - current, limit: basicLimit as number };
+                    }
+                    return { allowed: false, reason: 'Trial expired. Mastering and Stems require Premium.' };
+                }
+            }
+
             if (feature === 'mixer') {
                 const current = usage.mixer_minutes_used || 0;
                 if (current >= limit) {
@@ -311,8 +374,6 @@ export const useFeatureAccess = () => {
      */
     const incrementUsage = useCallback(
         async (feature: 'enhancement' | 'mastering' | 'stems' | 'mixer', amount = 1): Promise<void> => {
-            if (!profile?.id) return;
-
             const fieldMap: Record<string, string> = {
                 enhancement: 'files_enhanced_count',
                 mastering: 'mastering_increment', // Backend will increment both daily and monthly
@@ -323,26 +384,58 @@ export const useFeatureAccess = () => {
             const field = fieldMap[feature];
 
             try {
-                // Update remotely
-                await (supabase.rpc as any)('increment_usage', {
-                    p_user_id: profile.id,
-                    p_field: field,
-                    p_amount: amount,
-                });
+                if (profile?.id) {
+                    // Update remotely for authenticated user
+                    await (supabase.rpc as any)('increment_usage', {
+                        p_user_id: profile.id,
+                        p_field: field,
+                        p_amount: amount,
+                    });
+                } else if (deviceId) {
+                    // Update remotely for anonymous device
+                    const deviceFieldMap: Record<string, string> = {
+                        enhancement: 'enhancements_used',
+                        mastering: 'mastering_used',
+                        stems: 'stems_used',
+                        mixer: 'mixer_minutes_used',
+                    };
+                    const deviceField = deviceFieldMap[feature];
+                    if (deviceField) {
+                        await (supabase.rpc as any)('increment_device_usage', {
+                            p_device_id: deviceId,
+                            p_field: deviceField,
+                            p_amount: amount
+                        });
+                    }
+                }
 
                 // Update local state
                 setUsage((prev) => {
                     if (!prev) return prev;
-                    return {
-                        ...prev,
-                        [field]: (prev[field as keyof UsageData] || 0) + amount,
-                    };
+                    if (profile?.id) {
+                        return {
+                            ...prev,
+                            [field]: (prev[field as keyof UsageData] || 0) + amount,
+                        };
+                    } else {
+                        const deviceFieldMap: Record<string, string> = {
+                            enhancement: 'enhancements_used',
+                            mastering: 'mastering_used',
+                            stems: 'stems_used',
+                            mixer: 'mixer_minutes_used',
+                        };
+                        const deviceField = deviceFieldMap[feature];
+                        return {
+                            ...prev,
+                            [deviceField]: (prev[deviceField as keyof UsageData] || 0) + amount,
+                        };
+                    }
                 });
             } catch (error) {
                 console.error('Error incrementing usage:', error);
             }
         },
-        [profile?.id]
+        [profile?.id, deviceId]
     );
 
     /**
@@ -389,7 +482,22 @@ export const useFeatureAccess = () => {
         loading,
         isPremium,
         isVip,
-        limits: isVip ? LIMITS.vip : (isPremium ? LIMITS.premium : LIMITS.free),
+        limits: (function () {
+            if (isVip) return LIMITS.vip;
+            if (isAdmin) return LIMITS.admin;
+            if (isPremium) return LIMITS.premium;
+
+            // Check trial expiration
+            const trialStartDate = profile?.created_at || (usage as any)?.created_at;
+            if (trialStartDate) {
+                const startDate = new Date(trialStartDate);
+                const now = new Date();
+                const diffTime = Math.abs(now.getTime() - startDate.getTime());
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                if (diffDays > 7) return LIMITS.basic;
+            }
+            return LIMITS.free;
+        })(),
     };
 };
 

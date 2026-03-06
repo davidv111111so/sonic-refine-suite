@@ -43,6 +43,7 @@ import { saveReferenceTrack, getReferenceTrack } from "@/utils/referenceTrackSto
 import { masteringService } from "@/services/masteringService";
 import { LUFSDisplay, AudioAnalysisData } from "./LUFSDisplay";
 import { PermissiveControls } from "./PermissiveControls";
+import { useFeatureAccess } from "@/hooks/useFeatureAccess";
 
 interface AIMasteringTabProps {
   isProcessing?: boolean;
@@ -52,6 +53,7 @@ interface AIMasteringTabProps {
 export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing: propSetIsProcessing }: AIMasteringTabProps) => {
   const { t } = useLanguage();
   const { isPremium, isAdmin, loading } = useUserSubscription();
+  const { checkAccess, incrementUsage } = useFeatureAccess();
   const navigate = useNavigate();
 
   // State with sessionStorage persistence for file metadata
@@ -468,6 +470,12 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
       return;
     }
 
+    const access = await checkAccess('mastering_daily');
+    if (!access.allowed) {
+      window.dispatchEvent(new CustomEvent('limit_reached', { detail: 'mastering' }));
+      return;
+    }
+
     setError("");
     setIsProcessing(true);
     setProgress(0);
@@ -530,6 +538,7 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
 
       downloadMasteredFile(resultBlob, fileName);
       toast.success("✅ Your track has been mastered with Matchering!");
+      incrementUsage('mastering', 1);
       setIsMasteringComplete(true);
     } catch (err) {
       clearInterval(progressInterval);
@@ -570,35 +579,6 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
         <CardContent className="p-12 text-center">
           <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-cyan-500" />
           <p className="text-slate-400">{t("status.loading")}...</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!isPremium) {
-    return (
-      <Card className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 border-purple-500/30 shadow-2xl backdrop-blur-sm">
-        <CardContent className="p-12 text-center space-y-6">
-          <div className="flex justify-center">
-            <div className="relative">
-              <Lock className="h-24 w-24 text-purple-400 animate-pulse" />
-              <Crown className="h-12 w-12 text-yellow-400 absolute -top-2 -right-2 animate-bounce" />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-200 via-pink-200 to-blue-200 bg-clip-text text-transparent">
-              {t("aiMastering.premiumFeature")}
-            </h2>
-            <p className="text-slate-300 text-lg">{t("aiMastering.unlockMessage")}</p>
-          </div>
-          <Button
-            onClick={() => navigate("/auth")}
-            className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 text-white font-bold py-6 px-12 rounded-xl shadow-[0_0_30px_rgba(168,85,247,0.5)] text-lg transition-all hover:scale-105"
-            size="lg"
-          >
-            <Crown className="h-6 w-6 mr-2" />
-            {t("aiMastering.upgradeToPremium")}
-          </Button>
         </CardContent>
       </Card>
     );

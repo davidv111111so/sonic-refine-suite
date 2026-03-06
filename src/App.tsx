@@ -14,12 +14,14 @@ import Index from "./pages/Index";
 import PlayerPage from "./pages/Player";
 import Auth from "./pages/Auth";
 import { TermsAndConditions } from "./pages/TermsAndConditions";
+import Landing from "./pages/Landing";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
 import { ProMixer } from "@/components/mixer/ProMixer";
 import { initAudioContextOnInteraction } from "@/utils/audioContextManager";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { HelmetProvider } from 'react-helmet-async';
+import { TrialLimitListener } from "@/components/TrialLimitListener";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +48,7 @@ const App = () => (
                 <ErrorBoundary>
                   <BrowserRouter>
                     <FloatingMiniPlayer />
+                    <TrialLimitListener />
                     <Routes>
                       <Route path="/player" element={<PlayerPage />} />
                       <Route path="/auth" element={<Auth />} />
@@ -55,11 +58,12 @@ const App = () => (
                           <Admin />
                         </BetaGate>
                       } />
-                      <Route path="/" element={
+                      <Route path="/app" element={
                         <BetaGate>
                           <Index />
                         </BetaGate>
                       } />
+                      <Route path="/" element={<Landing />} />
                       <Route path="/mixer" element={<ProMixer />} />
                       <Route path="*" element={
                         <BetaGate>

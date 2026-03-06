@@ -2,10 +2,12 @@
 import { useCallback, useState } from 'react';
 import { AudioFile } from '@/types/audio';
 import { getAudioContext } from '@/utils/audioContextManager';
+import { useFeatureAccess } from './useFeatureAccess';
 
 export const useWebWorkerAudioProcessing = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingProgress, setProcessingProgress] = useState<{ [key: string]: { progress: number, stage: string } }>({});
+  const { checkAccess } = useFeatureAccess();
 
   const processAudioFile = useCallback(async (
     file: AudioFile,
@@ -14,6 +16,15 @@ export const useWebWorkerAudioProcessing = () => {
   ): Promise<Blob> => {
     return new Promise(async (resolve, reject) => {
       try {
+        const isMastering = settings?.mastering || false;
+        const access = await checkAccess(isMastering ? 'mastering_daily' : 'enhancement');
+
+        if (!access.allowed) {
+          window.dispatchEvent(new CustomEvent('limit_reached', { detail: isMastering ? 'mastering' : 'enhancement' }));
+          reject(new Error(access.reason || 'Limit reached'));
+          return;
+        }
+
         console.log('Starting REAL Web Worker audio enhancement for:', file.name);
         console.log('Enhancement settings:', settings);
 
@@ -121,7 +132,7 @@ export const useWebWorkerAudioProcessing = () => {
         reject(error);
       }
     });
-  }, []);
+  }, [checkAccess]);
 
   const getProgressInfo = useCallback((fileId: string) => {
     return processingProgress[fileId] || { progress: 0, stage: 'Preparing...' };

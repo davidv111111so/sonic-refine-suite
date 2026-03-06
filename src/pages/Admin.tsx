@@ -188,8 +188,9 @@ export default function Admin() {
                                 <div>
                                     <p className="font-bold text-red-400">Scaling Alert Reached!</p>
                                     <p className="text-sm text-red-300/70">
-                                        Current load: {stats?.total_users} users / {stats?.total_jobs} monthly jobs.
-                                        Consider upgrading infrastructure tiers.
+                                        Scaling Alert: Total users reached {stats?.total_users}.
+                                        Switching to Dedicated rented GPUs (RunPod/Vast.ai) is now recommended to reduce costs effectively,
+                                        turning thousands of dollars of API fees into a flat ~$300/mo bill.
                                     </p>
                                 </div>
                             </CardContent>
