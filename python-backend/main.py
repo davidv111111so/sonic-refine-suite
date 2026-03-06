@@ -107,11 +107,14 @@ def verify_auth_token(request):
     
     token = auth_header.split(' ')[1]
     
-    # Allow dev bypass token for local development
-    dev_token = os.environ.get("DEV_BYPASS_TOKEN", "dev-bypass-token")
-    if token == dev_token:
-        print("[WARNING] Using DEV BYPASS TOKEN")
+    # Allow dev bypass token for local development ONLY IF set in environment
+    dev_token = os.environ.get("DEV_BYPASS_TOKEN")
+    if dev_token and token == dev_token:
+        print("[WARNING] Using SECURE DEV BYPASS TOKEN")
         return {"id": "dev-user", "email": "dev@example.com"}
+    elif not dev_token and token == "dev-bypass-token":
+        print("[CRITICAL] Rejected hardcoded dev-bypass-token. Set DEV_BYPASS_TOKEN in env.")
+        return None
 
     try:
         # Log partial token for debugging (security: only last 6 chars)

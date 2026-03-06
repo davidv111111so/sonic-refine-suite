@@ -30,7 +30,7 @@ export const StripeOverview = ({
     const [peaks, setPeaks] = useState<WaveformChunk[] | null>(null);
     const [energyCurve, setEnergyCurve] = useState<number[] | null>(null);
 
-    // 1. Generate Low-Res Peaks (Main Thread for simplicity/speed on load)
+    // 1. Generate Low-Res Peaks and Energy Curve (Web Worker to prevent UI lockup)
     useEffect(() => {
         if (!buffer) {
             setPeaks(null);
@@ -40,30 +40,65 @@ export const StripeOverview = ({
 
         const channelData = buffer.getChannelData(0);
         const samples = 300; // Fixed number of bars
-        const blockSize = Math.floor(channelData.length / samples);
-        const calculatedPeaks: WaveformChunk[] = [];
+        const samplesPerPixel = Math.floor(channelData.length / samples);
 
-        for (let i = 0; i < samples; i++) {
-            let max = 0;
-            const start = i * blockSize;
-            // Scan for max amp
-            for (let j = 0; j < blockSize; j += 4) { // Higher fidelity scan
-                const val = Math.abs(channelData[start + j]);
-                if (val > max) max = val;
-            }
-            calculatedPeaks.push({ min: -max, max, rms: max, low: 0, midHigh: 0 });
-        }
-        setPeaks(calculatedPeaks);
+        const workerURL = new URL('../../workers/waveformAnalysis.worker.ts', import.meta.url);
+        const worker = new Worker(workerURL, { type: 'module' });
 
-        // Calculate energy curve for AI overlay
-        if (showEnergy) {
-            try {
-                const curve = calculateEnergyCurve(buffer, samples);
-                setEnergyCurve(curve);
-            } catch (e) {
-                console.warn('Energy curve calculation failed', e);
+        worker.onmessage = (e: MessageEvent) => {
+            if (e.data.error) {
+                console.warn('Waveform worker error:', e.data.error);
+                return;
             }
-        }
+
+            const rawPeaks: Float32Array = e.data.peaks;
+            const calculatedPeaks: WaveformChunk[] = [];
+            const rawEnergyCurve: number[] = [];
+
+            // Parse the interleaved format (min, max, rms, low, midHigh)
+            // Note: The worker might return slightly more or fewer chunks depending on len / samplesPerPixel rounding, 
+            // but it will be very close to 'samples' (300).
+            const numChunks = rawPeaks.length / 5;
+            let maxEnergy = 0.001;
+
+            for (let i = 0; i < numChunks; i++) {
+                const baseIndex = i * 5;
+                const min = rawPeaks[baseIndex];
+                const max = rawPeaks[baseIndex + 1];
+                const rms = rawPeaks[baseIndex + 2];
+                const low = rawPeaks[baseIndex + 3];
+                const midHigh = rawPeaks[baseIndex + 4];
+
+                // Worker uses low pass for low end, we can just use original max for drawing
+                // To keep drawing same as before, we set peak to peak values.
+                calculatedPeaks.push({ min, max, rms, low, midHigh });
+
+                rawEnergyCurve.push(rms);
+                if (rms > maxEnergy) maxEnergy = rms;
+            }
+
+            if (showEnergy) {
+                // Normalize energy curve to 0-1 as calculateEnergyCurve did
+                const normalizedCurve = rawEnergyCurve.map(v => v / maxEnergy);
+                setEnergyCurve(normalizedCurve);
+            }
+
+            setPeaks(calculatedPeaks);
+            worker.terminate();
+        };
+
+        worker.onerror = (e) => {
+            console.error('Waveform worker failed', e);
+            worker.terminate();
+        };
+
+        worker.postMessage({
+            channelData,
+            sampleRate: buffer.sampleRate,
+            samplesPerPixel
+        });
+
+        return () => worker.terminate();
     }, [buffer, showEnergy]);
 
     // 2. Render
