@@ -22,6 +22,17 @@ import { initAudioContextOnInteraction } from "@/utils/audioContextManager";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { HelmetProvider } from 'react-helmet-async';
 import { TrialLimitListener } from "@/components/TrialLimitListener";
+import { Navigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+
+const RootRoute = () => {
+  const { profile, loading } = useAuth();
+
+  if (loading) return null;
+  if (profile) return <Navigate to="/app" replace />;
+
+  return <Landing />;
+};
 
 const queryClient = new QueryClient();
 
@@ -63,8 +74,8 @@ const App = () => (
                           <Index />
                         </BetaGate>
                       } />
-                      <Route path="/" element={<Landing />} />
                       <Route path="/mixer" element={<ProMixer />} />
+                      <Route path="/" element={<RootRoute />} />
                       <Route path="*" element={
                         <BetaGate>
                           <NotFound />

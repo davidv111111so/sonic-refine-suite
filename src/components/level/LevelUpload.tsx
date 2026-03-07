@@ -16,7 +16,7 @@ interface LevelUploadProps {
 
 export const LevelUpload = ({
     onFilesUploaded,
-    maxFiles = 20,
+    maxFiles = 10,
     maxSize = 100 * 1024 * 1024 // 100MB
 }: LevelUploadProps) => {
     const [hasConsented, setHasConsented] = useState(false);
@@ -48,7 +48,7 @@ export const LevelUpload = ({
         if (acceptedFiles.length === 0) return;
 
         if (acceptedFiles.length > maxFiles) {
-            toast.error(`Please upload maximum ${maxFiles} files at a time`);
+            toast.error(`Ingestion Limit Exceeded: Only ${maxFiles} audio tracks can be processed simultaneously for full spectral analysis and mastering. Please reduce batch size.`);
             return;
         }
 

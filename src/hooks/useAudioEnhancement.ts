@@ -35,7 +35,7 @@ export const useAudioEnhancement = (
       setBulkDownloadAuthorized(true);
       return saveLocation;
     }
-    
+
     if ('showDirectoryPicker' in window) {
       try {
         const dirHandle = await (window as any).showDirectoryPicker();
@@ -47,7 +47,7 @@ export const useAudioEnhancement = (
         return null;
       }
     }
-    
+
     const confirmed = confirm(`Download ${fileCount} enhanced files? They will be saved to your Downloads folder.`);
     if (confirmed) {
       setBulkDownloadAuthorized(true);
@@ -62,16 +62,16 @@ export const useAudioEnhancement = (
           const folderHandle = await dirHandle.getDirectoryHandle(folderName, { create: true });
           const fileHandle = await folderHandle.getFileHandle(filename, { create: true });
           const writable = await fileHandle.createWritable();
-          
+
           await writable.write(blob);
           await writable.close();
-          
+
           return true;
         } catch (error) {
           console.log('Directory write failed, falling back to download');
         }
       }
-      
+
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -80,7 +80,7 @@ export const useAudioEnhancement = (
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
+
       return false;
     } catch (error) {
       console.error('Download failed:', error);
@@ -92,9 +92,9 @@ export const useAudioEnhancement = (
     setIsProcessing(true);
     setBulkDownloadAuthorized(false);
     const filesToProcess = audioFiles.filter(file => file.status === 'uploaded');
-    
+
     const folderName = `Enhanced_Audio_${new Date().toISOString().slice(0, 10)}`;
-    
+
     let successfulDownloads = 0;
     const downloadQueue: { blob: Blob; filename: string }[] = [];
     let dirHandle: any = null;
@@ -107,14 +107,14 @@ export const useAudioEnhancement = (
         return;
       }
     }
-    
+
     const startTime = Date.now();
-    
+
     for (const file of filesToProcess) {
-      setAudioFiles(prev => prev.map(f => 
-        f.id === file.id ? { 
-          ...f, 
-          status: 'processing' as const, 
+      setAudioFiles(prev => prev.map(f =>
+        f.id === file.id ? {
+          ...f,
+          status: 'processing' as const,
           progress: 0,
           processingStage: 'Starting...'
         } : f
@@ -123,21 +123,23 @@ export const useAudioEnhancement = (
       try {
         // Use the Web Worker audio processing with progress callbacks
         const enhancedBlob = await processAudioFile(file, settings, (progress, stage) => {
-          setAudioFiles(prev => prev.map(f => 
-            f.id === file.id ? { 
-              ...f, 
+          setAudioFiles(prev => prev.map(f =>
+            f.id === file.id ? {
+              ...f,
               progress,
               processingStage: stage
             } : f
           ));
         });
 
-        const enhancedUrl = URL.createObjectURL(enhancedBlob);
         const extension = settings.outputFormat || 'wav';
+        const finalBlobType = extension === 'mp3' ? 'audio/mpeg' : `audio/${extension}`;
+        const finalBlob = new Blob([enhancedBlob], { type: finalBlobType });
+        const enhancedUrl = URL.createObjectURL(finalBlob);
         const enhancedFilename = `${file.name.replace(/\.[^.]+$/, '')}_enhanced.${extension}`;
-        
-        downloadQueue.push({ blob: enhancedBlob, filename: enhancedFilename });
-        
+
+        downloadQueue.push({ blob: finalBlob, filename: enhancedFilename });
+
         // Add to enhancement history with correct structure
         const processingTime = Date.now() - startTime;
         addToHistory({
@@ -147,11 +149,11 @@ export const useAudioEnhancement = (
           enhancedSize: enhancedBlob.size,
           status: 'success'
         });
-        
-        setAudioFiles(prev => prev.map(f => 
-          f.id === file.id ? { 
-            ...f, 
-            status: 'enhanced' as const, 
+
+        setAudioFiles(prev => prev.map(f =>
+          f.id === file.id ? {
+            ...f,
+            status: 'enhanced' as const,
             progress: 100,
             processingStage: 'Complete',
             enhancedUrl,
@@ -160,7 +162,7 @@ export const useAudioEnhancement = (
         ));
       } catch (error) {
         console.error('Error processing file:', error);
-        
+
         addToHistory({
           fileName: file.name,
           settings,
@@ -168,10 +170,10 @@ export const useAudioEnhancement = (
           enhancedSize: 0,
           status: 'error'
         });
-        
-        setAudioFiles(prev => prev.map(f => 
-          f.id === file.id ? { 
-            ...f, 
+
+        setAudioFiles(prev => prev.map(f =>
+          f.id === file.id ? {
+            ...f,
             status: 'error' as const,
             processingStage: 'Failed'
           } : f
@@ -185,7 +187,7 @@ export const useAudioEnhancement = (
         const downloaded = await downloadFile(item.blob, item.filename, folderName, dirHandle);
         if (downloaded) successfulDownloads++;
       }
-      
+
       toast({
         title: "Bulk download complete!",
         description: `${successfulDownloads} files saved to ${folderName} folder.`,
@@ -196,7 +198,7 @@ export const useAudioEnhancement = (
     }
 
     setIsProcessing(false);
-    
+
     if (notificationsEnabled && filesToProcess.length > 0) {
       new Notification('Audio Enhancement Complete', {
         body: `${filesToProcess.length} files enhanced with gain: ${settings.gainAdjustment || 0}dB`,
@@ -208,7 +210,7 @@ export const useAudioEnhancement = (
   // Download all enhanced files as ZIP
   const handleDownloadAllAsZip = useCallback(async () => {
     const enhancedFiles = audioFiles.filter(file => file.status === 'enhanced' && file.enhancedUrl);
-    
+
     if (enhancedFiles.length < 2) {
       toast({
         title: "Not enough files",
@@ -221,7 +223,7 @@ export const useAudioEnhancement = (
     try {
       const zip = new JSZip();
       const folder = zip.folder(`Spectrum_Enhanced_${new Date().toISOString().slice(0, 10)}`);
-      
+
       // Add each enhanced file to the ZIP
       for (const file of enhancedFiles) {
         if (file.enhancedUrl) {

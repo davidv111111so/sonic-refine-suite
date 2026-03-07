@@ -744,6 +744,7 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
                 newBands[i].gain = g;
                 setEqBands(newBands);
               }}
+              onBandsChange={setEqBands}
               onReset={() => setEqBands(INITIAL_EQ_BANDS)}
             />
           )}
@@ -793,6 +794,7 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
               <AudioEffectsControls
                 settings={effectsSettings}
                 onSettingsChange={(s) => setEffectsSettings({ ...effectsSettings, ...s })}
+                onReset={() => setEffectsSettings(INITIAL_EFFECTS)}
               />
               <div className="pt-6 border-t border-slate-800">
                 <VideoEffectsControls

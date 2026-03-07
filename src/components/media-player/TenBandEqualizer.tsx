@@ -25,6 +25,7 @@ export interface EQBand {
 interface TenBandEqualizerProps {
   bands: EQBand[];
   onBandChange: (index: number, gain: number) => void;
+  onBandsChange?: (bands: EQBand[]) => void;
   onReset: () => void;
   isLocked?: boolean;
 }
@@ -33,18 +34,19 @@ const FREQUENCIES = [64, 125, 250, 500, 1000, 2000, 4000, 8000];
 
 const PRESETS = {
   "Flat": [0, 0, 0, 0, 0, 0, 0, 0],
-  "Bass Boost": [8, 6, 4, 1, 0, -1, -1, 0],
-  "Treble Boost": [-1, 0, 0, 0, 2, 5, 7, 9],
-  "Vocal": [-3, -1, 1, 4, 5, 4, 2, 0],
-  "Rock": [5, 4, -2, -3, -1, 3, 5, 6],
-  "Pop": [3, 2, 3, 1, 0, -1, 3, 4],
-  "Jazz": [4, 3, 0, 2, 3, 2, 0, 2],
-  "Classical": [5, 4, 2, 1, 0, 1, 3, 5],
+  "Bass Boost": [10, 8, 4, 1, 0, -1, -2, 0],
+  "Treble Boost": [-2, -1, 0, 1, 3, 6, 8, 10],
+  "Vocal": [-4, -2, 2, 6, 8, 6, 2, -1],
+  "Rock": [8, 6, -3, -4, -2, 4, 7, 8],
+  "Pop": [5, 4, 3, 1, 0, -2, 4, 6],
+  "Jazz": [6, 4, 0, 3, 4, 3, 0, 4],
+  "Classical": [7, 5, 2, 1, 0, 2, 5, 7],
 };
 
 export const TenBandEqualizer: React.FC<TenBandEqualizerProps> = ({
   bands,
   onBandChange,
+  onBandsChange,
   onReset,
   isLocked = false,
 }) => {
@@ -153,11 +155,21 @@ export const TenBandEqualizer: React.FC<TenBandEqualizerProps> = ({
 
   const applyPreset = (name: string, values: number[]) => {
     setSelectedPreset(name);
-    values.forEach((gain, index) => {
-      if (index < bands.length) {
-        onBandChange(index, gain);
-      }
-    });
+    if (onBandsChange) {
+      const newBands = [...bands];
+      values.forEach((gain, index) => {
+        if (index < newBands.length) {
+          newBands[index].gain = gain;
+        }
+      });
+      onBandsChange(newBands);
+    } else {
+      values.forEach((gain, index) => {
+        if (index < bands.length) {
+          onBandChange(index, gain);
+        }
+      });
+    }
   };
 
   return (

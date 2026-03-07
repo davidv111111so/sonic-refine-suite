@@ -239,7 +239,7 @@ export const Guide = () => {
                     <div className="text-center p-6 bg-slate-700/50 dark:bg-slate-700/50 light:bg-white rounded-lg border border-slate-600 dark:border-slate-600 light:border-gray-200">
                       <Upload className="h-12 w-12 mx-auto mb-4 text-blue-400" />
                       <h4 className="font-bold text-lg mb-2">1. Upload Audio Files</h4>
-                      <p className="text-sm text-slate-300 dark:text-slate-300 light:text-gray-600 mb-4">Drag & drop up to 20 audio files (Max 1GB each)</p>
+                      <p className="text-sm text-slate-300 dark:text-slate-300 light:text-gray-600 mb-4">Drag & drop up to 10 audio files (Max 1GB each) for robust spectral analysis.</p>
                       <p className="text-xs text-slate-400 dark:text-slate-400 light:text-gray-500">Supports: MP3, WAV only (v2.0)</p>
                     </div>
                     <div className="text-center p-6 bg-slate-700/50 dark:bg-slate-700/50 light:bg-white rounded-lg border border-slate-600 dark:border-slate-600 light:border-gray-200">
@@ -422,7 +422,7 @@ export const Guide = () => {
                     <div>
                       <h5 className="font-bold text-green-400 dark:text-green-400 light:text-green-600 mb-3">Optimal Performance:</h5>
                       <ul className="space-y-2 text-slate-300 dark:text-slate-300 light:text-gray-600">
-                        <li>• <strong>File Limits:</strong> Max 20 files, 1GB each</li>
+                        <li>• <strong>File Limits:</strong> Max 10 files, 1GB each</li>
                         <li>• <strong>Processing:</strong> One file at a time prevents crashes</li>
                         <li>• <strong>Browser:</strong> Use Chrome/Edge for best Web Audio API support</li>
                         <li>• <strong>Memory:</strong> Close other tabs during large file processing</li>
@@ -443,7 +443,7 @@ export const Guide = () => {
 
                   <div className="bg-blue-900/30 dark:bg-blue-900/30 light:bg-blue-50 p-4 rounded border border-blue-600/50 dark:border-blue-600/50 light:border-blue-200">
                     <h5 className="font-bold text-blue-400 dark:text-blue-400 light:text-blue-600 mb-2">Privacy & Security:</h5>
-                    <p className="text-slate-300 dark:text-slate-300 light:text-gray-600 text-sm">All processing happens locally in your browser. Files never leave your device. No servers, no cloud processing. Your audio files remain 100% private.</p>
+                    <p className="text-slate-300 dark:text-slate-300 light:text-gray-600 text-sm">Level processing happens locally in your browser. AI Mastering and Stems use secure, ephemeral GPU cloud processing where files are instantly discarded after processing. Your data remains fully secure.</p>
                   </div>
                 </CardContent>
               </Card>

@@ -87,18 +87,14 @@
 - **Robust Retries**: Implement exponential backoff for network requests that are prone to intermittent failure.
 
 ### Antigravity Builder Agent Rules (New)
-1.  **Investigate, Review & Plan (IRP)**:
-    -   **Investigate**: Look through all skills and code before taking action.
-    -   **Review**: Evaluate multiple approaches (e.g., refactor vs. quick fix).
-    -   **Plan**: Always create/update `implementation_plan.md` for major changes.
-2.  **Skill-First Integration**:
-    -   Before any architectural decision, query `@notebooklm-research`.
-    -   Use `@speckit-reviewer` to validate "Atomic Skills" and "Progressive Disclosure".
-    -   Use `@git-committer` for every commit to ensure Conventional Commits.
-3.  **Refactor & Clean Code**:
-    -   **Refactor when Required**: If you see messy code while fixing a bug, refactor it first.
-    -   **Fix All Errors**: No console errors, no lint warnings, no `TODO`s left behind.
-    -   **Scanner Enforcement**: Run `@tech-debt-scanner` after every major task to ensure quality.
+1. **Investigate & Review Options**: Thoroughly investigate issues and review all available options (including external research and internal code review) before taking action.
+2. **Take the Best Approach**: After reviewing options, take the best approach. Prioritize long-term code health over quick hacks.
+3. **Refactor When Required**: If you see messy or confusing code, refactor it when required before or during your work.
+4. **Fix All Errors**: Fix all errors you see, including console errors, linting warnings, or logical bugs, even if not explicitly requested.
+5. **Skill-First Integration**:
+    - Before any architectural decision, query `@notebooklm-research`.
+    - Use `@speckit-reviewer` to validate "Atomic Skills" and "Progressive Disclosure".
+    - Run `@tech-debt-scanner` to ensure quality.
 
 ### Mixer Lab Rules (Strict)
 1.  **Tempo Master Logic**:

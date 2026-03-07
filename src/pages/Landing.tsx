@@ -1,11 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    Music,
     Zap,
     Layers,
     Layout,
-    CreditCard,
     BookOpen,
     MessageSquare,
     Download,
@@ -13,43 +11,251 @@ import {
     Shield,
     Star,
     CheckCircle2,
-    Lock,
     Menu,
-    X
+    X,
+    Headphones,
+    Cpu,
+    Music2,
+    Sparkles,
+    Gauge,
+    Crown,
+    CreditCard,
+    Wallet
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import Orb from '@/components/ui/Orb';
-import { AnimatedTitle } from '@/components/AnimatedTitle';
+import { LevelLogo } from '@/components/LevelLogo';
 import { cn } from '@/lib/utils';
+
+/* ─── Animated Audio Wave Background ─── */
+const AudioWaveBackground = () => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        let animationId: number;
+        let time = 0;
+
+        const resize = () => {
+            canvas.width = window.innerWidth;
+            canvas.height = 700;
+        };
+        resize();
+        window.addEventListener('resize', resize);
+
+        const draw = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            time += 0.008;
+
+            // Multiple wave layers
+            const waves = [
+                { amplitude: 40, frequency: 0.008, speed: 1, color: 'rgba(6, 182, 212, 0.12)', yOffset: 0.5 },
+                { amplitude: 30, frequency: 0.012, speed: 1.5, color: 'rgba(99, 102, 241, 0.10)', yOffset: 0.55 },
+                { amplitude: 50, frequency: 0.006, speed: 0.7, color: 'rgba(168, 85, 247, 0.08)', yOffset: 0.45 },
+                { amplitude: 20, frequency: 0.015, speed: 2, color: 'rgba(6, 182, 212, 0.06)', yOffset: 0.6 },
+            ];
+
+            waves.forEach(wave => {
+                ctx.beginPath();
+                ctx.moveTo(0, canvas.height);
+                for (let x = 0; x <= canvas.width; x += 2) {
+                    const y = canvas.height * wave.yOffset +
+                        Math.sin(x * wave.frequency + time * wave.speed) * wave.amplitude +
+                        Math.sin(x * wave.frequency * 0.5 + time * wave.speed * 0.8) * wave.amplitude * 0.5;
+                    ctx.lineTo(x, y);
+                }
+                ctx.lineTo(canvas.width, canvas.height);
+                ctx.closePath();
+                ctx.fillStyle = wave.color;
+                ctx.fill();
+            });
+
+            // Floating particles
+            for (let i = 0; i < 30; i++) {
+                const px = (canvas.width * 0.1) + (i * canvas.width * 0.03) + Math.sin(time * 0.5 + i) * 40;
+                const py = 200 + Math.sin(time * 0.3 + i * 0.7) * 150;
+                const size = 1.5 + Math.sin(time + i) * 1;
+                const alpha = 0.2 + Math.sin(time * 0.5 + i * 0.5) * 0.15;
+
+                ctx.beginPath();
+                ctx.arc(px, py, size, 0, Math.PI * 2);
+                ctx.fillStyle = i % 3 === 0
+                    ? `rgba(6, 182, 212, ${alpha})`
+                    : i % 3 === 1
+                        ? `rgba(99, 102, 241, ${alpha})`
+                        : `rgba(168, 85, 247, ${alpha})`;
+                ctx.fill();
+            }
+
+            // EQ bars in the center area
+            const barCount = 32;
+            const barWidth = 3;
+            const gap = 6;
+            const totalWidth = barCount * (barWidth + gap);
+            const startX = (canvas.width - totalWidth) / 2;
+
+            for (let i = 0; i < barCount; i++) {
+                const barHeight = 15 + Math.abs(Math.sin(time * 2 + i * 0.3)) * 60 +
+                    Math.abs(Math.sin(time * 1.5 + i * 0.5)) * 30;
+                const x = startX + i * (barWidth + gap);
+                const y = 350 - barHeight / 2;
+
+                const gradient = ctx.createLinearGradient(x, y, x, y + barHeight);
+                gradient.addColorStop(0, `rgba(6, 182, 212, ${0.15 + Math.sin(time + i) * 0.1})`);
+                gradient.addColorStop(0.5, `rgba(99, 102, 241, ${0.12 + Math.sin(time + i) * 0.08})`);
+                gradient.addColorStop(1, `rgba(168, 85, 247, ${0.08 + Math.sin(time + i) * 0.06})`);
+
+                ctx.fillStyle = gradient;
+                ctx.fillRect(x, y, barWidth, barHeight);
+            }
+
+            animationId = requestAnimationFrame(draw);
+        };
+
+        draw();
+
+        return () => {
+            cancelAnimationFrame(animationId);
+            window.removeEventListener('resize', resize);
+        };
+    }, []);
+
+    return <canvas ref={canvasRef} className="absolute inset-0 z-0 pointer-events-none" style={{ width: '100%', height: '700px' }} />;
+};
+
+/* ─── Suite Feature Card ─── */
+interface SuiteFeature {
+    title: string;
+    description: string;
+    pros: string[];
+    image: string;
+    color: string;
+    icon: React.ReactNode;
+}
+
+const SuiteCard: React.FC<{ feature: SuiteFeature; index: number }> = ({ feature, index }) => {
+    const [isHovered, setIsHovered] = useState(false);
+    const borderColor = {
+        cyan: 'hover:border-cyan-500/40',
+        purple: 'hover:border-purple-500/40',
+        orange: 'hover:border-orange-500/40',
+        green: 'hover:border-green-500/40',
+        blue: 'hover:border-blue-500/40',
+        pink: 'hover:border-pink-500/40'
+    }[feature.color] || 'hover:border-cyan-500/40';
+
+    const iconBg = {
+        cyan: 'bg-cyan-500/20 text-cyan-400',
+        purple: 'bg-purple-500/20 text-purple-400',
+        orange: 'bg-orange-500/20 text-orange-400',
+        green: 'bg-green-500/20 text-green-400',
+        blue: 'bg-blue-500/20 text-blue-400',
+        pink: 'bg-pink-500/20 text-pink-400'
+    }[feature.color] || 'bg-cyan-500/20 text-cyan-400';
+
+    return (
+        <Card
+            className={cn(
+                "bg-slate-900/60 border-white/5 backdrop-blur-lg overflow-hidden transition-all duration-500 group",
+                borderColor,
+                index % 2 === 0 ? "lg:flex-row" : "lg:flex-row-reverse"
+            )}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
+            <div className={cn("flex flex-col lg:flex-row gap-0", index % 2 !== 0 && "lg:flex-row-reverse")}>
+                {/* Image */}
+                <div className="lg:w-[55%] relative overflow-hidden">
+                    <img
+                        src={feature.image}
+                        alt={feature.title}
+                        className="w-full h-full object-cover min-h-[250px] group-hover:scale-105 transition-transform duration-700"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent" />
+                    <div className="absolute bottom-4 left-4">
+                        <div className={cn("p-2.5 rounded-xl w-fit", iconBg)}>
+                            {feature.icon}
+                        </div>
+                    </div>
+                </div>
+                {/* Info */}
+                <div className="lg:w-[45%] p-8 flex flex-col justify-center">
+                    <h3 className="text-2xl font-bold text-white mb-3">{feature.title}</h3>
+                    <p className="text-slate-400 text-sm leading-relaxed mb-5 font-light">{feature.description}</p>
+                    <ul className="space-y-2.5">
+                        {feature.pros.map((pro, i) => (
+                            <li key={i} className="flex items-start gap-2.5 text-sm text-slate-300">
+                                <CheckCircle2 className="h-4 w-4 text-cyan-500 mt-0.5 shrink-0" />
+                                <span>{pro}</span>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            </div>
+        </Card>
+    );
+};
+
 
 export const Landing = () => {
     const navigate = useNavigate();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [selectedPayment, setSelectedPayment] = useState<'paddle' | 'crypto'>('paddle');
 
-    const features = [
+    const suiteFeatures: SuiteFeature[] = [
+        {
+            title: "Dashboard",
+            description: "Your creative command center. Upload, manage, and process all your audio files from one place with real-time analytics.",
+            pros: ["Drag & drop multi-file upload", "Real-time processing status", "Usage analytics and history", "One-click access to all tools"],
+            image: "/screen_level.png",
+            color: "cyan",
+            icon: <Layout className="h-5 w-5" />
+        },
+        {
+            title: "Audio Enhancement",
+            description: "AI-powered audio cleanup and upscaling. Improve clarity, remove noise, and bring life to any recording.",
+            pros: ["Neural noise reduction", "Audio upscaling to high quality", "Batch processing support", "Instant A/B comparison"],
+            image: "/screen_enhance.png",
+            color: "green",
+            icon: <Sparkles className="h-5 w-5" />
+        },
         {
             title: "Stem Separation",
-            description: "Extract vocals, drums, bass, and instruments with surgical precision using neural networks.",
-            icon: <Layers className="h-6 w-6" />,
-            image: "/stems_separation_vfx_1772770642282.png",
-            color: "cyan"
+            description: "Extract vocals, drums, bass, and instruments from any track using state-of-the-art neural networks.",
+            pros: ["2, 4, or 6-stem isolation modes", "GPU-accelerated processing", "Professional-grade quality", "Export individual stems"],
+            image: "/screen_stems.png",
+            color: "purple",
+            icon: <Layers className="h-5 w-5" />
         },
         {
             title: "AI Mastering",
-            description: "Professional loudness and tonal balancing that rivals high-end studio gear.",
-            icon: <Zap className="h-6 w-6" />,
-            image: "/ai_mastering_vfx_1772770655355.png",
-            color: "purple"
+            description: "Professional loudness and tonal balancing powered by AI. Master your tracks for streaming, club, or broadcast.",
+            pros: ["Streaming-optimized LUFS targeting", "Genre-aware processing profiles", "GPU-accelerated speed", "Lossless WAV output"],
+            image: "/screen_mastering.png",
+            color: "orange",
+            icon: <Zap className="h-5 w-5" />
         },
         {
-            title: "Pro Mixer Lab",
-            description: "Real-time mixing with stem control, EQ, and effects designed for DJs and performers.",
-            icon: <Layout className="h-6 w-6" />,
-            image: "/dj_mixer_vfx_1772770668357.png",
-            color: "orange"
+            title: "Media Player",
+            description: "Ultra-fidelity audio and video player with real-time effects, 10-band EQ, visualizers, and a dynamics compressor.",
+            pros: ["Unlimited free playback for all users", "10-band parametric EQ", "Real-time visualizers and waveforms", "Playlist management"],
+            image: "/screen_player.png",
+            color: "blue",
+            icon: <Headphones className="h-5 w-5" />
+        },
+        {
+            title: "Mixer Lab",
+            description: "A full professional DJ mixer with dual decks, beat sync, crossfader curves, MIDI mapping, and recording.",
+            pros: ["Dual-deck mixing with auto-sync", "Real-time EQ, filters & effects", "MIDI controller support", "Record & export your mixes"],
+            image: "/screen_mixer.png",
+            color: "pink",
+            icon: <Music2 className="h-5 w-5" />
         }
     ];
 
@@ -57,21 +263,16 @@ export const Landing = () => {
         <div className="min-h-screen bg-slate-950 text-slate-100 overflow-x-hidden selection:bg-cyan-500/30">
             {/* Background Decor */}
             <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-                <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-cyan-500/10 blur-[120px] rounded-full" />
-                <div className="absolute top-[20%] -right-[10%] w-[30%] h-[50%] bg-purple-500/10 blur-[120px] rounded-full" />
-                <div className="absolute -bottom-[10%] left-[20%] w-[50%] h-[30%] bg-blue-500/10 blur-[120px] rounded-full" />
+                <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-cyan-500/8 blur-[120px] rounded-full" />
+                <div className="absolute top-[20%] -right-[10%] w-[30%] h-[50%] bg-purple-500/8 blur-[120px] rounded-full" />
+                <div className="absolute -bottom-[10%] left-[20%] w-[50%] h-[30%] bg-blue-500/8 blur-[120px] rounded-full" />
             </div>
 
             {/* Navigation */}
             <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-slate-950/80 backdrop-blur-xl">
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-                    <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-                        <div className="bg-gradient-to-br from-cyan-400 to-blue-600 p-2 rounded-xl shadow-lg shadow-cyan-500/20">
-                            <Music className="h-6 w-6 text-white" />
-                        </div>
-                        <span className="text-2xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-                            LEVEL
-                        </span>
+                    <div className="cursor-pointer" onClick={() => navigate('/')}>
+                        <LevelLogo size="md" showIcon={true} />
                     </div>
 
                     <div className="hidden md:flex items-center gap-8">
@@ -101,43 +302,59 @@ export const Landing = () => {
                     </div>
                 </div>
 
-                {/* Mobile Menu */}
                 {isMenuOpen && (
                     <div className="md:hidden bg-slate-950 border-b border-white/5 p-6 flex flex-col gap-4 animate-in slide-in-from-top-4">
-                        <a href="#features" onClick={() => setIsMenuOpen(false)}>Features</a>
-                        <a href="#plans" onClick={() => setIsMenuOpen(false)}>Pricing</a>
-                        <a href="#guides" onClick={() => setIsMenuOpen(false)}>Guides</a>
-                        <a href="#support" onClick={() => setIsMenuOpen(false)}>Support</a>
+                        <a href="#features" onClick={() => setIsMenuOpen(false)} className="text-slate-300 hover:text-cyan-400">Features</a>
+                        <a href="#plans" onClick={() => setIsMenuOpen(false)} className="text-slate-300 hover:text-cyan-400">Pricing</a>
+                        <a href="#guides" onClick={() => setIsMenuOpen(false)} className="text-slate-300 hover:text-cyan-400">Guides</a>
+                        <a href="#support" onClick={() => setIsMenuOpen(false)} className="text-slate-300 hover:text-cyan-400">Support</a>
                     </div>
                 )}
             </nav>
 
-            {/* Hero Section */}
-            <section className="relative pt-40 pb-20 px-6">
+            {/* Hero Section with Dynamic Background */}
+            <section className="relative pt-32 pb-20 px-6 overflow-hidden min-h-[700px] flex items-center">
+                <AudioWaveBackground />
+
+                {/* Hero background image overlay */}
+                <div
+                    className="absolute inset-0 z-[1] opacity-20"
+                    style={{
+                        backgroundImage: 'url(/hero_background_music.png)',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                    }}
+                />
+                <div className="absolute inset-0 z-[2] bg-gradient-to-b from-slate-950/40 via-slate-950/60 to-slate-950" />
+
                 <div className="max-w-5xl mx-auto text-center space-y-8 relative z-10">
-                    <Badge className="bg-cyan-500/10 text-cyan-400 border-cyan-500/20 px-4 py-1.5 rounded-full mb-4 animate-pulse">
-                        ✨ Your AI Creative Suite is Here
+                    <Badge className="bg-cyan-500/10 text-cyan-400 border-cyan-500/20 px-4 py-1.5 rounded-full mb-4">
+                        <Gauge className="mr-1.5 h-3.5 w-3.5" />
+                        GPU-Accelerated AI Processing
                     </Badge>
 
-                    <h1 className="text-6xl md:text-8xl font-black tracking-tight leading-[1.1]">
+                    <h1 className="text-5xl sm:text-6xl md:text-8xl font-black tracking-tight leading-[1.05]">
                         <span className="block text-white">The companion for</span>
                         <span className="block bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600">
-                            creators & producers
+                            creators, DJs
+                        </span>
+                        <span className="block bg-clip-text text-transparent bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400">
+                            & producers
                         </span>
                     </h1>
 
-                    <p className="text-xl text-slate-400 max-w-2xl mx-auto font-light leading-relaxed">
+                    <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto font-light leading-relaxed">
                         Ultimate audio toolkit for DJs, musicians, and music lovers.
-                        Separate stems, master your tracks, and mix in real-time with AI-powered precision.
+                        Separate stems, master your tracks, and mix in real-time with GPU-powered precision.
                     </p>
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
                         <Button
                             size="lg"
-                            className="h-16 px-10 text-lg bg-white text-slate-950 hover:bg-slate-200 font-black rounded-2xl group transition-all"
+                            className="h-16 px-10 text-lg bg-white text-slate-950 hover:bg-slate-200 font-black rounded-2xl group transition-all hover:shadow-[0_0_30px_rgba(255,255,255,0.15)]"
                             onClick={() => navigate('/app')}
                         >
-                            Open Web App
+                            Open Level App
                             <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                         </Button>
                         <Button
@@ -149,47 +366,45 @@ export const Landing = () => {
                             Download Media Player
                         </Button>
                     </div>
-
-                    {/* App Preview Frame */}
-                    <div className="mt-20 relative group">
-                        <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/20 to-purple-500/20 blur-[100px] opacity-50 group-hover:opacity-80 transition-opacity" />
-                        <div className="relative border border-white/10 rounded-[32px] overflow-hidden bg-slate-900/50 backdrop-blur-3xl shadow-2xl">
-                            <div className="h-12 bg-slate-800/50 border-b border-white/5 flex items-center px-6 gap-2">
-                                <div className="flex gap-1.5">
-                                    <div className="w-3 h-3 rounded-full bg-red-500/50" />
-                                    <div className="w-3 h-3 rounded-full bg-yellow-500/50" />
-                                    <div className="w-3 h-3 rounded-full bg-green-500/50" />
-                                </div>
-                                <div className="mx-auto bg-slate-900/50 px-4 py-1 rounded-lg text-xs text-slate-500 font-mono">
-                                    levelaudio.live/app
-                                </div>
-                            </div>
-                            <img
-                                src="/level_landing_concept_1_1772769179993.png"
-                                alt="Level App Interface"
-                                className="w-full h-auto opacity-90 group-hover:opacity-100 transition-opacity duration-700"
-                            />
-                        </div>
-                    </div>
                 </div>
             </section>
 
-            {/* Tabs Section (Features, Pricing, etc) */}
+            {/* Tabs Section */}
             <section id="features" className="py-24 px-6 relative">
                 <div className="max-w-7xl mx-auto">
                     <Tabs defaultValue="features" className="w-full">
                         <div className="flex justify-center mb-12">
                             <TabsList className="bg-slate-900/50 border border-white/5 p-1 h-14 rounded-2xl backdrop-blur-xl">
-                                <TabsTrigger value="features" className="px-8 rounded-xl data-[state=active]:bg-cyan-500 data-[state=active]:text-slate-950">Features</TabsTrigger>
-                                <TabsTrigger value="plans" className="px-8 rounded-xl data-[state=active]:bg-cyan-500 data-[state=active]:text-slate-950">Plans</TabsTrigger>
-                                <TabsTrigger value="guides" className="px-8 rounded-xl data-[state=active]:bg-cyan-500 data-[state=active]:text-slate-950">Guides</TabsTrigger>
-                                <TabsTrigger value="support" className="px-8 rounded-xl data-[state=active]:bg-cyan-500 data-[state=active]:text-slate-950">Support</TabsTrigger>
+                                <TabsTrigger value="features" className="px-6 sm:px-8 rounded-xl data-[state=active]:bg-cyan-500 data-[state=active]:text-slate-950 text-sm sm:text-base">Features</TabsTrigger>
+                                <TabsTrigger value="plans" className="px-6 sm:px-8 rounded-xl data-[state=active]:bg-cyan-500 data-[state=active]:text-slate-950 text-sm sm:text-base">Plans</TabsTrigger>
+                                <TabsTrigger value="guides" className="px-6 sm:px-8 rounded-xl data-[state=active]:bg-cyan-500 data-[state=active]:text-slate-950 text-sm sm:text-base">Guides</TabsTrigger>
+                                <TabsTrigger value="support" className="px-6 sm:px-8 rounded-xl data-[state=active]:bg-cyan-500 data-[state=active]:text-slate-950 text-sm sm:text-base">Support</TabsTrigger>
                             </TabsList>
                         </div>
 
+                        {/* Features Tab */}
                         <TabsContent value="features" className="mt-0">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                {features.map((f, i) => (
+                                {[
+                                    {
+                                        title: "Stem Separation",
+                                        description: "Extract vocals, drums, bass, and instruments with surgical precision using GPU-accelerated neural networks.",
+                                        icon: <Layers className="h-6 w-6" />,
+                                        image: "/stems_separation_vfx_1772770642282.png",
+                                    },
+                                    {
+                                        title: "AI Mastering",
+                                        description: "Professional loudness and tonal balancing. GPU-powered processing delivers results in minutes, not hours.",
+                                        icon: <Zap className="h-6 w-6" />,
+                                        image: "/ai_mastering_vfx_1772770655355.png",
+                                    },
+                                    {
+                                        title: "Pro Mixer Lab",
+                                        description: "Real-time mixing with dual decks, beat sync, EQ, and effects. Designed for DJs and live performers.",
+                                        icon: <Layout className="h-6 w-6" />,
+                                        image: "/dj_mixer_vfx_1772770668357.png",
+                                    }
+                                ].map((f, i) => (
                                     <Card key={i} className="bg-slate-900/40 border-white/5 hover:border-cyan-500/30 transition-all duration-500 overflow-hidden group">
                                         <div className="aspect-square relative overflow-hidden">
                                             <img src={f.image} alt={f.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
@@ -202,93 +417,174 @@ export const Landing = () => {
                                             </div>
                                         </div>
                                         <CardContent className="p-6">
-                                            <p className="text-slate-400 font-light leading-relaxed">
-                                                {f.description}
-                                            </p>
+                                            <p className="text-slate-400 font-light leading-relaxed">{f.description}</p>
                                         </CardContent>
                                     </Card>
                                 ))}
                             </div>
                         </TabsContent>
 
+                        {/* Plans Tab - Using the app's actual pricing structure */}
                         <TabsContent value="plans" id="plans">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                                {/* Free Tier */}
-                                <Card className="bg-slate-900/40 border-white/5 p-8 relative overflow-hidden group">
-                                    <div className="space-y-6 relative z-10">
-                                        <div>
-                                            <h3 className="text-2xl font-bold text-white">Free Trial</h3>
-                                            <p className="text-slate-500 mt-2">Test the power of Level</p>
+                            <div className="text-center mb-10">
+                                <h2 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent mb-3">
+                                    Choose Your Plan
+                                </h2>
+                                <p className="text-slate-400 max-w-xl mx-auto">
+                                    From casual editing to professional production. Choose the plan that fits your workflow.
+                                </p>
+                            </div>
+
+                            {/* Payment Method Toggle */}
+                            <div className="flex justify-center mb-8">
+                                <div className="inline-flex items-center p-1 rounded-xl bg-slate-900/80 border border-slate-700">
+                                    <button
+                                        onClick={() => setSelectedPayment('paddle')}
+                                        className={cn(
+                                            "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                                            selectedPayment === 'paddle'
+                                                ? "bg-blue-600 text-white shadow-lg"
+                                                : "text-slate-400 hover:text-white hover:bg-slate-800"
+                                        )}
+                                    >
+                                        <CreditCard className="w-4 h-4" />
+                                        Card / PayPal
+                                    </button>
+                                    <button
+                                        onClick={() => setSelectedPayment('crypto')}
+                                        className={cn(
+                                            "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                                            selectedPayment === 'crypto'
+                                                ? "bg-orange-600 text-white shadow-lg"
+                                                : "text-slate-400 hover:text-white hover:bg-slate-800"
+                                        )}
+                                    >
+                                        <Wallet className="w-4 h-4" />
+                                        Crypto
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 max-w-7xl mx-auto">
+                                {/* Free Trial */}
+                                <Card className="bg-slate-900/60 border-white/5 overflow-hidden hover:scale-[1.02] transition-all">
+                                    <div className="p-6 space-y-5">
+                                        <div className="flex items-center gap-3">
+                                            <Headphones className="h-6 w-6 text-cyan-400" />
+                                            <h3 className="text-xl font-bold text-white">Free Trial</h3>
                                         </div>
-                                        <div className="text-4xl font-black text-white">$0 <span className="text-lg font-normal text-slate-500">/ forever</span></div>
-                                        <ul className="space-y-4">
-                                            <li className="flex items-center gap-3 text-slate-300">
-                                                <CheckCircle2 className="h-5 w-5 text-cyan-500" />
-                                                10 Audio Enhancements
-                                            </li>
-                                            <li className="flex items-center gap-3 text-slate-300">
-                                                <CheckCircle2 className="h-5 w-5 text-cyan-500" />
-                                                3 Stem Separations
-                                            </li>
-                                            <li className="flex items-center gap-3 text-slate-300">
-                                                <CheckCircle2 className="h-5 w-5 text-cyan-500" />
-                                                2 AI Mastering tracks
-                                            </li>
-                                            <li className="flex items-center gap-3 text-slate-300">
-                                                <CheckCircle2 className="h-5 w-5 text-cyan-500" />
-                                                Unlimited Media Player
-                                            </li>
-                                            <li className="flex items-center gap-1.5 text-slate-500 italic text-sm">
-                                                Expired trial users switch to Basic (20h Mixer/mo)
-                                            </li>
+                                        <p className="text-sm text-slate-500">Perfect for getting started</p>
+                                        <div className="text-3xl font-black text-white">$0 <span className="text-sm font-normal text-slate-500">/ 7 days</span></div>
+                                        <ul className="space-y-3 text-sm">
+                                            <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-cyan-500 shrink-0" /> 10 Audio Enhancements</li>
+                                            <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-cyan-500 shrink-0" /> 3 Stem Separations</li>
+                                            <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-cyan-500 shrink-0" /> 2 AI Mastering tracks</li>
+                                            <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-cyan-500 shrink-0" /> Unlimited Media Player</li>
+                                            <li className="flex items-center gap-2.5 text-slate-500 text-xs italic">After trial: Basic tier (player only)</li>
                                         </ul>
-                                        <Button className="w-full h-12 rounded-xl bg-slate-800 hover:bg-slate-700 text-white" onClick={() => navigate('/app')}>
-                                            Start Trial
+                                        <Button className="w-full bg-slate-800 hover:bg-slate-700 text-white rounded-xl" onClick={() => navigate('/app')}>
+                                            Start Free Trial
                                         </Button>
                                     </div>
                                 </Card>
 
-                                {/* Premium Tier */}
-                                <Card className="bg-gradient-to-br from-cyan-900/20 to-purple-900/20 border-cyan-500/30 p-8 shadow-[0_0_40px_rgba(6,182,212,0.1)] relative overflow-hidden group">
-                                    <div className="absolute top-0 right-0 p-4">
-                                        <Badge className="bg-cyan-500 text-slate-950 font-bold">MOST POPULAR</Badge>
-                                    </div>
-                                    <div className="space-y-6 relative z-10">
-                                        <div>
-                                            <h3 className="text-2xl font-bold text-white">Premium</h3>
-                                            <p className="text-cyan-400/60 mt-2">The producer's choice</p>
+                                {/* Premium */}
+                                <Card className="bg-slate-900/60 border-white/5 overflow-hidden hover:scale-[1.02] transition-all">
+                                    <div className="p-6 space-y-5">
+                                        <div className="flex items-center gap-3">
+                                            <Star className="h-6 w-6 text-yellow-400" />
+                                            <h3 className="text-xl font-bold text-white">Premium</h3>
                                         </div>
-                                        <div className="text-4xl font-black text-white">$19 <span className="text-lg font-normal text-slate-500">/ mo</span></div>
-                                        <ul className="space-y-4">
-                                            <li className="flex items-center gap-3 text-slate-100">
-                                                <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
-                                                Unlimited Stems & Mastering
-                                            </li>
-                                            <li className="flex items-center gap-3 text-slate-100">
-                                                <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
-                                                Lossless WAV Downloads
-                                            </li>
-                                            <li className="flex items-center gap-3 text-slate-100">
-                                                <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
-                                                Advanced Mastering Settings
-                                            </li>
-                                            <li className="flex items-center gap-3 text-slate-100">
-                                                <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
-                                                Unlimited Mixer & VST Lab
-                                            </li>
-                                            <li className="flex items-center gap-3 text-cyan-400 font-bold">
-                                                <Shield className="h-5 w-5" />
-                                                14-Day Money Back Guarantee
-                                            </li>
+                                        <p className="text-sm text-slate-500">Full access to all features</p>
+                                        <div className="text-3xl font-black text-white">$9.99 <span className="text-sm font-normal text-slate-500">/ month</span></div>
+                                        <ul className="space-y-3 text-sm">
+                                            <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-cyan-500 shrink-0" /> 250 Enhancements/month</li>
+                                            <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-cyan-500 shrink-0" /> 150 Stem Separations/month</li>
+                                            <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-cyan-500 shrink-0" /> 150 AI Masterings/month</li>
+                                            <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-cyan-500 shrink-0" /> Audio Effects & Compressor</li>
+                                            <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-cyan-500 shrink-0" /> Lossless WAV Downloads</li>
                                         </ul>
-                                        <Button className="w-full h-12 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black shadow-lg shadow-cyan-500/20">
-                                            Upgrade to Pro
+                                        <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl" onClick={() => navigate('/app')}>
+                                            Subscribe Monthly
+                                        </Button>
+                                    </div>
+                                </Card>
+
+                                {/* VIP Cloud */}
+                                <Card className="bg-gradient-to-br from-purple-900/30 to-slate-900/60 border-purple-500/30 ring-1 ring-purple-500/20 shadow-[0_0_40px_rgba(168,85,247,0.1)] overflow-hidden relative hover:scale-[1.02] transition-all">
+                                    <div className="absolute top-0 left-0 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-[10px] font-bold px-3 py-1 rounded-br-lg uppercase tracking-widest z-10">
+                                        Most Popular
+                                    </div>
+                                    <div className="absolute top-0 right-0 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
+                                        Launch Promo!
+                                    </div>
+                                    <div className="p-6 pt-8 space-y-5">
+                                        <div className="flex items-center gap-3">
+                                            <Crown className="h-6 w-6 text-purple-400 fill-purple-400" />
+                                            <h3 className="text-xl font-bold text-white">VIP Cloud</h3>
+                                        </div>
+                                        <p className="text-sm text-purple-300/60">Fastest online processing</p>
+                                        <div className="flex items-baseline gap-2">
+                                            <span className="text-lg text-slate-500 line-through">$29.99</span>
+                                            <span className="text-3xl font-black text-white">$24.99</span>
+                                            <span className="text-sm font-normal text-slate-500">/ month</span>
+                                        </div>
+                                        <ul className="space-y-3 text-sm">
+                                            <li className="flex items-center gap-2.5 text-slate-200 font-medium"><Cpu className="h-4 w-4 text-purple-400 shrink-0" /> GPU Accelerated (5-10x faster)</li>
+                                            <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-purple-400 shrink-0" /> 500 Stem Separations/month</li>
+                                            <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-purple-400 shrink-0" /> 500 AI Masterings/month</li>
+                                            <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-purple-400 shrink-0" /> Priority Processing Queue</li>
+                                            <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-purple-400 shrink-0" /> Everything in Premium</li>
+                                        </ul>
+                                        <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold rounded-xl shadow-lg shadow-purple-500/20" onClick={() => navigate('/app')}>
+                                            Go VIP
+                                        </Button>
+                                    </div>
+                                </Card>
+
+                                {/* Desktop Pro */}
+                                <Card className="bg-slate-900/60 border-orange-500/30 ring-1 ring-orange-500/20 shadow-[0_0_30px_rgba(249,115,22,0.1)] overflow-hidden relative hover:scale-[1.02] transition-all">
+                                    <div className="absolute top-0 right-0 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
+                                        Launch Offer!
+                                    </div>
+                                    <div className="p-6 pt-8 space-y-5">
+                                        <div className="flex items-center gap-3">
+                                            <Zap className="h-6 w-6 text-orange-400" />
+                                            <h3 className="text-xl font-bold text-white">Desktop Pro</h3>
+                                        </div>
+                                        <p className="text-sm text-slate-500">Lightning fast. Local GPU.</p>
+                                        <div className="flex items-baseline gap-2">
+                                            <span className="text-lg text-slate-500 line-through">$59.99</span>
+                                            <span className="text-3xl font-black text-white">$49.99</span>
+                                            <span className="text-sm font-normal text-slate-500"> one-time</span>
+                                        </div>
+                                        <ul className="space-y-3 text-sm">
+                                            <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-orange-400 shrink-0" /> Runs on your GPU/CPU locally</li>
+                                            <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-orange-400 shrink-0" /> ZERO recurring fees (Lifetime)</li>
+                                            <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-orange-400 shrink-0" /> Fully offline capable</li>
+                                            <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-orange-400 shrink-0" /> Unlimited everything</li>
+                                        </ul>
+                                        <Button className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold rounded-xl shadow-lg shadow-orange-500/20">
+                                            Pre-Order Now
                                         </Button>
                                     </div>
                                 </Card>
                             </div>
+
+                            {/* Trust & Payment Info */}
+                            <div className="flex flex-wrap items-center justify-center gap-6 mt-10 text-slate-500 text-sm">
+                                <div className="flex items-center gap-2"><Shield className="w-4 h-4" /> Secure Checkout</div>
+                                <div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> Cancel Anytime</div>
+                                <div className="flex items-center gap-2"><Shield className="w-4 h-4" /> 14-Day Refund Guarantee</div>
+                            </div>
+                            <p className="text-center text-xs text-slate-600 mt-4">
+                                {selectedPayment === 'paddle'
+                                    ? 'Payments processed securely by Paddle. Supports Visa, Mastercard, PayPal.'
+                                    : 'Payments via Coinbase Commerce. Supports BTC, ETH, USDC.'}
+                            </p>
                         </TabsContent>
 
+                        {/* Guides Tab */}
                         <TabsContent value="guides" id="guides">
                             <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {[
@@ -310,6 +606,7 @@ export const Landing = () => {
                             </div>
                         </TabsContent>
 
+                        {/* Support Tab */}
                         <TabsContent value="support" id="support">
                             <Card className="max-w-xl mx-auto bg-slate-900/40 border-white/5 p-8 backdrop-blur-xl">
                                 <div className="text-center mb-8">
@@ -322,8 +619,8 @@ export const Landing = () => {
                                         <input type="text" placeholder="Name" className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-slate-200 outline-none focus:border-cyan-500" />
                                         <input type="email" placeholder="Email" className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-slate-200 outline-none focus:border-cyan-500" />
                                     </div>
-                                    <textarea placeholder="How can we help?" className="w-full h-32 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-slate-200 outline-none focus:border-cyan-500" />
-                                    <Button className="w-full py-6 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-xl transition-all">
+                                    <textarea placeholder="How can we help?" className="w-full h-32 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-slate-200 outline-none focus:border-cyan-500 resize-none" />
+                                    <Button className="w-full py-6 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-xl">
                                         Send Message
                                     </Button>
                                 </form>
@@ -337,13 +634,13 @@ export const Landing = () => {
             <section className="py-24 px-6 bg-gradient-to-b from-transparent to-slate-900/50">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12">
                     <div className="flex-1 space-y-6">
-                        <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/20 px-4 py-1">AVAILABLE NOW</Badge>
+                        <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/20 px-4 py-1">FREE DOWNLOAD</Badge>
                         <h2 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">
                             The external <br />
                             <span className="text-purple-400">Level Media Player</span>
                         </h2>
                         <p className="text-lg text-slate-400 font-light leading-relaxed">
-                            Download our standalone player for free. Plays ultra-high fidelity audio and video with real-time effects, visualizers, and neural engine integration.
+                            Download our standalone player for free. Ultra-high fidelity audio and video playback with real-time effects, visualizers, and 10-band EQ.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4">
                             <Button className="bg-purple-600 hover:bg-purple-500 text-white font-bold h-14 px-8 rounded-xl shadow-lg shadow-purple-500/20">
@@ -356,59 +653,57 @@ export const Landing = () => {
                     </div>
                     <div className="flex-1 relative">
                         <div className="absolute inset-0 bg-purple-500/20 blur-[120px] rounded-full" />
-                        <div className="relative border border-white/10 rounded-3xl overflow-hidden shadow-2xl skew-y-3 transform hover:skew-y-0 transition-transform duration-700">
-                            <img src="/media__1772764121883.jpg" alt="Media Player UI" className="w-full h-auto" />
+                        <div className="relative border border-white/10 rounded-3xl overflow-hidden shadow-2xl transform hover:scale-[1.02] transition-transform duration-700">
+                            <img src="/screen_player.png" alt="Media Player UI" className="w-full h-auto" />
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* App Screenshots Lower Section */}
+            {/* Experience the Suite */}
             <section className="py-24 px-6 relative overflow-hidden">
-                <div className="max-w-7xl mx-auto space-y-12">
+                <div className="max-w-7xl mx-auto space-y-16">
                     <div className="text-center">
-                        <h2 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-500">
+                        <Badge className="bg-cyan-500/10 text-cyan-400 border-cyan-500/20 px-4 py-1 mb-6">THE FULL SUITE</Badge>
+                        <h2 className="text-4xl md:text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400 mb-4">
                             Experience the Suite
                         </h2>
-                        <p className="text-slate-500 mt-2">Everything you need in one powerful ecosystem.</p>
+                        <p className="text-slate-500 text-lg max-w-2xl mx-auto">Six powerful tools, one ecosystem. Every feature designed to push your audio to the next level.</p>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <div className="relative group overflow-hidden rounded-2xl border border-white/5">
-                            <img src="/level_landing_concept_2_1772769196923.png" alt="Concept View" className="w-full grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700" />
-                            <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-slate-950 to-transparent">
-                                <p className="font-bold">Next-Gen Audio Engine</p>
-                            </div>
-                        </div>
-                        <div className="relative group overflow-hidden rounded-2xl border border-white/5 skew-y-1">
-                            <img src="/stems_separation_vfx_1772770642282.png" alt="VFX" className="w-full grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700" />
-                            <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-slate-950 to-transparent">
-                                <p className="font-bold">Neural Stem Splitting</p>
-                            </div>
-                        </div>
-                        <div className="relative group overflow-hidden rounded-2xl border border-white/5">
-                            <img src="/ai_mastering_vfx_1772770655355.png" alt="Mastering" className="w-full grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700" />
-                            <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-slate-950 to-transparent">
-                                <p className="font-bold">Intelligent Mastering</p>
-                            </div>
-                        </div>
+                    <div className="space-y-8">
+                        {suiteFeatures.map((feature, i) => (
+                            <SuiteCard key={i} feature={feature} index={i} />
+                        ))}
                     </div>
+                </div>
+            </section>
+
+            {/* Final CTA */}
+            <section className="py-24 px-6 relative">
+                <div className="max-w-3xl mx-auto text-center relative z-10 space-y-8">
+                    <h2 className="text-4xl md:text-5xl font-black text-white">Ready to Level up?</h2>
+                    <p className="text-lg text-slate-400">Join thousands of creators, DJs, and producers who trust Level Audio for their workflow.</p>
+                    <Button
+                        size="lg"
+                        className="h-16 px-12 text-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black rounded-2xl shadow-[0_0_40px_rgba(6,182,212,0.25)] transition-all hover:scale-105"
+                        onClick={() => navigate('/app')}
+                    >
+                        Open Level App
+                        <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
                 </div>
             </section>
 
             {/* Footer */}
             <footer className="py-12 border-t border-white/5 px-6">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6 text-slate-500 text-sm">
-                    <div className="flex items-center gap-2">
-                        <Music className="h-5 w-5 text-cyan-500" />
-                        <span className="font-bold text-slate-300">LEVEL AUDIO 2026</span>
-                    </div>
+                    <LevelLogo size="sm" showIcon={true} />
                     <div className="flex gap-8">
-                        <a href="#" className="hover:text-white">Privacy</a>
-                        <a href="#" className="hover:text-white">Terms</a>
-                        <a href="#" className="hover:text-white">Refunds</a>
-                        <a href="#" className="hover:text-white">API</a>
+                        <a href="/terms" className="hover:text-white transition-colors">Terms</a>
+                        <a href="#" className="hover:text-white transition-colors">Privacy</a>
+                        <a href="#" className="hover:text-white transition-colors">Refunds</a>
                     </div>
-                    <p>© All rights reserved. Built with Antigravity.</p>
+                    <p>© 2025 Level Audio. All rights reserved.</p>
                 </div>
             </footer>
         </div>

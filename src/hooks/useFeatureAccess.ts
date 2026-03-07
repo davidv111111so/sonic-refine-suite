@@ -51,7 +51,7 @@ const LIMITS = {
         stems_monthly: 3,
         mastering_daily: 2,        // 2 masters total
         mastering_monthly: 2,
-        mixer: 180,                // 3 hours total (in minutes)
+        mixer: Infinity,           // Unlimited Media Player
         mixer_export: false,       // no export for free
         enhance_24bit: false,      // 16-bit only
         wav_download: false,
@@ -68,7 +68,7 @@ const LIMITS = {
         stems_monthly: 0,
         mastering_daily: 0,
         mastering_monthly: 0,
-        mixer: 1200,                // 20 hours a month (in minutes)
+        mixer: Infinity,            // Unlimited Media Player
         mixer_export: false,
         enhance_24bit: false,
         wav_download: false,

@@ -1,0 +1,16 @@
+Flask>=3.0.0
+Flask-CORS>=4.0.0
+python-magic
+python-dotenv
+numpy<2.0.0
+scipy
+soundfile
+librosa
+pyloudnorm
+gunicorn
+supabase
+demucs
+pydub
+requests
+b2sdk
+replicate

@@ -212,10 +212,19 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
             
             if progress_callback: progress_callback(5)
 
-            # Load model
+            # Load model and detect GPU
             print(f"   Loading Demucs model: {model_name}")
             model = get_model(model_name)
-            model.cpu()
+            
+            # Auto-detect CUDA GPU
+            if torch.cuda.is_available():
+                device = torch.device('cuda')
+                print(f"   🚀 GPU DETECTED: {torch.cuda.get_device_name(0)} — Using CUDA acceleration!")
+            else:
+                device = torch.device('cpu')
+                print(f"   ⚠️ No GPU detected — Using CPU (slower)")
+            
+            model.to(device)
             model.eval()
 
             if progress_callback: progress_callback(15)
@@ -247,8 +256,7 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
                 
             wav = wav.unsqueeze(0)
 
-            # Move to device (ensure consistency)
-            device = "cpu" # Default to CPU as seen in line 65
+            # Move audio to same device as model
             wav = wav.to(device)
 
             # Separate

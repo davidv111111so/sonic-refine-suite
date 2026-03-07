@@ -2,8 +2,9 @@ import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Wand2, Zap, Timer, Music, Waves, MoveHorizontal, Sliders, Info } from 'lucide-react';
+import { Wand2, Zap, Timer, Music, Waves, MoveHorizontal, Sliders, Info, RotateCcw } from 'lucide-react';
 import {
     Tooltip,
     TooltipContent,
@@ -29,12 +30,14 @@ export interface AudioEffectsSettings {
 interface AudioEffectsControlsProps {
     settings: AudioEffectsSettings;
     onSettingsChange: (settings: Partial<AudioEffectsSettings>) => void;
+    onReset?: () => void;
     isLocked?: boolean;
 }
 
 export const AudioEffectsControls: React.FC<AudioEffectsControlsProps> = ({
     settings,
     onSettingsChange,
+    onReset,
     isLocked = false,
 }) => {
     return (
@@ -49,27 +52,46 @@ export const AudioEffectsControls: React.FC<AudioEffectsControlsProps> = ({
                         <p className="text-[10px] text-slate-400 font-medium">Upgrade to access premium effects</p>
                     </div>
                 )}
-                <CardHeader className="pb-4 flex flex-row items-center justify-between space-y-0">
+                <CardHeader className="pb-4 flex flex-row items-center justify-between space-y-0 relative">
                     <CardTitle className="text-lg font-bold text-slate-200 flex items-center gap-2">
                         <Wand2 className="w-5 h-5 text-purple-400" />
                         Audio Effects
                     </CardTitle>
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs text-slate-400 font-medium">
-                            {settings.enabled ? "ON" : "OFF"}
-                        </span>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Switch
-                                    checked={settings.enabled}
-                                    onCheckedChange={(v) => onSettingsChange({ enabled: v })}
-                                    className="data-[state=checked]:bg-purple-500"
-                                />
-                            </TooltipTrigger>
-                            <TooltipContent className="bg-slate-900 border-slate-700 text-slate-200">
-                                <p>Enable/Disable All Effects</p>
-                            </TooltipContent>
-                        </Tooltip>
+                    <div className="flex items-center gap-3">
+                        {onReset && (
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={onReset}
+                                        className="h-8 w-8 text-slate-400 hover:text-cyan-400 hover:bg-slate-800"
+                                    >
+                                        <RotateCcw className="h-4 w-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent className="bg-slate-900 border-slate-700 text-slate-200">
+                                    <p>Reset to Default Values</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        )}
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-slate-400 font-medium">
+                                {settings.enabled ? "ON" : "OFF"}
+                            </span>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Switch
+                                        checked={settings.enabled}
+                                        onCheckedChange={(v) => onSettingsChange({ enabled: v })}
+                                        className="data-[state=checked]:bg-purple-500"
+                                    />
+                                </TooltipTrigger>
+                                <TooltipContent className="bg-slate-900 border-slate-700 text-slate-200">
+                                    <p>Enable/Disable All Effects</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </div>
                     </div>
                 </CardHeader>
                 <CardContent className={`space-y-6 transition-opacity duration-300 ${settings.enabled ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>

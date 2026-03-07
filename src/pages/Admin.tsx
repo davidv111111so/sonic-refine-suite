@@ -181,7 +181,7 @@ export default function Admin() {
                     </div>
 
                     {/* Alerts for limits */}
-                    {(stats?.total_users >= 100 || stats?.total_jobs >= 10000) && (
+                    {(stats?.total_users >= 1000 || stats?.total_jobs >= 50000) && (
                         <Card className="bg-red-950/20 border-red-500/50">
                             <CardContent className="flex items-center gap-4 p-4">
                                 <AlertTriangle className="w-6 h-6 text-red-500" />

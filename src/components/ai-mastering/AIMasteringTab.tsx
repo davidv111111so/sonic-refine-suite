@@ -183,15 +183,22 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
     setAdminTargetPreset(null);
   };
 
-  // Helper function to trigger file download using file-saver
+  // Helper function to trigger file download using native anchor
   const downloadMasteredFile = (blob: Blob, fileName: string) => {
     console.log(`⬇️ Downloading file: ${fileName}, size: ${blob.size}, type: ${blob.type}`);
 
     // Force audio/wav type if missing or incorrect
     const wavBlob = blob.type === 'audio/wav' ? blob : new Blob([blob], { type: 'audio/wav' });
 
-    saveAs(wavBlob, fileName);
-    console.log("✅ Download triggered via file-saver");
+    const url = URL.createObjectURL(wavBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName.endsWith('.wav') ? fileName : `${fileName}.wav`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    console.log("✅ Download triggered via anchor element");
   };
 
   // Helper function to convert MasteringSettings to MasteringSettingsData
@@ -712,6 +719,75 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
               </CardContent>
             </Card>
 
+            {/* Action Area & Progress (Moved from right column) */}
+            <div className="space-y-6">
+              {isMasteringComplete ? (
+                <Button
+                  onClick={handleClear}
+                  className="w-full h-24 text-2xl font-black tracking-widest uppercase bg-slate-800 hover:bg-slate-700 text-slate-200 shadow-lg transition-all duration-300 rounded-2xl border-2 border-slate-600"
+                >
+                  <RotateCcw className="mr-3 h-8 w-8" />
+                  Start New Mastering
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleMastering}
+                  disabled={isProcessing || !targetFile || (!selectedPreset && !referenceFile)}
+                  className="w-full h-24 text-2xl font-black tracking-widest uppercase bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 hover:from-cyan-500 hover:via-blue-500 hover:to-purple-500 shadow-[0_0_30px_rgba(6,182,212,0.4)] hover:shadow-[0_0_50px_rgba(6,182,212,0.6)] transition-all duration-300 rounded-2xl border-2 border-white/10 relative overflow-hidden group"
+                >
+                  <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+
+                  <span className="relative z-10 flex items-center justify-center gap-4 group-hover:scale-105 transition-transform">
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                        <span>Processing... {progress.toFixed(0)}%</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-8 w-8 fill-yellow-300 text-yellow-300 animate-pulse" />
+                        <span>Master Track</span>
+                      </>
+                    )}
+                  </span>
+
+                  {/* Progress Bar Overlay */}
+                  {isProcessing && (
+                    <div
+                      className="absolute bottom-0 left-0 h-2 bg-white/50 transition-all duration-1000 ease-in-out"
+                      style={{ width: `${progress}%` }}
+                    />
+                  )}
+                </Button>
+              )}
+            </div>
+
+            {/* Progress & Status */}
+            {isProcessing && (
+              <Card className="bg-slate-900/90 border-slate-800 animate-in fade-in slide-in-from-bottom-4">
+                <CardContent className="p-6 space-y-4">
+                  <div className="flex justify-between text-sm font-medium text-cyan-400">
+                    <span>Processing...</span>
+                    <span>{progress.toFixed(0)}%</span>
+                  </div>
+                  <Progress value={progress} className="h-3 bg-slate-800" indicatorClassName="bg-gradient-to-r from-cyan-500 to-purple-500" />
+                  <p className="text-xs text-center text-slate-500 font-mono">
+                    {progress < 30 && "Uploading to secure cloud..."}
+                    {progress >= 30 && progress < 50 && "Analyzing audio spectrum..."}
+                    {progress >= 50 && progress < 80 && "Applying AI mastering chain..."}
+                    {progress >= 80 && "Finalizing and downloading..."}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {error && (
+              <div className="p-4 bg-red-950/30 border border-red-500/30 rounded-xl text-red-400 text-sm text-center animate-in fade-in">
+                {error}
+              </div>
+            )}
+
             {/* Presets Grid */}
             <Card className="bg-slate-900/40 border-slate-800/50 shadow-2xl backdrop-blur-xl flex-1 flex flex-col min-h-[450px] h-full">
               <CardHeader className="flex flex-row items-center justify-between shrink-0">
@@ -732,7 +808,7 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
                         key={preset.id}
                         onClick={() => handlePresetClick(preset.id)}
                         className={cn(
-                          "relative group p-4 rounded-xl transition-all duration-500 border backdrop-blur-md flex flex-col items-center justify-center text-center gap-2",
+                          "relative group p-4 aspect-square rounded-xl transition-all duration-500 border backdrop-blur-md flex flex-col items-center justify-center text-center gap-2",
                           isSelected
                             ? "bg-purple-500/20 border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.4)] scale-105"
                             : "bg-white/5 border-white/5 hover:border-white/20 hover:bg-white/10"
@@ -904,69 +980,6 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
               referenceAnalysis={audioAnalysis?.reference}
             />
 
-            {/* Action Area */}
-            <div className="space-y-6 mt-auto">
-              {isMasteringComplete ? (
-                <Button
-                  onClick={handleClear}
-                  className="w-full h-24 text-2xl font-black tracking-widest uppercase bg-slate-800 hover:bg-slate-700 text-slate-200 shadow-lg transition-all duration-300 rounded-2xl border-2 border-slate-600"
-                >
-                  <RotateCcw className="mr-3 h-8 w-8" />
-                  Start New Mastering
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleMastering}
-                  disabled={isProcessing || !targetFile || (!selectedPreset && !referenceFile)}
-                  className="w-full h-24 text-2xl font-black tracking-widest uppercase bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 hover:from-cyan-500 hover:via-blue-500 hover:to-purple-500 shadow-[0_0_30px_rgba(6,182,212,0.4)] hover:shadow-[0_0_50px_rgba(6,182,212,0.6)] transition-all duration-300 rounded-2xl border-2 border-white/10 relative overflow-hidden group"
-                >
-                  <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-
-                  <span className="relative z-10 flex items-center justify-center gap-4 group-hover:scale-105 transition-transform">
-                    {isProcessing ? (
-                      <>
-                        <Loader2 className="h-8 w-8 animate-spin" />
-                        <span>Processing... {progress.toFixed(0)}%</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-8 w-8 fill-yellow-300 text-yellow-300 animate-pulse" />
-                        <span>Master Track</span>
-                      </>
-                    )}
-                  </span>
-
-                  {/* Progress Bar Overlay */}
-                  {isProcessing && (
-                    <div
-                      className="absolute bottom-0 left-0 h-2 bg-white/50 transition-all duration-1000 ease-in-out"
-                      style={{ width: `${progress}%` }}
-                    />
-                  )}
-                </Button>
-              )}
-            </div>
-
-            {/* Progress & Status */}
-            {isProcessing && (
-              <Card className="bg-slate-900/90 border-slate-800 animate-in fade-in slide-in-from-bottom-4">
-                <CardContent className="p-6 space-y-4">
-                  <div className="flex justify-between text-sm font-medium text-cyan-400">
-                    <span>Processing...</span>
-                    <span>{progress.toFixed(0)}%</span>
-                  </div>
-                  <Progress value={progress} className="h-3 bg-slate-800" indicatorClassName="bg-gradient-to-r from-cyan-500 to-purple-500" />
-                  <p className="text-xs text-center text-slate-500 font-mono">
-                    {progress < 30 && "Uploading to secure cloud..."}
-                    {progress >= 30 && progress < 50 && "Analyzing audio spectrum..."}
-                    {progress >= 50 && progress < 80 && "Applying AI mastering chain..."}
-                    {progress >= 80 && "Finalizing and downloading..."}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-
             {/* Analysis & Results */}
             {(audioAnalysis || masteredBlob) && (
               <Card className="bg-slate-900/90 border-slate-800">
@@ -991,12 +1004,6 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
                   )}
                 </CardContent>
               </Card>
-            )}
-
-            {error && (
-              <div className="p-4 bg-red-950/30 border border-red-500/30 rounded-xl text-red-400 text-sm text-center animate-in fade-in">
-                {error}
-              </div>
             )}
           </div>
         </div>

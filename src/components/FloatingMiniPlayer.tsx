@@ -3,8 +3,9 @@ import { usePlayer } from '@/contexts/PlayerContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Play, Pause, SkipBack, SkipForward, Maximize2, X } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Maximize2, X, GripHorizontal } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
 export const FloatingMiniPlayer = () => {
     const { currentTrack, isPlaying, playPause, playNext, playPrevious, stop, volume, setVolume, currentTime, duration } = usePlayer();
@@ -25,10 +26,17 @@ export const FloatingMiniPlayer = () => {
     };
 
     return (
-        <div className="fixed bottom-4 right-4 z-50 w-80 animate-in slide-in-from-bottom-10 fade-in duration-300">
+        <motion.div
+            drag
+            dragMomentum={false}
+            className="fixed bottom-24 right-8 z-50 w-80 cursor-move"
+        >
             <Card className="bg-slate-900/95 backdrop-blur-md border-slate-700 shadow-2xl p-4 border-l-4 border-l-cyan-500">
                 <div className="flex items-start justify-between mb-3">
-                    <div className="overflow-hidden">
+                    <div className="flex -ml-2 mr-2 text-slate-500 hover:text-cyan-400 items-start pt-1 cursor-grab active:cursor-grabbing">
+                        <GripHorizontal className="w-5 h-5 opacity-50 transition-opacity hover:opacity-100" />
+                    </div>
+                    <div className="overflow-hidden flex-1">
                         <h4 className="font-bold text-sm text-white truncate">{currentTrack.name}</h4>
                         <p className="text-xs text-cyan-400 font-mono">
                             {formatTime(currentTime)} / {formatTime(duration)}
@@ -73,6 +81,6 @@ export const FloatingMiniPlayer = () => {
                     />
                 </div>
             </Card>
-        </div>
+        </motion.div>
     );
 };

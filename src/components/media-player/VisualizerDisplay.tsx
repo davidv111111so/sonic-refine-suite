@@ -95,14 +95,17 @@ export const VisualizerDisplay = ({
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        // Set canvas size
         const resizeCanvas = () => {
-            canvas.width = canvas.clientWidth * window.devicePixelRatio;
-            canvas.height = canvas.clientHeight * window.devicePixelRatio;
-            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            const dpr = window.devicePixelRatio || 1;
+            const displayWidth = Math.floor(canvas.clientWidth * dpr);
+            const displayHeight = Math.floor(canvas.clientHeight * dpr);
+
+            if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
+                canvas.width = displayWidth;
+                canvas.height = displayHeight;
+                ctx.scale(dpr, dpr);
+            }
         };
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
 
         const bufferLength = analyserNode.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
@@ -124,10 +127,12 @@ export const VisualizerDisplay = ({
         }
 
         const draw = () => {
-            if (!ctx || !analyserNode) return;
+            if (!ctx || !analyserNode || !canvas) return;
 
-            const width = canvas.width / window.devicePixelRatio;
-            const height = canvas.height / window.devicePixelRatio;
+            resizeCanvas();
+
+            const width = Math.max(1, canvas.clientWidth);
+            const height = Math.max(1, canvas.clientHeight);
 
             ctx.clearRect(0, 0, width, height);
 
@@ -383,7 +388,6 @@ export const VisualizerDisplay = ({
         draw();
 
         return () => {
-            window.removeEventListener('resize', resizeCanvas);
             if (animationRef.current) {
                 cancelAnimationFrame(animationRef.current);
             }
