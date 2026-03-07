@@ -255,25 +255,10 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }, [navigateToFolder]);
 
     const importFiles = useCallback(async () => {
-        try {
-            // @ts-ignore
-            const handles = await window.showOpenFilePicker({
-                id: 'mixer-import',
-                multiple: true,
-                types: [{
-                    description: 'Audio Files',
-                    accept: {
-                        'audio/*': ['.mp3', '.wav', '.flac', '.m4a', '.aac', '.ogg', '.aiff']
-                    }
-                }]
-            });
-
+        const processFiles = (files: File[]) => {
             dispatch({ type: 'SET_LOADING', payload: true });
-
             const newTracks: LibraryTrack[] = [];
-
-            for (const handle of handles) {
-                const file = await handle.getFile();
+            for (const file of files) {
                 const id = `lib-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
                 const track: LibraryTrack = {
                     id,
@@ -287,21 +272,58 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
                     duration: 0
                 };
                 newTracks.push(track);
-
                 dispatch({ type: 'INCREMENT_ANALYZING' });
                 workerRef.current?.postMessage({ id, file });
             }
-
             dispatch({ type: 'ADD_TRACKS', payload: newTracks });
             // Clear root handle as we are not in a folder anymore
             dispatch({ type: 'SET_ROOT', payload: { handle: null as any, tree: null as any } });
+            dispatch({ type: 'SET_LOADING', payload: false });
+        };
 
+        try {
+            if ('showOpenFilePicker' in window) {
+                // @ts-ignore
+                const handles = await window.showOpenFilePicker({
+                    id: 'mixer-import',
+                    multiple: true,
+                    types: [{
+                        description: 'Audio Files',
+                        accept: {
+                            'audio/mpeg': ['.mp3'],
+                            'audio/wav': ['.wav'],
+                            'audio/flac': ['.flac'],
+                            'audio/aac': ['.aac'],
+                            'audio/mp4': ['.m4a'],
+                            'audio/ogg': ['.ogg'],
+                            'audio/x-aiff': ['.aiff', '.aif']
+                        }
+                    }]
+                });
+
+                const files: File[] = [];
+                for (const handle of handles) {
+                    files.push(await handle.getFile());
+                }
+                processFiles(files);
+            } else {
+                throw new Error("File System Access API not supported");
+            }
         } catch (err: any) {
             if (err.name !== 'AbortError') {
-                console.error("Failed to import files:", err);
+                console.warn("Falling back to HTML file input:", err);
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.multiple = true;
+                input.accept = 'audio/*';
+                input.onchange = (e) => {
+                    const files = Array.from((e.target as HTMLInputElement).files || []);
+                    if (files.length > 0) {
+                        processFiles(files);
+                    }
+                };
+                input.click();
             }
-        } finally {
-            dispatch({ type: 'SET_LOADING', payload: false });
         }
     }, []);
 
