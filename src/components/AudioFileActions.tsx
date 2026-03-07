@@ -4,6 +4,7 @@ import { Download, Trash2, Edit, Share } from 'lucide-react';
 import { AudioFile } from '@/types/audio';
 import { ID3TagEditor } from '@/components/ID3TagEditor';
 import { useToast } from '@/hooks/use-toast';
+import { saveAs } from 'file-saver';
 
 interface AudioFileActionsProps {
   file: AudioFile;
@@ -14,27 +15,30 @@ interface AudioFileActionsProps {
 export const AudioFileActions = ({ file, onRemove, onUpdate }: AudioFileActionsProps) => {
   const { toast } = useToast();
 
-  const handleDownload = () => {
-    if (file.enhancedUrl) {
-      const a = document.createElement('a');
-      a.href = file.enhancedUrl;
-      a.download = `${file.name.replace(/\.[^.]+$/, '')}_enhanced.wav`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } else if (file.originalUrl) {
-      const a = document.createElement('a');
-      a.href = file.originalUrl;
-      a.download = file.name;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } else {
+  const handleDownload = async () => {
+    try {
+      if (file.enhancedUrl) {
+        const response = await fetch(file.enhancedUrl);
+        const blob = await response.blob();
+        saveAs(blob, `${file.name.replace(/\.[^.]+$/, '')}_enhanced.wav`);
+      } else if (file.originalUrl) {
+        const response = await fetch(file.originalUrl);
+        const blob = await response.blob();
+        saveAs(blob, file.name);
+      } else {
+        toast({
+          title: "Download failed",
+          description: "The file URL is not available.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
       toast({
         title: "Download failed",
-        description: "The file URL is not available.",
+        description: "An error occurred while downloading the file.",
         variant: "destructive",
       });
+      console.error(error);
     }
   };
 

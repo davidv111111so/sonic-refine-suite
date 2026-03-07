@@ -5,6 +5,7 @@ import { useWebWorkerAudioProcessing } from '@/hooks/useWebWorkerAudioProcessing
 import { useEnhancementHistory } from '@/hooks/useEnhancementHistory';
 import { useToast } from '@/hooks/use-toast';
 import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 
 export const useAudioEnhancement = (
   audioFiles: AudioFile[],
@@ -72,16 +73,9 @@ export const useAudioEnhancement = (
         }
       }
 
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      saveAs(blob, filename);
 
-      return false;
+      return true;
     } catch (error) {
       console.error('Download failed:', error);
       return false;
@@ -237,14 +231,7 @@ export const useAudioEnhancement = (
 
       // Generate and download ZIP
       const zipBlob = await zip.generateAsync({ type: 'blob' });
-      const url = URL.createObjectURL(zipBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Spectrum_Enhanced_${Date.now()}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      saveAs(zipBlob, `Spectrum_Enhanced_${Date.now()}.zip`);
 
       toast({
         title: "ZIP Downloaded!",

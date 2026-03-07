@@ -7,6 +7,7 @@ import { Download, Trash2, Clock, CheckCircle, XCircle, AlertCircle } from 'luci
 import { useMasteringHistory, MasteringHistoryEntry } from '@/hooks/useMasteringHistory';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
+import { saveAs } from 'file-saver';
 
 export const MasteringHistory = () => {
   const { history, clearHistory, removeEntry } = useMasteringHistory();
@@ -30,19 +31,14 @@ export const MasteringHistory = () => {
 
   const handleDownload = async (entry: MasteringHistoryEntry) => {
     if (!entry.masteredUrl) return;
-    
+
     try {
       const response = await fetch(entry.masteredUrl);
       const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `mastered_${entry.targetFileName}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
+
+      // Ensure we preserve the filename properly using FileSaver
+      saveAs(blob, `mastered_${entry.targetFileName}`);
+
       toast({
         title: 'Downloaded',
         description: 'Mastered file downloaded successfully',

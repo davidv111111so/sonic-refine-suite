@@ -183,22 +183,25 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
     setAdminTargetPreset(null);
   };
 
-  // Helper function to trigger file download using native anchor
-  const downloadMasteredFile = (blob: Blob, fileName: string) => {
+  // Helper function to trigger file download using native FileSaver
+  const downloadMasteredFile = async (blob: Blob, fileName: string) => {
     console.log(`⬇️ Downloading file: ${fileName}, size: ${blob.size}, type: ${blob.type}`);
 
     // Force audio/wav type if missing or incorrect
     const wavBlob = blob.type === 'audio/wav' ? blob : new Blob([blob], { type: 'audio/wav' });
 
-    const url = URL.createObjectURL(wavBlob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName.endsWith('.wav') ? fileName : `${fileName}.wav`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    console.log("✅ Download triggered via anchor element");
+    try {
+      const url = URL.createObjectURL(wavBlob);
+      const response = await fetch(url);
+      const fetchedBlob = await response.blob();
+      saveAs(fetchedBlob, fileName.endsWith('.wav') ? fileName : `${fileName}.wav`);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Fetch blobing failed, direct saveAs fallback');
+      saveAs(wavBlob, fileName.endsWith('.wav') ? fileName : `${fileName}.wav`);
+    }
+
+    console.log("✅ Download triggered via file-saver");
   };
 
   // Helper function to convert MasteringSettings to MasteringSettingsData
