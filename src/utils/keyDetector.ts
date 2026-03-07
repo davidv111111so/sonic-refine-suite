@@ -217,7 +217,7 @@ export async function detectKeyFromFile(file: File): Promise<KeyAnalysis> {
   console.log(`🎼 Detecting key for file: ${file.name}`);
 
   try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ latencyHint: 'interactive' });
     console.log('✅ AudioContext created');
 
     const arrayBuffer = await file.arrayBuffer();

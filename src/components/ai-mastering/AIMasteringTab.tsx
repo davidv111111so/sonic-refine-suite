@@ -506,7 +506,7 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
         duration: 12000,
       });
 
-      console.log("🚀 Starting Matchering AI Mastering...");
+      console.log("🚀 Starting Level AI Mastering...");
       const backendParams = mapSettingsToEnhancedBackend(advancedSettings);
       const validationErrors = validateBackendParams(backendParams);
       if (validationErrors.length > 0) console.warn('⚠️ Settings validation warnings:', validationErrors);
@@ -547,7 +547,7 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
       setMasteredBlob(resultBlob);
 
       downloadMasteredFile(resultBlob, fileName);
-      toast.success("✅ Your track has been mastered with Matchering!");
+      toast.success("✅ Your track has been mastered with Level AI!");
       incrementUsage('mastering', 1);
       setIsMasteringComplete(true);
     } catch (err) {

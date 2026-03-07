@@ -181,6 +181,9 @@ export const MixerDeck = ({ id, controls, analyser, color, onSync, isMaster, onT
                     showGrid={showGrid}
                     bpm={controls.state.bpm || 128}
                     onSeek={controls.seek}
+                    isPlaying={controls.state.isPlaying}
+                    onPlay={controls.play}
+                    onPause={controls.pause}
                 />
 
                 {/* Zoom Controls Overlay */}

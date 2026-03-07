@@ -6,7 +6,7 @@
 import { MasteringSettings } from './MasteringAdvancedSettings';
 
 export interface BackendMasteringParams {
-  // Matchering parameters from settings_mastering_tab-2.jpg
+  // Level AI parameters from settings_mastering_tab-2.jpg
   threshold: number;
   epsilon: number;
   max_piece_length: number;
@@ -41,12 +41,12 @@ export interface BackendMasteringParams {
  */
 export function mapSettingsToBackend(settings: MasteringSettings): BackendMasteringParams {
   // Parse output bits with fallback to 32 if undefined
-  const outputBits = settings.output_bits 
-    ? parseInt(settings.output_bits.split(' ')[0]) 
+  const outputBits = settings.output_bits
+    ? parseInt(settings.output_bits.split(' ')[0])
     : 32;
 
   return {
-    // Core Matchering settings - directly from UI
+    // Core Level settings - directly from UI
     threshold: settings.threshold,
     epsilon: settings.epsilon,
     max_piece_length: settings.max_piece_length,
@@ -57,7 +57,7 @@ export function mapSettingsToBackend(settings: MasteringSettings): BackendMaster
     resampling_method: settings.resampling_method,
     spectrum_compensation: settings.spectrum_compensation,
     loudness_compensation: settings.loudness_compensation,
-    
+
     // Spectrum analysis
     analyze_full_spectrum: settings.analyze_full_spectrum,
     spectrum_smoothing_width: settings.spectrum_smoothing_width,
@@ -66,20 +66,20 @@ export function mapSettingsToBackend(settings: MasteringSettings): BackendMaster
     loudness_steps: settings.loudness_steps,
     spectrum_bands: settings.spectrum_bands,
     fft_size: settings.fft_size,
-    
+
     // Normalization
     normalize_reference: settings.normalize_reference,
     normalize: settings.normalize,
-    
+
     // Limiter
     limiter_method: settings.limiter_method,
     limiter_threshold_db: settings.limiter_threshold_db,
     loudness_correction_limiting: settings.loudness_correction_limiting,
-    
+
     // Output processing
     amplify: settings.amplify,
     clipping: settings.clipping,
-    
+
     // Output format
     output_bits: outputBits,
     output_channels: settings.output_channels,
@@ -99,30 +99,30 @@ export function mapSettingsToEnhancedBackend(settings: MasteringSettings): Backe
  */
 export function validateBackendParams(params: BackendMasteringParams): string[] {
   const errors: string[] = [];
-  
+
   if (params.threshold < 0 || params.threshold > 1) {
     errors.push('Threshold must be between 0 and 1');
   }
-  
+
   if (params.epsilon <= 0) {
     errors.push('Epsilon must be greater than 0');
   }
-  
+
   if (params.max_piece_length <= 0) {
     errors.push('Max piece length must be positive');
   }
-  
+
   if (params.fft_size < 512 || params.fft_size > 8192) {
     errors.push('FFT size must be between 512 and 8192');
   }
-  
+
   if (params.output_bits !== 16 && params.output_bits !== 24 && params.output_bits !== 32) {
     errors.push('Output bits must be 16, 24, or 32');
   }
-  
+
   if (params.limiter_threshold_db > 0 || params.limiter_threshold_db < -10) {
     errors.push('Limiter threshold must be between -10 and 0 dB');
   }
-  
+
   return errors;
 }

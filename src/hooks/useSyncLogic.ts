@@ -16,7 +16,7 @@ export const useSyncLogic = (
         if (transport.autoMasterMode && controls.state.isPlaying && !stateRef.current.wasPlaying) {
             // We just started playing. Take Master.
             if (nativeBpm) {
-                setMaster(deckId, nativeBpm * controls.state.playbackRate, controls.state.currentTime);
+                setMaster(deckId, nativeBpm * controls.state.playbackRate, controls.state.currentTime, controls.state.playbackRate);
             }
         }
 
@@ -37,7 +37,7 @@ export const useSyncLogic = (
             // To prevent spamming context, we only set if not set? 
             // Or just set continually?
             // Actually, we should just update master clock if Rate changes.
-            updateMasterClock(effectiveBpm, controls.state.currentTime);
+            updateMasterClock(effectiveBpm, controls.state.currentTime, controls.state.playbackRate);
         }
     }, [isMaster, nativeBpm, controls.state.playbackRate, controls.state.isPlaying, updateMasterClock, transport.autoMasterMode, deckId, setMaster]);
 
@@ -55,47 +55,52 @@ export const useSyncLogic = (
         controls.setRate(targetRate);
 
         // 2. Phase Alignment (Professional Sync Logic)
-        const beatDur = 60 / transport.masterBpm;
-        const masterAnchor = transport.masterGridAnchor;
+        const beatDur = 60 / transport.masterBpm; // This is the master beat duration
 
-        // Use more accurate timing if possible? 
-        // controls.state.currentTime might be slightly lagged from the UI loop.
-        // We calculate the target time relative to the master grid anchor.
-        const myTime = controls.state.currentTime;
+        // Calculate exactly where the Master is right now:
+        const elapsedRealSeconds = (Date.now() - transport.masterSystemTime) / 1000;
+        const masterCurrentTimeNow = transport.masterGridAnchor + (elapsedRealSeconds * transport.masterPlaybackRate);
 
-        const beatsFromAnchor = Math.round((myTime - masterAnchor) / beatDur);
-        let targetTime = masterAnchor + (beatsFromAnchor * beatDur);
+        const masterPhase = masterCurrentTimeNow % beatDur;
+        const myPhase = controls.state.currentTime % beatDur;
 
-        // Prevent negative time seeks when matching downbeats near the start
-        targetTime = Math.max(0, targetTime);
+        let phaseShift = masterPhase - myPhase;
+        if (phaseShift < -(beatDur / 2)) phaseShift += beatDur;
+        if (phaseShift > (beatDur / 2)) phaseShift -= beatDur;
+
+        // Apply phase shift directly to my current time
+        let targetTime = controls.state.currentTime + phaseShift;
+        targetTime = Math.max(0, targetTime); // Prevent seeking below zero
 
         // Immediate Seek to match phases
         controls.seek(targetTime);
 
-        console.log(`[Sync] Match immediate: ${targetRate}x, to ${targetTime}s`);
+        console.log(`[Sync] Match phase shift: ${phaseShift.toFixed(3)}s, to ${targetTime.toFixed(3)}s`);
 
-    }, [nativeBpm, transport.masterBpm, transport.masterGridAnchor, controls]);
+    }, [nativeBpm, transport, controls]);
 
     const handleMaster = useCallback(() => {
         if (!nativeBpm) return;
-        setMaster(deckId, nativeBpm * controls.state.playbackRate, controls.state.currentTime);
+        setMaster(deckId, nativeBpm * controls.state.playbackRate, controls.state.currentTime, controls.state.playbackRate);
     }, [deckId, nativeBpm, controls.state.playbackRate, controls.state.currentTime, setMaster]);
 
     // Phase Meter Calculation
     const getPhaseOffset = () => {
         if (!nativeBpm || !transport.masterBpm) return 0;
-        const beatDuration = 60 / transport.masterBpm;
-        const masterAnchor = transport.masterGridAnchor;
-        const myTime = controls.state.currentTime;
+        const beatDur = 60 / transport.masterBpm;
 
-        // Offset relative to Master Grid
-        const beatsFromAnchor = (myTime - masterAnchor) / beatDuration;
-        const phase = beatsFromAnchor % 1;
+        const elapsedRealSeconds = (Date.now() - transport.masterSystemTime) / 1000;
+        const masterCurrentTimeNow = transport.masterGridAnchor + (elapsedRealSeconds * transport.masterPlaybackRate);
 
-        // Normalize -0.5 to 0.5 for meter
-        if (phase > 0.5) return phase - 1;
-        if (phase < -0.5) return phase + 1;
-        return phase;
+        const masterPhase = masterCurrentTimeNow % beatDur;
+        const myPhase = controls.state.currentTime % beatDur;
+
+        // Phase difference normalized -0.5 to 0.5
+        let phaseDiff = (myPhase - masterPhase) / beatDur;
+        if (phaseDiff > 0.5) phaseDiff -= 1;
+        if (phaseDiff < -0.5) phaseDiff += 1;
+
+        return phaseDiff;
     };
 
     return {

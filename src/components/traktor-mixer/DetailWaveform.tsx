@@ -12,9 +12,12 @@ interface DetailWaveformProps {
     showGrid?: boolean;
     bpm?: number;
     onSeek?: (time: number) => void;
+    isPlaying?: boolean;
+    onPlay?: () => void;
+    onPause?: () => void;
 }
 
-export const DetailWaveform = ({ buffer, currentTime, zoom, setZoom, color, height = 150, showGrid = true, bpm = 128, onSeek }: DetailWaveformProps) => {
+export const DetailWaveform = ({ buffer, currentTime, zoom, setZoom, color, height = 150, showGrid = true, bpm = 128, onSeek, isPlaying, onPlay, onPause }: DetailWaveformProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const workerRef = useRef<Worker | null>(null);
@@ -22,6 +25,7 @@ export const DetailWaveform = ({ buffer, currentTime, zoom, setZoom, color, heig
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const lastMouseX = useRef<number>(0);
+    const wasPlayingRef = useRef<boolean>(false);
 
     // 1. Analyze Audio (Worker)
     useEffect(() => {
@@ -203,6 +207,8 @@ export const DetailWaveform = ({ buffer, currentTime, zoom, setZoom, color, heig
     const handleMouseDown = (e: React.MouseEvent) => {
         setIsDragging(true);
         lastMouseX.current = e.clientX;
+        wasPlayingRef.current = !!isPlaying;
+        if (isPlaying && onPause) onPause();
     };
 
     const handleMouseMove = (e: React.MouseEvent) => {
@@ -213,10 +219,6 @@ export const DetailWaveform = ({ buffer, currentTime, zoom, setZoom, color, heig
 
         // Calculate time delta
         // deltaX pixels / zoom (pixels/sec) = deltaSeconds
-        // Dragging LEFT (negative delta) should move time FORWARD (positive time) -> Standard "grabbing the waveform" feel
-        // Wait, if I grab and pull LEFT, I am pulling future audio into view. So time increases.
-        // So deltaX < 0 -> Time increases.
-
         const deltaSeconds = -deltaX / zoom;
         const newTime = Math.max(0, Math.min(buffer?.duration || 0, currentTime + deltaSeconds));
 
@@ -224,10 +226,16 @@ export const DetailWaveform = ({ buffer, currentTime, zoom, setZoom, color, heig
     };
 
     const handleMouseUp = () => {
+        if (isDragging && wasPlayingRef.current && onPlay) {
+            onPlay();
+        }
         setIsDragging(false);
     };
 
     const handleMouseLeave = () => {
+        if (isDragging && wasPlayingRef.current && onPlay) {
+            onPlay();
+        }
         setIsDragging(false);
     };
 

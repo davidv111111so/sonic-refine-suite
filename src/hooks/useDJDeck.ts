@@ -357,19 +357,24 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
 
         if (val < 0.48) {
             // LowPass Mode
-            const freq = Math.max(20, 20000 * (val * 2.08)); // Map 0-0.48 to 20-20k
+            // Logarithmic mapping: 0 -> 20Hz, 0.48 -> 20000Hz
+            const norm = val / 0.48; // 0 to 1
+            const freq = Math.max(20, 20 * Math.pow(1000, norm)); // 20 * 1000^1 = 20000 
+
             lpf.frequency.rampTo(freq, 0.1);
             hpf.frequency.rampTo(10, 0.1); // Open HPF
-            lpf.Q.value = 1;
+            lpf.Q.value = 0.7; // Reduced from 1.0 for a softer curve
             hpf.Q.value = 0;
         } else if (val > 0.52) {
             // HighPass Mode
-            const norm = (val - 0.52) * 2.08;
-            const freq = Math.max(10, 20000 * norm); // Map 0.52-1.0 to 10-20k
+            // Logarithmic mapping: 0.52 -> 20Hz, 1.0 -> 20000Hz
+            const norm = (val - 0.52) / 0.48; // 0 to 1
+            const freq = Math.max(10, 20 * Math.pow(1000, norm));
+
             lpf.frequency.rampTo(20000, 0.1); // Open LPF
             hpf.frequency.rampTo(freq, 0.1);
             lpf.Q.value = 0;
-            hpf.Q.value = 1;
+            hpf.Q.value = 0.7; // Reduced from 1.0 for a softer curve
         } else {
             // Neutral (0.48 - 0.52)
             lpf.frequency.rampTo(20000, 0.1);

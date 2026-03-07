@@ -4,14 +4,16 @@ interface TransportState {
     masterDeckId: 'A' | 'B' | null;
     masterBpm: number;
     masterGridAnchor: number;
+    masterPlaybackRate: number;
+    masterSystemTime: number;
     isPlaying: boolean;
     autoMasterMode: boolean;
 }
 
 interface TransportContextType {
     state: TransportState;
-    setMaster: (deckId: 'A' | 'B' | null, bpm: number, anchor: number) => void;
-    updateMasterClock: (bpm: number, anchor: number) => void;
+    setMaster: (deckId: 'A' | 'B' | null, bpm: number, anchor: number, playbackRate: number) => void;
+    updateMasterClock: (bpm: number, anchor: number, playbackRate: number) => void;
     togglePlay: () => void;
     toggleAutoMaster: () => void;
 }
@@ -23,24 +25,30 @@ export const TransportProvider = ({ children }: { children: ReactNode }) => {
         masterDeckId: null,
         masterBpm: 128,
         masterGridAnchor: 0,
+        masterPlaybackRate: 1,
+        masterSystemTime: Date.now(),
         isPlaying: false,
         autoMasterMode: false // Default to false or true? Requirement says "enabling AUTO mode using the AUTO button". Default off.
     });
 
-    const setMaster = useCallback((deckId: 'A' | 'B' | null, bpm: number, anchor: number) => {
+    const setMaster = useCallback((deckId: 'A' | 'B' | null, bpm: number, anchor: number, playbackRate: number) => {
         setState(prev => ({
             ...prev,
             masterDeckId: deckId,
             masterBpm: bpm,
-            masterGridAnchor: anchor
+            masterGridAnchor: anchor,
+            masterPlaybackRate: playbackRate,
+            masterSystemTime: Date.now()
         }));
     }, []);
 
-    const updateMasterClock = useCallback((bpm: number, anchor: number) => {
+    const updateMasterClock = useCallback((bpm: number, anchor: number, playbackRate: number) => {
         setState(prev => ({
             ...prev,
             masterBpm: bpm,
-            masterGridAnchor: anchor
+            masterGridAnchor: anchor,
+            masterPlaybackRate: playbackRate,
+            masterSystemTime: Date.now()
         }));
     }, []);
 

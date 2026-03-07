@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { TransportProvider } from '@/contexts/TransportContext';
 import { toast } from 'sonner';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 
 interface Track {
     id: string;
@@ -28,6 +29,9 @@ export const ProMixer = () => {
         headphoneMix, setHeadphoneMix, headphoneVol, setHeadphoneVol,
         analysers, handleSync, masterDeckId, setMaster, cueA, setCueA, cueB, setCueB
     } = useWebAudio();
+
+    // Enable Global DJ Keyboard Shortcuts
+    useKeyboardShortcuts(deckA, deckB);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const folderInputRef = useRef<HTMLInputElement>(null);

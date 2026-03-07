@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Settings, RotateCcw } from 'lucide-react';
 
 export interface MasteringSettings {
-  // Core Matchering settings
+  // Core Level settings
   threshold: number;
   epsilon: number;
   max_piece_length: number; // in seconds

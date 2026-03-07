@@ -11,7 +11,8 @@ import {
   Repeat,
   Trash2,
   ExternalLink,
-  RotateCcw
+  RotateCcw,
+  Square
 } from "lucide-react";
 // WaveSurfer removed
 import { DetailWaveform } from "../mixer/DetailWaveform";
@@ -759,12 +760,36 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
               </div>
             </div>
 
+            <div className="mb-2">
+              <Slider
+                value={[currentTime]}
+                max={duration || 100}
+                step={0.1}
+                onValueChange={(val) => handleWaveformSeek(val[0])}
+                className="w-full cursor-pointer"
+              />
+            </div>
+
             <div className="flex items-center justify-between text-sm text-slate-400 mb-4">
               <span className="font-mono">{formatTime(currentTime)}</span>
               <span className="font-mono">{formatTime(duration)}</span>
             </div>
 
             <div className="flex items-center justify-center gap-4 mb-6">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  stop();
+                  if (audioElement) {
+                    audioElement.currentTime = 0;
+                  }
+                }}
+                disabled={!currentTrack}
+                className="bg-slate-800 border-slate-600 hover:bg-slate-700 text-white"
+              >
+                <Square className="h-4 w-4" />
+              </Button>
               <Button
                 variant="outline"
                 size="icon"

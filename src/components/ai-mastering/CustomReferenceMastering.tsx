@@ -82,10 +82,10 @@ export const CustomReferenceMastering = () => {
     setIsProcessing(true);
     setProgressMessage('Starting mastering...');
     setProgressPercent(0);
-    
+
     try {
-      console.log('🚀 Starting real Matchering mastering...');
-      
+      console.log('🚀 Starting Level AI mastering...');
+
       // Use the new mastering service with job-based flow
       const resultBlob = await masteringService.masterAudio(
         targetFile,
@@ -101,7 +101,7 @@ export const CustomReferenceMastering = () => {
       // Create download URL
       const url = URL.createObjectURL(resultBlob.blob);
       setMasteredUrl(url);
-      
+
       toast({
         title: t('success'),
         description: 'Mastering complete! Download your mastered track.',
