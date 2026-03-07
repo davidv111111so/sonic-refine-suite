@@ -29,6 +29,10 @@ export interface DeckState {
     baseRate: number; // Persistent rate (Sync/Buttons)
     tempoBend: number; // Temporary bend 0-1 (Fader)
     pitchRange: number; // ±% range: 0.04, 0.08, 0.16, 0.50
+    // New DJ features
+    quantize: boolean; // Snap all actions to beatgrid
+    slipMode: boolean; // Background playback continues during scratch
+    slipPosition: number; // Hidden playback position during slip
 }
 
 export interface DeckControls {
@@ -59,6 +63,11 @@ export interface DeckControls {
     setKeyLock: (lock: boolean) => void;
     setTempoBend: (val: number) => void;
     setPitchRange: (range: number) => void;
+    // Beat Jump & Quantize
+    beatJump: (beats: number) => void; // ±1, ±2, ±4, ±8, ±16, ±32
+    toggleQuantize: () => void;
+    toggleSlipMode: () => void;
+    quantizeSeek: (time: number) => void; // Seek snapped to grid
     state: DeckState;
     analyser: AnalyserNode | null;
     // Outputs
@@ -161,7 +170,10 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         isStemsActive: false,
         baseRate: 1,
         tempoBend: 0.5,
-        pitchRange: 0.08 // Default ±8% like Traktor
+        pitchRange: 0.08, // Default ±8% like Traktor
+        quantize: false,
+        slipMode: false,
+        slipPosition: 0,
     });
 
     // Timing Refs (Robust Sync)
@@ -715,6 +727,59 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
     const setTempoBend = (v: number) => setState(p => ({ ...p, tempoBend: v }));
     const setPitchRange = (r: number) => setState(p => ({ ...p, pitchRange: r }));
 
+    // ─── Beat Jump (±N beats) ───
+    const beatJump = useCallback((beats: number) => {
+        setState(prev => {
+            if (!prev.bpm || prev.bpm === 0) return prev;
+            const beatDuration = 60 / prev.bpm;
+            const jumpTime = beats * beatDuration;
+            let newTime = prev.currentTime + jumpTime;
+            // Clamp to valid range
+            newTime = Math.max(0, Math.min(newTime, prev.duration));
+            // Actually seek
+            seek(newTime);
+            return { ...prev, currentTime: newTime };
+        });
+    }, [seek]);
+
+    // ─── Quantize Mode (snap to nearest grid point) ───
+    const toggleQuantize = useCallback(() => {
+        setState(p => ({ ...p, quantize: !p.quantize }));
+    }, []);
+
+    const snapToGrid = useCallback((time: number, grid: number[]): number => {
+        if (!grid || grid.length === 0) return time;
+        let closest = grid[0];
+        let minDiff = Math.abs(time - closest);
+        for (let i = 1; i < grid.length; i++) {
+            const diff = Math.abs(time - grid[i]);
+            if (diff < minDiff) {
+                minDiff = diff;
+                closest = grid[i];
+            }
+            // Early exit if grid is sorted and we're past the target
+            if (grid[i] > time + 1) break;
+        }
+        return closest;
+    }, []);
+
+    const quantizeSeek = useCallback((time: number) => {
+        setState(prev => {
+            if (prev.quantize && prev.grid.length > 0) {
+                const snapped = snapToGrid(time, prev.grid);
+                seek(snapped);
+                return { ...prev, currentTime: snapped };
+            }
+            seek(time);
+            return { ...prev, currentTime: time };
+        });
+    }, [seek, snapToGrid]);
+
+    // ─── Slip Mode ───
+    const toggleSlipMode = useCallback(() => {
+        setState(p => ({ ...p, slipMode: !p.slipMode, slipPosition: p.currentTime }));
+    }, []);
+
 
     // FX Chain Integration
     const rawContext = Tone.getContext().rawContext as AudioContext;
@@ -759,6 +824,8 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         toggleLoop, loopIn, loopOut, loopHalf, loopDouble, loopShift, setLoopPoints, quantizedLoop, loadTrack, loadStems: () => { },
         toggleStems,
         setKeyLock, setTempoBend, setPitchRange, toggleSync,
+        // New DJ features
+        beatJump, toggleQuantize, toggleSlipMode, quantizeSeek,
         state,
         analyser: analyserState,
         masterOutput: nodes.current.volume,
@@ -770,7 +837,15 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
             deleteCue: hotCuesState.deleteCue,
             jumpToCue: (index: number) => {
                 const time = hotCuesState.getCueTime(index);
-                if (time !== null) seek(time);
+                if (time !== null) {
+                    // Respect quantize mode for hot cues too
+                    if (state.quantize && state.grid.length > 0) {
+                        const snapped = snapToGrid(time, state.grid);
+                        seek(snapped);
+                    } else {
+                        seek(time);
+                    }
+                }
             },
             clearAll: hotCuesState.clearAll,
         }
