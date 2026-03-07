@@ -167,7 +167,7 @@ export const MixerControls = ({
             </div>
 
             {/* Crossfader Section (Reduced Height) */}
-            <div className="flex-none h-10 bg-[#121212] border-t border-[#27272a] flex items-center justify-between px-2 z-10 mx-1 rounded-sm gap-1 mb-1">
+            <div className="flex-none h-14 bg-[#121212] border-t border-[#27272a] flex items-center justify-between px-2 z-10 mx-1 rounded-sm gap-1 mb-1 relative overflow-hidden">
 
                 {/* Auto Fade Left */}
                 <button

@@ -342,65 +342,49 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
 
     // Mouse Interaction Handlers
     const handleMouseDown = (e: React.MouseEvent) => {
-        // Only left click
         if (e.button !== 0) return;
-
         setIsDragging(true);
         startX.current = e.clientX;
-        startSeekTime.current = currentTime;
+        startSeekTime.current = currentTimeRef.current;
         document.body.style.cursor = 'grabbing';
 
-        // Hold to Pause Logic
         wasPlayingRef.current = !!isPlaying;
         if (isPlaying && onPause) {
             onPause();
         }
     };
 
-    const handleMouseMove = (e: React.MouseEvent) => {
-        if (!isDragging || !onSeek || !buffer) return;
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            if (!isDragging || !onSeek || !buffer) return;
+            e.preventDefault();
+            const deltaPx = startX.current - e.clientX;
+            const deltaSec = deltaPx / zoom;
+            const newTime = Math.max(0, Math.min(buffer.duration, startSeekTime.current + deltaSec));
+            onSeek(newTime);
+        };
 
-        e.preventDefault();
-
-        // Scrub Logic
-        // Dragging Left (Delta < 0) -> Pulling record Left -> Audio moves Left -> Head over Future -> Time Increases
-        // Formula: DeltaPx / Zoom(Px/Sec) = DeltaSec
-
-        const deltaPx = startX.current - e.clientX; // Postive if dragged Left
-        const deltaSec = deltaPx / zoom;
-
-        const newTime = Math.max(0, Math.min(buffer.duration, startSeekTime.current + deltaSec));
-
-        // Throttling could be useful but standard setTargetAtTime in engine handles smooth updates usually.
-        // We'll call onSeek immediately for responsiveness.
-        onSeek(newTime);
-    };
-
-    const handleMouseUp = () => {
-        if (isDragging) {
-            setIsDragging(false);
-            document.body.style.cursor = '';
-
-            // Resume if was playing
-            if (wasPlayingRef.current && onPlay) {
-                onPlay();
+        const handleMouseUp = () => {
+            if (isDragging) {
+                setIsDragging(false);
+                document.body.style.cursor = '';
+                if (wasPlayingRef.current && onPlay) {
+                    onPlay();
+                }
+                wasPlayingRef.current = false;
             }
-            wasPlayingRef.current = false;
-        }
-    };
+        };
 
-    const handleMouseLeave = () => {
         if (isDragging) {
-            setIsDragging(false);
-            document.body.style.cursor = '';
-
-            // Resume if was playing (and left window)
-            if (wasPlayingRef.current && onPlay) {
-                onPlay();
-            }
-            wasPlayingRef.current = false;
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
         }
-    };
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isDragging, zoom, buffer, onSeek, onPlay]);
 
     return (
         <div
@@ -408,9 +392,6 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
             className={`w-full h-full relative overflow-hidden bg-[#121212] group ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
             onWheel={handleWheel}
             onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseLeave}
         >
             <canvas ref={canvasRef} className="block w-full h-full pointer-events-none" />
 

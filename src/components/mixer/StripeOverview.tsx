@@ -203,25 +203,48 @@ export const StripeOverview = ({
 
     }, [peaks, energyCurve, currentTime, duration, color, height, loop, cuePoint, showEnergy]);
 
-    // Navigation Handler
-    const handleUnseek = (e: React.MouseEvent) => {
-        if (!duration || duration === 0) return;
+    const [isScrubbing, setIsScrubbing] = useState(false);
 
+    const updateSeek = (e: MouseEvent | React.MouseEvent) => {
+        if (!duration || duration === 0) return;
         const rect = containerRef.current?.getBoundingClientRect();
         if (!rect) return;
-
         const x = e.clientX - rect.left;
         const percentage = x / rect.width;
         const newTime = percentage * duration;
-
         onSeek(Math.min(duration, Math.max(0, newTime)));
     };
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        if (e.button !== 0) return;
+        setIsScrubbing(true);
+        updateSeek(e); // Seek immediately on click down
+    };
+
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            if (isScrubbing) updateSeek(e);
+        };
+        const handleMouseUp = () => {
+            if (isScrubbing) setIsScrubbing(false);
+        };
+
+        if (isScrubbing) {
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
+        }
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isScrubbing, duration, onSeek]);
 
     return (
         <div
             ref={containerRef}
-            className="w-full h-full cursor-pointer relative group"
-            onMouseDown={handleUnseek}
+            className={`w-full h-full cursor-pointer relative group ${isScrubbing ? 'cursor-grabbing' : ''}`}
+            onMouseDown={handleMouseDown}
         >
             <canvas ref={canvasRef} width={800} height={height} className="w-full h-full block" />
             <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
