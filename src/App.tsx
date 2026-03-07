@@ -75,6 +75,7 @@ const App = () => (
                         </BetaGate>
                       } />
                       <Route path="/mixer" element={<ProMixer />} />
+                      <Route path="/landing" element={<Landing />} />
                       <Route path="/" element={<RootRoute />} />
                       <Route path="*" element={
                         <BetaGate>

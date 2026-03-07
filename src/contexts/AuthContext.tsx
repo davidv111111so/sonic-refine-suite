@@ -96,12 +96,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setProfile(prev => prev ? { ...prev, ...updates } : null);
   };
 
+  // Map legacy tier values to new system
+  const tier = profile?.tier;
+  const isAdmin = tier === 'admin';
+  const isPremium = tier === 'pro' || tier === 'studio' || tier === 'admin' || tier === ('premium' as any) || tier === ('vip' as any);
+  const isStudio = tier === 'studio' || isAdmin;
+
   const value = {
     profile,
     loading,
-    isAdmin: profile?.tier === 'admin',
-    isVip: profile?.tier === 'vip' || profile?.tier === 'admin',
-    isPremium: profile?.tier === 'premium' || profile?.tier === 'vip' || profile?.tier === 'admin',
+    isAdmin,
+    isVip: isStudio, // backward compat
+    isPremium,
     signOut,
     refreshProfile,
     updateProfile
