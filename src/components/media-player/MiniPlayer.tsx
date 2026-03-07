@@ -10,9 +10,15 @@ interface MiniPlayerProps {
 }
 
 export const MiniPlayer: React.FC<MiniPlayerProps> = ({ onExpand, onClose }) => {
-    const { currentTrack, isPlaying, playPause, volume, setVolume, playNext, playPrevious } = usePlayer();
+    const { currentTrack, isPlaying, playPause, volume, setVolume, playNext, playPrevious, currentTime, duration, seekTo } = usePlayer();
 
     if (!currentTrack) return null;
+
+    const formatTime = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, "0")}`;
+    };
 
     return (
         <div className="fixed bottom-4 right-4 z-50 w-80 bg-slate-900/95 backdrop-blur-md border border-cyan-500/30 rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.2)] p-4 animate-in slide-in-from-bottom-10 fade-in duration-300">
@@ -70,6 +76,21 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({ onExpand, onClose }) => 
                 >
                     <SkipForward className="h-4 w-4" />
                 </Button>
+            </div>
+
+            {/* Progress Slider */}
+            <div className="space-y-1 mb-3">
+                <Slider
+                    value={[currentTime]}
+                    max={duration || 100}
+                    step={0.1}
+                    onValueChange={(v) => seekTo(v[0])}
+                    className="h-1"
+                />
+                <div className="flex justify-between text-[10px] font-mono text-slate-400">
+                    <span>{formatTime(currentTime)}</span>
+                    <span>{formatTime(duration)}</span>
+                </div>
             </div>
 
             <div className="flex items-center gap-2">

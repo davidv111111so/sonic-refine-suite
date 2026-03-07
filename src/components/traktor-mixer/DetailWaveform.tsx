@@ -203,48 +203,67 @@ export const DetailWaveform = ({ buffer, currentTime, zoom, setZoom, color, heig
         setZoom(newZoom);
     };
 
-    // 4. Drag Interaction
-    const handleMouseDown = (e: React.MouseEvent) => {
+    // 4. Improved Drag Interaction (Pointer Events for Cross-Device Support)
+    useEffect(() => {
+        const handleGlobalPointerMove = (e: PointerEvent) => {
+            if (!isDragging || !onSeek || !buffer) return;
+
+            // Track movement
+            const deltaX = e.clientX - lastMouseX.current;
+            lastMouseX.current = e.clientX;
+
+            // Vinyl-style scrubbing: move time based on pixels dragged
+            // Map pixels to seconds based on zoom Level
+            const deltaSeconds = -deltaX / zoom;
+            const newTime = Math.max(0, Math.min(buffer.duration, currentTime + deltaSeconds));
+
+            onSeek(newTime);
+        };
+
+        const handleGlobalPointerUp = () => {
+            if (isDragging) {
+                if (wasPlayingRef.current && onPlay) {
+                    onPlay();
+                }
+                setIsDragging(false);
+            }
+        };
+
+        if (isDragging) {
+            window.addEventListener('pointermove', handleGlobalPointerMove);
+            window.addEventListener('pointerup', handleGlobalPointerUp);
+            window.addEventListener('pointercancel', handleGlobalPointerUp);
+        }
+
+        return () => {
+            window.removeEventListener('pointermove', handleGlobalPointerMove);
+            window.removeEventListener('pointerup', handleGlobalPointerUp);
+            window.removeEventListener('pointercancel', handleGlobalPointerUp);
+        };
+    }, [isDragging, onSeek, zoom, buffer, currentTime, onPlay]);
+
+    const handlePointerDown = (e: React.PointerEvent) => {
+        // Only left click or primary touch
+        if (e.button !== 0) return;
+
         setIsDragging(true);
         lastMouseX.current = e.clientX;
         wasPlayingRef.current = !!isPlaying;
+
         if (isPlaying && onPause) onPause();
-    };
 
-    const handleMouseMove = (e: React.MouseEvent) => {
-        if (!isDragging || !onSeek) return;
-
-        const deltaX = e.clientX - lastMouseX.current;
-        lastMouseX.current = e.clientX;
-
-        // Calculate time delta
-        // deltaX pixels / zoom (pixels/sec) = deltaSeconds
-        const deltaSeconds = -deltaX / zoom;
-        const newTime = Math.max(0, Math.min(buffer?.duration || 0, currentTime + deltaSeconds));
-
-        onSeek(newTime);
-    };
-
-    const handleMouseUp = () => {
-        if (isDragging && wasPlayingRef.current && onPlay) {
-            onPlay();
-        }
-        setIsDragging(false);
-    };
-
-    const handleMouseLeave = () => {
-        if (isDragging && wasPlayingRef.current && onPlay) {
-            onPlay();
-        }
-        setIsDragging(false);
+        // Prevent text selection during drag
+        e.preventDefault();
     };
 
     // Resize Observer
     useEffect(() => {
         if (!containerRef.current || !canvasRef.current) return;
         const resize = () => {
-            canvasRef.current!.width = containerRef.current!.clientWidth;
-            canvasRef.current!.height = containerRef.current!.clientHeight;
+            if (canvasRef.current && containerRef.current) {
+                canvasRef.current.width = containerRef.current.clientWidth;
+                canvasRef.current.height = containerRef.current.clientHeight;
+            }
         };
         resize();
         window.addEventListener('resize', resize);
@@ -257,10 +276,7 @@ export const DetailWaveform = ({ buffer, currentTime, zoom, setZoom, color, heig
             className={`w-full relative bg-[#09090b] overflow-hidden ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
             style={{ height }}
             onWheel={handleWheel}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseLeave}
+            onPointerDown={handlePointerDown}
         >
             <canvas ref={canvasRef} className="block w-full h-full" />
 

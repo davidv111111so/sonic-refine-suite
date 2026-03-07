@@ -355,30 +355,30 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
 
         const val = state.filter; // 0.0 to 1.0, 0.5 = Neutral
 
-        if (val < 0.48) {
+        if (val < 0.45) {
             // LowPass Mode
-            // Logarithmic mapping: 0 -> 20Hz, 0.48 -> 20000Hz
-            const norm = val / 0.48; // 0 to 1
-            const freq = Math.max(20, 20 * Math.pow(1000, norm)); // 20 * 1000^1 = 20000 
+            // Use a higher power (4) to keep frequency high near the center, making it 'smoother'
+            const norm = val / 0.45; // 0 to 1
+            const freq = Math.max(20, 20 + 19980 * Math.pow(norm, 4));
 
-            lpf.frequency.rampTo(freq, 0.1);
-            hpf.frequency.rampTo(10, 0.1); // Open HPF
-            lpf.Q.value = 0.7; // Reduced from 1.0 for a softer curve
+            lpf.frequency.rampTo(freq, 0.15);
+            hpf.frequency.rampTo(10, 0.15);
+            lpf.Q.value = 0.5; // Softer resonance
             hpf.Q.value = 0;
-        } else if (val > 0.52) {
+        } else if (val > 0.55) {
             // HighPass Mode
-            // Logarithmic mapping: 0.52 -> 20Hz, 1.0 -> 20000Hz
-            const norm = (val - 0.52) / 0.48; // 0 to 1
-            const freq = Math.max(10, 20 * Math.pow(1000, norm));
+            const norm = (1.0 - val) / 0.45; // 0 (at 1.0) to 1 (at 0.55)
+            // freq should be 20000 at 1.0, and 20 at 0.55
+            const freq = Math.max(10, 20000 - 19980 * Math.pow(norm, 4));
 
-            lpf.frequency.rampTo(20000, 0.1); // Open LPF
-            hpf.frequency.rampTo(freq, 0.1);
+            lpf.frequency.rampTo(20000, 0.15);
+            hpf.frequency.rampTo(freq, 0.15);
             lpf.Q.value = 0;
-            hpf.Q.value = 0.7; // Reduced from 1.0 for a softer curve
+            hpf.Q.value = 0.5; // Softer resonance
         } else {
-            // Neutral (0.48 - 0.52)
-            lpf.frequency.rampTo(20000, 0.1);
-            hpf.frequency.rampTo(10, 0.1);
+            // Neutral (0.45 - 0.55)
+            lpf.frequency.rampTo(20000, 0.15);
+            hpf.frequency.rampTo(10, 0.15);
             lpf.Q.value = 0;
             hpf.Q.value = 0;
         }

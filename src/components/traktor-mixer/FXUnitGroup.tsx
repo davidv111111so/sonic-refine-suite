@@ -67,7 +67,7 @@ const FXSlot = ({
                     max={1}
                     onChange={setAmount}
                     color={isOn ? "cyan" : "white"}
-                    size={36}
+                    size={30}
                 />
             </div>
 

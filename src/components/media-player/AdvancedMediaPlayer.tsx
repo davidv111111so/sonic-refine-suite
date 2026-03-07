@@ -52,6 +52,7 @@ interface AdvancedMediaPlayerProps {
 }
 
 const INITIAL_EQ_BANDS: EQBand[] = [
+  { frequency: 32, gain: 0 },
   { frequency: 64, gain: 0 },
   { frequency: 125, gain: 0 },
   { frequency: 250, gain: 0 },
@@ -60,6 +61,7 @@ const INITIAL_EQ_BANDS: EQBand[] = [
   { frequency: 2000, gain: 0 },
   { frequency: 4000, gain: 0 },
   { frequency: 8000, gain: 0 },
+  { frequency: 16000, gain: 0 },
 ];
 
 const INITIAL_COMPRESSOR: CompressorSettings = {

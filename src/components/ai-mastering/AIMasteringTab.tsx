@@ -184,23 +184,13 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
   };
 
   // Helper function to trigger file download using native FileSaver
-  const downloadMasteredFile = async (blob: Blob, fileName: string) => {
+  const downloadMasteredFile = (blob: Blob, fileName: string) => {
     console.log(`⬇️ Downloading file: ${fileName}, size: ${blob.size}, type: ${blob.type}`);
 
     // Force audio/wav type if missing or incorrect
     const wavBlob = blob.type === 'audio/wav' ? blob : new Blob([blob], { type: 'audio/wav' });
 
-    try {
-      const url = URL.createObjectURL(wavBlob);
-      const response = await fetch(url);
-      const fetchedBlob = await response.blob();
-      saveAs(fetchedBlob, fileName.endsWith('.wav') ? fileName : `${fileName}.wav`);
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      console.error('Fetch blobing failed, direct saveAs fallback');
-      saveAs(wavBlob, fileName.endsWith('.wav') ? fileName : `${fileName}.wav`);
-    }
-
+    saveAs(wavBlob, fileName.endsWith('.wav') ? fileName : `${fileName}.wav`);
     console.log("✅ Download triggered via file-saver");
   };
 
@@ -490,19 +480,16 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
     setIsProcessing(true);
     setProgress(0);
 
-    // Smooth progress simulation
-    let simulatedProgress = 0;
+    // Higher increment for 1-3 min avg time
     const progressInterval = setInterval(() => {
-      // Very slow progression to avoid hitting 92% within the first 60 seconds
-      // Aims to reach 92% in about 3-5 minutes depending on math.random
-      simulatedProgress += Math.random() * 0.4 + 0.1;
-      if (simulatedProgress > 92) simulatedProgress = 92; // Cap at 92% until real completion
+      simulatedProgress += Math.random() * 0.8 + 0.4;
+      if (simulatedProgress > 92) simulatedProgress = 92;
       setProgress(prev => Math.max(prev, simulatedProgress));
     }, 1000);
 
     try {
       toast.info("Mastering Started", {
-        description: "AI Mastering typically takes 5-15 minutes depending on track length and hardware performance. Please stay on this page.",
+        description: "AI Mastering typically takes 1-3 minutes avg (GPU Accelerated). Please stay on this page.",
         duration: 12000,
       });
 
@@ -639,9 +626,9 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
 
         <Alert className="bg-blue-950/20 border-blue-500/50 text-blue-200">
           <AlertCircle className="h-4 w-4 text-blue-400" />
-          <AlertTitle>AI Mastering | 5 - 10 minutes Estimated</AlertTitle>
+          <AlertTitle>AI Mastering | 1 - 3 minutes Estimated</AlertTitle>
           <AlertDescription className="text-sm opacity-90">
-            Professional system supports high-fidelity audio files up to 1GB. Processing typically takes 5 - 10 minutes depending on track length.
+            Professional system supports high-fidelity audio files up to 1GB. Processing typically takes 1 - 3 minutes (GPU Accelerated).
           </AlertDescription>
         </Alert>
         <AIMasteringGuide open={showGuide} onOpenChange={setShowGuide} />

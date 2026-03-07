@@ -126,9 +126,8 @@ export const LevelUpload = ({
                         {isDragActive ? "Drop files here" : "Drag & Drop or Click to Upload"}
                     </h3>
                     <p className="text-slate-400 text-xs font-medium">
-                        MP3, WAV, FLAC (Max 100MB)
-                    </p>
-                </div>
+                        MP3, WAV, FLAC | Max 10 Files | 100MB Per Track
+                    </p>                </div>
             </div>
 
             {/* Consent Checkbox */}

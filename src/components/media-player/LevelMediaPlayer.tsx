@@ -44,6 +44,7 @@ interface LevelMediaPlayerProps {
 }
 
 const INITIAL_EQ_BANDS: EQBand[] = [
+  { frequency: 32, gain: 0 },
   { frequency: 64, gain: 0 },
   { frequency: 125, gain: 0 },
   { frequency: 250, gain: 0 },
@@ -52,6 +53,7 @@ const INITIAL_EQ_BANDS: EQBand[] = [
   { frequency: 2000, gain: 0 },
   { frequency: 4000, gain: 0 },
   { frequency: 8000, gain: 0 },
+  { frequency: 16000, gain: 0 },
 ];
 
 const INITIAL_COMPRESSOR: CompressorSettings = {
@@ -854,6 +856,7 @@ export const LevelMediaPlayer: React.FC<LevelMediaPlayerProps> = ({
               newBands[index] = { ...newBands[index], gain };
               setEqBands(newBands);
             }}
+            onBandsChange={setEqBands}
             onReset={() => {
               setEqBands(INITIAL_EQ_BANDS);
               toast.success("EQ reset to flat");

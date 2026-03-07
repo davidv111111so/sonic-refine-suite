@@ -30,17 +30,17 @@ interface TenBandEqualizerProps {
   isLocked?: boolean;
 }
 
-const FREQUENCIES = [64, 125, 250, 500, 1000, 2000, 4000, 8000];
+const FREQUENCIES = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
 
 const PRESETS = {
-  "Flat": [0, 0, 0, 0, 0, 0, 0, 0],
-  "Bass Boost": [10, 8, 4, 1, 0, -1, -2, 0],
-  "Treble Boost": [-2, -1, 0, 1, 3, 6, 8, 10],
-  "Vocal": [-4, -2, 2, 6, 8, 6, 2, -1],
-  "Rock": [8, 6, -3, -4, -2, 4, 7, 8],
-  "Pop": [5, 4, 3, 1, 0, -2, 4, 6],
-  "Jazz": [6, 4, 0, 3, 4, 3, 0, 4],
-  "Classical": [7, 5, 2, 1, 0, 2, 5, 7],
+  "Flat": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  "Bass Boost": [12, 10, 8, 4, 1, 0, -1, -2, -1, 0],
+  "Treble Boost": [-3, -2, -1, 0, 1, 3, 6, 9, 12, 14],
+  "Vocal": [-5, -3, -1, 3, 7, 9, 7, 4, 2, -1],
+  "Rock": [10, 8, 6, -3, -5, -3, 5, 8, 10, 9],
+  "Pop": [6, 5, 4, 2, 0, -2, 3, 5, 7, 6],
+  "Jazz": [8, 6, 4, 0, 4, 5, 4, 1, 3, 5],
+  "Classical": [9, 7, 5, 2, 1, 0, 3, 6, 8, 10],
 };
 
 export const TenBandEqualizer: React.FC<TenBandEqualizerProps> = ({
@@ -106,8 +106,8 @@ export const TenBandEqualizer: React.FC<TenBandEqualizerProps> = ({
     // +12dB is at 0 (top).
     // -12dB is at height (bottom).
     const getY = (gain: number) => {
-      const normalizedGain = Math.max(-12, Math.min(12, gain)); // Clamp
-      const percent = (normalizedGain + 12) / 24; // 0 to 1
+      const normalizedGain = Math.max(-15, Math.min(15, gain)); // Clamp
+      const percent = (normalizedGain + 15) / 30; // 0 to 1
       return height - (percent * height);
     };
 
@@ -277,8 +277,8 @@ export const TenBandEqualizer: React.FC<TenBandEqualizerProps> = ({
                       <Slider
                         orientation="vertical"
                         value={[band.gain]}
-                        min={-12}
-                        max={12}
+                        min={-15}
+                        max={15}
                         step={0.1}
                         onValueChange={(values) => {
                           onBandChange(index, values[0]);
