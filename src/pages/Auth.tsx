@@ -574,6 +574,21 @@ export default function Auth() {
             )}
           </CardContent>
         </Card>
+
+        {/* Navigation back to landing/promo page */}
+        <div className="mt-8 text-center flex flex-col items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
+          <Button
+            variant="link"
+            className="text-slate-400 hover:text-cyan-400 transition-colors gap-2"
+            onClick={() => navigate('/')}
+          >
+            <Music className="h-4 w-4" />
+            Back to Home
+          </Button>
+          <p className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-light">
+            Professional Audio Tools for Creators
+          </p>
+        </div>
       </div>
     </>
   );

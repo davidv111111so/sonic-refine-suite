@@ -118,6 +118,13 @@ export const UserHeader = ({ onLogout }: UserHeaderProps) => {
               <UserIcon className="mr-2 h-4 w-4" />
               <span>Profile</span>
             </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => navigate('/landing')}
+              className="text-white hover:bg-slate-800 cursor-pointer"
+            >
+              <Sparkles className="mr-2 h-4 w-4 text-cyan-400" />
+              <span>About Level</span>
+            </DropdownMenuItem>
             {isAdmin && (
               <DropdownMenuItem
                 onClick={() => navigate('/admin')}
