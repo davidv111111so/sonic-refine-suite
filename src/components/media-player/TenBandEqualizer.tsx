@@ -254,7 +254,7 @@ export const TenBandEqualizer: React.FC<TenBandEqualizerProps> = ({
         </div>
 
         {/* Sliders Grid */}
-        <div className="grid grid-cols-8 gap-2 relative z-10">
+        <div className="grid grid-cols-10 gap-1 sm:gap-2 relative z-10">
           {bands.map((band, index) => (
             <div key={index} className="flex flex-col items-center gap-3 group">
               {/* Gain Value */}
