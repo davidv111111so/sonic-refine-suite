@@ -27,6 +27,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { LevelLogo } from '@/components/LevelLogo';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
 /* ─── Animated Audio Wave Background ─── */
@@ -205,6 +206,7 @@ const SuiteCard: React.FC<{ feature: SuiteFeature; index: number }> = ({ feature
 
 export const Landing = () => {
     const navigate = useNavigate();
+    const { profile } = useAuth();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [selectedPayment, setSelectedPayment] = useState<'paddle' | 'crypto'>('paddle');
 
@@ -283,18 +285,29 @@ export const Landing = () => {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <Button
-                            variant="ghost"
-                            className="hidden sm:flex text-slate-300 hover:text-white"
-                            onClick={() => navigate('/auth')}
-                        >
-                            Sign In
-                        </Button>
+                        {profile ? (
+                            <Button
+                                variant="ghost"
+                                className="hidden sm:flex text-cyan-400 hover:text-cyan-300 font-medium"
+                                onClick={() => navigate('/app')}
+                            >
+                                <Layout className="mr-2 h-4 w-4" />
+                                Dashboard
+                            </Button>
+                        ) : (
+                            <Button
+                                variant="ghost"
+                                className="hidden sm:flex text-slate-300 hover:text-white"
+                                onClick={() => navigate('/auth')}
+                            >
+                                Sign In
+                            </Button>
+                        )}
                         <Button
                             className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-6 rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all hover:scale-105"
                             onClick={() => navigate('/app')}
                         >
-                            Get Started
+                            {profile ? 'Go to App' : 'Get Started'}
                         </Button>
                         <button className="md:hidden p-2 text-slate-400" onClick={() => setIsMenuOpen(!isMenuOpen)}>
                             {isMenuOpen ? <X /> : <Menu />}

@@ -61,6 +61,7 @@ const App = () => (
                     <FloatingMiniPlayer />
                     <TrialLimitListener />
                     <Routes>
+                      <Route path="/landing" element={<Landing />} />
                       <Route path="/player" element={<PlayerPage />} />
                       <Route path="/auth" element={<Auth />} />
                       <Route path="/terms" element={<TermsAndConditions />} />
@@ -75,7 +76,6 @@ const App = () => (
                         </BetaGate>
                       } />
                       <Route path="/mixer" element={<ProMixer />} />
-                      <Route path="/landing" element={<Landing />} />
                       <Route path="/" element={<RootRoute />} />
                       <Route path="*" element={
                         <BetaGate>
