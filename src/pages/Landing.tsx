@@ -589,7 +589,7 @@ export const Landing = () => {
                             <div className="flex flex-wrap items-center justify-center gap-6 mt-10 text-slate-500 text-sm">
                                 <div className="flex items-center gap-2"><Shield className="w-4 h-4" /> Secure Checkout</div>
                                 <div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> Cancel Anytime</div>
-                                <div className="flex items-center gap-2"><Shield className="w-4 h-4" /> 14-Day Refund Guarantee</div>
+                                <div className="flex items-center gap-2"><Shield className="w-4 h-4" /> 7-Day Refund Guarantee</div>
                             </div>
                             <p className="text-center text-xs text-slate-600 mt-4">
                                 {selectedPayment === 'paddle'
@@ -700,7 +700,7 @@ export const Landing = () => {
                     <div className="flex-1 relative">
                         <div className="absolute inset-0 bg-purple-500/20 blur-[120px] rounded-full" />
                         <div className="relative border border-white/10 rounded-3xl overflow-hidden shadow-2xl transform hover:scale-[1.02] transition-transform duration-700">
-                            <img src="/external_player_screenshot.png" alt="External Media Player UI" className="w-full h-auto" />
+                            <img src="/external_player_screenshot.jpg" alt="External Media Player UI" className="w-full h-auto" />
                         </div>
                     </div>
                 </div>

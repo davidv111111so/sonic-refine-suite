@@ -26,7 +26,7 @@ const RefundPolicy = () => {
                     </div>
                     <div className="flex items-center gap-3 bg-cyan-500/10 text-cyan-400 px-4 py-2 rounded-full font-medium">
                         <Shield className="h-5 w-5" />
-                        14-Day Money Back Guarantee
+                        7-Day Money Back Guarantee
                     </div>
                 </div>
 
@@ -51,11 +51,11 @@ const RefundPolicy = () => {
 
                             <section>
                                 <h2 className="text-xl font-bold flex items-center gap-2 text-white">
-                                    2. 14-Day Money-Back Guarantee
+                                    2. 7-Day Money-Back Guarantee
                                 </h2>
                                 <p>
-                                    We offer a full 14-day money-back guarantee for all new subscriptions and one-time purchases (e.g., Desktop Pro tier).
-                                    If you realize our tools don't meet your needs within the first 14 days of your original purchase, you can request a full refund, no questions asked.
+                                    We offer a full 7-day money-back guarantee for all new subscriptions and one-time purchases (e.g., Desktop Pro tier).
+                                    If you realize our tools don't meet your needs within the first 7 days of your original purchase, you can request a full refund, no questions asked.
                                 </p>
                                 <p className="p-4 bg-orange-500/10 rounded-lg border border-orange-500/20 text-orange-200 mt-4 text-sm">
                                     <strong>Note on Cryptocurrencies:</strong> For payments made via Coinbase Commerce (BTC, ETH, USDC), refunds will be processed based on the <strong>fiat ($USD) value</strong> of the transaction at the time of purchase, minus any network gas fees incurred during the refund transfer.
