@@ -715,7 +715,7 @@ export const Landing = () => {
                     <div className="flex gap-8">
                         <a href="/terms" className="hover:text-white transition-colors">Terms</a>
                         <a href="#" className="hover:text-white transition-colors">Privacy</a>
-                        <a href="#" className="hover:text-white transition-colors">Refunds</a>
+                        <a href="/refunds" className="hover:text-white transition-colors">Refunds</a>
                     </div>
                     <p>© 2025 Level Audio. All rights reserved.</p>
                 </div>

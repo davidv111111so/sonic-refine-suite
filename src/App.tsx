@@ -17,6 +17,7 @@ import { TermsAndConditions } from "./pages/TermsAndConditions";
 import Landing from "./pages/Landing";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
+import RefundPolicy from './pages/RefundPolicy';
 import { ProMixer } from "@/components/mixer/ProMixer";
 import { initAudioContextOnInteraction } from "@/utils/audioContextManager";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -65,6 +66,7 @@ const App = () => (
                       <Route path="/player" element={<PlayerPage />} />
                       <Route path="/auth" element={<Auth />} />
                       <Route path="/terms" element={<TermsAndConditions />} />
+                      <Route path="/refunds" element={<RefundPolicy />} />
                       <Route path="/admin" element={
                         <BetaGate>
                           <Admin />
