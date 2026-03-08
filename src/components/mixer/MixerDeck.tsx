@@ -22,6 +22,7 @@ interface MixerDeckProps {
     isDeckMaster?: boolean;
     handleSync?: () => void;
     onSync?: () => void;
+    onKeySync?: () => void;
     handleMaster?: () => void;
     showGrid?: boolean;
     color?: string;
@@ -29,7 +30,7 @@ interface MixerDeckProps {
     analyser?: AnalyserNode;
 }
 
-export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeckMaster, handleSync, onSync, handleMaster, showGrid = true, color = 'cyan', accentColor = 'text-cyan-400', analyser }: MixerDeckProps) => {
+export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeckMaster, handleSync, onSync, onKeySync, handleMaster, showGrid = true, color = 'cyan', accentColor = 'text-cyan-400', analyser }: MixerDeckProps) => {
     const isCyan = color === 'cyan';
     const [zoom, setZoom] = useState(100);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -254,7 +255,26 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                                 </div>
                             ))}
                         </div>
-                        <span className={cn(isCyan ? "text-cyan-200" : "text-purple-200", "font-mono")}>{controls.state.key || "--"}</span>
+                        <div className="flex items-center gap-1">
+                            {onKeySync && controls.state.key && (
+                                <button
+                                    onClick={onKeySync}
+                                    className={cn(
+                                        "text-[7px] px-1 rounded-sm border cursor-pointer hover:bg-white/10 active:scale-95 transition-all",
+                                        controls.state.pitch !== 0 ? "border-[#22c55e] text-[#22c55e] bg-[#22c55e]/10" : "border-[#3f3f46] text-neutral-500"
+                                    )}
+                                    title={controls.state.pitch !== 0 ? "Key Sync Active" : "Sync Key to Master Deck"}
+                                >
+                                    MATCH
+                                </button>
+                            )}
+                            <span
+                                className={cn(isCyan ? "text-cyan-200" : "text-purple-200", "font-mono")}
+                                title={Math.abs(controls.state.pitch) > 0.01 ? `Shifted ${controls.state.pitch > 0 ? '+' : ''}${controls.state.pitch.toFixed(1)} st` : 'Original Key'}
+                            >
+                                {controls.state.key || "--"}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>

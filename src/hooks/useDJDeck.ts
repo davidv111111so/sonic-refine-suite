@@ -92,6 +92,7 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
 
     const nodes = useRef<{
         player: Tone.Player | null;
+        pitchShift: Tone.PitchShift | null;
         stems?: { [key: string]: Tone.Player };
         trim: Tone.Gain | null;
         eq: Tone.EQ3 | null;
@@ -117,6 +118,7 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         } | null;
     }>({
         player: null,
+        pitchShift: null,
         trim: null,
         eq: null,
         analyser: null,
@@ -207,6 +209,9 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
     useEffect(() => {
         // Create Nodes
         const player = new Tone.Player();
+        const pitchShift = new Tone.PitchShift({
+            windowSize: 0.04 // Lower latency, good for rhythm preservation (40ms)
+        });
         const trim = new Tone.Gain(1);
         const eq = new Tone.EQ3({
             lowFrequency: 300,
@@ -230,12 +235,13 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
 
         const meter = new Tone.Meter();
 
-        // Connect Chain: Player -> Trim -> EQ -> Filter -> Volume -> MasterOutput
+        // Connect Chain: Player -> PitchShift -> Trim -> EQ -> Filter -> Volume -> MasterOutput
         //                                            |-> CueGate -> CueOutput
 
         const limiter = new Tone.Limiter(-1);
 
-        player.connect(trim);
+        player.connect(pitchShift);
+        pitchShift.connect(trim);
         trim.connect(eq);
         eq.connect(lpf);
         lpf.connect(hpf);
@@ -259,6 +265,7 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         }
         nodes.current = {
             player,
+            pitchShift,
             trim,
             eq,
             volume,
@@ -296,6 +303,7 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         return () => {
             // Dispose Tone nodes
             player.dispose();
+            pitchShift.dispose();
             trim.dispose();
             eq.dispose();
             lpf.dispose();
@@ -396,15 +404,31 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         }
     }, [state.filter]);
 
-    // Playback Rate
+    // Playback Rate & Key Shift (Key Lock / Master Tempo)
     useEffect(() => {
-        if (!nodes.current.player) return;
+        if (!nodes.current.player || !nodes.current.pitchShift) return;
+
+        // Base playback rate assignment
         nodes.current.player.playbackRate = state.playbackRate;
-        // Tone.js Detune is in cents.
-        // Pitch shift separate from Rate? Tone.Player usually links them (resampling).
-        // If KeyLock is needed, Tone.Player has "grainPlayer" mode or we use Tone.PitchShift.
-        // For now, vinyl mode (resampling) is default.
-    }, [state.playbackRate]);
+
+        // Effective pitch shift logic
+        // 1. User manual pitch override (state.pitch) is expected in semitones (e.g. from Key Sync)
+        let effectiveShift = state.pitch;
+
+        // 2. Key Lock: Counteract the vinyl resampling pitch shift if active
+        if (state.keyLock) {
+            // Playback rate 1.05 = ~0.84 semitones up. We need to shift -0.84 to correct it.
+            const autoCorrection = -12 * Math.log2(state.playbackRate);
+            effectiveShift += autoCorrection;
+        }
+
+        // Only apply if it's significant to avoid artifacts
+        if (Math.abs(effectiveShift) < 0.01) {
+            nodes.current.pitchShift.pitch = 0;
+        } else {
+            nodes.current.pitchShift.pitch = effectiveShift;
+        }
+    }, [state.playbackRate, state.keyLock, state.pitch]);
 
 
     // Methods
@@ -607,18 +631,22 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
 
     // Reactive Stem Routing
     useEffect(() => {
-        const { player, trim, stemFilters, stemGains, lpf } = nodes.current;
-        if (!player || !trim || !stemFilters || !stemGains || !lpf) return;
+        const { player, pitchShift, trim, stemFilters, stemGains, lpf } = nodes.current;
+        if (!player || !pitchShift || !trim || !stemFilters || !stemGains || !lpf) return;
 
-        // Disconnect player from previous inputs to avoid duplicates or mixing
+        // Ensure player is connected to pitchShift
         player.disconnect();
+        player.connect(pitchShift);
+
+        // Disconnect pitchShift from downstream to avoid duplicates or mixing
+        pitchShift.disconnect();
 
         if (state.isStemsActive) {
-            // Player -> StemFilters
+            // pitchShift -> StemFilters
             // COMPENSATE: Sum of parallel filters often exceeds 1.0. Applied a 0.70x (-3dB) pad.
             Object.keys(stemFilters).forEach((key) => {
                 const k = key as keyof typeof stemFilters;
-                player.connect(stemFilters[k]);
+                pitchShift.connect(stemFilters[k]);
                 // Ensure stem gains are initialized
                 if (nodes.current.stemGains) {
                     nodes.current.stemGains[k].gain.value = state.stemVolumes[k] * 0.70;
@@ -626,7 +654,7 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
             });
         } else {
             // Direct Route
-            player.connect(trim);
+            pitchShift.connect(trim);
         }
     }, [state.isStemsActive]);
 
