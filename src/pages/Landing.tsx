@@ -607,7 +607,15 @@ export const Landing = () => {
                                     { title: "Hardware Sync Guide", time: "12 min read", icon: <Layout className="text-purple-400" /> },
                                     { title: "Lossless Export Settings", time: "4 min read", icon: <Download className="text-green-400" /> }
                                 ].map((g, i) => (
-                                    <Card key={i} className="bg-slate-900/50 border-white/5 p-6 hover:bg-slate-800/50 cursor-pointer transition-all">
+                                    <Card
+                                        key={i}
+                                        className="bg-slate-900/50 border-white/5 p-6 hover:bg-slate-800/50 cursor-pointer transition-all"
+                                        onClick={() => {
+                                            toast.success("Opening guide...", {
+                                                description: `The guide "${g.title}" will be available in the next content update.`
+                                            });
+                                        }}
+                                    >
                                         <div className="flex items-center gap-4">
                                             <div className="p-3 bg-white/5 rounded-xl">{g.icon}</div>
                                             <div>
@@ -634,7 +642,14 @@ export const Landing = () => {
                                         <input type="email" placeholder="Email" className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-slate-200 outline-none focus:border-cyan-500" />
                                     </div>
                                     <textarea placeholder="How can we help?" className="w-full h-32 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-slate-200 outline-none focus:border-cyan-500 resize-none" />
-                                    <Button className="w-full py-6 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-xl">
+                                    <Button
+                                        className="w-full py-6 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-xl"
+                                        onClick={() => {
+                                            toast.success("Message sent!", {
+                                                description: "Our support team will get back to you shortly."
+                                            });
+                                        }}
+                                    >
                                         Send Message
                                     </Button>
                                 </form>
@@ -657,10 +672,27 @@ export const Landing = () => {
                             Download our standalone player for free. Ultra-high fidelity audio and video playback with real-time effects, visualizers, and 10-band EQ.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4">
-                            <Button className="bg-purple-600 hover:bg-purple-500 text-white font-bold h-14 px-8 rounded-xl shadow-lg shadow-purple-500/20">
+                            <Button
+                                className="bg-purple-600 hover:bg-purple-500 text-white font-bold h-14 px-8 rounded-xl shadow-lg shadow-purple-500/20"
+                                onClick={() => {
+                                    toast.info("Coming Soon", {
+                                        description: "The native Windows application is currently in beta. Redirecting to the web player instead."
+                                    });
+                                    setTimeout(() => navigate('/player'), 1500);
+                                }}
+                            >
                                 <Download className="mr-2 h-5 w-5" /> Download for Windows
                             </Button>
-                            <Button variant="outline" className="border-white/10 hover:bg-white/5 text-slate-300 h-14 px-8 rounded-xl">
+                            <Button
+                                variant="outline"
+                                className="border-white/10 hover:bg-white/5 text-slate-300 h-14 px-8 rounded-xl"
+                                onClick={() => {
+                                    toast.info("Coming Soon", {
+                                        description: "The native macOS application is currently in beta. Redirecting to the web player instead."
+                                    });
+                                    setTimeout(() => navigate('/player'), 1500);
+                                }}
+                            >
                                 <Download className="mr-2 h-5 w-5" /> Download for macOS
                             </Button>
                         </div>
@@ -668,7 +700,7 @@ export const Landing = () => {
                     <div className="flex-1 relative">
                         <div className="absolute inset-0 bg-purple-500/20 blur-[120px] rounded-full" />
                         <div className="relative border border-white/10 rounded-3xl overflow-hidden shadow-2xl transform hover:scale-[1.02] transition-transform duration-700">
-                            <img src="/screen_player.png" alt="Media Player UI" className="w-full h-auto" />
+                            <img src="/external_player_screenshot.png" alt="External Media Player UI" className="w-full h-auto" />
                         </div>
                     </div>
                 </div>
