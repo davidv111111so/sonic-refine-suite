@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 import { LevelLogo } from '@/components/LevelLogo';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -278,10 +279,7 @@ export const Landing = () => {
                     </div>
 
                     <div className="hidden md:flex items-center gap-8">
-                        <a href="#features" className="text-sm font-medium text-slate-400 hover:text-cyan-400 transition-colors">Features</a>
-                        <a href="#plans" className="text-sm font-medium text-slate-400 hover:text-cyan-400 transition-colors">Pricing</a>
-                        <a href="#guides" className="text-sm font-medium text-slate-400 hover:text-cyan-400 transition-colors">Guides</a>
-                        <a href="#support" className="text-sm font-medium text-slate-400 hover:text-cyan-400 transition-colors">Support</a>
+                        {/* Links removed as requested. They are now located below the hero section. */}
                     </div>
 
                     <div className="flex items-center gap-4">
@@ -317,10 +315,7 @@ export const Landing = () => {
 
                 {isMenuOpen && (
                     <div className="md:hidden bg-slate-950 border-b border-white/5 p-6 flex flex-col gap-4 animate-in slide-in-from-top-4">
-                        <a href="#features" onClick={() => setIsMenuOpen(false)} className="text-slate-300 hover:text-cyan-400">Features</a>
-                        <a href="#plans" onClick={() => setIsMenuOpen(false)} className="text-slate-300 hover:text-cyan-400">Pricing</a>
-                        <a href="#guides" onClick={() => setIsMenuOpen(false)} className="text-slate-300 hover:text-cyan-400">Guides</a>
-                        <a href="#support" onClick={() => setIsMenuOpen(false)} className="text-slate-300 hover:text-cyan-400">Support</a>
+                        <span className="text-slate-500 text-sm">Professional Audio Tools</span>
                     </div>
                 )}
             </nav>
@@ -374,6 +369,12 @@ export const Landing = () => {
                             size="lg"
                             variant="outline"
                             className="h-16 px-10 text-lg border-white/10 hover:bg-white/5 text-white font-bold rounded-2xl"
+                            onClick={() => {
+                                // For now, we point to the web player as a standalone wrapper/bookmarklet
+                                // In the future, this can link to a .exe or .dmg download
+                                toast("The standalone media player app is coming soon. For now, enjoy the web version!");
+                                navigate('/player');
+                            }}
                         >
                             <Download className="mr-2 h-5 w-5" />
                             Download Media Player
