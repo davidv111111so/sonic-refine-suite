@@ -1,5 +1,4 @@
-
-import { analyze } from 'web-audio-beat-detector';
+import MusicTempo from 'music-tempo';
 
 // Define message types
 type WorkerMessage =
@@ -13,42 +12,21 @@ self.onmessage = async (e: MessageEvent<WorkerMessage>) => {
         if (type === 'ANALYZE_BPM') {
             const { buffer, sampleRate } = e.data as any;
 
-            // Reconstruct AudioBuffer? 
-            // web-audio-beat-detector requires AudioBuffer, which is main thread only :(
-            // However, we can use 'essentia.js' or 'meyda' in worker. 
-            // BUT web-audio-beat-detector uses OfflineAudioContext which IS available in some workers or just not possible.
-            // Actually, OfflineAudioContext is main thread only in most browsers.
+            // Reconstruct AudioBuffer is not possible, using pure JS 'music-tempo'
+            // To save CPU and memory, we process a downsampled version if needed or just process directly.
+            // music-tempo works best on mono Float32Array
 
-            // If we cannot use AudioBuffer in worker, we must use a JS-based algorithm.
-            // 'music-tempo' is a pure JS library. 'web-audio-beat-detector' wraps OfflineContext.
+            // Offload analysis to music-tempo
+            const mt = new MusicTempo(buffer);
 
-            // Alternative: Pulse detection on raw float data.
-            // For now, let's assume we use a pure JS solution like 'music-tempo' or simple autocorrelation.
-
-            // Since we can't easily install new packages without user permission, 
-            // and user wants "free or almost free", we'll stick to a simple autocorrelation implementation here.
-
-            const bpm = detectBpmSimple(buffer, sampleRate);
-            self.postMessage({ type: 'BPM_RESULT', bpm });
+            self.postMessage({
+                type: 'BPM_RESULT',
+                bpm: Math.round(mt.tempo),
+                offset: mt.beats.length > 0 ? mt.beats[0] : 0,
+                beats: mt.beats
+            });
         }
     } catch (error) {
         self.postMessage({ type: 'ERROR', error: String(error) });
     }
 };
-
-// Simple BPM Detection Algorithm (Autocorrelation-based)
-function detectBpmSimple(data: Float32Array, sampleRate: number): number {
-    // Downsample to 10kHz to save CPU
-    const downsampleRate = 4; // 44.1 -> 11k
-    const length = Math.floor(data.length / downsampleRate);
-    const peaks = [];
-
-    // Simple Peak Finding / Onset Detection logic would go here
-    // For specific implementation, we can look up a robust MIT licensed snippet.
-    // Given the constraints, I will leave this as a placeholder or implement a basic one.
-
-    // Placeholder returning 120 if fails. 
-    // Note: Advanced BPM detection should be implemented here using a pure JS library like 'music-tempo'
-    // but requires a separate 'Atomic Skill' for robust implementation.
-    return 120;
-}

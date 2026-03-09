@@ -13,6 +13,7 @@ export interface DeckState {
     duration: number;
     playbackRate: number;
     bpm: number | null;
+    beatOffset: number;
     grid: number[];
     volume: number;
     trim: number; // Input Gain
@@ -134,19 +135,10 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
     });
 
     // ... (rest of fxMock) ...
-    // We don't implement full FX chain prop logic for now as 'useGroupFXChain' is native. 
-    // We assume we'll just expose nodes for mixer connection.
-    // Or we should mock the FX controls to avoid breaking UI.
-    const fxMock = {
-        masterMix: 0,
-        setMasterMix: () => { },
-        masterOn: false,
-        setMasterOn: () => { },
-        slots: [],
-        setSlotType: () => { },
-        setSlotAmount: () => { },
-        setSlotOn: () => { }
-    };
+    const rawCtx = Tone.getContext().rawContext as AudioContext;
+    const [fxInput, setFxInput] = useState<AudioNode | null>(null);
+    const [fxOutput, setFxOutput] = useState<AudioNode | null>(null);
+    const fx = useGroupFXChain(rawCtx, fxInput, fxOutput);
 
 
     const [state, setState] = useState<DeckState>({
@@ -158,6 +150,7 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         duration: 0,
         playbackRate: 1,
         bpm: null,
+        beatOffset: 0,
         grid: [],
         volume: 1.0, // Default to 100% so it sounds on play
         trim: 1,
@@ -210,7 +203,7 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         // Create Nodes
         const player = new Tone.Player();
         const pitchShift = new Tone.PitchShift({
-            windowSize: 0.04 // Lower latency, good for rhythm preservation (40ms)
+            windowSize: 0.03 // Lower latency, good for rhythm preservation (30ms)
         });
         const trim = new Tone.Gain(1);
         const eq = new Tone.EQ3({
@@ -235,15 +228,19 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
 
         const meter = new Tone.Meter();
 
-        // Connect Chain: Player -> PitchShift -> Trim -> EQ -> Filter -> Volume -> MasterOutput
-        //                                            |-> CueGate -> CueOutput
-
         const limiter = new Tone.Limiter(-1);
+
+        // Native FX Nodes for routing into the Tone graph
+        const fxInNode = rawCtx.createGain();
+        const fxOutNode = rawCtx.createGain();
+        setFxInput(fxInNode);
+        setFxOutput(fxOutNode);
 
         player.connect(pitchShift);
         pitchShift.connect(trim);
         trim.connect(eq);
-        eq.connect(lpf);
+        Tone.connect(eq, fxInNode);
+        Tone.connect(fxOutNode, lpf);
         lpf.connect(hpf);
         hpf.connect(limiter);
         limiter.connect(volume);
@@ -463,6 +460,7 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
 
                 // BPM Detection: Prioritize provided BPM (from Library/Tags)
                 let detectedBPM = (bpm && bpm > 0) ? bpm : 0;
+                let beatOffset = 0;
                 let grid: number[] = [];
 
                 if (!detectedBPM) {
@@ -471,6 +469,7 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
                         const nativeBuf = buffer.get();
                         const analysis = await detectBPMFromBuffer(nativeBuf);
                         detectedBPM = analysis.bpm;
+                        beatOffset = analysis.offset;
                         grid = analysis.grid || [];
                         console.log(`✅ Analyzed BPM: ${detectedBPM} | Beatgrid points: ${grid.length}`);
                     } catch (e) {
@@ -495,6 +494,7 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
                     buffer: buffer?.get() || null,
                     duration: bufferDuration,
                     bpm: roundedBPM,
+                    beatOffset: beatOffset,
                     grid,
                     key: key || null,
                     currentTime: 0,
@@ -674,22 +674,47 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         setState(prev => ({ ...prev, isStemsActive: !prev.isStemsActive }));
     }, []);
 
-    const loopIn = useCallback(() => {
-        setState(prev => ({
-            ...prev,
-            loop: { ...prev.loop, start: prev.currentTime }
-        }));
+    const snapToGrid = useCallback((time: number, grid: number[]): number => {
+        if (!grid || grid.length === 0) return time;
+        let closest = grid[0];
+        let minDiff = Math.abs(time - closest);
+        for (let i = 1; i < grid.length; i++) {
+            const diff = Math.abs(time - grid[i]);
+            if (diff < minDiff) {
+                minDiff = diff;
+                closest = grid[i];
+            }
+            if (grid[i] > time + 1) break;
+        }
+        return closest;
     }, []);
+
+    const loopIn = useCallback(() => {
+        setState(prev => {
+            let start = prev.currentTime;
+            if (prev.quantize && prev.grid.length > 0) {
+                start = snapToGrid(start, prev.grid);
+            }
+            return {
+                ...prev,
+                loop: { ...prev.loop, start }
+            };
+        });
+    }, [snapToGrid]);
 
     const loopOut = useCallback(() => {
         setState(prev => {
-            if (prev.currentTime <= prev.loop.start) return prev; // Cannot end before start
+            let end = prev.currentTime;
+            if (prev.quantize && prev.grid.length > 0) {
+                end = snapToGrid(end, prev.grid);
+            }
+            if (end <= prev.loop.start) return prev; // Cannot end before start
             return {
                 ...prev,
-                loop: { ...prev.loop, end: prev.currentTime, active: true }
+                loop: { ...prev.loop, end, active: true }
             };
         });
-    }, []);
+    }, [snapToGrid]);
 
     const loopHalf = useCallback(() => {
         setState(prev => {
@@ -775,21 +800,7 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         setState(p => ({ ...p, quantize: !p.quantize }));
     }, []);
 
-    const snapToGrid = useCallback((time: number, grid: number[]): number => {
-        if (!grid || grid.length === 0) return time;
-        let closest = grid[0];
-        let minDiff = Math.abs(time - closest);
-        for (let i = 1; i < grid.length; i++) {
-            const diff = Math.abs(time - grid[i]);
-            if (diff < minDiff) {
-                minDiff = diff;
-                closest = grid[i];
-            }
-            // Early exit if grid is sorted and we're past the target
-            if (grid[i] > time + 1) break;
-        }
-        return closest;
-    }, []);
+
 
     const quantizeSeek = useCallback((time: number) => {
         setState(prev => {
@@ -808,44 +819,8 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         setState(p => ({ ...p, slipMode: !p.slipMode, slipPosition: p.currentTime }));
     }, []);
 
-
-    // FX Chain Integration
-    const rawContext = Tone.getContext().rawContext as AudioContext;
-    const fxChain = useGroupFXChain(rawContext, null, null);
     const hotCuesState = useHotCues(8);
 
-    // Connect FX Chain dynamically
-    useEffect(() => {
-        const { lpf, hpf, volume } = nodes.current;
-        const { inputNode, outputNode } = fxChain;
-
-        if (lpf && hpf && volume && inputNode && outputNode) {
-            // Disconnect old Direct Path
-            try { hpf.disconnect(volume); } catch (e) { }
-            try { hpf.disconnect(nodes.current.cueGate); } catch (e) { }
-
-            // Route: EQ -> LPF -> HPF -> FX Input
-            // Note: Filter chain is eq -> lpf -> hpf.
-            // When FX is active, we should insert it.
-            // Let's reconnect: filter -> fx -> volume
-            hpf.connect(inputNode);
-
-            // Route: FX Output -> Volume
-            const nativeVolInput = (volume as any).input || (volume as any)._gainNode || volume;
-            outputNode.connect(nativeVolInput);
-
-            // Cue Path: HPF -> CueGate (Pre-FX? or Post-FX?)
-            const nativeCueInput = (nodes.current.cueGate as any).input || (nodes.current.cueGate as any)._gainNode || nodes.current.cueGate;
-            outputNode.connect(nativeCueInput);
-
-        } else if (lpf && hpf && volume) {
-            // Fallback if FX not ready
-        }
-
-        return () => {
-            // Cleanup connections?
-        };
-    }, [fxChain.inputNode, fxChain.outputNode]); // Re-run if FX nodes change (re-init)
 
     return {
         play, pause, cue, seek, setRate, setVolume, setTrim, setPitch, setEQ, toggleEQKill, setFilter, setStemVolume,
@@ -858,7 +833,7 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         analyser: analyserState,
         masterOutput: nodes.current.volume,
         cueOutput: nodes.current.cueGate,
-        fx: fxChain as FXChainControls,
+        fx: fx as FXChainControls,
         hotCues: {
             cues: hotCuesState.cues,
             setCue: hotCuesState.setCue,

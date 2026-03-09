@@ -132,8 +132,16 @@ export const useBeatSync = (deckA: ReturnType<typeof useDJDeck>, deckB: ReturnTy
 
             const masterEffectiveBPM = masterDeck.state.bpm * masterDeck.state.playbackRate;
             const beatDuration = 60 / masterEffectiveBPM;
-            const masterPhase = (masterDeck.state.currentTime % beatDuration) / beatDuration; // 0-1
-            const followerPhase = (targetDeck.state.currentTime % beatDuration) / beatDuration; // 0-1
+
+            // Get offsets from grid, default to 0
+            const masterOffset = masterDeck.state.grid?.length ? masterDeck.state.grid[0] : 0;
+            const followerOffset = targetDeck.state.grid?.length ? targetDeck.state.grid[0] : 0;
+
+            const masterPhaseTime = Math.max(0, masterDeck.state.currentTime - masterOffset);
+            const followerPhaseTime = Math.max(0, targetDeck.state.currentTime - followerOffset);
+
+            const masterPhase = (masterPhaseTime % beatDuration) / beatDuration; // 0-1
+            const followerPhase = (followerPhaseTime % beatDuration) / beatDuration; // 0-1
 
             // Phase difference (-0.5 to +0.5)
             let phaseDiff = masterPhase - followerPhase;

@@ -28,7 +28,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { LevelLogo } from '@/components/LevelLogo';
+import AudioWaveBackground from '@/components/AudioWaveBackground';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 
 /* ─── Animated Audio Wave Background ─── */
@@ -208,6 +211,7 @@ const SuiteCard: React.FC<{ feature: SuiteFeature; index: number }> = ({ feature
 export const Landing = () => {
     const navigate = useNavigate();
     const { profile } = useAuth();
+    const { t } = useLanguage();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [selectedPayment, setSelectedPayment] = useState<'paddle' | 'crypto'>('paddle');
 
@@ -262,6 +266,114 @@ export const Landing = () => {
         }
     ];
 
+    const DesktopPlayerSection = () => {
+        return (
+            <section id="free-player" className="py-24 relative overflow-hidden">
+                <div className="container mx-auto px-6 relative z-10">
+                    <div className="max-w-6xl mx-auto">
+                        <div className="grid lg:grid-cols-2 gap-16 items-center bg-slate-900/40 rounded-[2.5rem] p-8 lg:p-16 border border-white/5 backdrop-blur-2xl relative">
+                            {/* Glow effect */}
+                            <div className="absolute -top-24 -right-24 w-96 h-96 bg-cyan-500/10 blur-[100px] rounded-full pointer-events-none" />
+
+                            <div className="text-left space-y-8 relative z-10">
+                                <div className="space-y-4">
+                                    <Badge className="bg-cyan-500/10 text-cyan-400 border-cyan-500/20 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider">
+                                        Free Standalone Tool
+                                    </Badge>
+                                    <h2 className="text-4xl md:text-6xl font-black text-white leading-tight tracking-tighter">
+                                        LEVEL PLAYER <br />
+                                        <span className="bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">FREE EDITION</span>
+                                    </h2>
+                                    <p className="text-lg text-slate-400 max-w-xl font-light leading-relaxed">
+                                        Take the professional Level audio engine anywhere. Our standalone desktop player is 100% free, lightweight, and focused on pure high-fidelity playback.
+                                    </p>
+                                </div>
+
+                                <div className="grid sm:grid-cols-2 gap-6">
+                                    <div className="space-y-3 p-6 bg-white/5 rounded-3xl border border-white/5 group hover:border-cyan-500/30 transition-colors">
+                                        <div className="w-10 h-10 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xl shadow-[0_0_20px_rgba(6,182,212,0.3)]">1</div>
+                                        <div>
+                                            <h4 className="font-bold text-white mb-1">Windows Bypass</h4>
+                                            <p className="text-xs text-slate-500 leading-relaxed">Click "More info" &rarr; "Run anyway" when the blue SmartScreen appears.</p>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-3 p-6 bg-white/5 rounded-3xl border border-white/5 group hover:border-purple-500/30 transition-colors">
+                                        <div className="w-10 h-10 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-xl shadow-[0_0_20px_rgba(168,85,247,0.3)]">2</div>
+                                        <div>
+                                            <h4 className="font-bold text-white mb-1">macOS Bypass</h4>
+                                            <p className="text-xs text-slate-500 leading-relaxed">Right-click the icon and choose "Open" to verify the app instantly.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* SmartScreen Bypass Section */}
+                                <div className="mt-8 space-y-4 p-6 bg-cyan-950/20 border border-cyan-500/20 rounded-3xl animate-in fade-in slide-in-from-bottom-5">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
+                                        <h4 className="text-[10px] font-black tracking-widest text-cyan-400 uppercase">Windows Security Bypass Guide</h4>
+                                    </div>
+                                    <p className="text-[10px] text-slate-400 mb-4">Since the app is currently in Beta and unsigned, Windows may show a warning. Follow these 2 easy steps:</p>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-5 h-5 rounded-full bg-cyan-500 text-black flex items-center justify-center text-[10px] font-bold">1</div>
+                                                <p className="text-[10px] font-bold text-white uppercase">Click "More info"</p>
+                                            </div>
+                                            <div className="aspect-video rounded-lg overflow-hidden border border-white/5 bg-black/40">
+                                                <img src="/windows_bypass_step1_1773015602769.png" alt="Step 1" className="w-full h-full object-cover" />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-5 h-5 rounded-full bg-emerald-500 text-black flex items-center justify-center text-[10px] font-bold">2</div>
+                                                <p className="text-[10px] font-bold text-white uppercase">Click "Run anyway"</p>
+                                            </div>
+                                            <div className="aspect-video rounded-lg overflow-hidden border border-white/5 bg-black/40">
+                                                <img src="/windows_bypass_step2_1773015620723.png" alt="Step 2" className="w-full h-full object-cover" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-wrap gap-4 pt-4">
+                                    <a
+                                        href="https://nhulnikqfphofqpnmdba.supabase.co/storage/v1/object/public/downloads/LevelPlayer_Windows.exe"
+                                        download="LevelPlayer.exe"
+                                        className="inline-block"
+                                    >
+                                        <Button className="h-16 px-8 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-2xl shadow-2xl shadow-cyan-500/30 group transition-all hover:scale-105 active:scale-95">
+                                            <Download className="mr-3 w-6 h-6 group-hover:animate-bounce" />
+                                            Download for Windows
+                                        </Button>
+                                    </a>
+                                    <Button variant="outline" className="h-16 px-8 border-slate-800 bg-slate-900/50 text-slate-300 hover:text-white hover:bg-slate-800 rounded-2xl transition-all hover:scale-105 active:scale-95">
+                                        <Download className="mr-3 w-6 h-6" />
+                                        macOS Binary
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <div className="relative group perspective-1000 hidden lg:block">
+                                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/20 to-purple-600/20 blur-[100px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+                                <div className="relative z-10 transform-gpu transition-all duration-700 group-hover:rotate-y-[-5deg] group-hover:rotate-x-[2deg]">
+                                    <img
+                                        src="/level_player_desktop_mockup.png"
+                                        alt="Level Player Free Desktop"
+                                        className="rounded-[2.5rem] border border-white/10 shadow-[0_35px_100px_-15px_rgba(0,0,0,0.8)]"
+                                    />
+                                    <div className="absolute top-4 right-4 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full border border-white/10 text-[10px] text-cyan-400 font-bold tracking-widest uppercase">
+                                        Standalone Beta
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        );
+    };
+
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100 overflow-x-hidden selection:bg-cyan-500/30">
             {/* Background Decor */}
@@ -298,14 +410,14 @@ export const Landing = () => {
                                 className="hidden sm:flex text-slate-300 hover:text-white"
                                 onClick={() => navigate('/auth')}
                             >
-                                Sign In
+                                {t('header.signIn')}
                             </Button>
                         )}
                         <Button
                             className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-6 rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all hover:scale-105"
                             onClick={() => navigate('/app')}
                         >
-                            {profile ? 'Go to App' : 'Get Started'}
+                            {profile ? t('header.goToApp') : t('header.getStarted')}
                         </Button>
                         <button className="md:hidden p-2 text-slate-400" onClick={() => setIsMenuOpen(!isMenuOpen)}>
                             {isMenuOpen ? <X /> : <Menu />}
@@ -360,7 +472,7 @@ export const Landing = () => {
                         <Button
                             size="lg"
                             className="h-16 px-10 text-lg bg-white text-slate-950 hover:bg-slate-200 font-black rounded-2xl group transition-all hover:shadow-[0_0_30px_rgba(255,255,255,0.15)]"
-                            onClick={() => navigate('/app')}
+                            onClick={() => window.location.href = '/app'}
                         >
                             Open Level App
                             <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
@@ -370,18 +482,17 @@ export const Landing = () => {
                             variant="outline"
                             className="h-16 px-10 text-lg border-white/10 hover:bg-white/5 text-white font-bold rounded-2xl"
                             onClick={() => {
-                                // For now, we point to the web player as a standalone wrapper/bookmarklet
-                                // In the future, this can link to a .exe or .dmg download
-                                toast("The standalone media player app is coming soon. For now, enjoy the web version!");
-                                navigate('/player');
+                                document.getElementById('free-player')?.scrollIntoView({ behavior: 'smooth' });
                             }}
                         >
                             <Download className="mr-2 h-5 w-5" />
-                            Download Media Player
+                            Free Desktop Player
                         </Button>
                     </div>
                 </div>
             </section>
+
+            <DesktopPlayerSection />
 
             {/* Tabs Section */}
             <section id="features" className="py-24 px-6 relative">
@@ -389,10 +500,10 @@ export const Landing = () => {
                     <Tabs defaultValue="features" className="w-full">
                         <div className="flex justify-center mb-12">
                             <TabsList className="bg-slate-900/50 border border-white/5 p-1 h-14 rounded-2xl backdrop-blur-xl">
-                                <TabsTrigger value="features" className="px-6 sm:px-8 rounded-xl data-[state=active]:bg-cyan-500 data-[state=active]:text-slate-950 text-sm sm:text-base">Features</TabsTrigger>
-                                <TabsTrigger value="plans" className="px-6 sm:px-8 rounded-xl data-[state=active]:bg-cyan-500 data-[state=active]:text-slate-950 text-sm sm:text-base">Plans</TabsTrigger>
-                                <TabsTrigger value="guides" className="px-6 sm:px-8 rounded-xl data-[state=active]:bg-cyan-500 data-[state=active]:text-slate-950 text-sm sm:text-base">Guides</TabsTrigger>
-                                <TabsTrigger value="support" className="px-6 sm:px-8 rounded-xl data-[state=active]:bg-cyan-500 data-[state=active]:text-slate-950 text-sm sm:text-base">Support</TabsTrigger>
+                                <TabsTrigger value="features" className="px-6 sm:px-8 rounded-xl data-[state=active]:bg-cyan-500 data-[state=active]:text-slate-950 text-sm sm:text-base">{t('nav.features')}</TabsTrigger>
+                                <TabsTrigger value="plans" className="px-6 sm:px-8 rounded-xl data-[state=active]:bg-cyan-500 data-[state=active]:text-slate-950 text-sm sm:text-base">{t('nav.plans')}</TabsTrigger>
+                                <TabsTrigger value="guides" className="px-6 sm:px-8 rounded-xl data-[state=active]:bg-cyan-500 data-[state=active]:text-slate-950 text-sm sm:text-base">{t('nav.guides')}</TabsTrigger>
+                                <TabsTrigger value="support" className="px-6 sm:px-8 rounded-xl data-[state=active]:bg-cyan-500 data-[state=active]:text-slate-950 text-sm sm:text-base">{t('nav.support')}</TabsTrigger>
                             </TabsList>
                         </div>
 
@@ -600,31 +711,58 @@ export const Landing = () => {
 
                         {/* Guides Tab */}
                         <TabsContent value="guides" id="guides">
-                            <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {[
-                                    { title: "Getting Started with Stems", time: "5 min read", icon: <Layers className="text-cyan-400" /> },
-                                    { title: "Mastering Tips for DJs", time: "8 min read", icon: <Zap className="text-yellow-400" /> },
-                                    { title: "Hardware Sync Guide", time: "12 min read", icon: <Layout className="text-purple-400" /> },
-                                    { title: "Lossless Export Settings", time: "4 min read", icon: <Download className="text-green-400" /> }
-                                ].map((g, i) => (
-                                    <Card
-                                        key={i}
-                                        className="bg-slate-900/50 border-white/5 p-6 hover:bg-slate-800/50 cursor-pointer transition-all"
-                                        onClick={() => {
-                                            toast.success("Opening guide...", {
-                                                description: `The guide "${g.title}" will be available in the next content update.`
-                                            });
-                                        }}
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <div className="p-3 bg-white/5 rounded-xl">{g.icon}</div>
-                                            <div>
-                                                <h4 className="font-bold text-lg">{g.title}</h4>
-                                                <p className="text-slate-500 text-sm">{g.time}</p>
-                                            </div>
-                                        </div>
-                                    </Card>
-                                ))}
+                            <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <Card className="bg-slate-900/60 border-cyan-500/20 hover:border-cyan-500/50 hover:shadow-[0_0_30px_rgba(6,182,212,0.15)] transition-all duration-500 overflow-hidden group cursor-pointer" onClick={() => toast.success("Opening Guide...", { description: "How to perfectly isolate Stems guide will be available shortly." })}>
+                                    <div className="h-48 bg-slate-800 relative overflow-hidden">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-cyan-600/20 to-slate-900/80 z-10" />
+                                        <Layers className="absolute -right-4 -bottom-4 w-32 h-32 text-cyan-500/10 group-hover:scale-110 transition-transform duration-700" />
+                                        <div className="absolute top-4 left-4 z-20 bg-cyan-500/20 text-cyan-400 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><Zap className="w-3 h-3" /> Pro Tips</div>
+                                    </div>
+                                    <CardContent className="p-6 relative z-20">
+                                        <h3 className="text-xl font-bold text-white mb-2 group-hover:text-cyan-400 transition-colors">How to perfectly isolate Stems</h3>
+                                        <p className="text-slate-400 text-sm mb-4 leading-relaxed line-clamp-2">Achieve studio-quality acapellas and instrumentals. Learn how to configure the GPU-accelerated neural networks for optimal vocal extraction.</p>
+                                        <div className="flex items-center text-cyan-500 text-sm font-semibold">Read Guide <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" /></div>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="bg-slate-900/60 border-purple-500/20 hover:border-purple-500/50 hover:shadow-[0_0_30px_rgba(168,85,247,0.15)] transition-all duration-500 overflow-hidden group cursor-pointer" onClick={() => toast.success("Opening Guide...", { description: "Using the Pro Mixer Lab guide will be available shortly." })}>
+                                    <div className="h-48 bg-slate-800 relative overflow-hidden">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-slate-900/80 z-10" />
+                                        <Layout className="absolute -right-4 -bottom-4 w-32 h-32 text-purple-500/10 group-hover:scale-110 transition-transform duration-700" />
+                                        <div className="absolute top-4 left-4 z-20 bg-purple-500/20 text-purple-400 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><BookOpen className="w-3 h-3" /> Workflow</div>
+                                    </div>
+                                    <CardContent className="p-6 relative z-20">
+                                        <h3 className="text-xl font-bold text-white mb-2 group-hover:text-purple-400 transition-colors">Using the Pro Mixer Lab</h3>
+                                        <p className="text-slate-400 text-sm mb-4 leading-relaxed line-clamp-2">Master live mashups with our dual-deck interface. A deep dive into beatgrids, visual sync, and the 10-band parametric equalizer.</p>
+                                        <div className="flex items-center text-purple-500 text-sm font-semibold">Read Guide <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" /></div>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="bg-slate-900/60 border-green-500/20 hover:border-green-500/50 hover:shadow-[0_0_30px_rgba(34,197,94,0.15)] transition-all duration-500 overflow-hidden group cursor-pointer" onClick={() => toast.success("Opening Guide...", { description: "AI Mastering Best Practices guide will be available shortly." })}>
+                                    <div className="h-48 bg-slate-800 relative overflow-hidden">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-green-600/20 to-slate-900/80 z-10" />
+                                        <Zap className="absolute -right-4 -bottom-4 w-32 h-32 text-green-500/10 group-hover:scale-110 transition-transform duration-700" />
+                                        <div className="absolute top-4 left-4 z-20 bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><Gauge className="w-3 h-3" /> Engineering</div>
+                                    </div>
+                                    <CardContent className="p-6 relative z-20">
+                                        <h3 className="text-xl font-bold text-white mb-2 group-hover:text-green-400 transition-colors">AI Mastering Best Practices</h3>
+                                        <p className="text-slate-400 text-sm mb-4 leading-relaxed line-clamp-2">Get the punchiest mix. Understand how to use Reference tracks and Genre profiles to automatically balance your dynamics.</p>
+                                        <div className="flex items-center text-green-500 text-sm font-semibold">Read Guide <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" /></div>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="bg-slate-900/60 border-orange-500/20 hover:border-orange-500/50 hover:shadow-[0_0_30px_rgba(249,115,22,0.15)] transition-all duration-500 overflow-hidden group cursor-pointer" onClick={() => toast.success("Opening Guide...", { description: "LUFS and True Peak guide will be available shortly." })}>
+                                    <div className="h-48 bg-slate-800 relative overflow-hidden">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-orange-600/20 to-slate-900/80 z-10" />
+                                        <Music2 className="absolute -right-4 -bottom-4 w-32 h-32 text-orange-500/10 group-hover:scale-110 transition-transform duration-700" />
+                                        <div className="absolute top-4 left-4 z-20 bg-orange-500/20 text-orange-400 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><Headphones className="w-3 h-3" /> Audio Science</div>
+                                    </div>
+                                    <CardContent className="p-6 relative z-20">
+                                        <h3 className="text-xl font-bold text-white mb-2 group-hover:text-orange-400 transition-colors">Understanding LUFS and True Peak</h3>
+                                        <p className="text-slate-400 text-sm mb-4 leading-relaxed line-clamp-2">The science behind loud but dynamic audio. Learn the essential targets for Spotify, Apple Music, and club sound systems.</p>
+                                        <div className="flex items-center text-orange-500 text-sm font-semibold">Read Guide <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" /></div>
+                                    </CardContent>
+                                </Card>
                             </div>
                         </TabsContent>
 
@@ -675,25 +813,21 @@ export const Landing = () => {
                             <Button
                                 className="bg-purple-600 hover:bg-purple-500 text-white font-bold h-14 px-8 rounded-xl shadow-lg shadow-purple-500/20"
                                 onClick={() => {
-                                    toast.info("Coming Soon", {
-                                        description: "The native Windows application is currently in beta. Redirecting to the web player instead."
-                                    });
-                                    setTimeout(() => navigate('/player'), 1500);
+                                    window.open('/player', '_blank', 'width=1000,height=800,menubar=no,toolbar=no,location=no,status=no');
                                 }}
                             >
-                                <Download className="mr-2 h-5 w-5" /> Download for Windows
+                                <Download className="mr-2 h-5 w-5" /> Open Web Player
                             </Button>
                             <Button
                                 variant="outline"
                                 className="border-white/10 hover:bg-white/5 text-slate-300 h-14 px-8 rounded-xl"
                                 onClick={() => {
                                     toast.info("Coming Soon", {
-                                        description: "The native macOS application is currently in beta. Redirecting to the web player instead."
+                                        description: "The native applications are currently in beta."
                                     });
-                                    setTimeout(() => navigate('/player'), 1500);
                                 }}
                             >
-                                <Download className="mr-2 h-5 w-5" /> Download for macOS
+                                <Download className="mr-2 h-5 w-5" /> Download App
                             </Button>
                         </div>
                     </div>

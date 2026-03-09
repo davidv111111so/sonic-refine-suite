@@ -13,8 +13,8 @@ export const useFileAnalysis = ({ onFilesUploaded, addToPlaylist, language }: Us
     const [isAnalyzing, setIsAnalyzing] = useState(false);
 
     const handleFilesUploaded = async (files: AudioFile[]) => {
-        if (files.length > 5) {
-            toast.error('Please upload maximum 5 files at a time for optimal performance');
+        if (files.length > 10) {
+            toast.error('For optimal performance and reliable analysis, please limit simultaneous uploads to a maximum of 10 files at a time.', { duration: 5000 });
             return;
         }
 
@@ -36,6 +36,7 @@ export const useFileAnalysis = ({ onFilesUploaded, addToPlaylist, language }: Us
                 const { detectKeyFromFile } = await import('@/utils/keyDetector');
                 const { detectBPMFromFile } = await import('@/utils/bpmDetector');
 
+                let completedFiles = 0;
                 // Stage 2: Feature Extraction (20-70%)
                 const filesWithAnalysis = await Promise.all(
                     files.map(async (file, index) => {
@@ -57,8 +58,9 @@ export const useFileAnalysis = ({ onFilesUploaded, addToPlaylist, language }: Us
                         if (keyResult.status === 'fulfilled') harmonicKey = (keyResult.value as any).camelot;
                         if (bpmResult.status === 'fulfilled') bpm = (bpmResult.value as any).bpm;
 
-                        // Update progress per file
-                        const fileProgress = ((index + 1) / files.length) * 50;
+                        // Update progress per file smoothly
+                        completedFiles++;
+                        const fileProgress = (completedFiles / files.length) * 50;
                         setAnalysisProgress(20 + fileProgress);
 
                         return { ...file, harmonicKey, bpm };

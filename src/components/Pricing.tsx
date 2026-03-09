@@ -226,15 +226,14 @@ export const Pricing: React.FC = () => {
                         </CardHeader>
 
                         <CardContent className="space-y-6">
-                            {/* Price */}
                             <div className="flex items-baseline gap-1">
                                 {plan.originalPrice && (
-                                    <span className="text-lg text-slate-500 line-through mr-2">
+                                    <span className="text-base lg:text-lg text-slate-500 line-through mr-2">
                                         {plan.originalPrice}
                                     </span>
                                 )}
-                                <span className="text-4xl font-extrabold text-white">{plan.price}</span>
-                                {plan.period && <span className="text-slate-400">{plan.period}</span>}
+                                <span className="text-3xl lg:text-4xl font-extrabold text-white">{plan.price}</span>
+                                {plan.period && <span className="text-xs lg:text-sm text-slate-400">{plan.period}</span>}
                             </div>
 
                             {/* Features */}
@@ -250,7 +249,7 @@ export const Pricing: React.FC = () => {
                                             <X className="h-5 w-5 shrink-0 text-slate-600" />
                                         )}
                                         <span className={cn(
-                                            "text-sm",
+                                            "text-xs lg:text-sm",
                                             feature.included ? "text-slate-300" : "text-slate-500"
                                         )}>
                                             {feature.text}

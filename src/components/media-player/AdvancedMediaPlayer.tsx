@@ -23,6 +23,7 @@ import {
   ChevronLeft
 } from "lucide-react";
 import { SpectralWaveform } from "../mixer/SpectralWaveform";
+import { detectBPMFromBuffer } from "@/utils/bpmDetector";
 import {
   getAudioContext,
 } from "@/utils/audioContextManager";
@@ -135,6 +136,9 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
   const [debugInfo, setDebugInfo] = useState<string>("Initializing...");
   const [isBufferLoading, setIsBufferLoading] = useState(false);
   const [bufferError, setBufferError] = useState<string | null>(null);
+  const [bpm, setBpm] = useState<number>(0);
+  const [beatOffset, setBeatOffset] = useState<number>(0);
+  const [grid, setGrid] = useState<number[]>([]);
 
   // Refs
   const containerRef = useRef<HTMLDivElement>(null);
@@ -301,6 +305,17 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
         setDuration(decodedBuffer.duration);
         setIsBufferLoading(false);
         setDebugInfo(`Loaded: ${decodedBuffer.duration.toFixed(1)}s`);
+
+        // Trigger BPM Detection
+        try {
+          const analysis = await detectBPMFromBuffer(decodedBuffer);
+          setBpm(analysis.bpm);
+          setBeatOffset(analysis.offset);
+          setGrid(analysis.grid);
+          console.log(`✅ Player BPM Detection: ${analysis.bpm} BPM | Offset: ${analysis.offset}`);
+        } catch (err) {
+          console.warn("BPM detection failed for player", err);
+        }
 
         if (shouldAutoPlayRef.current) {
           videoRef.current?.play().catch(console.error);
@@ -723,16 +738,30 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
         >
           <Info className="w-5 h-5" />
         </Button>
+
+        <div className="mt-auto mb-2 flex flex-col items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => window.open('https://levelaudio.live', '_blank')}
+            className="h-12 w-12 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/50 transition-colors group relative"
+          >
+            <LevelLogo showIcon={true} size="sm" className="scale-[0.6]" />
+            <div className="absolute left-full ml-4 px-2 py-1 bg-slate-900 border border-slate-800 rounded text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100]">
+              Level Audio Web App
+            </div>
+          </Button>
+        </div>
       </div>
 
       {/* 2. Expandable Panel */}
       <div
         className={cn(
           "bg-slate-900 border-r border-slate-800 transition-all duration-300 ease-in-out overflow-hidden flex flex-col",
-          activePanelTab ? "w-[320px] opacity-100" : "w-0 opacity-0"
+          activePanelTab ? "w-[380px] opacity-100" : "w-0 opacity-0"
         )}
       >
-        <div className="p-6 flex-1 overflow-y-auto min-w-[320px]">
+        <div className="p-6 flex-1 overflow-y-auto min-w-[380px] overflow-x-hidden">
           <div className="mb-6">
             <h2 className="text-xl font-bold text-white capitalize">{activePanelTab === 'data' ? 'Data & Analytics' : activePanelTab}</h2>
             <p className="text-sm text-slate-400">Configure {activePanelTab} settings</p>
@@ -917,11 +946,15 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
               color="cyan"
               height={150}
               showGrid={true}
-              bpm={currentFile?.bpm || 128}
+              bpm={bpm}
+              beatOffset={beatOffset}
+              grid={grid}
               isPlaying={isPlaying}
               onSeek={(time) => {
                 if (videoRef.current) videoRef.current.currentTime = time;
               }}
+              onPlay={handlePlayPause}
+              onPause={handlePlayPause}
             />
           </div>
 

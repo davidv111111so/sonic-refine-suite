@@ -115,28 +115,6 @@ export const MixerControls = ({
                         <Headphones className="w-4 h-4 text-neutral-500" />
                     </div>
 
-                    <div className="w-full h-px bg-[#27272a]" />
-
-                    {/* Routing Selector */}
-                    <div className="flex flex-col items-center gap-1 w-full px-1">
-                        <span className="text-[7px] font-bold text-neutral-500 uppercase tracking-tighter">Output Mode</span>
-                        <div className="grid grid-cols-1 gap-1 w-full">
-                            {(['stereo', 'split', 'multichannel'] as const).map(mode => (
-                                <button
-                                    key={mode}
-                                    className={cn(
-                                        "h-4 rounded-[1px] text-[7px] font-bold uppercase transition-all border",
-                                        routingMode === mode
-                                            ? "bg-cyan-500/20 text-cyan-400 border-cyan-500 shadow-[0_0_5px_rgba(6,182,212,0.3)]"
-                                            : "bg-black/40 text-neutral-600 border-neutral-800 hover:border-neutral-700"
-                                    )}
-                                    onClick={() => setRoutingMode(mode)}
-                                >
-                                    {mode === 'multichannel' ? 'MULTI' : mode}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
                 </div>
 
                 <ChannelStrip deck={deckB} color="purple" label="B" side="right" cue={cueB} onToggleCue={() => setCueB(!cueB)} />
@@ -145,29 +123,10 @@ export const MixerControls = ({
                 <DeckPitchFader deck={deckB} color="purple" />
             </div>
 
-            {/* Crossfader Options (New row between controls and fader to prevent overlap/clutter) */}
-            <div className="flex-none px-2 py-1 bg-[#09090b] flex items-center justify-between border-t border-[#27272a] gap-2">
-                <div className="flex items-center gap-1.5 overflow-x-auto min-w-0 flex-1 py-0.5">
-                    <span className="text-[7px] font-bold text-neutral-600 uppercase tracking-tighter shrink-0 mx-1">Curve</span>
-                    {(['smooth', 'sharp', 'constantPower', 'cut'] as const).map((curve) => (
-                        <button
-                            key={curve}
-                            onClick={() => setCrossfaderCurve?.(curve)}
-                            className={cn(
-                                "px-1.5 py-0.5 rounded-[1px] text-[7px] font-bold uppercase transition-all border whitespace-nowrap",
-                                crossfaderCurve === curve
-                                    ? "bg-cyan-500/20 text-cyan-400 border-cyan-500 shadow-[0_0_5px_rgba(6,182,212,0.3)]"
-                                    : "bg-black/40 text-neutral-600 border-neutral-800 hover:border-neutral-700"
-                            )}
-                        >
-                            {curve === 'constantPower' ? 'C.PWR' : curve}
-                        </button>
-                    ))}
-                </div>
-            </div>
+            {/* Crossfader Options (Moved to Settings) */}
 
-            {/* Crossfader Section (Reduced Height) */}
-            <div className="flex-none h-14 bg-[#121212] border-t border-[#27272a] flex items-center justify-between px-2 z-10 mx-1 rounded-sm gap-1 mb-1 relative overflow-hidden">
+            {/* Crossfader Section (Moved Up) */}
+            <div className="flex-none h-14 bg-[#121212] border-t border-[#27272a] flex items-center justify-between px-2 z-10 mx-1 rounded-sm gap-1 mb-2 relative overflow-hidden -mt-1">
 
                 {/* Auto Fade Left */}
                 <button

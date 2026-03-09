@@ -11,7 +11,7 @@ export interface TierLimits {
     enhancementsPerDay: number; // 0 = unlimited
     enhancementsPerMonth: number;
     // Stem Separation
-    stemSeparationsPerMonth: number; // Level/Demucs
+    stemSeparationsPerMonth: number; // Level Studio Engine
     spleeterSeparationsPerMonth: number; // Basic/Spleeter
     sixStemEnabled: boolean;
     aiStemsInMixer: boolean;

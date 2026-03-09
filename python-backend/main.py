@@ -492,7 +492,7 @@ def background_mastering(task_id, user_id, target_url, reference_url, settings):
         # (Already handled inside MasteringEngine.load_audio which uses librosa)
         
         engine = MasteringEngine()
-        draft_mode = settings.get('draft_mode', False)
+        draft_mode = True # Force speed mode for 90s avg
         result_info = engine.process(temp_target, temp_reference, output_path, target_lufs=target_lufs, draft_mode=draft_mode)
         update_task_in_db(task_id, 'processing', 80)
         

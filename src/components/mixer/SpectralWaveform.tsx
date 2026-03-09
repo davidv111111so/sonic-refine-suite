@@ -18,6 +18,7 @@ interface SpectralWaveformProps {
     height?: number;
     showGrid?: boolean;
     bpm?: number;
+    beatOffset?: number;
     grid?: number[];
     onSeek?: (time: number) => void;
     loop?: { active: boolean; start: number; end: number };
@@ -28,7 +29,7 @@ interface SpectralWaveformProps {
     playbackRate?: number;
 }
 
-export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, height = 150, showGrid = true, bpm = 128, grid = [], onSeek, loop, cuePoint, onPlay, onPause, isPlaying, playbackRate = 1 }: SpectralWaveformProps) => {
+export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, height = 150, showGrid = true, bpm = 128, beatOffset = 0, grid = [], onSeek, loop, cuePoint, onPlay, onPause, isPlaying, playbackRate = 1 }: SpectralWaveformProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const workerRef = useRef<Worker | null>(null);
@@ -140,17 +141,29 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
 
                     // Only draw if within canvas bounds
                     if (x > -10 && x < width + 10) {
-                        ctx.moveTo(x, 0); ctx.lineTo(x, height);
+                        const beatDuration = 60 / bpm;
+                        const absoluteBeatIndex = Math.round((beatTime - (beatOffset || grid[0])) / beatDuration);
+                        const isBar = absoluteBeatIndex % 4 === 0;
 
-                        // Every 4th beat is a downbeat, make it brighter
-                        if (i % 4 === 0) {
+                        if (isBar) {
                             ctx.stroke();
                             ctx.beginPath();
-                            ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)'; // Brighter Downbeat
+                            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                            ctx.lineWidth = 1.5;
                             ctx.moveTo(x, 0); ctx.lineTo(x, height);
                             ctx.stroke();
+
+                            if (zoom > 100) {
+                                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                                ctx.font = '10px Inter';
+                                ctx.fillText(`${(absoluteBeatIndex / 4) + 1}`, x + 4, 12);
+                            }
+
                             ctx.beginPath();
+                            ctx.lineWidth = 1;
                             ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+                        } else {
+                            ctx.moveTo(x, 0); ctx.lineTo(x, height);
                         }
                     }
                 }
@@ -159,23 +172,47 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
                 // Fallback math-based grid
                 ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
                 ctx.lineWidth = 1;
+                ctx.beginPath();
                 const beatDuration = 60 / (bpm * playbackRate);
                 const pixelsPerBeat = beatDuration * zoom;
-                const offsetTime = time_now % beatDuration;
-                const offsetPixels = offsetTime * zoom;
+                const startTimeOffset = (time_now - beatOffset) % beatDuration;
+                const startX = (width / 2) - (startTimeOffset * zoom);
 
-                const startX = (width / 2) - offsetPixels;
+                // Draw visible beats
+                for (let x = startX; x > -pixelsPerBeat; x -= pixelsPerBeat) {
+                    const t = time_now + (x - width / 2) / zoom;
+                    const beatIdx = Math.round((t - beatOffset) / beatDuration);
+                    const isBar = beatIdx % 4 === 0;
 
-                ctx.beginPath();
-                // Left side
-                for (let x = startX; x > 0; x -= pixelsPerBeat) {
+                    if (isBar) {
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                        ctx.lineWidth = 1.5;
+                    } else {
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                        ctx.lineWidth = 1;
+                    }
+
+                    ctx.beginPath();
                     ctx.moveTo(x, 0); ctx.lineTo(x, height);
+                    ctx.stroke();
                 }
-                // Right side
-                for (let x = startX; x < width; x += pixelsPerBeat) {
+                for (let x = startX + pixelsPerBeat; x < width + pixelsPerBeat; x += pixelsPerBeat) {
+                    const t = time_now + (x - width / 2) / zoom;
+                    const beatIdx = Math.round((t - beatOffset) / beatDuration);
+                    const isBar = beatIdx % 4 === 0;
+
+                    if (isBar) {
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                        ctx.lineWidth = 1.5;
+                    } else {
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                        ctx.lineWidth = 1;
+                    }
+
+                    ctx.beginPath();
                     ctx.moveTo(x, 0); ctx.lineTo(x, height);
+                    ctx.stroke();
                 }
-                ctx.stroke();
             }
 
             // Waveform

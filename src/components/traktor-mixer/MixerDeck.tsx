@@ -180,7 +180,9 @@ export const MixerDeck = ({ id, controls, analyser, color, onSync, isMaster, onT
                     height={containerRef.current?.clientHeight || 150}
                     showGrid={showGrid}
                     bpm={controls.state.bpm || 128}
-                    onSeek={controls.seek}
+                    beatOffset={controls.state.beatOffset}
+                    grid={controls.state.grid}
+                    onSeek={controls.quantizeSeek}
                     isPlaying={controls.state.isPlaying}
                     onPlay={controls.play}
                     onPause={controls.pause}
@@ -223,7 +225,7 @@ export const MixerDeck = ({ id, controls, analyser, color, onSync, isMaster, onT
                     buffer={controls.state.buffer}
                     currentTime={controls.state.currentTime}
                     duration={controls.state.duration}
-                    onSeek={controls.seek}
+                    onSeek={controls.quantizeSeek}
                     color={color}
                     height={32}
                     zoom={zoom}
@@ -266,6 +268,17 @@ export const MixerDeck = ({ id, controls, analyser, color, onSync, isMaster, onT
                     >
                         <span className="text-[9px] font-bold text-neutral-400">SYNC</span>
                     </Button>
+
+                    <Button
+                        variant="ghost"
+                        className={cn(
+                            "h-9 w-8 rounded-sm border border-[#3f3f46] bg-[#27272a] hover:bg-[#3f3f46] flex items-center justify-center p-0 transition-all text-[9px] font-bold",
+                            controls.state.quantize ? (isCyan ? "text-cyan-400 border-cyan-500/50 bg-cyan-500/10" : "text-purple-400 border-purple-500/50 bg-purple-500/10") : "text-neutral-500"
+                        )}
+                        onClick={controls.toggleQuantize}
+                    >
+                        Q
+                    </Button>
                 </div>
             </div>
 
@@ -305,11 +318,11 @@ export const MixerDeck = ({ id, controls, analyser, color, onSync, isMaster, onT
                 <div className="flex-1 min-w-0 h-full">
                     <FXUnitGroup
                         label={`FX UNIT ${id}`}
-                        masterMix={controls.fx.masterMix}
+                        masterMix={controls.fx.state.masterMix}
                         setMasterMix={controls.fx.setMasterMix}
-                        masterOn={controls.fx.masterOn}
+                        masterOn={controls.fx.state.masterOn}
                         setMasterOn={controls.fx.setMasterOn}
-                        slots={controls.fx.slots}
+                        slots={controls.fx.state.slots}
                         setSlotType={controls.fx.setSlotType}
                         setSlotAmount={controls.fx.setSlotAmount}
                         setSlotOn={controls.fx.setSlotOn}

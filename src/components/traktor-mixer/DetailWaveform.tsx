@@ -11,13 +11,15 @@ interface DetailWaveformProps {
     height?: number;
     showGrid?: boolean;
     bpm?: number;
+    beatOffset?: number;
+    grid?: number[];
     onSeek?: (time: number) => void;
     isPlaying?: boolean;
     onPlay?: () => void;
     onPause?: () => void;
 }
 
-export const DetailWaveform = ({ buffer, currentTime, zoom, setZoom, color, height = 150, showGrid = true, bpm = 128, onSeek, isPlaying, onPlay, onPause }: DetailWaveformProps) => {
+export const DetailWaveform = ({ buffer, currentTime, zoom, setZoom, color, height = 150, showGrid = true, bpm = 128, beatOffset = 0, grid = [], onSeek, isPlaying, onPlay, onPause }: DetailWaveformProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const workerRef = useRef<Worker | null>(null);
@@ -80,42 +82,61 @@ export const DetailWaveform = ({ buffer, currentTime, zoom, setZoom, color, heig
             ctx.clearRect(0, 0, width, h);
 
             // Draw Grid (Traktor Style)
-            if (showGrid && bpm > 0) {
-                const beatDuration = 60 / bpm;
-                const pixelsPerSecond = zoom;
-
-                // Calculate visible time range
+            if (showGrid && (grid.length > 0 || bpm > 0)) {
+                let beatTimes: number[] = [];
                 const halfWindowSeconds = (width / 2) / zoom;
                 const startTime = currentTime - halfWindowSeconds;
                 const endTime = currentTime + halfWindowSeconds;
 
-                // Find first beat in visible range
-                const firstBeatIndex = Math.floor(startTime / beatDuration);
-                const lastBeatIndex = Math.ceil(endTime / beatDuration);
+                if (grid && grid.length > 0) {
+                    beatTimes = grid.filter(t => t >= startTime - 1 && t <= endTime + 1);
+                } else {
+                    const beatDuration = 60 / bpm;
+                    // Adjust based on beatOffset
+                    const firstBeatIndex = Math.floor((startTime - beatOffset) / beatDuration);
+                    const lastBeatIndex = Math.ceil((endTime - beatOffset) / beatDuration);
+                    for (let i = firstBeatIndex; i <= lastBeatIndex; i++) {
+                        beatTimes.push(beatOffset + (i * beatDuration));
+                    }
+                }
 
                 ctx.save();
-                ctx.lineWidth = 1;
-
-                for (let i = firstBeatIndex; i <= lastBeatIndex; i++) {
-                    const beatTime = i * beatDuration;
+                beatTimes.forEach((beatTime, i) => {
                     const timeDiff = beatTime - currentTime;
-                    const x = (width / 2) + (timeDiff * pixelsPerSecond);
+                    const x = (width / 2) + (timeDiff * zoom);
 
-                    const isBar = i % 4 === 0;
+                    // Traktor logic: 1st beat of bar is brighter/thicker
+                    // If we use mt.beats (grid), we might not know the exact bar start easily without metadata,
+                    // but we can assume index 0 is a downbeat or check modulo 4 if the grid is regular.
+                    const isDownbeat = (grid.length > 0) ? (grid.indexOf(beatTime) % 4 === 0) : true;
+                    // Actually, if it's from bpm/offset, we can use the loop index 'i' relative to start.
+                    // But 'i' in beatTimes depends on the visible window.
+
+                    // Let's calculate the absolute beat index
+                    const beatDuration = 60 / bpm;
+                    const absoluteBeatIndex = Math.round((beatTime - beatOffset) / beatDuration);
+                    const isBar = absoluteBeatIndex % 4 === 0;
 
                     if (isBar) {
-                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-                        ctx.lineWidth = 2;
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+                        ctx.lineWidth = 1.5;
                     } else {
-                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-                        ctx.lineWidth = 1;
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                        ctx.lineWidth = 0.5;
                     }
 
                     ctx.beginPath();
                     ctx.moveTo(x, 0);
                     ctx.lineTo(x, h);
                     ctx.stroke();
-                }
+
+                    // Optional: Beat numbers for bars
+                    if (isBar && zoom > 100) {
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                        ctx.font = '10px Inter';
+                        ctx.fillText(`${(absoluteBeatIndex / 4) + 1}`, x + 4, 12);
+                    }
+                });
                 ctx.restore();
             }
 
@@ -222,9 +243,6 @@ export const DetailWaveform = ({ buffer, currentTime, zoom, setZoom, color, heig
 
         const handleGlobalPointerUp = () => {
             if (isDragging) {
-                if (wasPlayingRef.current && onPlay) {
-                    onPlay();
-                }
                 setIsDragging(false);
             }
         };
@@ -249,8 +267,6 @@ export const DetailWaveform = ({ buffer, currentTime, zoom, setZoom, color, heig
         setIsDragging(true);
         lastMouseX.current = e.clientX;
         wasPlayingRef.current = !!isPlaying;
-
-        if (isPlaying && onPause) onPause();
 
         // Prevent text selection during drag
         e.preventDefault();

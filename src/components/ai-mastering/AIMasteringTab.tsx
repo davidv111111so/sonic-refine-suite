@@ -81,7 +81,8 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
       return null;
     }
   });
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isAnalyzingTarget, setIsAnalyzingTarget] = useState(false);
+  const [isAnalyzingReference, setIsAnalyzingReference] = useState(false);
   const [audioAnalysis, setAudioAnalysis] = useState<AudioAnalysisData | null>(null);
 
   const handleAnalyze = async (type: 'target' | 'reference') => {
@@ -94,6 +95,7 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
       type: file.type
     });
 
+    const setIsAnalyzing = type === 'target' ? setIsAnalyzingTarget : setIsAnalyzingReference;
     setIsAnalyzing(true);
     try {
       const analysis = await masteringService.analyzeAudio(file);
@@ -480,6 +482,7 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
     setIsProcessing(true);
     setProgress(0);
 
+    let simulatedProgress = 0;
     // Higher increment for 1-3 min avg time
     const progressInterval = setInterval(() => {
       simulatedProgress += Math.random() * 0.8 + 0.4;
@@ -668,10 +671,10 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
                         <Button
                           size="sm"
                           onClick={(e) => { e.stopPropagation(); handleAnalyze('target'); }}
-                          disabled={isAnalyzing}
+                          disabled={isAnalyzingTarget}
                           className="bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/30"
                         >
-                          {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                          {isAnalyzingTarget ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
                           Analyze
                         </Button>
                       </div>
@@ -879,10 +882,10 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
                         <Button
                           size="sm"
                           onClick={(e) => { e.stopPropagation(); handleAnalyze('reference'); }}
-                          disabled={isAnalyzing}
+                          disabled={isAnalyzingReference}
                           className="bg-pink-500/20 hover:bg-pink-500/30 text-pink-300 border border-pink-500/30"
                         >
-                          {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                          {isAnalyzingReference ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
                           Analyze
                         </Button>
                       </div>
@@ -917,10 +920,10 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
                           <Button
                             size="sm"
                             onClick={(e) => { e.stopPropagation(); handleAnalyze('reference'); }}
-                            disabled={isAnalyzing}
+                            disabled={isAnalyzingReference}
                             className="bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30"
                           >
-                            {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                            {isAnalyzingReference ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
                             {audioAnalysis?.reference ? "Re-analyze Style" : "Analyze Style"}
                           </Button>
                         </div>

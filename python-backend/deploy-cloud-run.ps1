@@ -56,7 +56,11 @@ gcloud run deploy $SERVICE_NAME `
     --allow-unauthenticated `
     --set-env-vars "$envString" `
     --memory 16Gi `
-    --cpu 8
+    --cpu 8 `
+    --min-instances 3 `
+    --max-instances 50 `
+    --liveness-probe httpGet.path=/health `
+    --startup-probe httpGet.path=/health
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host ""

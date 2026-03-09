@@ -211,6 +211,18 @@ const ProMixerContent = () => {
                         <div className={cn("w-2 h-2 rounded-full", isRecording ? "bg-red-500" : "bg-[#666]")} />
                         {isRecording ? "RECORDING" : "REC"}
                     </button>
+
+                    <div className="w-px h-4 bg-[#333] mx-1" />
+
+                    <a
+                        href="https://levelaudio.live"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 transition-all shadow-[0_0_15px_rgba(6,182,212,0.1)]"
+                    >
+                        <Zap className="w-3 h-3 fill-cyan-400" />
+                        LEVEL WEB APP
+                    </a>
                 </div>
             </div>
 
@@ -226,8 +238,8 @@ const ProMixerContent = () => {
 
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col min-h-0 bg-[#0d0d0d] relative pt-0 gap-0">
-                {/* Mixer / Decks Section - Height tuned for perfect fit and no overlaps (54vh / 540px min) */}
-                <div className="flex-none h-[54vh] min-h-[540px] grid grid-cols-[1fr_320px_1fr] border-b border-[#333] overflow-hidden bg-[#0d0d0d]">
+                {/* Mixer / Decks Section - Height reduced to expose more of the library */}
+                <div className="flex-none h-[42vh] min-h-[440px] grid grid-cols-[1fr_320px_1fr] border-b border-[#333] overflow-hidden bg-[#0d0d0d]">
                     {/* Deck A */}
                     <div className="border-r border-[#333] bg-[#121212] relative">
                         <div className="absolute top-2 left-2 text-[10px] font-bold text-[#00deea] uppercase bg-[#00deea]/10 px-1 border border-[#00deea]/30">Deck A</div>

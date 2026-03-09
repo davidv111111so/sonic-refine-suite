@@ -270,8 +270,8 @@ export default function Auth() {
       )}
 
       {/* Auth Page */}
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-black to-slate-900 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-slate-900/90 border-slate-700">
+      <div className="min-h-screen relative bg-gradient-to-br from-slate-950 via-black to-slate-900 flex items-center justify-center p-4 overflow-hidden">
+        <Card className="w-full max-w-md bg-slate-900/90 border-slate-700 relative z-10">
           <CardHeader className="space-y-1 text-center">
             <div className="flex justify-center mb-4">
               <div className="p-3 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full">
@@ -576,16 +576,16 @@ export default function Auth() {
         </Card>
 
         {/* Navigation back to landing/promo page */}
-        <div className="mt-8 text-center flex flex-col items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
+        <div className="absolute bottom-8 right-8 text-right flex flex-col items-end gap-1 animate-in fade-in slide-in-from-right-8 duration-1000 delay-500 z-50">
           <Button
-            variant="link"
-            className="text-slate-400 hover:text-cyan-400 transition-colors gap-2"
+            variant="ghost"
+            className="text-slate-300 hover:text-cyan-400 hover:bg-cyan-950/30 transition-all gap-2 text-lg font-medium tracking-wide py-6 px-4 rounded-xl border border-transparent hover:border-cyan-500/30 shadow-[0_0_0_transparent] hover:shadow-[0_0_20px_rgba(34,211,238,0.2)] group"
             onClick={() => navigate('/')}
           >
-            <Music className="h-4 w-4" />
+            <Music className="h-5 w-5 group-hover:scale-110 transition-transform" />
             Back to Home
           </Button>
-          <p className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-light">
+          <p className="text-[10px] text-slate-400/80 uppercase tracking-[0.25em] font-light pr-4 bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text hover:text-transparent transition-colors cursor-default">
             Professional Audio Tools for Creators
           </p>
         </div>

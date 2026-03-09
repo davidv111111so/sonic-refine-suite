@@ -23,6 +23,14 @@ interface Track {
 
 // ... imports preservation
 
+const THEMES = [
+    { id: 'carbon', name: 'Dark Carbon', bg: "url('/assets/carbon_fiber_bg.png')", container: 'bg-black/60' },
+    { id: 'light', name: 'Light Mode', bg: "url('/assets/light_pattern.png')", container: 'bg-white/90' },
+    { id: 'neon', name: 'Club Neon', bg: 'none', container: 'bg-black' },
+    { id: 'classic', name: 'Classic Analog', bg: "url('/assets/analog_wood.png')", container: 'bg-[#1f1a17]/90' },
+    { id: 'glass', name: 'Minimalist Glass', bg: "url('/assets/glass_gradient.png')", container: 'bg-white/10' }
+];
+
 export const ProMixer = () => {
     const {
         deckA, deckB, crossfader, setCrossfader, nudgeCrossfader, autoFade,
@@ -36,6 +44,7 @@ export const ProMixer = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const folderInputRef = useRef<HTMLInputElement>(null);
     const [activeTab, setActiveTab] = useState<'local' | 'playlists' | 'history'>('local');
+    const [activeTheme, setActiveTheme] = useState(THEMES[0]);
 
     // Sample tracks (Direct with CORS Proxy)
     // using corsproxy.io to bypass Access-Control-Allow-Origin issues with SoundHelix
@@ -58,7 +67,7 @@ export const ProMixer = () => {
         const files = e.target.files;
         if (!files) return;
         const newTracks: Track[] = [];
-        Array.from(files).forEach((file, index) => {
+        Array.from(files).slice(0, 100).forEach((file, index) => {
             if (file.type.startsWith('audio/')) {
                 newTracks.push({
                     id: `local-${Date.now()}-${index}`,
@@ -97,7 +106,7 @@ export const ProMixer = () => {
 
     return (
         <TransportProvider>
-            <div className="flex flex-col h-screen bg-[#0d0d0d] text-[#e0e0e0] overflow-hidden select-none font-sans">
+            <div className={`flex flex-col h-screen overflow-hidden select-none font-sans transition-all duration-500 ${activeTheme.id === 'light' ? 'text-slate-800' : 'text-[#e0e0e0]'}`} style={{ backgroundImage: activeTheme.bg, backgroundColor: activeTheme.bg === 'none' ? '#000' : 'transparent', backgroundSize: 'cover' }}>
                 {/* Header / Top Bar - Slim Traktor Style */}
                 <div className="h-10 bg-[#1e1e1e] border-b border-[#333] flex items-center justify-between px-4 shrink-0 z-20">
                     <div className="flex items-center gap-3">
@@ -106,6 +115,18 @@ export const ProMixer = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 bg-black/40 px-2 py-1 rounded-md border border-cyan-500/30 hover:border-cyan-500/80 transition-colors shadow-[0_0_10px_rgba(6,182,212,0.1)]">
+                            <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest hidden sm:inline-block">Theme:</span>
+                            <select
+                                className="bg-transparent text-[10px] font-bold uppercase tracking-wider outline-none text-white cursor-pointer appearance-none pr-4"
+                                onChange={(e) => setActiveTheme(THEMES.find(t => t.id === e.target.value) || THEMES[0])}
+                                value={activeTheme.id}
+                                style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
+                            >
+                                {THEMES.map(t => <option key={t.id} value={t.id} className="bg-[#1e1e1e] text-white">{t.name}</option>)}
+                            </select>
+                            <svg className="w-3 h-3 text-cyan-500 pointer-events-none absolute right-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
                         <input type="file" ref={folderInputRef} onChange={handleFolderSelect} hidden multiple accept="audio/*" />
                         <Button
                             className="bg-[#262626] hover:bg-[#333] text-[#e0e0e0] border border-[#444] rounded-none h-6 text-[10px] font-bold uppercase disabled:opacity-50"
@@ -118,10 +139,10 @@ export const ProMixer = () => {
                 </div>
 
                 {/* Main Content Area */}
-                <div className="flex-1 flex flex-col min-h-0 bg-[#0d0d0d]">
+                <div className={`flex-1 flex flex-col min-h-0 backdrop-blur-md transition-colors duration-500 ${activeTheme.container}`}>
 
                     {/* Mixer / Decks Section - Fixed Height */}
-                    <div className="flex-none h-[600px] grid grid-cols-[1fr_320px_1fr] border-b border-[#333]">
+                    <div className="flex-none h-[450px] grid grid-cols-[1fr_320px_1fr] border-b border-[#333]">
                         {/* Deck A */}
                         <div className="border-r border-[#333] bg-[#121212] relative">
                             {/* Placeholder or component for Deck A */}

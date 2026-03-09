@@ -116,18 +116,27 @@ export async function detectBPMFromBuffer(audioBuffer: AudioBuffer): Promise<BPM
       if (e.data.type === 'BPM_RESULT') {
         console.log(`✅ Worker BPM: ${e.data.bpm}`);
         const bpm = e.data.bpm;
-        const interval = 60.0 / bpm;
-        const offset = 0; // Worker doesn't calculate offset yet
+        const offset = e.data.offset || 0;
+
+        // music-tempo returns actual beat times in seconds in `beats`
+        const receivedBeats = e.data.beats || [];
         const grid: number[] = [];
-        let currentBeat = offset;
-        while (currentBeat < audioBuffer.duration) {
-          grid.push(currentBeat);
-          currentBeat += interval;
+
+        if (receivedBeats.length > 0) {
+          grid.push(...receivedBeats);
+        } else {
+          // Fallback grid generation just in case
+          const interval = 60.0 / bpm;
+          let currentBeat = offset;
+          while (currentBeat < audioBuffer.duration) {
+            grid.push(currentBeat);
+            currentBeat += interval;
+          }
         }
 
         resolve({
           bpm,
-          confidence: 0.8,
+          confidence: 0.8, // music-tempo usually has ~80%+ confidence on EDM
           offset,
           grid
         });

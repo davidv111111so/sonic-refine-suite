@@ -41,7 +41,7 @@ export const StemsGuide = () => {
                                 How it Works
                             </h3>
                             <p className="text-sm text-slate-300 leading-relaxed">
-                                Level uses the <span className="text-cyan-400 font-semibold">Level Stem Engine</span>, powered by HTDemucs AI on dedicated NVIDIA A100 GPU clusters. Your track is uploaded, processed in the cloud with lightning speed, and the separated stems are delivered back to you in seconds.
+                                Level uses the <span className="text-cyan-400 font-semibold">Level Stem Engine</span>, powered by advanced AI on dedicated NVIDIA A100 GPU clusters. Your track is uploaded, processed in the cloud with lightning speed, and the separated stems are delivered back to you in seconds.
                             </p>
                         </div>
 

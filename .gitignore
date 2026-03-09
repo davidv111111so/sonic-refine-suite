@@ -51,3 +51,7 @@ lint_*.txt
 test_output.txt
 notebook_results.txt
 *.log
+
+# Tauri
+src-tauri/target/
+.vsconfig

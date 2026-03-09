@@ -111,26 +111,30 @@ const MetricRow = ({ label, before, after, unit = '', invert = false, icon }: {
 }) => {
     const bVal = typeof before === 'number' ? fmtNum(before) : (before ?? '—');
     const aVal = typeof after === 'number' ? fmtNum(after) : (after ?? '—');
-    const changed = bVal !== aVal;
+    const bothExist = before != null && after != null;
+    const changed = bothExist && before !== after;
+
     return (
-        <TableRow className="border-slate-800/50 hover:bg-slate-900/30">
-            <TableCell className="font-medium text-slate-300 flex items-center gap-2 py-2.5">
+        <TableRow className="border-slate-800/30 hover:bg-slate-800/40 transition-colors">
+            <TableCell className="font-medium text-slate-300 flex items-center gap-2 py-3">
                 {icon}
                 {label}
             </TableCell>
-            <TableCell className="text-slate-400 py-2.5 font-mono text-sm">
-                {bVal} {unit && <span className="text-slate-600 text-[10px]">{unit}</span>}
+            <TableCell className="text-slate-400 py-3 font-mono text-sm">
+                {bVal} {unit && bVal !== '—' && <span className="text-slate-600 text-[10px] ml-1">{unit}</span>}
             </TableCell>
-            <TableCell className="text-slate-400 py-2.5 font-mono text-sm">
-                {aVal} {unit && <span className="text-slate-600 text-[10px]">{unit}</span>}
+            <TableCell className="text-slate-400 py-3 font-mono text-sm">
+                {aVal} {unit && aVal !== '—' && <span className="text-slate-600 text-[10px] ml-1">{unit}</span>}
             </TableCell>
-            <TableCell className="py-2.5">
-                {typeof before === 'number' && typeof after === 'number' ? (
+            <TableCell className="py-3">
+                {!bothExist ? (
+                    <span className="text-slate-700 text-xs">—</span>
+                ) : typeof before === 'number' && typeof after === 'number' ? (
                     <DeltaBadge before={before} after={after} unit={unit} invert={invert} />
                 ) : changed ? (
-                    <Badge variant="outline" className="border-cyan-500/50 text-cyan-400 text-[10px]">Changed</Badge>
+                    <Badge variant="outline" className="border-cyan-500/40 text-cyan-400 bg-cyan-950/20 text-[10px]">Changed</Badge>
                 ) : (
-                    <Badge variant="outline" className="border-slate-600 text-slate-500 text-[10px]">Same</Badge>
+                    <Badge variant="outline" className="border-slate-700 text-slate-500 bg-slate-900/50 text-[10px]">Same</Badge>
                 )}
             </TableCell>
         </TableRow>
@@ -310,7 +314,9 @@ export const AudioQALab = () => {
     };
 
     const bothReady = !!beforeResult && !!afterResult;
+    const anyReady = !!beforeResult || !!afterResult;
     const isAnalyzing = analyzingBefore || analyzingAfter;
+    const activeResult = afterResult || beforeResult;
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
@@ -326,7 +332,7 @@ export const AudioQALab = () => {
                     onClear={() => { setBeforeFile(null); setBeforeResult(null); }}
                 />
                 {/* Arrow connector */}
-                <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-slate-900 border border-slate-700 items-center justify-center">
+                <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-slate-900 border border-slate-700 items-center justify-center shadow-lg shadow-black/50">
                     <ArrowRight className="w-4 h-4 text-slate-400" />
                 </div>
                 <UploadCard
@@ -345,7 +351,7 @@ export const AudioQALab = () => {
                 <div className="flex justify-center gap-3">
                     {((beforeFile && !beforeResult) || (afterFile && !afterResult)) && (
                         <Button
-                            className="bg-cyan-500 hover:bg-cyan-600 text-black font-bold gap-2 px-8"
+                            className="bg-cyan-500 hover:bg-cyan-600 text-black font-bold gap-2 px-8 shadow-[0_0_20px_rgba(6,182,212,0.3)]"
                             onClick={async () => {
                                 if (beforeFile && !beforeResult) {
                                     await analyzeFile(beforeFile, 'before');
@@ -383,123 +389,151 @@ export const AudioQALab = () => {
             )}
 
             {/* Comparison Results */}
-            {bothReady && (
-                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {anyReady && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
                     {/* Quick Summary Strip */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <SummaryCard
-                            label="Format Changed"
-                            value={beforeResult.file_info.extension !== afterResult.file_info.extension}
-                            icon={<FileAudio className="w-4 h-4" />}
-                        />
-                        <SummaryCard
-                            label="LUFS Changed"
-                            value={beforeResult.loudness.integrated_lufs !== afterResult.loudness.integrated_lufs}
-                            icon={<Gauge className="w-4 h-4" />}
-                        />
-                        <SummaryCard
-                            label="Compression Applied"
-                            value={
-                                (beforeResult.compression.level || 'none') !== (afterResult.compression.level || 'none')
-                            }
-                            icon={<Activity className="w-4 h-4" />}
-                        />
-                        <SummaryCard
-                            label="Duration Match"
-                            value={Math.abs(
-                                (beforeResult.file_info.duration_seconds || 0) -
-                                (afterResult.file_info.duration_seconds || 0)
-                            ) < 0.5}
-                            isGoodWhenTrue
-                            icon={<Clock className="w-4 h-4" />}
-                        />
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {!bothReady ? (
+                            <>
+                                <div className="rounded-xl border border-slate-800/60 bg-slate-900/40 p-4 shadow-lg flex items-center gap-4 backdrop-blur-md">
+                                    <div className="p-2 bg-cyan-500/10 rounded-lg"><FileAudio className="w-6 h-6 text-cyan-400" /></div>
+                                    <div><p className="text-xs text-slate-500 uppercase font-semibold">Format</p><p className="text-lg font-bold text-slate-200">{activeResult?.file_info.extension?.toUpperCase() || '—'}</p></div>
+                                </div>
+                                <div className="rounded-xl border border-slate-800/60 bg-slate-900/40 p-4 shadow-lg flex items-center gap-4 backdrop-blur-md">
+                                    <div className="p-2 bg-purple-500/10 rounded-lg"><Gauge className="w-6 h-6 text-purple-400" /></div>
+                                    <div><p className="text-xs text-slate-500 uppercase font-semibold">Loudness</p><p className="text-lg font-bold text-slate-200">{activeResult?.loudness.integrated_lufs?.toFixed(1) || '—'} <span className="text-sm font-normal text-slate-500">LUFS</span></p></div>
+                                </div>
+                                <div className="rounded-xl border border-slate-800/60 bg-slate-900/40 p-4 shadow-lg flex items-center gap-4 backdrop-blur-md">
+                                    <div className="p-2 bg-amber-500/10 rounded-lg"><Waves className="w-6 h-6 text-amber-400" /></div>
+                                    <div><p className="text-xs text-slate-500 uppercase font-semibold">Sample Rate</p><p className="text-lg font-bold text-slate-200">{activeResult?.file_info.sample_rate || '—'} <span className="text-sm font-normal text-slate-500">Hz</span></p></div>
+                                </div>
+                                <div className="rounded-xl border border-slate-800/60 bg-slate-900/40 p-4 shadow-lg flex items-center gap-4 backdrop-blur-md">
+                                    <div className="p-2 bg-emerald-500/10 rounded-lg"><Activity className="w-6 h-6 text-emerald-400" /></div>
+                                    <div><p className="text-xs text-slate-500 uppercase font-semibold">Compression</p><p className="text-lg font-bold text-slate-200 capitalize">{activeResult?.compression.level || '—'}</p></div>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <SummaryCard
+                                    label="Format Changed"
+                                    value={beforeResult?.file_info.extension !== afterResult?.file_info.extension}
+                                    icon={<FileAudio className="w-4 h-4" />}
+                                />
+                                <SummaryCard
+                                    label="LUFS Changed"
+                                    value={beforeResult?.loudness.integrated_lufs !== afterResult?.loudness.integrated_lufs}
+                                    icon={<Gauge className="w-4 h-4" />}
+                                />
+                                <SummaryCard
+                                    label="Compression Applied"
+                                    value={
+                                        (beforeResult?.compression.level || 'none') !== (afterResult?.compression.level || 'none')
+                                    }
+                                    icon={<Activity className="w-4 h-4" />}
+                                />
+                                <SummaryCard
+                                    label="Duration Match"
+                                    value={Math.abs(
+                                        (beforeResult?.file_info.duration_seconds || 0) -
+                                        (afterResult?.file_info.duration_seconds || 0)
+                                    ) < 0.5}
+                                    isGoodWhenTrue
+                                    icon={<Clock className="w-4 h-4" />}
+                                />
+                            </>
+                        )}
                     </div>
 
                     {/* Detailed Comparison Table */}
-                    <Card className="bg-slate-900/60 border-slate-800 backdrop-blur-sm">
-                        <CardHeader className="pb-3">
-                            <CardTitle className="text-white flex items-center gap-2">
-                                <BarChart3 className="w-5 h-5 text-cyan-400" />
-                                Detailed Comparison
+                    <Card className="relative overflow-hidden bg-slate-950/40 border-slate-700/50 shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-xl">
+                        <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-purple-500/5 pointer-events-none" />
+                        <CardHeader className="pb-4 border-b border-slate-800/60 relative z-10 bg-slate-900/30">
+                            <CardTitle className="text-white flex items-center gap-2 text-xl font-bold tracking-wide">
+                                <BarChart3 className="w-6 h-6 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]" />
+                                Audio Properties Analysis
                             </CardTitle>
-                            <CardDescription className="text-slate-500">
-                                Side-by-side audio fingerprint analysis
+                            <CardDescription className="text-slate-400 font-medium">
+                                Technical breakdown of frequency, loudness, and metadata.
                             </CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow className="border-slate-800">
-                                        <TableHead className="text-slate-500 w-[200px]">Metric</TableHead>
-                                        <TableHead className="text-cyan-500/70">Before</TableHead>
-                                        <TableHead className="text-purple-500/70">After</TableHead>
-                                        <TableHead className="text-slate-500">Delta</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {/* File Info Section */}
-                                    <TableRow className="border-slate-800/30">
-                                        <TableCell colSpan={4} className="py-1.5">
-                                            <p className="text-[10px] uppercase tracking-widest text-slate-600 font-semibold">File Properties</p>
-                                        </TableCell>
-                                    </TableRow>
-                                    <MetricRow label="Format" before={beforeResult.file_info.extension} after={afterResult.file_info.extension} icon={<FileAudio className="w-3.5 h-3.5 text-slate-500" />} />
-                                    <MetricRow label="Sample Rate" before={beforeResult.file_info.sample_rate} after={afterResult.file_info.sample_rate} unit="Hz" />
-                                    <MetricRow label="Bit Depth" before={beforeResult.file_info.bit_depth} after={afterResult.file_info.bit_depth} unit="bit" />
-                                    <MetricRow label="Channels" before={beforeResult.file_info.channels} after={afterResult.file_info.channels} />
-                                    <MetricRow label="Duration" before={beforeResult.file_info.duration_seconds} after={afterResult.file_info.duration_seconds} unit="s" />
-                                    <MetricRow label="File Size" before={beforeResult.file_info.file_size_mb} after={afterResult.file_info.file_size_mb} unit="MB" />
+                        <CardContent className="p-0 relative z-10">
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader className="bg-slate-900/60">
+                                        <TableRow className="border-slate-800/60">
+                                            <TableHead className="text-slate-400 font-bold w-[250px] uppercase tracking-wider text-xs px-6 py-4">Metric</TableHead>
+                                            <TableHead className="text-cyan-400 font-bold uppercase tracking-wider text-xs py-4">Before</TableHead>
+                                            <TableHead className="text-purple-400 font-bold uppercase tracking-wider text-xs py-4">After</TableHead>
+                                            <TableHead className="text-slate-400 font-bold uppercase tracking-wider text-xs py-4">Delta / Status</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {/* File Info Section */}
+                                        <TableRow className="border-slate-800/30 bg-slate-900/20">
+                                            <TableCell colSpan={4} className="py-2 px-6">
+                                                <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-500/80 font-bold">File Properties</p>
+                                            </TableCell>
+                                        </TableRow>
+                                        <MetricRow label="Format" before={beforeResult?.file_info.extension} after={afterResult?.file_info.extension} icon={<FileAudio className="w-4 h-4 text-slate-500" />} />
+                                        <MetricRow label="Sample Rate" before={beforeResult?.file_info.sample_rate} after={afterResult?.file_info.sample_rate} unit="Hz" />
+                                        <MetricRow label="Bit Depth" before={beforeResult?.file_info.bit_depth} after={afterResult?.file_info.bit_depth} unit="bit" />
+                                        <MetricRow label="Channels" before={beforeResult?.file_info.channels} after={afterResult?.file_info.channels} />
+                                        <MetricRow label="Duration" before={beforeResult?.file_info.duration_seconds} after={afterResult?.file_info.duration_seconds} unit="s" />
+                                        <MetricRow label="File Size" before={beforeResult?.file_info.file_size_mb} after={afterResult?.file_info.file_size_mb} unit="MB" />
 
-                                    {/* Loudness Section */}
-                                    <TableRow className="border-slate-800/30">
-                                        <TableCell colSpan={4} className="py-1.5">
-                                            <p className="text-[10px] uppercase tracking-widest text-slate-600 font-semibold">Loudness & Dynamics</p>
-                                        </TableCell>
-                                    </TableRow>
-                                    <MetricRow label="Integrated LUFS" before={beforeResult.loudness.integrated_lufs} after={afterResult.loudness.integrated_lufs} unit="LUFS" icon={<Gauge className="w-3.5 h-3.5 text-slate-500" />} />
-                                    <MetricRow label="True Peak" before={beforeResult.loudness.true_peak_db} after={afterResult.loudness.true_peak_db} unit="dBTP" />
-                                    <MetricRow label="Dynamic Range" before={beforeResult.loudness.dynamic_range_db} after={afterResult.loudness.dynamic_range_db} unit="dB" />
+                                        {/* Loudness Section */}
+                                        <TableRow className="border-slate-800/30 bg-slate-900/20">
+                                            <TableCell colSpan={4} className="py-2 px-6">
+                                                <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-500/80 font-bold">Loudness & Dynamics</p>
+                                            </TableCell>
+                                        </TableRow>
+                                        <MetricRow label="Integrated LUFS" before={beforeResult?.loudness.integrated_lufs} after={afterResult?.loudness.integrated_lufs} unit="LUFS" icon={<Gauge className="w-4 h-4 text-slate-500" />} />
+                                        <MetricRow label="True Peak" before={beforeResult?.loudness.true_peak_db} after={afterResult?.loudness.true_peak_db} unit="dBTP" />
+                                        <MetricRow label="Dynamic Range" before={beforeResult?.loudness.dynamic_range_db} after={afterResult?.loudness.dynamic_range_db} unit="dB" />
 
-                                    {/* Spectral Section */}
-                                    <TableRow className="border-slate-800/30">
-                                        <TableCell colSpan={4} className="py-1.5">
-                                            <p className="text-[10px] uppercase tracking-widest text-slate-600 font-semibold">Spectral Analysis</p>
-                                        </TableCell>
-                                    </TableRow>
-                                    <MetricRow label="Centroid (Brightness)" before={beforeResult.spectral.centroid_hz} after={afterResult.spectral.centroid_hz} unit="Hz" icon={<Waves className="w-3.5 h-3.5 text-slate-500" />} />
-                                    <MetricRow label="Bandwidth" before={beforeResult.spectral.bandwidth_hz} after={afterResult.spectral.bandwidth_hz} unit="Hz" />
-                                    <MetricRow label="Rolloff (95%)" before={beforeResult.spectral.rolloff_hz} after={afterResult.spectral.rolloff_hz} unit="Hz" />
-                                    <MetricRow label="RMS Energy" before={beforeResult.spectral.rms_db} after={afterResult.spectral.rms_db} unit="dB" />
-                                    <MetricRow label="Crest Factor" before={beforeResult.spectral.crest_factor_db} after={afterResult.spectral.crest_factor_db} unit="dB" invert />
-                                    <MetricRow label="Zero Crossing Rate" before={beforeResult.spectral.zero_crossing_rate} after={afterResult.spectral.zero_crossing_rate} />
+                                        {/* Spectral Section */}
+                                        <TableRow className="border-slate-800/30 bg-slate-900/20">
+                                            <TableCell colSpan={4} className="py-2 px-6">
+                                                <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-500/80 font-bold">Spectral Analysis</p>
+                                            </TableCell>
+                                        </TableRow>
+                                        <MetricRow label="Centroid (Brightness)" before={beforeResult?.spectral.centroid_hz} after={afterResult?.spectral.centroid_hz} unit="Hz" icon={<Waves className="w-4 h-4 text-slate-500" />} />
+                                        <MetricRow label="Bandwidth" before={beforeResult?.spectral.bandwidth_hz} after={afterResult?.spectral.bandwidth_hz} unit="Hz" />
+                                        <MetricRow label="Rolloff (95%)" before={beforeResult?.spectral.rolloff_hz} after={afterResult?.spectral.rolloff_hz} unit="Hz" />
+                                        <MetricRow label="RMS Energy" before={beforeResult?.spectral.rms_db} after={afterResult?.spectral.rms_db} unit="dB" />
+                                        <MetricRow label="Crest Factor" before={beforeResult?.spectral.crest_factor_db} after={afterResult?.spectral.crest_factor_db} unit="dB" invert />
+                                        <MetricRow label="Zero Crossing Rate" before={beforeResult?.spectral.zero_crossing_rate} after={afterResult?.spectral.zero_crossing_rate} />
 
-                                    {/* Compression Section */}
-                                    <TableRow className="border-slate-800/30">
-                                        <TableCell colSpan={4} className="py-1.5">
-                                            <p className="text-[10px] uppercase tracking-widest text-slate-600 font-semibold">Compression Detection</p>
-                                        </TableCell>
-                                    </TableRow>
-                                    <TableRow className="border-slate-800/50 hover:bg-slate-900/30">
-                                        <TableCell className="font-medium text-slate-300 flex items-center gap-2 py-2.5">
-                                            <Activity className="w-3.5 h-3.5 text-slate-500" />
-                                            Compression Level
-                                        </TableCell>
-                                        <TableCell className="py-2.5">
-                                            <CompressionBadge level={beforeResult.compression.level} />
-                                        </TableCell>
-                                        <TableCell className="py-2.5">
-                                            <CompressionBadge level={afterResult.compression.level} />
-                                        </TableCell>
-                                        <TableCell className="py-2.5">
-                                            {beforeResult.compression.level !== afterResult.compression.level ? (
-                                                <Badge variant="outline" className="border-cyan-500/50 text-cyan-400 text-[10px]">Changed</Badge>
-                                            ) : (
-                                                <Badge variant="outline" className="border-slate-600 text-slate-500 text-[10px]">Same</Badge>
-                                            )}
-                                        </TableCell>
-                                    </TableRow>
-                                </TableBody>
-                            </Table>
+                                        {/* Compression Section */}
+                                        <TableRow className="border-slate-800/30 bg-slate-900/20">
+                                            <TableCell colSpan={4} className="py-2 px-6">
+                                                <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-500/80 font-bold">Compression Detection</p>
+                                            </TableCell>
+                                        </TableRow>
+                                        <TableRow className="border-slate-800/30 hover:bg-slate-800/40 transition-colors">
+                                            <TableCell className="font-medium text-slate-300 flex items-center gap-2 py-3 px-6">
+                                                <Activity className="w-4 h-4 text-slate-500" />
+                                                Compression Level
+                                            </TableCell>
+                                            <TableCell className="py-3">
+                                                {beforeResult ? <CompressionBadge level={beforeResult.compression.level} /> : <span className="text-slate-700 text-xs">—</span>}
+                                            </TableCell>
+                                            <TableCell className="py-3">
+                                                {afterResult ? <CompressionBadge level={afterResult.compression.level} /> : <span className="text-slate-700 text-xs">—</span>}
+                                            </TableCell>
+                                            <TableCell className="py-3">
+                                                {!bothReady ? (
+                                                    <span className="text-slate-700 text-xs">—</span>
+                                                ) : beforeResult?.compression.level !== afterResult?.compression.level ? (
+                                                    <Badge variant="outline" className="border-cyan-500/40 text-cyan-400 bg-cyan-950/20 text-[10px]">Changed</Badge>
+                                                ) : (
+                                                    <Badge variant="outline" className="border-slate-700 text-slate-500 bg-slate-900/50 text-[10px]">Same</Badge>
+                                                )}
+                                            </TableCell>
+                                        </TableRow>
+                                    </TableBody>
+                                </Table>
+                            </div>
                         </CardContent>
                     </Card>
 
@@ -619,94 +653,129 @@ const SummaryCard = ({ label, value, isGoodWhenTrue = false, icon }: {
 };
 
 // ─── Verdict Panel ───────────────────────────────────────────────────────────
-const VerdictPanel = ({ before, after }: { before: QAResult; after: QAResult }) => {
+const VerdictPanel = ({ before, after }: { before: QAResult | null; after: QAResult | null }) => {
     const checks: { label: string; pass: boolean; detail: string }[] = [];
 
-    // Duration should match (within 0.5s)
-    const durDiff = Math.abs((before.file_info.duration_seconds || 0) - (after.file_info.duration_seconds || 0));
-    checks.push({
-        label: 'Duration Integrity',
-        pass: durDiff < 0.5,
-        detail: durDiff < 0.5 ? `Duration matches (Δ${durDiff.toFixed(3)}s)` : `Duration mismatch: Δ${durDiff.toFixed(2)}s`,
-    });
+    if (!before || !after) {
+        // Single File Quality Check
+        const result = before || after;
+        if (!result) return null;
 
-    // LUFS should have changed (if mastering was applied)
-    const lufsBefore = before.loudness.integrated_lufs;
-    const lufsAfter = after.loudness.integrated_lufs;
-    if (lufsBefore != null && lufsAfter != null) {
-        const lufsDiff = Math.abs(lufsAfter - lufsBefore);
+        const lufs = result.loudness.integrated_lufs;
+        if (lufs != null) {
+            const isGoodLoudness = lufs >= -16 && lufs <= -9;
+            checks.push({
+                label: 'Streaming Loudness',
+                pass: isGoodLoudness,
+                detail: isGoodLoudness
+                    ? `Optimal for streaming platforms (${lufs.toFixed(1)} LUFS)`
+                    : `Loudness (${lufs.toFixed(1)} LUFS) is outside standard streaming target (-14 LUFS)`,
+            });
+        }
+
+        const peak = result.loudness.true_peak_db;
+        if (peak != null) {
+            const noClipping = peak <= -0.5;
+            checks.push({
+                label: 'True Peak (Clipping)',
+                pass: noClipping,
+                detail: noClipping
+                    ? `Safe digital margin detected (${peak.toFixed(2)} dBTP)`
+                    : `Potential clipping hazard (${peak.toFixed(2)} dBTP). Target is <-1.0 dBTP for lossy encoding`,
+            });
+        }
+
+        const sr = result.file_info.sample_rate;
+        if (sr) {
+            const isHighRes = sr >= 44100;
+            checks.push({
+                label: 'Sample Rate & Fidelity',
+                pass: isHighRes,
+                detail: isHighRes ? `Professional standard (${sr} Hz)` : `Sub-optimal sample rate (${sr} Hz)`,
+            });
+        }
+    } else {
+        // Comparison Checks
+        const durDiff = Math.abs((before.file_info.duration_seconds || 0) - (after.file_info.duration_seconds || 0));
         checks.push({
-            label: 'Loudness Processing',
-            pass: lufsDiff > 0.3,
-            detail: lufsDiff > 0.3
-                ? `Loudness changed by ${lufsDiff.toFixed(1)} LUFS (${lufsAfter > lufsBefore ? 'louder' : 'quieter'})`
-                : 'Loudness unchanged — mastering may not have been applied',
+            label: 'Duration Integrity',
+            pass: durDiff < 0.5,
+            detail: durDiff < 0.5 ? `Duration perfectly matches (Δ${durDiff.toFixed(3)}s)` : `Warning: Duration mismatch of ${durDiff.toFixed(2)}s detected`,
+        });
+
+        const lufsBefore = before.loudness.integrated_lufs;
+        const lufsAfter = after.loudness.integrated_lufs;
+        if (lufsBefore != null && lufsAfter != null) {
+            const lufsDiff = Math.abs(lufsAfter - lufsBefore);
+            checks.push({
+                label: 'Loudness Processing',
+                pass: lufsDiff > 0.3,
+                detail: lufsDiff > 0.3
+                    ? `Dynamic lift detected: Loudness changed by ${lufsDiff.toFixed(1)} LUFS (${lufsAfter > lufsBefore ? 'louder' : 'quieter'})`
+                    : 'Target maintained: Loudness unchanged — mastering limits preserved',
+            });
+        }
+
+        const centBefore = before.spectral.centroid_hz;
+        const centAfter = after.spectral.centroid_hz;
+        if (centBefore != null && centAfter != null) {
+            const centDiff = Math.abs(centAfter - centBefore);
+            const centPct = (centDiff / centBefore) * 100;
+            checks.push({
+                label: 'EQ / Spectral Balance',
+                pass: centPct > 1,
+                detail: centPct > 1
+                    ? `Spectral centroid shifted by ${centDiff.toFixed(0)} Hz (${centPct.toFixed(1)}%) indicating EQ/Saturation was applied`
+                    : 'Spectral profile unchanged — no broad equalization detected',
+            });
+        }
+
+        const compBefore = before.compression.level || 'none';
+        const compAfter = after.compression.level || 'none';
+        checks.push({
+            label: 'Dynamic Range Compression',
+            pass: compBefore !== compAfter,
+            detail: compBefore !== compAfter
+                ? `Dynamics altered: Compression level changed from ${compBefore} to ${compAfter}`
+                : `Dynamics preserved: Compression level remained ${compAfter}`,
         });
     }
-
-    // Spectral centroid change = EQ was applied
-    const centBefore = before.spectral.centroid_hz;
-    const centAfter = after.spectral.centroid_hz;
-    if (centBefore != null && centAfter != null) {
-        const centDiff = Math.abs(centAfter - centBefore);
-        const centPct = (centDiff / centBefore) * 100;
-        checks.push({
-            label: 'EQ / Spectral Changes',
-            pass: centPct > 1,
-            detail: centPct > 1
-                ? `Spectral centroid shifted by ${centDiff.toFixed(0)} Hz (${centPct.toFixed(1)}%) — EQ applied`
-                : 'Spectral profile unchanged — no EQ detected',
-        });
-    }
-
-    // Compression detection
-    const compBefore = before.compression.level || 'none';
-    const compAfter = after.compression.level || 'none';
-    checks.push({
-        label: 'Compression Applied',
-        pass: compBefore !== compAfter,
-        detail: compBefore !== compAfter
-            ? `Compression level changed: ${compBefore} → ${compAfter}`
-            : `Compression level unchanged: ${compAfter}`,
-    });
-
-    // Sample rate should be preserved or intentionally changed
-    checks.push({
-        label: 'Sample Rate Preserved',
-        pass: before.file_info.sample_rate === after.file_info.sample_rate,
-        detail: before.file_info.sample_rate === after.file_info.sample_rate
-            ? `Sample rate preserved at ${after.file_info.sample_rate} Hz`
-            : `Sample rate changed: ${before.file_info.sample_rate} → ${after.file_info.sample_rate} Hz`,
-    });
 
     const passCount = checks.filter(c => c.pass).length;
+    const allPassed = passCount === checks.length;
+    const isSingle = !before || !after;
 
     return (
-        <div className="space-y-3">
-            <div className="flex items-center justify-between">
-                <h4 className="text-sm font-semibold text-white flex items-center gap-2">
-                    <FlaskConical className="w-4 h-4 text-cyan-400" />
-                    QA Verdict
-                </h4>
-                <Badge variant="outline" className={`${passCount === checks.length ? 'border-emerald-500/50 text-emerald-400' : passCount >= checks.length * 0.6 ? 'border-amber-500/50 text-amber-400' : 'border-red-500/50 text-red-400'} text-xs`}>
-                    {passCount}/{checks.length} checks passed
-                </Badge>
-            </div>
-            <div className="space-y-2">
-                {checks.map((check, i) => (
-                    <div key={i} className="flex items-start gap-2 text-xs">
-                        {check.pass ? (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                        ) : (
-                            <AlertTriangle className="w-3.5 h-3.5 text-amber-400 mt-0.5 flex-shrink-0" />
-                        )}
-                        <div>
-                            <span className={`font-medium ${check.pass ? 'text-emerald-300' : 'text-amber-300'}`}>{check.label}: </span>
-                            <span className="text-slate-400">{check.detail}</span>
-                        </div>
+        <Card className="relative overflow-hidden bg-slate-950/40 border-slate-700/50 shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-xl">
+            <div className={`absolute inset-0 bg-gradient-to-r ${allPassed ? 'from-emerald-500/5 to-cyan-500/5' : 'from-amber-500/5 to-purple-500/5'} pointer-events-none`} />
+            <CardContent className="p-6 relative z-10">
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between pb-4 border-b border-slate-800/60">
+                        <h4 className="text-lg font-bold text-white flex items-center gap-2 tracking-wide">
+                            <FlaskConical className={`w-5 h-5 ${allPassed ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]' : 'text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]'}`} />
+                            {isSingle ? 'File Quality Analysis' : 'Processing Verdict'}
+                        </h4>
+                        <Badge variant="outline" className={`${allPassed ? 'border-emerald-500/50 text-emerald-400 bg-emerald-950/20' : passCount >= checks.length * 0.6 ? 'border-amber-500/50 text-amber-400 bg-amber-950/20' : 'border-red-500/50 text-red-400 bg-red-950/20'} px-3 py-1 text-sm font-bold shadow-lg`}>
+                            {passCount}/{checks.length} checks passed
+                        </Badge>
                     </div>
-                ))}
-            </div>
-        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                        {checks.map((check, i) => (
+                            <div key={i} className={`flex items-start gap-3 p-4 rounded-xl border ${check.pass ? 'border-emerald-500/20 bg-emerald-950/10' : 'border-amber-500/20 bg-amber-950/10'} backdrop-blur-sm transition-all hover:bg-slate-900/50`}>
+                                {check.pass ? (
+                                    <CheckCircle2 className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0 drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]" />
+                                ) : (
+                                    <AlertTriangle className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0 drop-shadow-[0_0_8px_rgba(251,191,36,0.4)]" />
+                                )}
+                                <div className="space-y-1">
+                                    <span className={`block font-bold text-sm tracking-wide ${check.pass ? 'text-emerald-300' : 'text-amber-300'}`}>{check.label}</span>
+                                    <span className="block text-xs text-slate-400 leading-relaxed">{check.detail}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
     );
 };
