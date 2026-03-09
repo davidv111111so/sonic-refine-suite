@@ -120,15 +120,28 @@ export const StripeOverview = ({
         // Draw Waveform Stripes
         ctx.fillStyle = color === 'cyan' ? '#0891b2' : '#7c3aed'; // Cyan-600 / Violet-600
 
-        // Render bars
+        // Render bars with progress highlight
+        const progress = duration > 0 ? currentTime / duration : 0;
         const barWidth = width / peaks.length;
+        const progressX = progress * width;
+
         peaks.forEach((peak, i) => {
             const x = i * barWidth;
-            const barHeight = Math.max(4, peak.max * (h * 0.95));
-            // Draw Symmetric from center with rounding or crisp lines
-            ctx.fillStyle = color === 'cyan' ? '#0891b2' : '#7c3aed';
+            const barHeight = Math.max(2, peak.max * (h * 0.9));
+
+            const isPlayed = x <= progressX;
+            if (isPlayed) {
+                ctx.fillStyle = color === 'cyan' ? '#22d3ee' : '#a855f7'; // Bright
+            } else {
+                ctx.fillStyle = color === 'cyan' ? 'rgba(34, 211, 238, 0.25)' : 'rgba(168, 85, 247, 0.25)'; // Slightly more visible dim
+            }
+
             ctx.fillRect(x, center - barHeight / 2, barWidth - 1, barHeight);
         });
+
+        // Current Position Line
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(progressX, 0, 1.5, h);
 
         // Energy Curve Overlay
         if (energyCurve && showEnergy) {

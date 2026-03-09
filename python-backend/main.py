@@ -892,7 +892,8 @@ def separate_audio_endpoint():
     # Robust file_url extraction (check JSON then FORM)
     file_url = data.get('file_url') or request.form.get('file_url')
     
-    library = data.get('library', request.form.get('library', 'demucs'))
+    library = data.get('library') or request.form.get('library') or 'demucs'
+    
     if tier not in ['premium', 'vip', 'admin'] and library == 'demucs':
         print(f"🔒 ACCESSS DENIED: User tier '{tier}' cannot use Level Stem Separation. Forcing Spleeter.")
         library = 'spleeter'

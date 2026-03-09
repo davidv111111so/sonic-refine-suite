@@ -221,7 +221,14 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
 
     const pollStatus = async (taskId: string, authToken: string) => {
         try {
-            const data = await masteringService.getTaskStatus(taskId);
+            // Pass isPremium to ensure we poll the correct backend
+            const data = await masteringService.getTaskStatus(taskId, 3, isPremium);
+
+            if (!data || data.error) {
+                if (pollingInterval.current) clearInterval(pollingInterval.current);
+                const errorMsg = data?.error || 'Separation failed or returned no data';
+                throw new Error(errorMsg);
+            }
 
             // Reset retry count on success
             retryCountRef.current = 0;
@@ -229,10 +236,10 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
             if (data.status === 'completed') {
                 if (pollingInterval.current) clearInterval(pollingInterval.current);
 
-                // Get result
+                // Get result - pass isPremium
                 setProcessingStage('Downloading results...');
                 setProgress(95);
-                const blob = await masteringService.getTaskResult(taskId);
+                const blob = await masteringService.getTaskResult(taskId, 3, isPremium);
 
                 setProcessingStage('Extracting stems...');
                 setProgress(98);
@@ -258,9 +265,15 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                 if (pollingInterval.current) clearInterval(pollingInterval.current);
                 throw new Error(data.error || 'Separation failed');
             } else {
-                // Update progress
-                setProgress(data.progress || 0);
-                setProcessingStage(`Processing... ${data.progress}%`);
+                // Update progress only if we have a valid numeric value to prevent resets to 0 during polling fluctuations
+                if (data.progress !== undefined && data.progress !== null) {
+                    const nextProgress = Math.max(progress, data.progress); // Don't let progress go backwards
+                    setProgress(nextProgress);
+                    setProcessingStage(`Processing... ${nextProgress}%`);
+                } else if (data.status === 'processing') {
+                    // Stay at current progress if status is still processing
+                    setProcessingStage(prev => prev.includes('%') ? prev : 'Processing...');
+                }
             }
         } catch (error) {
             retryCountRef.current++;

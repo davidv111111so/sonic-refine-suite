@@ -419,6 +419,12 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
                 "output_path": str(output_path),
                 "stems": saved_files
             }
+
+        # Fallback if somehow no library matched
+        return {
+            "success": False,
+            "error": "No valid separation library selected."
+        }
             
     except Exception as e:
         print(f"[ERROR] Separation error: {str(e)}")

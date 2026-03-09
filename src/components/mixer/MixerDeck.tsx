@@ -174,10 +174,28 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
             {/* 1. Header & Transport */}
             <div className="h-[52px] px-2 pt-1 flex items-center justify-between border-b border-[#27272a] bg-[#18181b] gap-2">
                 <div className="flex flex-col gap-1 w-12 shrink-0 h-full justify-center">
-                    <div className={cn(
-                        "w-full h-6 flex items-center justify-center font-bold text-black text-xs rounded-[2px]",
-                        isCyan ? "bg-cyan-500" : "bg-purple-500"
-                    )}>
+                    <div
+                        className={cn(
+                            "w-full h-6 flex items-center justify-center font-bold text-black text-xs rounded-[2px] cursor-grab active:cursor-grabbing hover:brightness-110 transition-all",
+                            isCyan ? "bg-cyan-500" : "bg-purple-500"
+                        )}
+                        draggable={!!controls.state.buffer}
+                        onDragStart={(e) => {
+                            if (!controls.state.buffer) return;
+                            const trackData = {
+                                type: 'track',
+                                url: (controls as any).state.url,
+                                bpm: controls.state.bpm,
+                                key: controls.state.key,
+                                title: controls.state.meta?.title,
+                                artist: controls.state.meta?.artist
+                            };
+                            e.dataTransfer.setData('application/json', JSON.stringify(trackData));
+                            e.dataTransfer.effectAllowed = 'copy';
+                            console.log("Deck Header: Dragging track for cloning", trackData);
+                        }}
+                        title="Drag deck name to clone track to another deck"
+                    >
                         {id}
                     </div>
                 </div>
@@ -279,7 +297,7 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                 </div>
             </div>
 
-            {/* 2. Detail Waveform Area */}
+            {/* 2. Detail Waveform Area - Removed draggable from container to allow SpectralWaveform native mouse scrubbing */}
             <div
                 ref={containerRef}
                 className="flex-1 relative bg-[#09090b] group min-h-[40px] max-h-[120px] border-b border-[#27272a]"
@@ -337,7 +355,7 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
             </div>
 
             {/* 2.5 Overview Waveform */}
-            <div className="h-8 bg-[#09090b] border-b border-[#27272a] relative">
+            <div className="h-10 bg-[#09090b] border-b border-[#27272a] relative">
                 <StripeOverview
                     buffer={controls.state.buffer}
                     currentTime={controls.state.currentTime}

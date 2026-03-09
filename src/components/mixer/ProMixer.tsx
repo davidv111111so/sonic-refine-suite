@@ -244,7 +244,8 @@ const ProMixerContent = () => {
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col min-h-0 bg-[#0d0d0d] relative pt-0 gap-0">
                 {/* Mixer / Decks Section - Height reduced to expose more of the library */}
-                <div className="flex-none h-[42vh] min-h-[440px] grid grid-cols-[1fr_320px_1fr] border-b border-[#333] overflow-hidden bg-[#0d0d0d]">
+                {/* Dynamic Mixer Height - min-h increased to 480px to prevent crossfader overlap on small screens */}
+                <div className="flex-none h-[42vh] min-h-[480px] grid grid-cols-[1fr_320px_1fr] border-b border-[#333] overflow-hidden bg-[#0d0d0d]">
                     {/* Deck A */}
                     <div className="border-r border-[#333] bg-[#121212] relative">
                         <div className="absolute top-2 left-2 text-[10px] font-bold text-[#00deea] uppercase bg-[#00deea]/10 px-1 border border-[#00deea]/30">Deck A</div>

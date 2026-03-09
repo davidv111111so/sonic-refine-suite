@@ -27,6 +27,7 @@ export interface DeckState {
     keyLock: boolean;
     key: string | null;
     meta?: { title?: string; artist?: string;[key: string]: any };
+    url: string | null;
     baseRate: number; // Persistent rate (Sync/Buttons)
     tempoBend: number; // Temporary bend 0-1 (Fader)
     pitchRange: number; // ±% range: 0.04, 0.08, 0.16, 0.50
@@ -163,6 +164,7 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         keyLock: false,
         key: null,
         isStemsActive: false,
+        url: null,
         baseRate: 1,
         tempoBend: 0.5,
         pitchRange: 0.08, // Default ±8% like Traktor
@@ -470,6 +472,7 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
                     currentTime: 0,
                     isPlaying: false,
                     meta: providedMeta || { title: 'Unknown' },
+                    url: typeof source === 'string' ? source : (source instanceof File ? source.name : null),
                     bpm: finalBpm || (prev.bpm || 120), // Fallback if no bpm
                     key: finalKey,
                     isStemsActive: false // Auto-reset stems for new track

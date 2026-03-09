@@ -58,12 +58,12 @@ const AudioWaveBackground = () => {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             time += 0.008;
 
-            // Multiple wave layers with more vibrant colors
+            // Multiple wave layers with HIGH CONTRAST and dynamic colors
             const waves = [
-                { amplitude: 45, frequency: 0.008, speed: 1.2, color: 'rgba(6, 182, 212, 0.25)', yOffset: 0.5 },
-                { amplitude: 35, frequency: 0.012, speed: 1.8, color: 'rgba(99, 102, 241, 0.20)', yOffset: 0.55 },
-                { amplitude: 55, frequency: 0.006, speed: 0.9, color: 'rgba(168, 85, 247, 0.15)', yOffset: 0.45 },
-                { amplitude: 25, frequency: 0.018, speed: 2.2, color: 'rgba(236, 72, 153, 0.12)', yOffset: 0.6 },
+                { amplitude: 50, frequency: 0.012, speed: 1.2, color: 'rgba(6, 182, 212, 0.45)', yOffset: 0.48 }, // Brighter Cyan
+                { amplitude: 40, frequency: 0.015, speed: 1.8, color: 'rgba(99, 102, 241, 0.40)', yOffset: 0.52 }, // Brighter Indigo
+                { amplitude: 60, frequency: 0.008, speed: 0.9, color: 'rgba(124, 58, 237, 0.35)', yOffset: 0.45 }, // Brighter Violet
+                { amplitude: 30, frequency: 0.02, speed: 2.2, color: 'rgba(236, 72, 153, 0.30)', yOffset: 0.58 },  // Brighter Pink
             ];
 
             waves.forEach(wave => {
@@ -597,7 +597,29 @@ export const Landing = () => {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 max-w-7xl mx-auto">
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6 max-w-[1600px] mx-auto">
+                                {/* Solo DJ Mixer */}
+                                <Card className="bg-slate-900/60 border-cyan-500/30 ring-1 ring-cyan-500/20 overflow-hidden hover:scale-[1.02] transition-all relative">
+                                    <div className="absolute top-0 right-0 bg-cyan-600 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg">NEW</div>
+                                    <div className="p-6 space-y-5">
+                                        <div className="flex items-center gap-3">
+                                            <Music2 className="h-6 w-6 text-cyan-400" />
+                                            <h3 className="text-xl font-bold text-white">Solo DJ Mixer</h3>
+                                        </div>
+                                        <p className="text-sm text-slate-500">Professional mixing gear</p>
+                                        <div className="text-3xl font-black text-white">$4.99 <span className="text-sm font-normal text-slate-500">/ month</span></div>
+                                        <ul className="space-y-3 text-sm">
+                                            <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-cyan-500 shrink-0" /> Full Pro Mixer Lab</li>
+                                            <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-cyan-500 shrink-0" /> Harmonic Mixing Tools</li>
+                                            <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-cyan-500 shrink-0" /> Unlimited Playlists</li>
+                                            <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-cyan-500 shrink-0" /> MIDI Controller Support</li>
+                                            <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-cyan-500 shrink-0" /> Offline Mode (Desktop)</li>
+                                        </ul>
+                                        <Button className="w-full bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-bold" onClick={() => navigate('/app')}>
+                                            Start Mixing
+                                        </Button>
+                                    </div>
+                                </Card>
                                 {/* Free Trial */}
                                 <Card className="bg-slate-900/60 border-white/5 overflow-hidden hover:scale-[1.02] transition-all">
                                     <div className="p-6 space-y-5">
@@ -633,6 +655,7 @@ export const Landing = () => {
                                             <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-cyan-500 shrink-0" /> 250 Enhancements/month</li>
                                             <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-cyan-500 shrink-0" /> 150 Stem Separations/month</li>
                                             <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-cyan-500 shrink-0" /> 150 AI Masterings/month</li>
+                                            <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-cyan-500 shrink-0" /> Full Pro Mixer Lab Access</li>
                                             <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-cyan-500 shrink-0" /> Audio Effects & Compressor</li>
                                             <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-cyan-500 shrink-0" /> Lossless WAV Downloads</li>
                                         </ul>
@@ -665,6 +688,7 @@ export const Landing = () => {
                                             <li className="flex items-center gap-2.5 text-slate-200 font-medium"><Cpu className="h-4 w-4 text-purple-400 shrink-0" /> GPU Accelerated (5-10x faster)</li>
                                             <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-purple-400 shrink-0" /> 500 Stem Separations/month</li>
                                             <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-purple-400 shrink-0" /> 500 AI Masterings/month</li>
+                                            <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-purple-400 shrink-0" /> Full Pro Mixer Lab Access</li>
                                             <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-purple-400 shrink-0" /> Priority Processing Queue</li>
                                             <li className="flex items-center gap-2.5 text-slate-300"><CheckCircle2 className="h-4 w-4 text-purple-400 shrink-0" /> Everything in Premium</li>
                                         </ul>

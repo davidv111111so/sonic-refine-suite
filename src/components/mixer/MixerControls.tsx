@@ -165,8 +165,8 @@ export const MixerControls = ({
 
             {/* Crossfader Options (Moved to Settings) */}
 
-            {/* Crossfader Section (Moved Up) */}
-            <div className="flex-none h-14 bg-[#121212] border-t border-[#27272a] flex items-center justify-between px-2 z-10 mx-1 rounded-sm gap-1 mb-2 relative overflow-hidden -mt-1">
+            {/* Crossfader Section (Fixed Overlap) */}
+            <div className="flex-none h-16 bg-[#121212] border-t border-[#27272a] flex items-center justify-between px-2 z-20 mx-1 rounded-sm gap-1 mb-1 relative overflow-hidden">
 
                 {/* Auto Fade Left */}
                 <button
