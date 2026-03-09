@@ -1,0 +1,111 @@
+[
+    {
+        "parameterName": "Deck A Play",
+        "channel": 0,
+        "type": "note",
+        "controlId": 11,
+        "deviceName": "Pioneer DDJ-400"
+    },
+    {
+        "parameterName": "Deck A Cue",
+        "channel": 0,
+        "type": "note",
+        "controlId": 12,
+        "deviceName": "Pioneer DDJ-400"
+    },
+    {
+        "parameterName": "Deck B Play",
+        "channel": 0,
+        "type": "note",
+        "controlId": 27,
+        "deviceName": "Pioneer DDJ-400"
+    },
+    {
+        "parameterName": "Deck B Cue",
+        "channel": 0,
+        "type": "note",
+        "controlId": 28,
+        "deviceName": "Pioneer DDJ-400"
+    },
+    {
+        "parameterName": "Deck A Volume",
+        "channel": 0,
+        "type": "cc",
+        "controlId": 19,
+        "deviceName": "Pioneer DDJ-400",
+        "min": 0,
+        "max": 1
+    },
+    {
+        "parameterName": "Deck B Volume",
+        "channel": 0,
+        "type": "cc",
+        "controlId": 20,
+        "deviceName": "Pioneer DDJ-400",
+        "min": 0,
+        "max": 1
+    },
+    {
+        "parameterName": "Crossfader",
+        "channel": 0,
+        "type": "cc",
+        "controlId": 31,
+        "deviceName": "Pioneer DDJ-400",
+        "min": 0,
+        "max": 1
+    },
+    {
+        "parameterName": "Deck A High",
+        "channel": 0,
+        "type": "cc",
+        "controlId": 7,
+        "deviceName": "Pioneer DDJ-400",
+        "min": 0,
+        "max": 1
+    },
+    {
+        "parameterName": "Deck A Mid",
+        "channel": 0,
+        "type": "cc",
+        "controlId": 8,
+        "deviceName": "Pioneer DDJ-400",
+        "min": 0,
+        "max": 1
+    },
+    {
+        "parameterName": "Deck A Low",
+        "channel": 0,
+        "type": "cc",
+        "controlId": 9,
+        "deviceName": "Pioneer DDJ-400",
+        "min": 0,
+        "max": 1
+    },
+    {
+        "parameterName": "Deck B High",
+        "channel": 0,
+        "type": "cc",
+        "controlId": 10,
+        "deviceName": "Pioneer DDJ-400",
+        "min": 0,
+        "max": 1
+    },
+    {
+        "parameterName": "Deck B Mid",
+        "channel": 0,
+        "type": "cc",
+        "controlId": 11,
+        "deviceName": "Pioneer DDJ-400",
+        "min": 0,
+        "max": 1
+    },
+    {
+        "parameterName": "Deck B Low",
+        "channel": 0,
+        "type": "cc",
+        "controlId": 12,
+        "deviceName": "Pioneer DDJ-400",
+        "min": 0,
+        "max": 1
+    }
+]

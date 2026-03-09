@@ -231,8 +231,74 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }, []);
 
     const mountLibrary = useCallback(async () => {
+        // @ts-ignore
+        const isTauri = !!window.__TAURI_INTERNALS__ || !!(window as any).__TAURI__;
+
+        if (isTauri) {
+            try {
+                const { open } = await import('@tauri-apps/plugin-dialog');
+                const { readDir } = await import('@tauri-apps/plugin-fs');
+
+                const selected = await open({
+                    directory: true,
+                    multiple: false,
+                    title: 'Select Music Library Folder'
+                });
+
+                if (selected && typeof selected === 'string') {
+                    dispatch({ type: 'SET_LOADING', payload: true });
+                    const entries = await readDir(selected);
+
+                    // Create a virtual tree node for the selected path
+                    const tree: FolderNode = {
+                        name: selected.split(/[\/\\]/).pop() || 'Library',
+                        handle: { name: selected } as any, // Mock handle for Tauri paths
+                        children: [],
+                        isOpen: true
+                    };
+
+                    const newTracks: LibraryTrack[] = [];
+                    const processEntries = async (dirEntries: any[], basePath: string) => {
+                        for (const entry of dirEntries) {
+                            const fullPath = `${basePath}/${entry.name}`;
+                            if (entry.isDirectory) {
+                                // Potentially scan recursively or just show top level
+                            } else if (/\.(mp3|wav|flac|m4a|aac|ogg|aiff)$/i.test(entry.name)) {
+                                const id = `lib-tauri-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                                const { readFile } = await import('@tauri-apps/plugin-fs');
+                                // In Tauri, we don't necessarily want to load all file bytes into memory immediately
+                                // We can use convertFileSrc or just load metadata first.
+                                // For now, we'll keep the track structure.
+                                const track: LibraryTrack = {
+                                    id,
+                                    title: entry.name.replace(/\.[^/.]+$/, ""),
+                                    artist: 'Calculating...',
+                                    bpm: 0,
+                                    key: '?',
+                                    time: '--:--',
+                                    url: (window as any).TAURI?.convertFileSrc?.(fullPath) || fullPath,
+                                    file: null as any, // Not a standard File object, we'll handle this in Deck loading
+                                    duration: 0
+                                };
+                                newTracks.push(track);
+                            }
+                        }
+                    };
+
+                    await processEntries(entries, selected);
+                    dispatch({ type: 'SET_ROOT', payload: { handle: { name: selected } as any, tree } });
+                    dispatch({ type: 'SET_TRACKS', payload: newTracks });
+                    dispatch({ type: 'SET_LOADING', payload: false });
+                }
+            } catch (err) {
+                console.error("Tauri Mount Library Error:", err);
+                dispatch({ type: 'SET_LOADING', payload: false });
+            }
+            return;
+        }
+
         try {
-            // @ts-ignore - native FS API
+            // @ts-ignore - native FS API for Web
             const handle = await window.showDirectoryPicker({
                 id: 'mixer-library',
                 mode: 'read'

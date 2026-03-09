@@ -30,7 +30,13 @@ interface MIDIContextState {
     cancelLearning: () => void;
     deleteMapping: (mappingId: string) => void;
     clearAllMappings: () => void;
+    loadMappingPreset: (presetName: string) => Promise<void>;
 }
+
+export const MIDI_PRESETS: Record<string, string> = {
+    'Pioneer DDJ-400': '/src/assets/midi-mappings/pioneer_ddj_400.json',
+    'Traktor Kontrol S2': '/src/assets/midi-mappings/traktor_s2.json',
+};
 
 const MIDIContext = createContext<MIDIContextState | undefined>(undefined);
 
@@ -93,6 +99,24 @@ export const MIDIProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const clearAllMappings = useCallback(() => {
         saveMappings([]);
         setMappings([]);
+    }, []);
+
+    const loadMappingPreset = useCallback(async (presetName: string) => {
+        const path = MIDI_PRESETS[presetName];
+        if (!path) return;
+        try {
+            const response = await fetch(path);
+            const presetMappings = await response.json();
+            // Assign unique IDs to preset mappings if missing
+            const mappingsWithIds = presetMappings.map((m: any) => ({
+                ...m,
+                id: m.id || `${m.parameterName}-${m.type}-${m.channel}-${m.controlId}`
+            }));
+            setMappings(mappingsWithIds);
+            saveMappings(mappingsWithIds);
+        } catch (e) {
+            console.error(`Failed to load MIDI preset ${presetName}:`, e);
+        }
     }, []);
 
     const handleMIDIMessage = useCallback((event: MIDIMessageEvent) => {
@@ -203,7 +227,8 @@ export const MIDIProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return (
         <MIDIContext.Provider value={{
             isLearning, learningParamId, learningParamName, mappings, devices, lastMessage,
-            registerParam, unregisterParam, startLearning, cancelLearning, deleteMapping, clearAllMappings
+            registerParam, unregisterParam, startLearning, cancelLearning, deleteMapping, clearAllMappings,
+            loadMappingPreset
         }}>
             {children}
         </MIDIContext.Provider>

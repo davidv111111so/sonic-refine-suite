@@ -317,6 +317,7 @@ const ProMixerContent = () => {
                 onCancelLearning={midiLearn.cancelLearning}
                 onDeleteMapping={midiLearn.deleteMapping}
                 onClearAllMappings={midiLearn.clearAllMappings}
+                onLoadMappingPreset={midiLearn.loadMappingPreset}
                 crossfaderCurve={crossfaderCurve}
                 onSetCrossfaderCurve={setCrossfaderCurve}
                 routingMode={routingMode}

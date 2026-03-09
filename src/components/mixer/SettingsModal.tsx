@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Usb, Trash2, Zap, Sliders, Music, Radio } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { MIDIMapping, MIDIDevice } from '@/hooks/useMIDILearn';
+import { MIDIMapping, MIDIDevice, MIDI_PRESETS } from '@/contexts/MIDIContext';
 import { CrossfaderCurve } from '@/hooks/useWebAudio';
 
 interface SettingsModalProps {
@@ -16,6 +16,7 @@ interface SettingsModalProps {
     onCancelLearning: () => void;
     onDeleteMapping: (id: string) => void;
     onClearAllMappings: () => void;
+    onLoadMappingPreset: (presetName: string) => void;
     // Crossfader
     crossfaderCurve: CrossfaderCurve;
     onSetCrossfaderCurve: (curve: CrossfaderCurve) => void;
@@ -65,6 +66,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     onCancelLearning,
     onDeleteMapping,
     onClearAllMappings,
+    onLoadMappingPreset,
     crossfaderCurve,
     onSetCrossfaderCurve,
     routingMode,
@@ -137,6 +139,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                         ))}
                                     </div>
                                 )}
+                            </div>
+
+                            {/* Presets */}
+                            <div>
+                                <h3 className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-2">Mapping Presets</h3>
+                                <div className="flex flex-wrap gap-2">
+                                    {Object.keys(MIDI_PRESETS).map(preset => (
+                                        <button
+                                            key={preset}
+                                            onClick={() => onLoadMappingPreset(preset)}
+                                            className="px-3 py-1.5 rounded-sm bg-[#18181b] border border-[#27272a] hover:border-cyan-500/50 hover:bg-cyan-500/5 text-[10px] font-bold text-neutral-400 hover:text-cyan-400 transition-all"
+                                        >
+                                            {preset}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
 
                             {/* Learning Indicator */}
