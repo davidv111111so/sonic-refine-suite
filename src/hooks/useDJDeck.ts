@@ -427,83 +427,98 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         }
     }, [state.playbackRate, state.keyLock, state.pitch]);
 
+    // ─── Metadata Cache (Internal to hook) ───
+    const metadataCache = useRef<Map<string, { bpm: number, grid: number[], offset: number, key: string | null }>>(new Map());
 
     // Methods
     const loadTrack = useCallback(async (source: AudioBuffer | File | string, bpm?: number, key?: string, providedMeta?: any) => {
         if (!nodes.current.player) return;
 
-        // Load buffer
-        let buffer: Tone.ToneAudioBuffer | null = null;
-        let bufferDuration = 0;
+        // Identification for caching
+        const trackId = providedMeta?.title || (source instanceof File ? source.name : typeof source === 'string' ? source : 'unknown');
+
+        // Fast path: cached metadata
+        const cached = metadataCache.current.get(trackId);
+        const finalBpm = bpm || cached?.bpm || 0;
+        const finalKey = key || cached?.key || null;
+
+        // Reset current player state
+        if (state.isPlaying) nodes.current.player.stop();
+        startTime.current = 0;
+        offsetTime.current = 0;
 
         try {
+            // Load buffer asynchronously
+            let buffer: Tone.ToneAudioBuffer | null = null;
             if (source instanceof AudioBuffer) {
-                // Wrap native buffer
                 buffer = new Tone.ToneAudioBuffer(source);
             } else if (source instanceof File || typeof source === 'string') {
                 const url = source instanceof File ? URL.createObjectURL(source) : source;
+                // Faster fetching and loading
                 buffer = await new Tone.ToneAudioBuffer().load(url);
             }
 
             if (buffer) {
-                bufferDuration = buffer.duration;
+                const duration = buffer.duration;
                 nodes.current.player.buffer = buffer;
 
-                // Stop if previously playing
-                if (state.isPlaying) {
-                    nodes.current.player.stop();
-                }
-
-                // Internal State Reset
-                startTime.current = 0;
-                offsetTime.current = 0;
-
-                // BPM Detection: Prioritize provided BPM (from Library/Tags)
-                let detectedBPM = (bpm && bpm > 0) ? bpm : 0;
-                let beatOffset = 0;
-                let grid: number[] = [];
-
-                if (!detectedBPM) {
-                    console.log(`🔍 No BPM provided, analyzing audio buffer...`);
-                    try {
-                        const nativeBuf = buffer.get();
-                        const analysis = await detectBPMFromBuffer(nativeBuf);
-                        detectedBPM = analysis.bpm;
-                        beatOffset = analysis.offset;
-                        grid = analysis.grid || [];
-                        console.log(`✅ Analyzed BPM: ${detectedBPM} | Beatgrid points: ${grid.length}`);
-                    } catch (e) {
-                        console.error("Analysis failed, using fallback 120", e);
-                        detectedBPM = 120;
-                    }
-                } else {
-                    console.log(`🎯 Using provided BPM: ${detectedBPM}`);
-                    // If BPM is provided but no grid, we generate a basic zero-offset grid
-                    const interval = 60.0 / detectedBPM;
-                    let currentBeat = 0;
-                    while (currentBeat < bufferDuration) {
-                        grid.push(currentBeat);
-                        currentBeat += interval;
-                    }
-                }
-
-                const roundedBPM = Math.round(detectedBPM * 100) / 100;
-
+                // 1. Initial State Update (UI update before deep analysis)
                 setState(prev => ({
                     ...prev,
                     buffer: buffer?.get() || null,
-                    duration: bufferDuration,
-                    bpm: roundedBPM,
-                    beatOffset: beatOffset,
-                    grid,
-                    key: key || null,
+                    duration,
                     currentTime: 0,
                     isPlaying: false,
                     meta: providedMeta || { title: 'Unknown' },
-                    playbackRate: 1,
-                    baseRate: 1,
-                    tempoBend: 0.5
+                    bpm: finalBpm || (prev.bpm || 120), // Fallback if no bpm
+                    key: finalKey,
+                    isStemsActive: false // Auto-reset stems for new track
                 }));
+
+                // 2. Perform Analysis IF no BPM was provided or cached
+                if (!finalBpm) {
+                    // Don't wait (await) here if we want instant feedback, 
+                    // though for DJing the BPM is crucial for the grid.
+                    // We'll analyze in the background.
+                    (async () => {
+                        try {
+                            const nativeBuf = buffer!.get();
+                            const analysis = await detectBPMFromBuffer(nativeBuf);
+                            const roundedBPM = Math.round(analysis.bpm * 100) / 100;
+
+                            metadataCache.current.set(trackId, {
+                                bpm: roundedBPM,
+                                grid: analysis.grid,
+                                offset: analysis.offset,
+                                key: finalKey
+                            });
+
+                            setState(prev => ({
+                                ...prev,
+                                bpm: roundedBPM,
+                                beatOffset: analysis.offset,
+                                grid: analysis.grid
+                            }));
+                        } catch (e) {
+                            console.error("BG Analysis failed:", e);
+                        }
+                    })();
+                } else if (cached) {
+                    // Use cached analysis
+                    setState(prev => ({
+                        ...prev,
+                        bpm: cached.bpm,
+                        beatOffset: cached.offset,
+                        grid: cached.grid
+                    }));
+                } else {
+                    // bpm provided but no grid - generate one fast
+                    const interval = 60.0 / finalBpm;
+                    const grid: number[] = [];
+                    let curr = 0;
+                    while (curr < duration) { grid.push(curr); curr += interval; }
+                    setState(prev => ({ ...prev, grid, bpm: finalBpm }));
+                }
             }
         } catch (e) {
             console.error("Load Track Error:", e);

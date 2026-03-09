@@ -106,18 +106,21 @@ const AudioWaveBackground = () => {
             const startX = (canvas.width - totalWidth) / 2;
 
             for (let i = 0; i < barCount; i++) {
-                const barHeight = 15 + Math.abs(Math.sin(time * 2 + i * 0.3)) * 60 +
-                    Math.abs(Math.sin(time * 1.5 + i * 0.5)) * 30;
+                const barHeight = 15 + Math.abs(Math.sin(time * 2 + i * 0.3)) * 80 +
+                    Math.abs(Math.sin(time * 1.5 + i * 0.5)) * 40;
                 const x = startX + i * (barWidth + gap);
                 const y = 350 - barHeight / 2;
 
                 const gradient = ctx.createLinearGradient(x, y, x, y + barHeight);
-                gradient.addColorStop(0, `rgba(6, 182, 212, ${0.15 + Math.sin(time + i) * 0.1})`);
-                gradient.addColorStop(0.5, `rgba(99, 102, 241, ${0.12 + Math.sin(time + i) * 0.08})`);
-                gradient.addColorStop(1, `rgba(168, 85, 247, ${0.08 + Math.sin(time + i) * 0.06})`);
+                gradient.addColorStop(0, `rgba(6, 182, 212, ${0.3 + Math.sin(time + i) * 0.2})`);
+                gradient.addColorStop(0.5, `rgba(99, 102, 241, ${0.25 + Math.sin(time + i) * 0.15})`);
+                gradient.addColorStop(1, `rgba(168, 85, 247, ${0.2 + Math.sin(time + i) * 0.1})`);
 
                 ctx.fillStyle = gradient;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = 'rgba(6, 182, 212, 0.4)';
                 ctx.fillRect(x, y, barWidth, barHeight);
+                ctx.shadowBlur = 0;
             }
 
             animationId = requestAnimationFrame(draw);
@@ -338,8 +341,7 @@ export const Landing = () => {
 
                                 <div className="flex flex-wrap gap-4 pt-4">
                                     <a
-                                        href="https://nhulnikqfphofqpnmdba.supabase.co/storage/v1/object/public/downloads/LevelPlayer_Windows.exe"
-                                        download="LevelPlayer.exe"
+                                        href="https://github.com/davidv111111so/sonic-refine-suite/releases/download/v1.0.0-beta/Level_Player_1.0.0_x64-setup.exe"
                                         className="inline-block"
                                     >
                                         <Button className="h-16 px-8 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-2xl shadow-2xl shadow-cyan-500/30 group transition-all hover:scale-105 active:scale-95">
@@ -347,10 +349,15 @@ export const Landing = () => {
                                             Download for Windows
                                         </Button>
                                     </a>
-                                    <Button variant="outline" className="h-16 px-8 border-slate-800 bg-slate-900/50 text-slate-300 hover:text-white hover:bg-slate-800 rounded-2xl transition-all hover:scale-105 active:scale-95">
-                                        <Download className="mr-3 w-6 h-6" />
-                                        macOS Binary
-                                    </Button>
+                                    <a
+                                        href="https://github.com/davidv111111so/sonic-refine-suite/releases/download/v1.0.0-beta/Level_Player_1.0.0_universal.dmg"
+                                        className="inline-block"
+                                    >
+                                        <Button variant="outline" className="h-16 px-8 border-slate-800 bg-slate-900/50 text-slate-300 hover:text-white hover:bg-slate-800 rounded-2xl transition-all hover:scale-105 active:scale-95">
+                                            <Download className="mr-3 w-6 h-6" />
+                                            macOS Binary (DMG)
+                                        </Button>
+                                    </a>
                                 </div>
                             </div>
 
@@ -453,12 +460,12 @@ export const Landing = () => {
                         GPU-Accelerated AI Processing
                     </Badge>
 
-                    <h1 className="text-5xl sm:text-6xl md:text-8xl font-black tracking-tight leading-[1.05]">
-                        <span className="block text-white">The companion for</span>
-                        <span className="block bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600">
+                    <h1 className="text-6xl sm:text-7xl md:text-9xl font-black tracking-tight leading-[0.95] drop-shadow-2xl">
+                        <span className="block text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">The companion for</span>
+                        <span className="block bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-500 animate-gradient-x">
                             creators, DJs
                         </span>
-                        <span className="block bg-clip-text text-transparent bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400">
+                        <span className="block bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
                             & producers
                         </span>
                     </h1>
