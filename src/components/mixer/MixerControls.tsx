@@ -31,8 +31,8 @@ interface MixerControlsProps {
 import { ChannelStrip } from './ChannelStrip';
 import { Meter } from './Meter';
 import { DeckPitchFader } from './DeckPitchFader';
-
-// ... imports preservation
+import { useMIDI } from '@/contexts/MIDIContext';
+import { useEffect } from 'react';
 
 export const MixerControls = ({
     deckA, deckB,
@@ -45,6 +45,46 @@ export const MixerControls = ({
     crossfaderCurve = 'smooth', setCrossfaderCurve,
     analysers
 }: MixerControlsProps) => {
+    const { registerParam, unregisterParam } = useMIDI();
+
+    useEffect(() => {
+        // Crossfader
+        registerParam('Crossfader', (v) => setCrossfader(v));
+
+        // Deck A
+        registerParam('Deck A Volume', (v) => deckA.setVolume(v));
+        registerParam('Deck A Trim', (v) => deckA.setTrim(v * 2)); // Trim is 0-2
+        registerParam('Deck A High', (v) => deckA.setEQ('high', v));
+        registerParam('Deck A Mid', (v) => deckA.setEQ('mid', v));
+        registerParam('Deck A Low', (v) => deckA.setEQ('low', v));
+        registerParam('Deck A Filter', (v) => deckA.setFilter(v));
+        registerParam('Deck A Pitch', (v) => deckA.setTempoBend(v));
+
+        // Deck B
+        registerParam('Deck B Volume', (v) => deckB.setVolume(v));
+        registerParam('Deck B Trim', (v) => deckB.setTrim(v * 2));
+        registerParam('Deck B High', (v) => deckB.setEQ('high', v));
+        registerParam('Deck B Mid', (v) => deckB.setEQ('mid', v));
+        registerParam('Deck B Low', (v) => deckB.setEQ('low', v));
+        registerParam('Deck B Filter', (v) => deckB.setFilter(v));
+        registerParam('Deck B Pitch', (v) => deckB.setTempoBend(v));
+
+        // Headphones
+        registerParam('HP Mix', (v) => setHeadphoneMix(v));
+        registerParam('HP Volume', (v) => setHeadphoneVol(v));
+
+        return () => {
+            unregisterParam('Crossfader');
+            unregisterParam('Deck A Volume'); unregisterParam('Deck A Trim');
+            unregisterParam('Deck A High'); unregisterParam('Deck A Mid'); unregisterParam('Deck A Low');
+            unregisterParam('Deck A Filter'); unregisterParam('Deck A Pitch');
+            unregisterParam('Deck B Volume'); unregisterParam('Deck B Trim');
+            unregisterParam('Deck B High'); unregisterParam('Deck B Mid'); unregisterParam('Deck B Low');
+            unregisterParam('Deck B Filter'); unregisterParam('Deck B Pitch');
+            unregisterParam('HP Mix'); unregisterParam('HP Volume');
+        };
+    }, [registerParam, unregisterParam, setCrossfader, deckA, deckB, setHeadphoneMix, setHeadphoneVol]);
+
     return (
         <div className="flex flex-col h-full bg-[#09090b] border border-[#27272a] rounded-sm p-[1px] relative w-full max-w-[500px] mx-auto">
             <div className="flex-1 flex justify-center gap-[2px] min-h-0 relative">

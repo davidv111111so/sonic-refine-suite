@@ -9,6 +9,7 @@ import { DetailWaveform } from './DetailWaveform';
 import { OverviewBar } from './OverviewBar';
 import { useSyncLogic } from '@/hooks/useSyncLogic';
 import { PhaseMeter } from './PhaseMeter';
+import { useMIDI } from '@/contexts/MIDIContext';
 
 interface MixerDeckProps {
     id: 'A' | 'B';
@@ -82,6 +83,24 @@ export const MixerDeck = ({ id, controls, analyser, color, onSync, isMaster, onT
 
 
     const { handleSync, handleMaster, isMaster: isDeckMaster, getPhaseOffset } = useSyncLogic(id, controls, controls.state.bpm);
+    const { registerParam, unregisterParam } = useMIDI();
+
+    useEffect(() => {
+        const prefix = `Deck ${id}`;
+        registerParam(`${prefix} Play`, (v) => v > 0.5 ? controls.play() : controls.pause());
+        registerParam(`${prefix} Sync`, (v) => v > 0.5 && onSync?.());
+        registerParam(`${prefix} Quantize`, (v) => v > 0.5 && controls.toggleQuantize());
+        registerParam(`${prefix} Master`, (v) => v > 0.5 && onToggleMaster?.());
+        registerParam(`${prefix} Cue`, (v) => { if (v > 0.5) controls.cue() });
+
+        return () => {
+            unregisterParam(`${prefix} Play`);
+            unregisterParam(`${prefix} Sync`);
+            unregisterParam(`${prefix} Quantize`);
+            unregisterParam(`${prefix} Master`);
+            unregisterParam(`${prefix} Cue`);
+        };
+    }, [id, controls, onSync, onToggleMaster, registerParam, unregisterParam]);
 
     return (
         <div className="flex flex-col h-full bg-[#121212] rounded-md border border-[#27272a] overflow-hidden shadow-sm relative">

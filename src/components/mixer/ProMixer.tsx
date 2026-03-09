@@ -132,7 +132,12 @@ const ProMixerContent = () => {
                     <LevelLogo size="sm" />
                     <div className="flex flex-col">
                         <span className="text-xs font-black text-white uppercase tracking-[0.2em] leading-none">Mixer<span className="text-[#00deea]"> Lab</span></span>
-                        <span className="text-[7px] font-bold text-[#666] uppercase tracking-widest mt-1">Sonic Refine Suite v2.2 (Build 030426)</span>
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[7px] font-bold text-[#666] uppercase tracking-widest">Sonic Refine Suite v2.2</span>
+                            {!navigator.onLine && (
+                                <span className="text-[7px] text-orange-500 font-bold uppercase tracking-widest bg-orange-500/10 px-1 rounded border border-orange-500/20 animate-pulse">OFFLINE MODE</span>
+                            )}
+                        </div>
                     </div>
                 </div>
 

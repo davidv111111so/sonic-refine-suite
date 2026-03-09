@@ -43,13 +43,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const isDevBypass = localStorage.getItem('dev_bypass') === 'true' &&
       (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
-    if (isDevBypass) {
-      console.log("🛠️ Auth: Using Dev Bypass context");
+    // Tauri Standalone / Offline Bypass
+    // @ts-ignore
+    const isTauri = !!window.__TAURI_INTERNALS__ || !!(window as any).__TAURI__;
+    const isOffline = !navigator.onLine;
+
+    if (isDevBypass || (isTauri && isOffline)) {
+      console.log(isDevBypass ? "🛠️ Auth: Using Dev Bypass context" : "📴 Auth: Using Offline Standalone context");
       setProfile({
-        id: 'dev-user',
-        email: 'dev@example.com',
-        full_name: 'Developer Mode',
-        tier: 'admin',
+        id: 'standalone-user',
+        email: 'guest@levelaudio.live',
+        full_name: isTauri ? 'Level Player (Offline)' : 'Developer Mode',
+        tier: 'dj', // Standalone gets DJ tier (Mixer access) by default
         created_at: new Date().toISOString()
       } as any);
       setLoading(false);

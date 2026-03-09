@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { MIDIProvider } from "@/contexts/MIDIContext";
 import { BetaGate } from "@/components/BetaGate";
 import { PlayerProvider } from "@/contexts/PlayerContext";
 import { FloatingMiniPlayer } from "@/components/FloatingMiniPlayer";
@@ -51,45 +52,47 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
         <AuthProvider>
-          <LanguageProvider>
-            <TooltipProvider>
-              {/* <AudioContextInitializer /> Removed to prevent conflict with Tone.js */}
-              <Toaster />
-              <Sonner />
-              <PlayerProvider>
-                <ErrorBoundary>
-                  <BrowserRouter>
-                    <FloatingMiniPlayer />
-                    <TrialLimitListener />
-                    <Routes>
-                      <Route path="/landing" element={<Landing />} />
-                      <Route path="/player" element={<PlayerPage />} />
-                      <Route path="/auth" element={<Auth />} />
-                      <Route path="/terms" element={<TermsAndConditions />} />
-                      <Route path="/refunds" element={<RefundPolicy />} />
-                      <Route path="/admin" element={
-                        <BetaGate>
-                          <Admin />
-                        </BetaGate>
-                      } />
-                      <Route path="/app" element={
-                        <BetaGate>
-                          <Index />
-                        </BetaGate>
-                      } />
-                      <Route path="/mixer" element={<ProMixer />} />
-                      <Route path="/" element={<RootRoute />} />
-                      <Route path="*" element={
-                        <BetaGate>
-                          <NotFound />
-                        </BetaGate>
-                      } />
-                    </Routes>
-                  </BrowserRouter>
-                </ErrorBoundary>
-              </PlayerProvider>
-            </TooltipProvider>
-          </LanguageProvider>
+          <MIDIProvider>
+            <LanguageProvider>
+              <TooltipProvider>
+                {/* <AudioContextInitializer /> Removed to prevent conflict with Tone.js */}
+                <Toaster />
+                <Sonner />
+                <PlayerProvider>
+                  <ErrorBoundary>
+                    <BrowserRouter>
+                      <FloatingMiniPlayer />
+                      <TrialLimitListener />
+                      <Routes>
+                        <Route path="/landing" element={<Landing />} />
+                        <Route path="/player" element={<PlayerPage />} />
+                        <Route path="/auth" element={<Auth />} />
+                        <Route path="/terms" element={<TermsAndConditions />} />
+                        <Route path="/refunds" element={<RefundPolicy />} />
+                        <Route path="/admin" element={
+                          <BetaGate>
+                            <Admin />
+                          </BetaGate>
+                        } />
+                        <Route path="/app" element={
+                          <BetaGate>
+                            <Index />
+                          </BetaGate>
+                        } />
+                        <Route path="/mixer" element={<ProMixer />} />
+                        <Route path="/" element={<RootRoute />} />
+                        <Route path="*" element={
+                          <BetaGate>
+                            <NotFound />
+                          </BetaGate>
+                        } />
+                      </Routes>
+                    </BrowserRouter>
+                  </ErrorBoundary>
+                </PlayerProvider>
+              </TooltipProvider>
+            </LanguageProvider>
+          </MIDIProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
