@@ -28,10 +28,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { LevelLogo } from '@/components/LevelLogo';
-import AudioWaveBackground from '@/components/AudioWaveBackground';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
 /* ─── Animated Audio Wave Background ─── */
@@ -58,12 +58,12 @@ const AudioWaveBackground = () => {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             time += 0.008;
 
-            // Multiple wave layers
+            // Multiple wave layers with more vibrant colors
             const waves = [
-                { amplitude: 40, frequency: 0.008, speed: 1, color: 'rgba(6, 182, 212, 0.12)', yOffset: 0.5 },
-                { amplitude: 30, frequency: 0.012, speed: 1.5, color: 'rgba(99, 102, 241, 0.10)', yOffset: 0.55 },
-                { amplitude: 50, frequency: 0.006, speed: 0.7, color: 'rgba(168, 85, 247, 0.08)', yOffset: 0.45 },
-                { amplitude: 20, frequency: 0.015, speed: 2, color: 'rgba(6, 182, 212, 0.06)', yOffset: 0.6 },
+                { amplitude: 45, frequency: 0.008, speed: 1.2, color: 'rgba(6, 182, 212, 0.25)', yOffset: 0.5 },
+                { amplitude: 35, frequency: 0.012, speed: 1.8, color: 'rgba(99, 102, 241, 0.20)', yOffset: 0.55 },
+                { amplitude: 55, frequency: 0.006, speed: 0.9, color: 'rgba(168, 85, 247, 0.15)', yOffset: 0.45 },
+                { amplitude: 25, frequency: 0.018, speed: 2.2, color: 'rgba(236, 72, 153, 0.12)', yOffset: 0.6 },
             ];
 
             waves.forEach(wave => {
@@ -452,7 +452,7 @@ export const Landing = () => {
                         backgroundPosition: 'center',
                     }}
                 />
-                <div className="absolute inset-0 z-[2] bg-gradient-to-b from-slate-950/40 via-slate-950/60 to-slate-950" />
+                <div className="absolute inset-0 z-[2] bg-gradient-to-b from-slate-950/20 via-slate-950/80 to-slate-950" />
 
                 <div className="max-w-5xl mx-auto text-center space-y-8 relative z-10">
                     <Badge className="bg-cyan-500/10 text-cyan-400 border-cyan-500/20 px-4 py-1.5 rounded-full mb-4">
@@ -460,9 +460,9 @@ export const Landing = () => {
                         GPU-Accelerated AI Processing
                     </Badge>
 
-                    <h1 className="text-6xl sm:text-7xl md:text-9xl font-black tracking-tight leading-[0.95] drop-shadow-2xl">
-                        <span className="block text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">The companion for</span>
-                        <span className="block bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-500 animate-gradient-x">
+                    <h1 className="text-6xl sm:text-7xl md:text-9xl font-black tracking-tighter leading-[0.85] drop-shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
+                        <span className="block text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.4)]">The companion for</span>
+                        <span className="block bg-clip-text text-transparent bg-gradient-to-r from-cyan-300 via-blue-400 to-indigo-500 hover:scale-[1.02] transition-transform duration-500">
                             creators, DJs
                         </span>
                         <span className="block bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">

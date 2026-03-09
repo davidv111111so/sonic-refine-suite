@@ -52,15 +52,18 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
              import librosa
              import soundfile as sf
              # Load and resample to 44100 if higher
+             if progress_callback: progress_callback(3)
              y, sr = sf.read(str(file_path))
              y_ndim = getattr(y, 'ndim', 0)
              if sr > 44100:
                  print(f"   [INFO] Downsampling from {sr} to 44100 to save processing time...")
+                 if progress_callback: progress_callback(7)
                  y_resampled = librosa.resample(y.T if y_ndim > 1 else y, orig_sr=sr, target_sr=44100)
                  # Save to temporary file to use as input
                  temp_resampled = file_path.parent / f"resampled_{file_path.name}"
                  sf.write(str(temp_resampled), y_resampled.T if y_ndim > 1 else y_resampled, 44100)
                  file_path = temp_resampled
+        if progress_callback: progress_callback(10)
         
         print(f"[INFO] Starting separation with {library}...")
 
@@ -116,7 +119,7 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
                 import soundfile as sf
                 import numpy as np
                 
-                print(f"[INFO] 💰 Replicate API Token detected! Routing request to commercial GPU backend.")
+                print(f"[INFO] Replicate API Token detected! Routing request to commercial GPU backend.")
                 if progress_callback: progress_callback(10)
                 
                 try:
@@ -185,7 +188,7 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
                 except Exception as api_err:
                     print(f"[ERROR] Replicate API Failed: {api_err}. Falling back to local CPU Demucs...")
             else:
-                print(f"[WARNING] ⚠️ REPLICATE_API_TOKEN not found in .env!")
+                print(f"[WARNING] REPLICATE_API_TOKEN not found in .env!")
                 print(f"[WARNING]    Processing premium stems on local CPU (Demucs).")
                 print(f"[WARNING]    This drains profitability! Retrieve your Replicate API key to activate hardware acceleration.")
 
@@ -219,10 +222,10 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
             # Auto-detect CUDA GPU
             if torch.cuda.is_available():
                 device = torch.device('cuda')
-                print(f"   🚀 GPU DETECTED: {torch.cuda.get_device_name(0)} — Using CUDA acceleration!")
+                print(f"   [SUCCESS] GPU DETECTED: {torch.cuda.get_device_name(0)} - Using CUDA acceleration!")
             else:
                 device = torch.device('cpu')
-                print(f"   ⚠️ No GPU detected — Using CPU (slower)")
+                print(f"   [INFO] No GPU detected - Using CPU (slower)")
             
             model.to(device)
             model.eval()
@@ -274,13 +277,13 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
             def simulate_progress():
                 current_progress = 25.0
                 target_progress = 85.0
-                fps = 2 # updates per second (slower for less DB overhead)
+                fps = 5 # 5 updates per second for much smoother frontend bars
                 # Fast mode is ~2-3x faster than standard
                 # Adjust duration based on audio length if possible, or use a safer larger estimate
-                estimated_duration = 120 if speed_mode in ['fastest', 'fast'] else 300  # seconds estimate for CPU
+                estimated_duration = 60 if speed_mode == 'fastest' else (120 if speed_mode == 'fast' else 300)
                 step = (target_progress - current_progress) / (estimated_duration * fps)
                 
-                print(f"   [PROGRESS] Simulating progress from 25 to 85 over approx {estimated_duration}s")
+                print(f"   [PROGRESS] Simulating progress from 25 to 85 over approx {estimated_duration}s (fps={fps})")
                 
                 while not stop_progress.is_set() and current_progress < target_progress:
                     time.sleep(1.0 / fps)

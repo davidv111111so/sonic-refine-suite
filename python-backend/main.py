@@ -228,7 +228,7 @@ def download_file(url, local_path):
         print(f"[INFO] Download complete: {local_path} ({os.path.getsize(local_path)} bytes)")
         return True
     except Exception as e:
-        print(f"[ERROR] Download error: {str(e)}")
+        print(f"[INFO] Download error: {str(e)}")
         if os.path.exists(local_path): os.unlink(local_path)
         return False
 
@@ -275,9 +275,9 @@ def create_task_in_db(task_id, user_id, job_type="stems", file_size=0):
             "created_at": "now()"
         }
         supabase.table("job_logs").insert(data).execute()
-        print(f"✅ Created task {task_id} in DB")
+        print(f"[TASK] Created task {task_id} in DB")
     except Exception as e:
-        print(f"❌ Failed to create task {task_id} in Supabase: {e}")
+        print(f"[ERROR] Failed to create task {task_id} in Supabase: {e}")
         # Local TASKS still has it, so we can continue
 
 def update_task_in_db(task_id, status, progress=None, output_url=None, error=None):
@@ -305,7 +305,7 @@ def update_task_in_db(task_id, status, progress=None, output_url=None, error=Non
             # Duplicate to error column if it exists (some older schemas might use it)
             data["error"] = str(error)
             
-        print(f"🔄 Updating task {task_id} status to {status}...")
+        print(f"[UPDATE] Updating task {task_id} status to {status}...")
         supabase.table("job_logs").update(data).eq("task_id", task_id).execute()
     except Exception as e:
         # Silently fail for Supabase updates if they're failing, we have the local store
@@ -316,7 +316,7 @@ def upload_result_to_storage(local_path, task_id, bucket='audio-processing'):
     """Upload result ZIP to Supabase Storage"""
     try:
         file_name = f"results/{task_id}_stems.zip"
-        print(f"📤 Uploading result to {file_name}...")
+        print(f"[UPLOAD] Uploading result to {file_name}...")
         
         with open(local_path, 'rb') as f:
             supabase.storage.from_(bucket).upload(
@@ -329,13 +329,13 @@ def upload_result_to_storage(local_path, task_id, bucket='audio-processing'):
         url = supabase.storage.from_(bucket).get_public_url(file_name)
         return url
     except Exception as e:
-        print(f"❌ Upload result failed: {e}")
+        print(f"[ERROR] Upload result failed: {e}")
         return None
 
 def cleanup_old_files(bucket_name='audio-processing', max_age_hours=1):
     """Delete files older than max_age_hours from Supabase Storage"""
     try:
-        print(f"🧹 Starting storage cleanup for bucket: {bucket_name}")
+        print(f"[CLEANUP] Starting storage cleanup for bucket: {bucket_name}")
         
         # Wrapped top-level list call
         try:
@@ -370,14 +370,14 @@ def cleanup_old_files(bucket_name='audio-processing', max_age_hours=1):
                                 
                                 if age_seconds > (max_age_hours * 3600):
                                     path = f"{uid}/{folder}/{f['name']}"
-                                    print(f"   🗑️ Deleting stale file: {path} (Age: {age_seconds/3600:.1f}h)")
+                                    print(f"   [DELETE] Deleting stale file: {path} (Age: {age_seconds/3600:.1f}h)")
                                     supabase.storage.from_(bucket_name).remove([path])
                                     files_deleted += 1
                     except Exception as e:
                         # Silently skip individual folder errors
                         continue
         
-        print(f"✅ Cleanup complete. Deleted {files_deleted} files.")
+        print(f"[CLEANUP] Cleanup complete. Deleted {files_deleted} files.")
         return files_deleted
     except Exception as e:
         print(f"❌ Overall cleanup error: {str(e)}")
@@ -392,7 +392,7 @@ def convert_to_wav(input_path, output_path):
         sf.write(output_path, audio.T if len(audio.shape) > 1 else audio, sample_rate)
         return True
     except Exception as e:
-        print(f"❌ Conversion error: {str(e)}")
+        print(f"[ERROR] Conversion error: {str(e)}")
         import traceback
         traceback.print_exc()
         return False
@@ -466,12 +466,12 @@ def background_mastering(task_id, user_id, target_url, reference_url, settings):
         temp_reference = tempfile.NamedTemporaryFile(delete=False, suffix=ref_ext).name
         temp_files.extend([temp_target, temp_reference])
         
-        print(f"📥 Downloading target (ext: {target_ext})...")
+        print(f"[DOWNLOAD] Downloading target (ext: {target_ext})...")
         if not download_file(target_url, temp_target):
             raise Exception(f"Failed to download target file from {target_url[:50]}...")
         update_task_in_db(task_id, 'processing', 20)
         
-        print(f"📥 Downloading reference (ext: {ref_ext})...")
+        print(f"[DOWNLOAD] Downloading reference (ext: {ref_ext})...")
         if not download_file(reference_url, temp_reference):
             raise Exception(f"Failed to download reference file from {reference_url[:50]}...")
         update_task_in_db(task_id, 'processing', 30)
@@ -545,14 +545,14 @@ def upload_result_to_storage(local_path, task_id, bucket='audio-processing'):
             try:
                 remote_url = b2_service.upload_file(local_path, file_name, content_type=mime)
                 if remote_url:
-                    print(f"✅ Uploaded to B2: {remote_url}")
+                    print(f"[SUCCESS] Uploaded to B2: {remote_url}")
                     return remote_url
             except Exception as b2_err:
                 errors.append(f"B2: {str(b2_err)}")
                 print(f"⚠️ B2 Upload failed: {b2_err}")
 
         # 2. Fallback to Supabase
-        print(f"📤 Uploading to Supabase Storage: {file_name}...")
+        print(f"[UPLOAD] Uploading to Supabase Storage: {file_name}...")
         try:
             with open(local_path, 'rb') as f:
                 supabase.storage.from_(bucket).upload(
@@ -563,11 +563,11 @@ def upload_result_to_storage(local_path, task_id, bucket='audio-processing'):
             return supabase.storage.from_(bucket).get_public_url(file_name)
         except Exception as sup_err:
             errors.append(f"Supabase: {str(sup_err)}")
-            print(f"❌ Supabase Upload failed: {sup_err}")
+            print(f"[ERROR] Supabase Upload failed: {sup_err}")
 
         raise Exception(f"Upload failed. Details: {'; '.join(errors)}")
     except Exception as e:
-        print(f"❌ Final upload failure: {e}")
+        print(f"[ERROR] Final upload failure: {e}")
         return None
 
 @app.route('/api/analyze-audio', methods=['POST'])
@@ -588,7 +588,7 @@ def analyze_audio_endpoint():
     
     try:
         if file_url:
-            print(f"🔍 Analyzing via URL: {file_url[:50]}...")
+            print(f"[ANALYZE] Analyzing via URL: {file_url[:50]}...")
             t_file = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
             t_file.close()
             temp_path = t_file.name
@@ -617,7 +617,7 @@ def analyze_audio_endpoint():
         return jsonify(analysis)
         
     except Exception as e:
-        print(f"❌ Analysis error: {str(e)}")
+        print(f"[ERROR] Analysis error: {str(e)}")
         log_job(user_id, 'analysis', 0, 0, 'failed', str(e))
         return jsonify({"error": str(e)}), 500
     finally:
@@ -693,14 +693,14 @@ def background_separation(task_id, file_path, output_dir, library, model_name, s
         shutil.make_archive(zip_base, 'zip', result['output_path'])
         zip_path = zip_base + '.zip'
         
-        print(f"✅ Stems ZIP created at: {zip_path} ({os.path.getsize(zip_path)} bytes)")
+        print(f"[SUCCESS] Stems ZIP created at: {zip_path} ({os.path.getsize(zip_path)} bytes)")
         
         # MUST upload to remote storage — local:// doesn't survive on Cloud Run
         result_url = None
         try:
             result_url = upload_result_to_storage(zip_path, task_id)
             if result_url:
-                print(f"✅ Stems uploaded to remote storage: {result_url}")
+                print(f"[SUCCESS] Stems uploaded to remote storage: {result_url}")
         except Exception as upload_err:
             print(f"⚠️ Remote storage upload failed: {upload_err}")
         
@@ -712,7 +712,7 @@ def background_separation(task_id, file_path, output_dir, library, model_name, s
         update_task_in_db(task_id, 'completed', 100, output_url=result_url)
 
     except Exception as e:
-        print(f"❌ Background task error: {str(e)}")
+        print(f"[ERROR] Background task error: {str(e)}")
         import traceback
         traceback.print_exc()
         update_task_in_db(task_id, 'failed', error=str(e))
@@ -781,7 +781,7 @@ def get_task_result(task_id):
             task = TASKS[task_id]
             if task['status'] == 'completed':
                 url = task.get('output_url')
-                print(f"📋 Task {task_id[:8]} found in memory, url type: {url[:20] if url else 'None'}...")
+                print(f"[INFO] Task {task_id[:8]} found in memory, url type: {url[:20] if url else 'None'}...")
         
         if not url:
             try:
@@ -791,10 +791,10 @@ def get_task_result(task_id):
                     print(f"📋 Task {task_id[:8]} found in DB, url type: {url[:20] if url else 'None'}...")
                 elif res.data and len(res.data) > 0:
                     status = res.data[0].get('status', 'unknown')
-                    print(f"⏳ Task {task_id[:8]} status in DB: {status}")
+                    print(f"[INFO] Task {task_id[:8]} status in DB: {status}")
                     return jsonify({"error": f"Task not completed yet, status: {status}"}), 202
                 else:
-                    print(f"❓ Task {task_id[:8]} not found in DB")
+                    print(f"[INFO] Task {task_id[:8]} not found in DB")
             except Exception as e:
                 print(f"⚠️ DB query failed for task {task_id}: {e}")
                 import traceback
@@ -823,7 +823,7 @@ def get_task_result(task_id):
         if url.startswith('b2://'):
             try:
                 remote_path = url.replace('b2://', '')
-                print(f"🔐 Getting auth URL for B2: {remote_path}")
+                print(f"[AUTH] Getting auth URL for B2: {remote_path}")
                 
                 # Re-authenticate B2 if needed
                 if not b2_service.bucket:
@@ -833,12 +833,12 @@ def get_task_result(task_id):
                 auth_url = b2_service.get_download_url(remote_path)
                 if auth_url:
                     url = auth_url
-                    print(f"✅ B2 auth URL generated successfully")
+                    print(f"[SUCCESS] B2 auth URL generated successfully")
                 else:
-                    print(f"❌ B2 returned None for download URL")
+                    print(f"[ERROR] B2 returned None for download URL")
                     return jsonify({"error": "Failed to authorize B2 download"}), 500
             except Exception as e:
-                print(f"❌ B2 auth error: {e}")
+                print(f"[ERROR] B2 auth error: {e}")
                 import traceback
                 traceback.print_exc()
                 return jsonify({"error": f"B2 authorization failed: {str(e)}"}), 500
@@ -846,7 +846,7 @@ def get_task_result(task_id):
         # Return the download URL to the client — DON'T proxy through Cloud Run
         # (Cloud Run has a ~32MB response size limit, which audio files easily exceed)
         if url.startswith('http'):
-            print(f"✅ Returning download URL to client: {url[:80]}...")
+            print(f"[SUCCESS] Returning download URL to client: {url[:80]}...")
             return jsonify({
                 "download_url": url,
                 "task_id": task_id
@@ -857,7 +857,7 @@ def get_task_result(task_id):
 
     except Exception as e:
         # Top-level safety net — ensures CORS headers are always returned
-        print(f"💥 CRITICAL: Unhandled error in get_task_result: {e}")
+        print(f"[CRITICAL] Unhandled error in get_task_result: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({"error": f"Internal server error: {str(e)}"}), 500
@@ -885,9 +885,9 @@ def separate_audio_endpoint():
             print(f"⚠️ Failed to fetch user tier to verify access limits: {e}")
 
     # Debug Request
-    print(f"✂️ Request Content-Type: {request.content_type}, User Tier: {tier}")
+    print(f"[STEMS] Request Content-Type: {request.content_type}, User Tier: {tier}")
     data = request.get_json(silent=True) or {}
-    print(f"✂️ Request JSON Keys: {list(data.keys())}")
+    print(f"[STEMS] Request JSON Keys: {list(data.keys())}")
     
     # Robust file_url extraction (check JSON then FORM)
     file_url = data.get('file_url') or request.form.get('file_url')
@@ -903,7 +903,7 @@ def separate_audio_endpoint():
     speed_mode = data.get('speed_mode', request.form.get('speed_mode', 'fast'))
     two_stems = (stem_count == '2')
     
-    print(f"✂️ Speed mode: {speed_mode}")
+    print(f"[STEMS] Speed mode: {speed_mode}")
 
     # Create task
     task_id = str(uuid.uuid4())
@@ -913,7 +913,7 @@ def separate_audio_endpoint():
     
     try:
         if file_url:
-            print(f"✂️ Separating via URL: {file_url[:50]}...")
+            print(f"[STEMS] Separating via URL: {file_url[:50]}...")
             if not download_file(file_url, input_path):
                 return jsonify({"error": "Failed to download file"}), 500
         elif 'file' in request.files:
@@ -949,7 +949,7 @@ def separate_audio_endpoint():
         })
         
     except Exception as e:
-        print(f"❌ Separation endpoint error: {str(e)}")
+        print(f"[ERROR] Separation endpoint error: {str(e)}")
         log_job(user_id, 'stems', 0, 0, 'failed', str(e))
         return jsonify({"error": str(e)}), 500
 
@@ -1148,7 +1148,7 @@ def qa_analyze_endpoint():
         })
 
     except Exception as e:
-        print(f"❌ QA Analysis error: {str(e)}")
+        print(f"[ERROR] QA Analysis error: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
