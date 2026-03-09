@@ -1,0 +1,84 @@
+[
+    {
+        "parameterName": "Deck A Play",
+        "channel": 0,
+        "type": "note",
+        "controlId": 11,
+        "deviceName": "Numark Mixtrack Platinum FX"
+    },
+    {
+        "parameterName": "Deck A Cue",
+        "channel": 0,
+        "type": "note",
+        "controlId": 12,
+        "deviceName": "Numark Mixtrack Platinum FX"
+    },
+    {
+        "parameterName": "Deck B Play",
+        "channel": 0,
+        "type": "note",
+        "controlId": 27,
+        "deviceName": "Numark Mixtrack Platinum FX"
+    },
+    {
+        "parameterName": "Deck B Cue",
+        "channel": 0,
+        "type": "note",
+        "controlId": 28,
+        "deviceName": "Numark Mixtrack Platinum FX"
+    },
+    {
+        "parameterName": "Deck A Volume",
+        "channel": 0,
+        "type": "cc",
+        "controlId": 19,
+        "deviceName": "Numark Mixtrack Platinum FX",
+        "min": 0,
+        "max": 1
+    },
+    {
+        "parameterName": "Deck B Volume",
+        "channel": 0,
+        "type": "cc",
+        "controlId": 20,
+        "deviceName": "Numark Mixtrack Platinum FX",
+        "min": 0,
+        "max": 1
+    },
+    {
+        "parameterName": "Deck A High",
+        "channel": 0,
+        "type": "cc",
+        "controlId": 7,
+        "deviceName": "Numark Mixtrack Platinum FX",
+        "min": 0,
+        "max": 1
+    },
+    {
+        "parameterName": "Deck A Mid",
+        "channel": 0,
+        "type": "cc",
+        "controlId": 8,
+        "deviceName": "Numark Mixtrack Platinum FX",
+        "min": 0,
+        "max": 1
+    },
+    {
+        "parameterName": "Deck A Low",
+        "channel": 0,
+        "type": "cc",
+        "controlId": 9,
+        "deviceName": "Numark Mixtrack Platinum FX",
+        "min": 0,
+        "max": 1
+    },
+    {
+        "parameterName": "Crossfader",
+        "channel": 0,
+        "type": "cc",
+        "controlId": 31,
+        "deviceName": "Numark Mixtrack Platinum FX",
+        "min": 0,
+        "max": 1
+    }
+]

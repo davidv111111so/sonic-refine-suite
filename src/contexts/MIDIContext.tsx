@@ -36,6 +36,8 @@ interface MIDIContextState {
 export const MIDI_PRESETS: Record<string, string> = {
     'Pioneer DDJ-400': '/src/assets/midi-mappings/pioneer_ddj_400.json',
     'Traktor Kontrol S2': '/src/assets/midi-mappings/traktor_s2.json',
+    'Numark Mixtrack': '/src/assets/midi-mappings/numark_mixtrack.json',
+    'Hercules Inpulse 500': '/src/assets/midi-mappings/hercules_inpulse_500.json',
 };
 
 const MIDIContext = createContext<MIDIContextState | undefined>(undefined);

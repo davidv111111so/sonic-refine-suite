@@ -1,0 +1,64 @@
+[
+    {
+        "id": "inpulse-500-a-play",
+        "parameterName": "Deck A Play",
+        "channel": 0,
+        "type": "note",
+        "controlId": 36,
+        "deviceName": "DJControl Inpulse 500"
+    },
+    {
+        "id": "inpulse-500-a-cue",
+        "parameterName": "Deck A Cue",
+        "channel": 0,
+        "type": "note",
+        "controlId": 37,
+        "deviceName": "DJControl Inpulse 500"
+    },
+    {
+        "id": "inpulse-500-b-play",
+        "parameterName": "Deck B Play",
+        "channel": 1,
+        "type": "note",
+        "controlId": 36,
+        "deviceName": "DJControl Inpulse 500"
+    },
+    {
+        "id": "inpulse-500-b-cue",
+        "parameterName": "Deck B Cue",
+        "channel": 1,
+        "type": "note",
+        "controlId": 37,
+        "deviceName": "DJControl Inpulse 500"
+    },
+    {
+        "id": "inpulse-500-a-vol",
+        "parameterName": "Deck A Volume",
+        "channel": 0,
+        "type": "cc",
+        "controlId": 14,
+        "deviceName": "DJControl Inpulse 500",
+        "min": 0,
+        "max": 1
+    },
+    {
+        "id": "inpulse-500-b-vol",
+        "parameterName": "Deck B Volume",
+        "channel": 1,
+        "type": "cc",
+        "controlId": 14,
+        "deviceName": "DJControl Inpulse 500",
+        "min": 0,
+        "max": 1
+    },
+    {
+        "id": "inpulse-500-crossfader",
+        "parameterName": "Crossfader",
+        "channel": 2,
+        "type": "cc",
+        "controlId": 1,
+        "deviceName": "DJControl Inpulse 500",
+        "min": 0,
+        "max": 1
+    }
+]
