@@ -23,7 +23,7 @@ export const useBeatSync = (deckA: ReturnType<typeof useDJDeck>, deckB: ReturnTy
     const correctionActiveRef = useRef(false);
     const syncModeRef = useRef<SyncMode>('off');
 
-    // One-shot tempo + phase align (triggered by Sync button press)
+    // ─── Professional Sync Engine (Phase + Tempo) ───
     const handleSync = useCallback((deckId: 'A' | 'B') => {
         if (!masterDeckId) return;
         if (deckId === masterDeckId) return;
@@ -33,11 +33,13 @@ export const useBeatSync = (deckA: ReturnType<typeof useDJDeck>, deckB: ReturnTy
 
         if (!masterDeck.state.bpm || !targetDeck.state.bpm || !masterDeck.state.buffer) return;
 
-        // 1. Tempo Sync — Match BPM
+        // 1. Tempo Match immediately
         const masterEffectiveBPM = masterDeck.state.bpm * masterDeck.state.playbackRate;
         const requiredRate = masterEffectiveBPM / targetDeck.state.bpm;
+        targetDeck.setRate(requiredRate);
 
-        // 2. Phase Sync — Beat Alignment
+        // 2. Phase Alignment (Snap to Grid)
+        const beatDur = 60 / masterEffectiveBPM;
         const masterTime = masterDeck.state.currentTime;
         const followerTime = targetDeck.state.currentTime;
 
@@ -63,44 +65,33 @@ export const useBeatSync = (deckA: ReturnType<typeof useDJDeck>, deckB: ReturnTy
             const beatShift = masterBeatInBar - followerBeatInBar;
 
             let alignedFollowerIndex = fIndex + beatShift;
-            // Ensure we don't jump too far out of bounds
             if (alignedFollowerIndex < 0) alignedFollowerIndex += 4;
             if (alignedFollowerIndex >= targetDeck.state.grid.length) alignedFollowerIndex = targetDeck.state.grid.length - 1;
 
             const followerBeatStart = targetDeck.state.grid[alignedFollowerIndex];
-
-            // To account for playback rate differences while syncing, we multiply the master phase offset by the rate ratio? 
-            // Actually, setting targetDeck.setRate(requiredRate) makes their speeds equal in real-time, 
-            // so we just add the absolute time offset.
-            targetTime = followerBeatStart + masterPhaseOffset * (targetDeck.state.bpm / masterDeck.state.bpm);
+            targetTime = followerBeatStart + masterPhaseOffset;
 
         } else {
-            // Fallback: Math-based BPM sync
-            const beatDuration = 60 / masterEffectiveBPM;
-            const barDuration = beatDuration * 4;
-            const masterPhase = masterTime % barDuration;
+            // Precise Math-based Phase Alignment
+            const masterPhase = masterTime % beatDur;
+            const followerPhase = followerTime % beatDur;
 
-            targetTime = Math.floor(followerTime / barDuration) * barDuration + masterPhase;
+            let phaseShift = masterPhase - followerPhase;
+            if (phaseShift < -(beatDur / 2)) phaseShift += beatDur;
+            if (phaseShift > (beatDur / 2)) phaseShift -= beatDur;
 
-            // Nearest bar boundary check
-            if (Math.abs(targetTime - followerTime) > barDuration / 2) {
-                if (targetTime > followerTime) targetTime -= barDuration;
-                else targetTime += barDuration;
-            }
+            targetTime = followerTime + phaseShift;
         }
 
-        // Apply both simultaneously
-        targetDeck.setRate(requiredRate);
+        // Snap to Phase
         targetDeck.seek(Math.max(0, targetTime));
 
-        console.log(`[BeatSync] Deck ${deckId} synced to ${masterEffectiveBPM.toFixed(2)} BPM. Phase shifted by ${(targetTime - followerTime).toFixed(3)}s`);
+        console.log(`[Sync] Match phase shift: ${(targetTime - followerTime).toFixed(3)}s, to ${targetTime.toFixed(3)}s`);
     }, [masterDeckId, deckA, deckB]);
 
-    // Continuous Phase-Lock Engine (Traktor "Beat Sync" mode)
-    // Runs every animation frame while beat sync is active
+    // ─── Continuous Phase Correction (Tempo Bend / Phase-Lock) ───
     useEffect(() => {
         if (syncModeRef.current !== 'beat' || !masterDeckId) {
-            // Stop phase lock loop
             if (phaseLockRef.current) {
                 cancelAnimationFrame(phaseLockRef.current);
                 phaseLockRef.current = null;
@@ -108,61 +99,53 @@ export const useBeatSync = (deckA: ReturnType<typeof useDJDeck>, deckB: ReturnTy
             return;
         }
 
-        const PHASE_THRESHOLD_MS = 10; // 10ms drift tolerance
-        const CORRECTION_RATE = 0.003; // ±0.3% micro-nudge
-        const CORRECTION_DURATION_MS = 100; // Apply for 100ms then restore
-
         const targetDeck = masterDeckId === 'A' ? deckB : deckA;
         const masterDeck = masterDeckId === 'A' ? deckA : deckB;
 
+        const PHASE_THRESHOLD_MS = 5; // Tighter tolerance: 5ms
+        const CORRECTION_RATE = 0.005; // ±0.5% micro-nudge for prompt alignment
+        const CORRECTION_DURATION_MS = 150; 
+
         const phaseLockLoop = () => {
             if (syncModeRef.current !== 'beat') return;
-            if (!masterDeck.state.isPlaying || !targetDeck.state.isPlaying) {
-                phaseLockRef.current = requestAnimationFrame(phaseLockLoop);
-                return;
-            }
-            if (!masterDeck.state.bpm || !targetDeck.state.bpm) {
-                phaseLockRef.current = requestAnimationFrame(phaseLockLoop);
-                return;
-            }
-            if (correctionActiveRef.current) {
+            if (!masterDeck.state.isPlaying || !targetDeck.state.isPlaying || correctionActiveRef.current) {
                 phaseLockRef.current = requestAnimationFrame(phaseLockLoop);
                 return;
             }
 
             const masterEffectiveBPM = masterDeck.state.bpm * masterDeck.state.playbackRate;
-            const beatDuration = 60 / masterEffectiveBPM;
+            if (!masterEffectiveBPM) {
+                phaseLockRef.current = requestAnimationFrame(phaseLockLoop);
+                return;
+            }
 
-            // Get offsets from grid, default to 0
-            const masterOffset = masterDeck.state.grid?.length ? masterDeck.state.grid[0] : 0;
-            const followerOffset = targetDeck.state.grid?.length ? targetDeck.state.grid[0] : 0;
+            const beatDur = 60 / masterEffectiveBPM;
+            const masterTime = masterDeck.state.currentTime;
+            const followerTime = targetDeck.state.currentTime;
 
-            const masterPhaseTime = Math.max(0, masterDeck.state.currentTime - masterOffset);
-            const followerPhaseTime = Math.max(0, targetDeck.state.currentTime - followerOffset);
+            const masterPhase = (masterTime % beatDur) / beatDur;
+            const followerPhase = (followerTime % beatDur) / beatDur;
 
-            const masterPhase = (masterPhaseTime % beatDuration) / beatDuration; // 0-1
-            const followerPhase = (followerPhaseTime % beatDuration) / beatDuration; // 0-1
-
-            // Phase difference (-0.5 to +0.5)
             let phaseDiff = masterPhase - followerPhase;
             if (phaseDiff > 0.5) phaseDiff -= 1;
             if (phaseDiff < -0.5) phaseDiff += 1;
 
-            const driftMs = Math.abs(phaseDiff) * beatDuration * 1000;
+            const driftMs = Math.abs(phaseDiff) * beatDur * 1000;
 
             if (driftMs > PHASE_THRESHOLD_MS) {
-                // Apply micro-nudge correction
                 correctionActiveRef.current = true;
                 const direction = phaseDiff > 0 ? 1 : -1; // Positive = follower is behind
 
-                // Temporarily bump the rate
-                const currentRate = targetDeck.state.baseRate;
-                const correctedRate = currentRate * (1 + direction * CORRECTION_RATE);
-                targetDeck.setRate(correctedRate);
+                const currentBaseRate = targetDeck.state.playbackRate;
+                const nudgeRate = currentBaseRate * (1 + (direction * CORRECTION_RATE));
+                
+                targetDeck.setRate(nudgeRate);
 
-                // Restore after correction duration
                 setTimeout(() => {
-                    targetDeck.setRate(currentRate);
+                    // Restore original rate (which should be the BPM-matched rate)
+                    const masterBpm = masterDeck.state.bpm * masterDeck.state.playbackRate;
+                    const restoredRate = masterBpm / targetDeck.state.bpm;
+                    targetDeck.setRate(restoredRate);
                     correctionActiveRef.current = false;
                 }, CORRECTION_DURATION_MS);
             }
@@ -171,12 +154,8 @@ export const useBeatSync = (deckA: ReturnType<typeof useDJDeck>, deckB: ReturnTy
         };
 
         phaseLockRef.current = requestAnimationFrame(phaseLockLoop);
-
         return () => {
-            if (phaseLockRef.current) {
-                cancelAnimationFrame(phaseLockRef.current);
-                phaseLockRef.current = null;
-            }
+            if (phaseLockRef.current) cancelAnimationFrame(phaseLockRef.current);
         };
     }, [masterDeckId, deckA, deckB]);
 

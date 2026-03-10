@@ -444,10 +444,20 @@ export const useDJDeck = (contextOverride: any = null): DeckControls => {
         const finalBpm = bpm || cached?.bpm || 0;
         const finalKey = key || cached?.key || null;
 
-        // Reset current player state
-        if (state.isPlaying) nodes.current.player.stop();
+        // Reset current player state IMMEDIATELY to stop old audio and clear UI
+        nodes.current.player.stop();
         startTime.current = 0;
         offsetTime.current = 0;
+        setState(prev => ({ 
+            ...prev, 
+            buffer: null, 
+            stems: null, 
+            duration: 0, 
+            currentTime: 0, 
+            isPlaying: false, 
+            url: null,
+            meta: { title: 'Loading...' }
+        }));
 
         try {
             // Load buffer asynchronously

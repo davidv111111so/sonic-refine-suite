@@ -41,6 +41,9 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
         dict: Result info including success status and output path.
     """
     try:
+        if progress_callback:
+            progress_callback(0)
+            
         file_path = Path(file_path)
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -106,7 +109,6 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
                     "stems": [str(s) for s in stems]
                 }
 
-        # --- LEVEL STEM SEPARATION (PREMIUM PATH) ---
         if library == 'demucs':
             import torch
             import torchaudio
@@ -119,9 +121,27 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
                 import soundfile as sf
                 import numpy as np
                 
-                print(f"[INFO] Replicate API Token detected! Routing request to commercial GPU backend.")
+                print(f"[INFO] Replicate API Token detected (ending in ...{replicate_api_token[-4:]})! Routing request to commercial GPU backend.")
                 if progress_callback: progress_callback(10)
                 
+                # Start simulated progress thread for the Replicate phase
+                stop_replicate_progress = threading.Event()
+                def simulate_replicate_progress():
+                    curr = 10.0
+                    target = 80.0
+                    # Replicate is usually fast, but let's assume 45s
+                    est = 45.0
+                    fps = 5
+                    step = (target - curr) / (est * fps)
+                    while not stop_replicate_progress.is_set() and curr < target:
+                        time.sleep(1.0/fps)
+                        curr += step
+                        if progress_callback: progress_callback(int(curr))
+                
+                rep_thread = threading.Thread(target=simulate_replicate_progress)
+                rep_thread.daemon = True
+                rep_thread.start()
+
                 try:
                     # Run Replicate explicitly
                     print(f"   Uploading & running on Replicate's Demucs API (cjwbw/demucs)...")
@@ -132,7 +152,8 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
                             input={"audio": audio_file}
                         )
                     
-                    if progress_callback: progress_callback(80)
+                    stop_replicate_progress.set()
+                    if progress_callback: progress_callback(85)
                     print(f"   [CORE] Commercial API separation completed. Downloading stems...")
                     
                     track_name = file_path.stem
@@ -233,10 +254,12 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
             if progress_callback: progress_callback(15)
 
             # Load audio
-            print(f"   Loading audio: {file_path}")
+            print(f"   [15%] Loading audio from disk: {file_path}")
             # Use soundfile to avoid torchaudio backend issues
             wav_np, sr = sf.read(str(file_path))
             
+            if progress_callback: progress_callback(18)
+            print(f"   [18%] Processing raw audio data into tensor...")
             # Convert to torch tensor: [length, channels] -> [channels, length]
             wav = torch.from_numpy(wav_np).float()
             if wav.dim() == 1:
@@ -244,11 +267,16 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
             else:
                 wav = wav.t()
             
+            if progress_callback: progress_callback(20)
             # Resample if necessary
             if sr != model.samplerate:
+                print(f"   [20%] Resampling from {sr} to {model.samplerate}... (This may take a moment)")
+                if progress_callback: progress_callback(22)
                 resampler = torchaudio.transforms.Resample(sr, model.samplerate)
                 wav = resampler(wav)
                 sr = model.samplerate
+            else:
+                print(f"   [20%] Audio already at target samplerate {sr}. Skipping resample.")
 
             if progress_callback: progress_callback(25)
 

@@ -75,36 +75,56 @@ export const Meter = ({ active, analyser }: MeterProps) => {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             const segments = 24;
-            const gap = 2;
+            const gap = 2.5;
             const segH = (canvas.height - (segments * gap)) / segments;
+            const r = segH / 2; // Radius for capsule
 
             for (let i = 0; i < segments; i++) {
                 const isActive = i <= currentLevel;
                 const isPeak = Math.floor(peakLevelRef.current) === i;
+                const y = canvas.height - ((i + 1) * (segH + gap));
 
-                // Standard VU LED Colors
-                let color = '#111'; // Off
+                // 1. Draw Background (Glassy Dark)
+                ctx.beginPath();
+                ctx.roundRect(0, y, canvas.width, segH, r);
+                ctx.fillStyle = '#111';
+                ctx.fill();
+
                 if (isActive || isPeak) {
-                    if (i < 16) color = '#00ff00'; // Green (Safe)
-                    else if (i < 20) color = '#ff8800'; // Orange (Caution)
-                    else color = '#ff0000'; // Red (Clip)
+                    // 2. Base LED Color
+                    let baseColor = '#00ff00';
+                    if (i < 16) baseColor = '#06b6d4'; // Cyan for safe
+                    else if (i < 21) baseColor = '#f59e0b'; // Amber
+                    else baseColor = '#ef4444'; // Red
+
+                    // 3. Draw Active Glow
+                    ctx.shadowBlur = 12;
+                    ctx.shadowColor = baseColor;
+                    
+                    // 4. Draw Capsule with Gradient
+                    const gradient = ctx.createLinearGradient(0, y, 0, y + segH);
+                    gradient.addColorStop(0, baseColor);
+                    gradient.addColorStop(1, '#000'); // Shadowed bottom
+
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.roundRect(0, y, canvas.width, segH, r);
+                    ctx.fill();
+                    
+                    // 5. Gloss Highlight (The "Glass" look)
+                    ctx.shadowBlur = 0;
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                    ctx.beginPath();
+                    ctx.roundRect(1, y + 1, canvas.width - 2, segH / 3, r / 2);
+                    ctx.fill();
+                } else {
+                    // Inactive state - subtle indicator
+                    ctx.shadowBlur = 0;
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+                    ctx.beginPath();
+                    ctx.roundRect(0, y, canvas.width, segH, r);
+                    ctx.fill();
                 }
-
-                // Subdued colors for inactive LEDs
-                if (!active && isActive) {
-                    if (i < 16) color = '#003300';
-                    else if (i < 20) color = '#331a00';
-                    else color = '#330000';
-                }
-
-                ctx.fillStyle = color;
-
-                // Add nice bright shadow for active LEDs
-                ctx.shadowBlur = (active && (isActive || isPeak)) ? 4 : 0;
-                ctx.shadowColor = (active && (isActive || isPeak)) ? color : 'transparent';
-
-                // Draw segment row (which stacks vertically)
-                ctx.fillRect(0, canvas.height - ((i + 1) * (segH + gap)), canvas.width, segH);
             }
         };
 

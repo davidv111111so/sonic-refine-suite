@@ -39,26 +39,32 @@ export const StripeOverview = ({
         }
 
         const channelData = buffer.getChannelData(0);
-        const samples = 300; // Fixed number of bars
-        const samplesPerPixel = Math.floor(channelData.length / samples);
+        const numSamples = 300; // Fixed number of bars
+        const samplesPerPixel = Math.max(1, Math.floor(channelData.length / numSamples));
 
-        const workerURL = new URL('../../workers/waveformAnalysis.worker.ts', import.meta.url);
-        const worker = new Worker(workerURL, { type: 'module' });
+        console.log("StripeOverview: Starting worker", { length: channelData.length, samplesPerPixel });
+
+        // Use standard Worker instantiation that works well with Vite/Tauri/Next
+        const worker = new Worker(new URL('../../workers/waveformAnalysis.worker.ts', import.meta.url), { type: 'module' });
 
         worker.onmessage = (e: MessageEvent) => {
             if (e.data.error) {
-                console.warn('Waveform worker error:', e.data.error);
+                console.warn('StripeOverview: Worker error:', e.data.error);
                 return;
             }
 
             const rawPeaks: Float32Array = e.data.peaks;
+            if (!rawPeaks) {
+                console.warn('StripeOverview: Worker returned empty peaks');
+                return;
+            }
+
             const calculatedPeaks: WaveformChunk[] = [];
             const rawEnergyCurve: number[] = [];
 
-            // Parse the interleaved format (min, max, rms, low, midHigh)
-            // Note: The worker might return slightly more or fewer chunks depending on len / samplesPerPixel rounding, 
-            // but it will be very close to 'samples' (300).
             const numChunks = rawPeaks.length / 5;
+            console.log("StripeOverview: Received peaks", { numChunks });
+
             let maxEnergy = 0.001;
 
             for (let i = 0; i < numChunks; i++) {
@@ -69,8 +75,6 @@ export const StripeOverview = ({
                 const low = rawPeaks[baseIndex + 3];
                 const midHigh = rawPeaks[baseIndex + 4];
 
-                // Worker uses low pass for low end, we can just use original max for drawing
-                // To keep drawing same as before, we set peak to peak values.
                 calculatedPeaks.push({ min, max, rms, low, midHigh });
 
                 rawEnergyCurve.push(rms);
@@ -78,7 +82,6 @@ export const StripeOverview = ({
             }
 
             if (showEnergy) {
-                // Normalize energy curve to 0-1 as calculateEnergyCurve did
                 const normalizedCurve = rawEnergyCurve.map(v => v / maxEnergy);
                 setEnergyCurve(normalizedCurve);
             }
@@ -88,24 +91,29 @@ export const StripeOverview = ({
         };
 
         worker.onerror = (e) => {
-            console.error('Waveform worker failed', e);
+            console.error('StripeOverview: Worker failed', e);
             worker.terminate();
         };
 
+        // Transfer the data to avoid clones
+        const transferBuffer = new Float32Array(channelData);
         worker.postMessage({
-            channelData,
+            channelData: transferBuffer,
             sampleRate: buffer.sampleRate,
             samplesPerPixel
-        });
+        }, [transferBuffer.buffer]);
 
         return () => worker.terminate();
     }, [buffer, showEnergy]);
 
     // 2. Render
     useEffect(() => {
-        if (!canvasRef.current || !peaks) return;
+        if (!canvasRef.current || !peaks) {
+            if (!peaks) console.log("StripeOverview: Skipping render, no peaks yet");
+            return;
+        }
         const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { alpha: false }); // Perf boost
         if (!ctx) return;
 
         const width = canvas.width;
@@ -113,14 +121,10 @@ export const StripeOverview = ({
         const center = h / 2;
 
         // Background
-        ctx.clearRect(0, 0, width, h);
-        ctx.fillStyle = '#09090b'; // Darker bg
+        ctx.fillStyle = '#09090b'; 
         ctx.fillRect(0, 0, width, h);
 
         // Draw Waveform Stripes
-        ctx.fillStyle = color === 'cyan' ? '#0891b2' : '#7c3aed'; // Cyan-600 / Violet-600
-
-        // Render bars with progress highlight
         const progress = duration > 0 ? currentTime / duration : 0;
         const barWidth = width / peaks.length;
         const progressX = progress * width;
@@ -131,12 +135,12 @@ export const StripeOverview = ({
 
             const isPlayed = x <= progressX;
             if (isPlayed) {
-                ctx.fillStyle = color === 'cyan' ? '#22d3ee' : '#a855f7'; // Bright
+                ctx.fillStyle = color === 'cyan' ? '#22d3ee' : '#a855f7'; 
             } else {
-                ctx.fillStyle = color === 'cyan' ? 'rgba(34, 211, 238, 0.25)' : 'rgba(168, 85, 247, 0.25)'; // Slightly more visible dim
+                ctx.fillStyle = color === 'cyan' ? 'rgba(34, 211, 238, 0.25)' : 'rgba(168, 85, 247, 0.25)'; 
             }
 
-            ctx.fillRect(x, center - barHeight / 2, barWidth - 1, barHeight);
+            ctx.fillRect(x, center - barHeight / 2, Math.max(1, barWidth - 1), barHeight);
         });
 
         // Current Position Line

@@ -9,6 +9,8 @@ export const useSyncLogic = (
 ) => {
     const { state: transport, setMaster, updateMasterClock } = useTransport();
     const isMaster = transport.masterDeckId === deckId;
+    const isSynced = controls.state.isSynced;
+    const lastSyncTimeRef = useRef<number>(0);
 
     // Broadcast Master State (Grid Anchor)
     useEffect(() => {
@@ -55,12 +57,13 @@ export const useSyncLogic = (
         controls.setRate(targetRate);
 
         // 2. Phase Alignment (Professional Sync Logic)
-        const beatDur = 60 / transport.masterBpm; // This is the master beat duration
+        const beatDur = 60 / transport.masterBpm; 
 
         // Calculate exactly where the Master is right now:
         const elapsedRealSeconds = (Date.now() - transport.masterSystemTime) / 1000;
         const masterCurrentTimeNow = transport.masterGridAnchor + (elapsedRealSeconds * transport.masterPlaybackRate);
 
+        // Snap to Grid / Phase Alignment
         const masterPhase = masterCurrentTimeNow % beatDur;
         const myPhase = controls.state.currentTime % beatDur;
 
@@ -70,14 +73,58 @@ export const useSyncLogic = (
 
         // Apply phase shift directly to my current time
         let targetTime = controls.state.currentTime + phaseShift;
-        targetTime = Math.max(0, targetTime); // Prevent seeking below zero
+        targetTime = Math.max(0, targetTime); 
 
-        // Immediate Seek to match phases
+        // Professional Beat Sync: Jump to the nearest beat if we are far off
+        // Otherwise just nudge phase
         controls.seek(targetTime);
+        lastSyncTimeRef.current = Date.now();
 
         console.log(`[Sync] Match phase shift: ${phaseShift.toFixed(3)}s, to ${targetTime.toFixed(3)}s`);
 
     }, [nativeBpm, transport, controls]);
+
+    // ─── Beat Sync Function ───
+    const handleBeatSync = useCallback(() => {
+        if (!nativeBpm || !transport.masterBpm) return;
+        
+        const beatDur = 60 / transport.masterBpm;
+        const elapsedRealSeconds = (Date.now() - transport.masterSystemTime) / 1000;
+        const masterCurrentTimeNow = transport.masterGridAnchor + (elapsedRealSeconds * transport.masterPlaybackRate);
+        
+        // Target is the absolute master time (or modulo beat)
+        // We find the closest beat in our own track that matches master's phase
+        const targetTime = Math.round(controls.state.currentTime / beatDur) * beatDur;
+        controls.seek(targetTime);
+    }, [nativeBpm, transport, controls]);
+
+    // ─── Continuous Phase Correction (Tempo Bend) ───
+    useEffect(() => {
+        if (isMaster || !isSynced || !controls.state.isPlaying || !transport.masterBpm || !nativeBpm) return;
+
+        const interval = setInterval(() => {
+            const offset = getPhaseOffset();
+            const threshold = 0.01; // 1% of a beat
+
+            if (Math.abs(offset) > threshold) {
+                // Apply a temporary "Tempo Bend" to drift back into alignment
+                // If offset is positive, we are ahead -> slow down
+                // If offset is negative, we are behind -> speed up
+                const baseRate = transport.masterBpm / nativeBpm;
+                const correction = offset > 0 ? -0.005 : 0.005; // 0.5% nudge
+                controls.setRate(baseRate + correction);
+                
+                // Reset to base rate after a short nudge
+                setTimeout(() => {
+                    if (controls.state.isSynced) {
+                        controls.setRate(baseRate);
+                    }
+                }, 100);
+            }
+        }, 500); // Check every half second
+
+        return () => clearInterval(interval);
+    }, [isMaster, isSynced, controls.state.isPlaying, transport.masterBpm, nativeBpm, controls]);
 
     const handleMaster = useCallback(() => {
         if (!nativeBpm) return;
@@ -105,6 +152,7 @@ export const useSyncLogic = (
 
     return {
         handleSync,
+        handleBeatSync,
         handleMaster,
         isMaster,
         getPhaseOffset

@@ -29,8 +29,16 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const RootRoute = () => {
   const { profile, loading } = useAuth();
+  const isAuthCallback = window.location.hash.includes('access_token=') || window.location.search.includes('code=');
 
-  if (loading) return null;
+  if (loading || isAuthCallback) return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto"></div>
+          <p className="mt-4 text-slate-400">Loading your profile...</p>
+        </div>
+      </div>
+  );
   if (profile) return <Navigate to="/app" replace />;
 
   return <Landing />;

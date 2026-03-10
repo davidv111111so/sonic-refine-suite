@@ -377,60 +377,94 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
 
     const startX = useRef(0);
     const startSeekTime = useRef(0);
+    // Refs for stable callback access during dragging to prevent effect re-runs
+    const onSeekRef = useRef(onSeek);
+    const onPlayRef = useRef(onPlay);
+    const onPauseRef = useRef(onPause);
+    const onScrubStartRef = useRef(onScrubStart);
+    const onScrubEndRef = useRef(onScrubEnd);
+
+    useEffect(() => { onSeekRef.current = onSeek; }, [onSeek]);
+    useEffect(() => { onPlayRef.current = onPlay; }, [onPlay]);
+    useEffect(() => { onPauseRef.current = onPause; }, [onPause]);
+    useEffect(() => { onScrubStartRef.current = onScrubStart; }, [onScrubStart]);
+    useEffect(() => { onScrubEndRef.current = onScrubEnd; }, [onScrubEnd]);
+
     const wasPlayingRef = useRef(false);
 
     // Mouse Interaction Handlers
+    // Mouse Interaction Handlers
     const handleMouseDown = (e: React.MouseEvent) => {
-        if (e.button !== 0) return;
+        if (e.button !== 0 || !buffer) return;
+        
+        // CRITICAL: prevent browser's own drag initiation and bubbling
+        e.preventDefault();
+        e.stopPropagation(); 
+        
+        console.log("SpectralWaveform: Scrub Start", { 
+            currentTime: currentTimeRef.current,
+            clientX: e.clientX,
+            zoom
+        });
+        
         setIsDragging(true);
         startX.current = e.clientX;
         startSeekTime.current = currentTimeRef.current;
         document.body.style.cursor = 'grabbing';
+        document.body.style.userSelect = 'none';
 
         wasPlayingRef.current = !!isPlaying;
-        if (onScrubStart) {
-            onScrubStart();
-        } else if (isPlaying && onPause) {
-            onPause();
+        
+        if (onScrubStartRef.current) {
+            onScrubStartRef.current();
+        } else if (isPlaying && onPauseRef.current) {
+            onPauseRef.current();
         }
     };
 
     useEffect(() => {
+        if (!isDragging) return;
+
         const handleMouseMove = (e: MouseEvent) => {
-            if (!isDragging || !onSeek || !buffer) return;
-            e.preventDefault();
+            if (!isDragging || !buffer) return;
+            
+            // Calculate movement
             const deltaPx = startX.current - e.clientX;
-            // Shift + Drag for fine adjustment (10x slower)
             const speedMultiplier = e.shiftKey ? 0.1 : 1.0;
             const deltaSec = (deltaPx / zoom) * speedMultiplier;
+            
             const newTime = Math.max(0, Math.min(buffer.duration, startSeekTime.current + deltaSec));
-            onSeek(newTime);
-        };
-
-        const handleMouseUp = () => {
-            if (isDragging) {
-                setIsDragging(false);
-                document.body.style.cursor = '';
-                if (onScrubEnd) {
-                    onScrubEnd();
-                }
-                if (wasPlayingRef.current && onPlay) {
-                    onPlay();
-                }
-                wasPlayingRef.current = false;
+            
+            if (onSeekRef.current) {
+                onSeekRef.current(newTime);
             }
         };
 
-        if (isDragging) {
-            window.addEventListener('mousemove', handleMouseMove);
-            window.addEventListener('mouseup', handleMouseUp);
-        }
+        const handleMouseUp = (e: MouseEvent) => {
+            console.log("SpectralWaveform: Scrub End", { finalTime: currentTimeRef.current });
+            setIsDragging(false);
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+
+            if (onScrubEndRef.current) {
+                onScrubEndRef.current();
+            }
+
+            if (wasPlayingRef.current && onPlayRef.current) {
+                onPlayRef.current();
+            }
+            wasPlayingRef.current = false;
+        };
+
+        // Add to window to track even if mouse leaves container
+        window.addEventListener('mousemove', handleMouseMove, { passive: false });
+        window.addEventListener('mouseup', handleMouseUp);
 
         return () => {
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
         };
-    }, [isDragging, zoom, buffer, onSeek, onPlay]);
+    }, [isDragging, zoom, buffer]); // Note: buffer is here to ensure correct duration access
 
     return (
         <div
