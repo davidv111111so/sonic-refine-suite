@@ -25,11 +25,13 @@ interface SpectralWaveformProps {
     cuePoint?: number | null;
     onPlay?: () => void;
     onPause?: () => void;
+    onScrubStart?: () => void;
+    onScrubEnd?: () => void;
     isPlaying?: boolean;
     playbackRate?: number;
 }
 
-export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, height = 150, showGrid = true, bpm = 128, beatOffset = 0, grid = [], onSeek, loop, cuePoint, onPlay, onPause, isPlaying, playbackRate = 1 }: SpectralWaveformProps) => {
+export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, height = 150, showGrid = true, bpm = 128, beatOffset = 0, grid = [], onSeek, loop, cuePoint, onPlay, onPause, onScrubStart, onScrubEnd, isPlaying, playbackRate = 1 }: SpectralWaveformProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const workerRef = useRef<Worker | null>(null);
@@ -386,7 +388,9 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
         document.body.style.cursor = 'grabbing';
 
         wasPlayingRef.current = !!isPlaying;
-        if (isPlaying && onPause) {
+        if (onScrubStart) {
+            onScrubStart();
+        } else if (isPlaying && onPause) {
             onPause();
         }
     };
@@ -396,7 +400,9 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
             if (!isDragging || !onSeek || !buffer) return;
             e.preventDefault();
             const deltaPx = startX.current - e.clientX;
-            const deltaSec = deltaPx / zoom;
+            // Shift + Drag for fine adjustment (10x slower)
+            const speedMultiplier = e.shiftKey ? 0.1 : 1.0;
+            const deltaSec = (deltaPx / zoom) * speedMultiplier;
             const newTime = Math.max(0, Math.min(buffer.duration, startSeekTime.current + deltaSec));
             onSeek(newTime);
         };
@@ -405,6 +411,9 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
             if (isDragging) {
                 setIsDragging(false);
                 document.body.style.cursor = '';
+                if (onScrubEnd) {
+                    onScrubEnd();
+                }
                 if (wasPlayingRef.current && onPlay) {
                     onPlay();
                 }

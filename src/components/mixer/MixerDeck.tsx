@@ -322,6 +322,8 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                     onPause={controls.pause}
                     isPlaying={controls.state.isPlaying}
                     playbackRate={controls.state.playbackRate}
+                    onScrubStart={controls.pause}
+                    onScrubEnd={() => {}}
                 />
 
                 <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
@@ -355,7 +357,7 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
             </div>
 
             {/* 2.5 Overview Waveform */}
-            <div className="h-10 bg-[#09090b] border-b border-[#27272a] relative">
+            <div className="h-10 bg-[#09090b] border-b border-[#27272a] relative overflow-hidden">
                 <StripeOverview
                     buffer={controls.state.buffer}
                     currentTime={controls.state.currentTime}
@@ -429,51 +431,51 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                                 <p>Toggle Playback (SPACE)</p>
                             </TooltipContent>
                         </Tooltip>
+                    </div>
 
-                        <div className="flex items-center gap-1 ml-1 scale-[0.85] origin-left">
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <button
-                                        className={cn(
-                                            "px-1.5 py-0.5 rounded border text-[8px] font-black transition-all",
-                                            controls.state.isSynced
-                                                ? "bg-cyan-500 text-black border-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.5)]"
-                                                : "bg-[#27272a] text-neutral-500 border-[#3f3f46] hover:text-neutral-300"
-                                        )}
-                                        onClick={() => onSync && onSync()}
-                                    >
-                                        SYNC
-                                    </button>
-                                </TooltipTrigger>
-                                <TooltipContent side="top" className="bg-slate-900 border-slate-700 text-[10px] p-2 z-[300]">
-                                    <p className="font-bold text-cyan-400 mb-1 leading-none">SYNC MODE</p>
-                                    <p>Match BPM with Master deck.</p>
-                                    <p className="text-neutral-500 mt-1 italic leading-none">Settings: Tempo/Beat</p>
-                                </TooltipContent>
-                            </Tooltip>
+                    <div className="flex items-center gap-1.5 ml-1">
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <button
+                                    className={cn(
+                                        "px-2.5 py-1 rounded border text-[9px] font-black transition-all",
+                                        controls.state.isSynced
+                                            ? "bg-cyan-500 text-black border-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.5)]"
+                                            : "bg-[#27272a] text-neutral-500 border-[#3f3f46] hover:text-neutral-300"
+                                    )}
+                                    onClick={() => onSync && onSync()}
+                                >
+                                    SYNC
+                                </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="bg-slate-900 border-slate-700 text-[10px] p-2 z-[300]">
+                                <p className="font-bold text-cyan-400 mb-1 leading-none">SYNC MODE</p>
+                                <p>Match BPM with Master deck.</p>
+                                <p className="text-neutral-500 mt-1 italic leading-none">Settings: Tempo/Beat</p>
+                            </TooltipContent>
+                        </Tooltip>
 
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <button
-                                        className={cn(
-                                            "px-1.5 py-0.5 rounded border text-[8px] font-black transition-all",
-                                            isMaster
-                                                ? "bg-orange-500 text-black border-orange-400 shadow-[0_0_10px_rgba(249,115,22,0.5)]"
-                                                : "bg-[#27272a] text-neutral-500 border-[#3f3f46] hover:text-neutral-300"
-                                        )}
-                                        onClick={() => {
-                                            if (handleMaster) handleMaster();
-                                            if (onToggleMaster) onToggleMaster();
-                                        }}
-                                    >
-                                        MASTER
-                                    </button>
-                                </TooltipTrigger>
-                                <TooltipContent side="top" className="bg-slate-900 border-slate-700 text-[10px] p-2 z-[300]">
-                                    <p>Set as BPM Master</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </div>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <button
+                                    className={cn(
+                                        "px-2.5 py-1 rounded border text-[9px] font-black transition-all",
+                                        isMaster
+                                            ? "bg-orange-500 text-black border-orange-400 shadow-[0_0_10px_rgba(249,115,22,0.5)]"
+                                            : "bg-[#27272a] text-neutral-500 border-[#3f3f46] hover:text-neutral-300"
+                                    )}
+                                    onClick={() => {
+                                        if (handleMaster) handleMaster();
+                                        if (onToggleMaster) onToggleMaster();
+                                    }}
+                                >
+                                    MASTER
+                                </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="bg-slate-900 border-slate-700 text-[10px] p-2 z-[300]">
+                                <p>Set as BPM Master</p>
+                            </TooltipContent>
+                        </Tooltip>
                     </div>
                 </TooltipProvider>
 
