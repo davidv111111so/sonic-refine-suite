@@ -22,6 +22,7 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
 import { usePlayer } from '@/contexts/PlayerContext';
+import { useMIDI } from '@/contexts/MIDIContext';
 
 import {
   Sheet,
@@ -93,13 +94,15 @@ const Index = () => {
     };
   }, []);
 
+  const { initializeMIDI } = useMIDI();
   useEffect(() => {
+    initializeMIDI();
     if ('Notification' in window) {
       Notification.requestPermission().then(permission => {
         setNotificationsEnabled(permission === 'granted');
       });
     }
-  }, []);
+  }, [initializeMIDI]);
 
   const handleLogoutCleanup = () => {
     handleClearAllFiles();

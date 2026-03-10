@@ -24,6 +24,7 @@ interface MIDIContextState {
     mappings: MIDIMapping[];
     devices: MIDIDevice[];
     lastMessage: { channel: number; type: 'cc' | 'note'; controlId: number; value: number } | null;
+    initializeMIDI: () => Promise<void>;
     registerParam: (paramId: string, callback: (value: number) => void) => void;
     unregisterParam: (paramId: string) => void;
     startLearning: (paramId: string, paramName: string) => void;
@@ -205,31 +206,33 @@ export const MIDIProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     }, [setMappings, setIsLearning, setLearningParamId, setLearningParamName]);
 
-    useEffect(() => {
-        const init = async () => {
-            if (!navigator.requestMIDIAccess) return;
-            try {
-                const access = await navigator.requestMIDIAccess();
-                midiAccessRef.current = access;
-                const updateDevices = () => {
-                    const devList: MIDIDevice[] = [];
-                    access.inputs.forEach(input => {
-                        devList.push({ id: input.id, name: input.name || 'Unknown', manufacturer: input.manufacturer || 'Unknown' });
-                        input.onmidimessage = handleIncomingMIDI;
-                    });
-                    setDevices(devList);
-                };
-                updateDevices();
-                access.onstatechange = updateDevices;
-            } catch (e) { console.warn('MIDI init failed', e); }
-        };
-        init();
+    const initializeMIDI = useCallback(async () => {
+        if (!navigator.requestMIDIAccess || midiAccessRef.current) return;
+        try {
+            const access = await navigator.requestMIDIAccess();
+            midiAccessRef.current = access;
+            const updateDevices = () => {
+                const devList: MIDIDevice[] = [];
+                access.inputs.forEach(input => {
+                    devList.push({ id: input.id, name: input.name || 'Unknown', manufacturer: input.manufacturer || 'Unknown' });
+                    input.onmidimessage = handleIncomingMIDI;
+                });
+                setDevices(devList);
+            };
+            updateDevices();
+            access.onstatechange = updateDevices;
+        } catch (e) { console.warn('MIDI init failed', e); }
     }, [handleIncomingMIDI]);
+
+    useEffect(() => {
+        // Only auto-initialize if we already have mappings or were previously active
+        // But for now, let's keep it strictly manual to satisfy the user request
+    }, []);
 
     return (
         <MIDIContext.Provider value={{
             isLearning, learningParamId, learningParamName, mappings, devices, lastMessage,
-            registerParam, unregisterParam, startLearning, cancelLearning, deleteMapping, clearAllMappings,
+            initializeMIDI, registerParam, unregisterParam, startLearning, cancelLearning, deleteMapping, clearAllMappings,
             loadMappingPreset
         }}>
             {children}

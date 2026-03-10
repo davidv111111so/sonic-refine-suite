@@ -269,117 +269,8 @@ export const Landing = () => {
         }
     ];
 
-    const DesktopPlayerSection = () => {
-        return (
-            <section id="free-player" className="py-24 relative overflow-hidden">
-                <div className="container mx-auto px-6 relative z-10">
-                    <div className="max-w-6xl mx-auto">
-                        <div className="grid lg:grid-cols-2 gap-16 items-center bg-slate-900/40 rounded-[2.5rem] p-8 lg:p-16 border border-white/5 backdrop-blur-2xl relative">
-                            {/* Glow effect */}
-                            <div className="absolute -top-24 -right-24 w-96 h-96 bg-cyan-500/10 blur-[100px] rounded-full pointer-events-none" />
+// Merged Player Section will be integrated below
 
-                            <div className="text-left space-y-8 relative z-10">
-                                <div className="space-y-4">
-                                    <Badge className="bg-cyan-500/10 text-cyan-400 border-cyan-500/20 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider">
-                                        Free Standalone Tool
-                                    </Badge>
-                                    <h2 className="text-4xl md:text-6xl font-black text-white leading-tight tracking-tighter">
-                                        LEVEL PLAYER <br />
-                                        <span className="bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">FREE EDITION</span>
-                                    </h2>
-                                    <p className="text-lg text-slate-400 max-w-xl font-light leading-relaxed">
-                                        Take the professional Level audio engine anywhere. Our standalone desktop player is 100% free, lightweight, and focused on pure high-fidelity playback.
-                                    </p>
-                                </div>
-
-                                <div className="grid sm:grid-cols-2 gap-6">
-                                    <div className="space-y-3 p-6 bg-white/5 rounded-3xl border border-white/5 group hover:border-cyan-500/30 transition-colors">
-                                        <div className="w-10 h-10 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xl shadow-[0_0_20px_rgba(6,182,212,0.3)]">1</div>
-                                        <div>
-                                            <h4 className="font-bold text-white mb-1">Windows Bypass</h4>
-                                            <p className="text-xs text-slate-500 leading-relaxed">Click "More info" &rarr; "Run anyway" when the blue SmartScreen appears.</p>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-3 p-6 bg-white/5 rounded-3xl border border-white/5 group hover:border-purple-500/30 transition-colors">
-                                        <div className="w-10 h-10 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-xl shadow-[0_0_20px_rgba(168,85,247,0.3)]">2</div>
-                                        <div>
-                                            <h4 className="font-bold text-white mb-1">macOS Bypass</h4>
-                                            <p className="text-xs text-slate-500 leading-relaxed">Right-click the icon and choose "Open" to verify the app instantly.</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* SmartScreen Bypass Section */}
-                                <div className="mt-8 space-y-4 p-6 bg-cyan-950/20 border border-cyan-500/20 rounded-3xl animate-in fade-in slide-in-from-bottom-5">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
-                                        <h4 className="text-[10px] font-black tracking-widest text-cyan-400 uppercase">Windows Security Bypass Guide</h4>
-                                    </div>
-                                    <p className="text-[10px] text-slate-400 mb-4">Since the app is currently in Beta and unsigned, Windows may show a warning. Follow these 2 easy steps:</p>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-5 h-5 rounded-full bg-cyan-500 text-black flex items-center justify-center text-[10px] font-bold">1</div>
-                                                <p className="text-[10px] font-bold text-white uppercase">Click "More info"</p>
-                                            </div>
-                                            <div className="aspect-video rounded-lg overflow-hidden border border-white/5 bg-black/40">
-                                                <img src="/windows_bypass_step1_1773015602769.png" alt="Step 1" className="w-full h-full object-cover" />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-5 h-5 rounded-full bg-emerald-500 text-black flex items-center justify-center text-[10px] font-bold">2</div>
-                                                <p className="text-[10px] font-bold text-white uppercase">Click "Run anyway"</p>
-                                            </div>
-                                            <div className="aspect-video rounded-lg overflow-hidden border border-white/5 bg-black/40">
-                                                <img src="/windows_bypass_step2_1773015620723.png" alt="Step 2" className="w-full h-full object-cover" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="flex flex-wrap gap-4 pt-4">
-                                    <a
-                                        href="https://github.com/davidv111111so/sonic-refine-suite/releases/download/v1.0.0-beta/Level_Player_1.0.0_x64-setup.exe"
-                                        className="inline-block"
-                                    >
-                                        <Button className="h-16 px-8 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-2xl shadow-2xl shadow-cyan-500/30 group transition-all hover:scale-105 active:scale-95">
-                                            <Download className="mr-3 w-6 h-6 group-hover:animate-bounce" />
-                                            Download for Windows
-                                        </Button>
-                                    </a>
-                                    <a
-                                        href="https://github.com/davidv111111so/sonic-refine-suite/releases/download/v1.0.0-beta/Level_Player_1.0.0_universal.dmg"
-                                        className="inline-block"
-                                    >
-                                        <Button variant="outline" className="h-16 px-8 border-slate-800 bg-slate-900/50 text-slate-300 hover:text-white hover:bg-slate-800 rounded-2xl transition-all hover:scale-105 active:scale-95">
-                                            <Download className="mr-3 w-6 h-6" />
-                                            macOS Binary (DMG)
-                                        </Button>
-                                    </a>
-                                </div>
-                            </div>
-
-                            <div className="relative group perspective-1000 hidden lg:block">
-                                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/20 to-purple-600/20 blur-[100px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-                                <div className="relative z-10 transform-gpu transition-all duration-700 group-hover:rotate-y-[-5deg] group-hover:rotate-x-[2deg]">
-                                    <img
-                                        src="/level_player_desktop_mockup.png"
-                                        alt="Level Player Free Desktop"
-                                        className="rounded-[2.5rem] border border-white/10 shadow-[0_35px_100px_-15px_rgba(0,0,0,0.8)]"
-                                    />
-                                    <div className="absolute top-4 right-4 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full border border-white/10 text-[10px] text-cyan-400 font-bold tracking-widest uppercase">
-                                        Standalone Beta
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        );
-    };
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100 overflow-x-hidden selection:bg-cyan-500/30">
@@ -393,8 +284,9 @@ export const Landing = () => {
             {/* Navigation */}
             <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-slate-950/80 backdrop-blur-xl">
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-                    <div className="cursor-pointer" onClick={() => navigate('/')}>
-                        <LevelLogo size="md" showIcon={true} />
+                    <div className="cursor-pointer group relative" onClick={() => navigate('/')}>
+                        <div className="absolute -inset-4 bg-cyan-500/10 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <LevelLogo size="xl" showIcon={true} className="scale-110 sm:scale-125 origin-left transition-transform group-hover:scale-[1.3]" />
                     </div>
 
                     <div className="hidden md:flex items-center gap-8">
@@ -402,34 +294,17 @@ export const Landing = () => {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        {profile ? (
-                            <Button
-                                variant="ghost"
-                                className="hidden sm:flex text-cyan-400 hover:text-cyan-300 font-medium"
-                                onClick={() => navigate('/app')}
-                            >
-                                <Layout className="mr-2 h-4 w-4" />
-                                Dashboard
-                            </Button>
-                        ) : (
-                            <Button
-                                variant="ghost"
-                                className="hidden sm:flex text-slate-300 hover:text-white"
-                                onClick={() => navigate('/auth')}
-                            >
-                                {t('header.signIn')}
-                            </Button>
-                        )}
                         <Button
-                            className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-6 rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all hover:scale-105"
+                            className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black px-8 py-6 rounded-2xl shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all hover:scale-105 active:scale-95 border border-white/20"
                             onClick={() => navigate('/app')}
                         >
-                            {profile ? t('header.goToApp') : t('header.getStarted')}
+                            {profile ? t('header.goToApp') : 'Start your Level journey!'}
                         </Button>
                         <button className="md:hidden p-2 text-slate-400" onClick={() => setIsMenuOpen(!isMenuOpen)}>
                             {isMenuOpen ? <X /> : <Menu />}
                         </button>
                     </div>
+
                 </div>
 
                 {isMenuOpen && (
@@ -478,11 +353,12 @@ export const Landing = () => {
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
                         <Button
                             size="lg"
-                            className="h-16 px-10 text-lg bg-white text-slate-950 hover:bg-slate-200 font-black rounded-2xl group transition-all hover:shadow-[0_0_30px_rgba(255,255,255,0.15)]"
+                            className="h-16 px-10 text-lg bg-gradient-to-r from-white to-slate-200 text-slate-950 hover:to-white font-black rounded-2xl group transition-all hover:shadow-[0_0_40px_rgba(255,255,255,0.2)] shadow-2xl relative overflow-hidden"
                             onClick={() => window.location.href = '/app'}
                         >
-                            Open Level App
-                            <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                            <div className="absolute inset-0 bg-gradient-to-r from-cyan-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                            Start your Level journey!
+                            <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform relative z-10" />
                         </Button>
                         <Button
                             size="lg"
@@ -499,7 +375,6 @@ export const Landing = () => {
                 </div>
             </section>
 
-            <DesktopPlayerSection />
 
             {/* Tabs Section */}
             <section id="features" className="py-24 px-6 relative">
@@ -828,44 +703,98 @@ export const Landing = () => {
                 </div>
             </section>
 
-            {/* External Player Section */}
-            <section className="py-24 px-6 bg-gradient-to-b from-transparent to-slate-900/50">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12">
-                    <div className="flex-1 space-y-6">
-                        <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/20 px-4 py-1">FREE DOWNLOAD</Badge>
-                        <h2 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">
-                            The external <br />
-                            <span className="text-purple-400">Level Media Player</span>
-                        </h2>
-                        <p className="text-lg text-slate-400 font-light leading-relaxed">
-                            Download our standalone player for free. Ultra-high fidelity audio and video playback with real-time effects, visualizers, and 10-band EQ.
-                        </p>
-                        <div className="flex flex-col sm:flex-row gap-4">
-                            <Button
-                                className="bg-purple-600 hover:bg-purple-500 text-white font-bold h-14 px-8 rounded-xl shadow-lg shadow-purple-500/20"
-                                onClick={() => {
-                                    window.open('/player', '_blank', 'width=1000,height=800,menubar=no,toolbar=no,location=no,status=no');
-                                }}
-                            >
-                                <Download className="mr-2 h-5 w-5" /> Open Web Player
-                            </Button>
-                            <Button
-                                variant="outline"
-                                className="border-white/10 hover:bg-white/5 text-slate-300 h-14 px-8 rounded-xl"
-                                onClick={() => {
-                                    toast.info("Coming Soon", {
-                                        description: "The native applications are currently in beta."
-                                    });
-                                }}
-                            >
-                                <Download className="mr-2 h-5 w-5" /> Download App
-                            </Button>
-                        </div>
-                    </div>
-                    <div className="flex-1 relative">
-                        <div className="absolute inset-0 bg-purple-500/20 blur-[120px] rounded-full" />
-                        <div className="relative border border-white/10 rounded-3xl overflow-hidden shadow-2xl transform hover:scale-[1.02] transition-transform duration-700">
-                            <img src="/external_player_screenshot.jpg" alt="External Media Player UI" className="w-full h-auto" />
+            {/* Merged Media Player Section */}
+            <section id="free-player" className="py-24 relative overflow-hidden px-6">
+                <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-900/20 to-slate-950 pointer-events-none" />
+                <div className="max-w-7xl mx-auto relative z-10">
+                    <div className="bg-slate-900/40 border border-white/10 rounded-[3rem] p-8 lg:p-16 backdrop-blur-3xl shadow-2xl overflow-hidden group">
+                        {/* Interactive Background Elements */}
+                        <div className="absolute -top-24 -right-24 w-96 h-96 bg-purple-500/10 blur-[120px] rounded-full animate-pulse-slow" />
+                        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-cyan-500/10 blur-[120px] rounded-full animate-pulse-slow" />
+
+                        <div className="grid lg:grid-cols-2 gap-16 items-center">
+                            <div className="space-y-10 relative">
+                                <div className="space-y-4">
+                                    <Badge className="bg-gradient-to-r from-cyan-500/20 to-purple-500/20 text-cyan-400 border-cyan-500/30 px-6 py-2 text-xs font-bold uppercase tracking-[0.2em] rounded-full shadow-lg">
+                                        Free Standalone Tool
+                                    </Badge>
+                                    <h2 className="text-5xl lg:text-7xl font-black text-white leading-[1.1] tracking-tighter">
+                                        THE LEVEL <br />
+                                        <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-500 bg-clip-text text-transparent">MEDIA PLAYER</span>
+                                    </h2>
+                                    <p className="text-xl text-slate-400 max-w-xl font-light leading-relaxed">
+                                        Take the pro audio engine anywhere. Our standalone player is 100% free, lightweight, and delivers ultra-high fidelity playback with real-time effects and dual visualizers.
+                                    </p>
+                                </div>
+
+                                {/* Download/Open Buttons */}
+                                <div className="flex flex-col sm:flex-row gap-4">
+                                    <Button
+                                        className="h-16 px-10 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-black rounded-2xl shadow-xl shadow-cyan-900/40 group transition-all hover:scale-[1.03] active:scale-95 border border-white/10"
+                                        onClick={() => {
+                                            window.open('/player', '_blank', 'width=1200,height=900');
+                                        }}
+                                    >
+                                        <Zap className="mr-3 w-6 h-6 fill-current animate-pulse" />
+                                        Open Web Player
+                                    </Button>
+                                    <a
+                                        href="https://github.com/davidv111111so/sonic-refine-suite/releases/download/v1.0.0-beta/Level_Player_1.0.0_x64-setup.exe"
+                                        className="h-16"
+                                    >
+                                        <Button variant="outline" className="h-full px-10 border-white/10 bg-white/5 text-white font-bold rounded-2xl hover:bg-white/10 transition-all hover:shadow-2xl shadow-white/5">
+                                            <Download className="mr-3 w-5 h-5" />
+                                            Download Native App
+                                        </Button>
+                                    </a>
+                                </div>
+
+                                {/* Minimal Security Guides */}
+                                <div className="pt-8 border-t border-white/5 space-y-6">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Shield className="w-4 h-4 text-emerald-400" />
+                                        <h4 className="text-[10px] font-black tracking-widest text-slate-400 uppercase">Beta Security Note</h4>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-8">
+                                        <div className="space-y-3">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
+                                                <p className="text-[10px] font-bold text-white uppercase tracking-tight">Windows Bypass</p>
+                                            </div>
+                                            <p className="text-[10px] text-slate-500 leading-tight italic">
+                                                Click "More info" &rarr; "Run anyway" when the SmartScreen appears.
+                                            </p>
+                                        </div>
+                                        <div className="space-y-3">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                                                <p className="text-[10px] font-bold text-white uppercase tracking-tight">macOS Bypass</p>
+                                            </div>
+                                            <p className="text-[10px] text-slate-500 leading-tight italic">
+                                                Right-click the app icon and choose "Open" to verify instantly.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Main Visual */}
+                            <div className="relative group/visual perspective-1000">
+                                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/30 via-purple-600/30 to-blue-500/30 blur-[100px] rounded-full opacity-40 group-hover/visual:opacity-70 transition-opacity duration-1000 animate-pulse-slow" />
+                                <div className="relative z-10 transform-gpu transition-all duration-700 group-hover/visual:rotate-y-[-8deg] group-hover/visual:rotate-x-[4deg] group-hover/visual:scale-[1.02]">
+                                    <div className="relative border border-white/20 rounded-[2.5rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.9)] bg-slate-900/80">
+                                        <img
+                                            src="/external_player_screenshot.png"
+                                            alt="Level Media Player Interface"
+                                            className="w-full h-auto brightness-90 group-hover/visual:brightness-100 transition-all duration-700"
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-transparent pointer-events-none" />
+                                    </div>
+                                    <div className="absolute -top-4 -right-4 px-5 py-2 bg-gradient-to-r from-emerald-500 to-cyan-500 text-black font-black text-[10px] tracking-widest uppercase rounded-full shadow-xl border border-white/20">
+                                        v1.0.0 PRO ENGINE
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

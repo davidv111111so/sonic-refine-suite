@@ -1023,19 +1023,23 @@ export const AdvancedMediaPlayer: React.FC<AdvancedMediaPlayerProps> = ({
           )}>
             <div className="max-w-5xl mx-auto w-full space-y-4 pointer-events-auto">
               {/* Progress */}
-              <div className="flex items-center gap-3 text-xs font-mono text-slate-300">
-                <span>{formatTime(currentTime)}</span>
-                <Slider
-                  value={[currentTime]}
-                  max={duration || 100}
-                  step={0.1}
-                  onValueChange={(v) => {
-                    if (videoRef.current) videoRef.current.currentTime = v[0];
-                  }}
-                  className="flex-1 cursor-pointer"
-                />
-                <span>{formatTime(duration)}</span>
-              </div>
+              {/* Progress Bar - Only shown for video here, audio uses the permanent one above */}
+              {isVideo && (
+                <div className="flex items-center gap-3 text-xs font-mono text-slate-300 w-full mb-4">
+                  <span>{formatTime(currentTime)}</span>
+                  <Slider
+                    value={[currentTime]}
+                    max={duration || 100}
+                    step={0.1}
+                    onValueChange={(v) => {
+                      if (videoRef.current) videoRef.current.currentTime = v[0];
+                    }}
+                    className="flex-1 cursor-pointer"
+                  />
+                  <span>{formatTime(duration)}</span>
+                </div>
+              )}
+
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">

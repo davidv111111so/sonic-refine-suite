@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { MIDIProvider } from "@/contexts/MIDIContext";
+import { MIDIMapping, MIDIDevice, MIDIProvider } from "@/contexts/MIDIContext";
 import { BetaGate } from "@/components/BetaGate";
 import { PlayerProvider } from "@/contexts/PlayerContext";
 import { FloatingMiniPlayer } from "@/components/FloatingMiniPlayer";
