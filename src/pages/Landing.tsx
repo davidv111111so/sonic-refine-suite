@@ -719,8 +719,8 @@ export const Landing = () => {
                                         Free Standalone Tool
                                     </Badge>
                                     <h2 className="text-5xl lg:text-7xl font-black text-white leading-[1.1] tracking-tighter">
-                                        THE LEVEL <br />
-                                        <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-500 bg-clip-text text-transparent">MEDIA PLAYER</span>
+                                        LEVEL PLAYER <br />
+                                        <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-500 bg-clip-text text-transparent">FREE EDITION</span>
                                     </h2>
                                     <p className="text-xl text-slate-400 max-w-xl font-light leading-relaxed">
                                         Take the pro audio engine anywhere. Our standalone player is 100% free, lightweight, and delivers ultra-high fidelity playback with real-time effects and dual visualizers.
@@ -749,25 +749,28 @@ export const Landing = () => {
                                     </a>
                                 </div>
 
-                                {/* Minimal Security Guides */}
-                                <div className="pt-8 border-t border-white/5 space-y-6">
+                                {/* Compact Security Guides */}
+                                <div className="pt-8 border-t border-white/5 space-y-4">
                                     <div className="flex items-center gap-2 mb-2">
                                         <Shield className="w-4 h-4 text-emerald-400" />
                                         <h4 className="text-[10px] font-black tracking-widest text-slate-400 uppercase">Beta Security Note</h4>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-8">
-                                        <div className="space-y-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                        <div className="space-y-2">
                                             <div className="flex items-center gap-2">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
+                                                <div className="w-5 h-5 rounded-full bg-cyan-500/20 flex items-center justify-center text-cyan-400 text-[10px] font-bold border border-cyan-500/30">1</div>
                                                 <p className="text-[10px] font-bold text-white uppercase tracking-tight">Windows Bypass</p>
                                             </div>
-                                            <p className="text-[10px] text-slate-500 leading-tight italic">
-                                                Click "More info" &rarr; "Run anyway" when the SmartScreen appears.
-                                            </p>
+                                            <div className="flex gap-2 items-center">
+                                              <img src="/windows_bypass_step1_1773015602769.png" className="w-12 h-8 object-cover rounded border border-white/10" alt="Step 1" />
+                                              <p className="text-[10px] text-slate-500 leading-tight">
+                                                  Click "More info" &rarr; "Run anyway" when SmartScreen appears.
+                                              </p>
+                                            </div>
                                         </div>
-                                        <div className="space-y-3">
+                                        <div className="space-y-2">
                                             <div className="flex items-center gap-2">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                                                <div className="w-5 h-5 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 text-[10px] font-bold border border-purple-500/30">2</div>
                                                 <p className="text-[10px] font-bold text-white uppercase tracking-tight">macOS Bypass</p>
                                             </div>
                                             <p className="text-[10px] text-slate-500 leading-tight italic">
@@ -781,17 +784,17 @@ export const Landing = () => {
                             {/* Main Visual */}
                             <div className="relative group/visual perspective-1000">
                                 <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/30 via-purple-600/30 to-blue-500/30 blur-[100px] rounded-full opacity-40 group-hover/visual:opacity-70 transition-opacity duration-1000 animate-pulse-slow" />
-                                <div className="relative z-10 transform-gpu transition-all duration-700 group-hover/visual:rotate-y-[-8deg] group-hover/visual:rotate-x-[4deg] group-hover/visual:scale-[1.02]">
-                                    <div className="relative border border-white/20 rounded-[2.5rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.9)] bg-slate-900/80">
+                                <div className="relative z-10 transform-gpu transition-all duration-700 group-hover/visual:rotate-y-[-5deg] group-hover/visual:rotate-x-[2deg] group-hover/visual:scale-[1.01]">
+                                    <div className="relative border border-white/20 rounded-[2rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.9)] bg-slate-900/80">
                                         <img
-                                            src="/external_player_screenshot.png"
+                                            src="/external_player_screenshot.jpg"
                                             alt="Level Media Player Interface"
-                                            className="w-full h-auto brightness-90 group-hover/visual:brightness-100 transition-all duration-700"
+                                            className="w-full h-auto brightness-95 group-hover/visual:brightness-100 transition-all duration-700"
                                         />
                                         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-transparent pointer-events-none" />
                                     </div>
-                                    <div className="absolute -top-4 -right-4 px-5 py-2 bg-gradient-to-r from-emerald-500 to-cyan-500 text-black font-black text-[10px] tracking-widest uppercase rounded-full shadow-xl border border-white/20">
-                                        v1.0.0 PRO ENGINE
+                                    <div className="absolute -top-3 -right-3 px-4 py-1.5 bg-gradient-to-r from-emerald-500 to-cyan-500 text-black font-black text-[9px] tracking-widest uppercase rounded-full shadow-xl border border-white/20">
+                                        PRO ENGINE v1.0.0
                                     </div>
                                 </div>
                             </div>
