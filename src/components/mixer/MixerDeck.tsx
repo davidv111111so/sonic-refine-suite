@@ -12,6 +12,7 @@ import { Slider } from '@/components/ui/slider';
 import { useCueLogic } from '../../hooks/useCueLogic';
 import { HotCuePad } from './HotCuePad';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { DeckVisualizations, VisualizationType } from './DeckVisualizations';
 
 interface MixerDeckProps {
     id: string;
@@ -37,6 +38,7 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
     const [isHovering, setIsHovering] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [visType, setVisType] = useState<VisualizationType>('none');
 
     // Cue Logic
     const cueLogic = useCueLogic({
@@ -305,6 +307,13 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                 onDragLeave={() => setIsHovering(false)}
                 onDrop={handleDrop}
             >
+                <DeckVisualizations 
+                    analyser={analyser} 
+                    isPlaying={controls.state.isPlaying} 
+                    type={visType} 
+                    color={color as 'cyan' | 'purple'} 
+                />
+                
                 <SpectralWaveform
                     buffer={controls.state.buffer}
                     currentTime={controls.state.currentTime}
@@ -326,8 +335,21 @@ export const MixerDeck = ({ id, deck, controls, isMaster, onToggleMaster, isDeck
                     onScrubEnd={() => {}}
                 />
 
-                <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
                     <div className="pointer-events-auto flex flex-col gap-1">
+                        <Button 
+                            variant="secondary" 
+                            size="icon" 
+                            className="h-6 w-6 bg-black/50 hover:bg-black/80 text-white border border-white/10" 
+                            onClick={(e) => { 
+                                e.stopPropagation(); 
+                                const types: VisualizationType[] = ['none', 'circular', 'neon', 'cybernetic'];
+                                setVisType(t => types[(types.indexOf(t) + 1) % types.length]);
+                            }}
+                            title="Toggle Visualizations"
+                        >
+                            <Activity className="w-3 h-3" />
+                        </Button>
                         <Button variant="secondary" size="icon" className="h-6 w-6 bg-black/50 hover:bg-black/80 text-white border border-white/10" onClick={(e) => { e.stopPropagation(); setZoom(Math.min(zoom * 1.5, 2000)); }}>
                             <ZoomIn className="w-3 h-3" />
                         </Button>
