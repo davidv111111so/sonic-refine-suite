@@ -375,6 +375,22 @@ export const Landing = () => {
                 </div>
             </section>
 
+            {/* Promo Video Section */}
+            <section className="relative px-6 z-10 w-full max-w-5xl mx-auto flex flex-col items-center mt-12 mb-16">
+                <div className="w-full aspect-[16/9] rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(6,182,212,0.3)] border border-white/10 relative bg-slate-900 group">
+                    <video 
+                        className="w-full h-full object-cover rounded-3xl"
+                        controls 
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                        src="/Cyberpunk_Audio_App_Promo_Video.mp4" 
+                    >
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+            </section>
 
             {/* Tabs Section */}
             <section id="features" className="py-24 px-6 relative">
