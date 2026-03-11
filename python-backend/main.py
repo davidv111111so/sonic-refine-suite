@@ -685,7 +685,12 @@ def background_separation(task_id, file_path, output_dir, library, model_name, s
             progress_callback=progress_callback
         )
         
-        if not result['success']:
+        if result is None:
+            print("[ERROR] separate_audio returned None! This should never happen. Aborting.")
+            update_task_in_db(task_id, 'failed', error="Internal Separation Error: Engine returned no result.")
+            return
+
+        if not result.get('success'):
             update_task_in_db(task_id, 'failed', error=result.get('error', 'Unknown error'))
             return
             

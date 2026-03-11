@@ -58,7 +58,7 @@ gcloud run deploy $SERVICE_NAME `
     --memory 16Gi `
     --cpu 8 `
     --min-instances 3 `
-    --max-instances 50 `
+    --max-instances 20 `
     --liveness-probe httpGet.path=/health `
     --startup-probe httpGet.path=/health
 

@@ -15,11 +15,13 @@ interface DetailWaveformProps {
     showGrid?: boolean;
     bpm?: number;
     onSeek?: (time: number) => void;
+    onScrub?: (time: number) => void;
+    onScrubEnd?: (time: number) => void;
     loop?: { active: boolean; start: number; end: number };
     audioElement?: HTMLAudioElement | null;
 }
 
-export const DetailWaveform = ({ buffer, currentTime, zoom, setZoom, color, height = 150, showGrid = true, bpm = 128, onSeek, audioElement, loop }: DetailWaveformProps) => {
+export const DetailWaveform = ({ buffer, currentTime, zoom, setZoom, color, height = 150, showGrid = true, bpm = 128, onSeek, onScrub, onScrubEnd, audioElement, loop }: DetailWaveformProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const workerRef = useRef<Worker | null>(null);
@@ -328,22 +330,36 @@ export const DetailWaveform = ({ buffer, currentTime, zoom, setZoom, color, heig
         const deltaSeconds = -deltaX / zoom;
         const newTime = Math.max(0, Math.min(buffer?.duration || 0, currentTime + deltaSeconds));
 
-        onSeek(newTime);
+        // Let the deck know we are scrubbing, not jumping
+        if (onScrub) {
+            onScrub(newTime);
+        } else {
+            onSeek(newTime);
+        }
     };
 
-    const handleMouseUp = () => setIsDragging(false);
-    const handleMouseLeave = () => setIsDragging(false);
+    const handleMouseUp = () => {
+        if (isDragging) {
+            setIsDragging(false);
+            if (onScrubEnd) {
+                // Force a final seek to resume play
+                onScrubEnd(currentTimeRef.current);
+            }
+        }
+    };
+    const handleMouseLeave = () => {
+        if (isDragging) {
+            setIsDragging(false);
+            if (onScrubEnd) {
+                onScrubEnd(currentTimeRef.current);
+            }
+        }
+    };
 
     // Resize
     useEffect(() => {
         const handleResize = () => {
-            // Force re-render via state or just let the loop handle it reading layout
-            // Since we use getBoundingClientRect in loop, we just need to ensure canvas matches container occasionally
-            if (containerRef.current && canvasRef.current) {
-                // DPI handled in render loop? No, canvas width/height needs setting.
-                // We'll trust the loop's check or just let React width=100% handle css
-                // Actually, canvas internal resolution needs to match
-            }
+            if (containerRef.current && canvasRef.current) {}
         };
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);

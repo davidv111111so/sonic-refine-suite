@@ -352,16 +352,16 @@ export const SpectralWaveform = ({ buffer, currentTime, zoom, setZoom, color, he
             ctx.fillRect(width / 2 - 1, 0, 2, height);
             ctx.shadowBlur = 0;
 
-            if (isPlaying) {
+            if (isPlaying || isDragging) {
                 animationFrame = requestAnimationFrame(render);
             }
         };
 
-        if (isPlaying || !animationFrame) {
+        if (isPlaying || isDragging || !animationFrame) {
             render();
         }
         return () => cancelAnimationFrame(animationFrame);
-    }, [buffer, peaks, zoom, height, showGrid, bpm, color, loop, cuePoint, playbackRate, isPlaying]);
+    }, [buffer, peaks, zoom, height, showGrid, bpm, color, loop, cuePoint, playbackRate, isPlaying, isDragging, currentTime]);
 
     // Zoom Handling (Wheel)
     const handleWheel = (e: React.WheelEvent) => {
