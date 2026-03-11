@@ -12,6 +12,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useDeviceFingerprint } from './useDeviceFingerprint';
+import { useOfflineLicense } from './useOfflineLicense';
 
 // Feature types that can be gated
 export type Feature =
@@ -139,6 +140,7 @@ interface AccessResult {
 export const useFeatureAccess = () => {
     const { profile, isPremium, isVip, isAdmin } = useAuth();
     const { deviceId } = useDeviceFingerprint();
+    const { isOfflineModeActive } = useOfflineLicense();
     const [usage, setUsage] = useState<UsageData | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -193,13 +195,18 @@ export const useFeatureAccess = () => {
      */
     const checkAccess = useCallback(
         async (feature: Feature): Promise<AccessResult> => {
+            // Offline Mode overrides for local tasks
+            if (isOfflineModeActive && ['mixer', 'effects', 'compression', 'wav_download', 'enhance_24bit', 'mixer_export'].includes(feature)) {
+                return { allowed: true };
+            }
+
             // Admins bypass all limits
             if (isAdmin) {
                 return { allowed: true };
             }
 
-            // Treat no profile as free tier
-            const tier = profile ? (isVip ? 'vip' : (isPremium ? 'premium' : 'free')) : 'free';
+            // Treat no profile as free tier unless offline mode verified their premium tier
+            const tier = profile ? (isVip ? 'vip' : (isPremium ? 'premium' : 'free')) : (isOfflineModeActive ? 'premium' : 'free');
             const limit = LIMITS[tier][feature as keyof typeof LIMITS[typeof tier]];
 
             // Boolean features (like wav_download, priority_processing)
@@ -366,7 +373,7 @@ export const useFeatureAccess = () => {
 
             return { allowed: true };
         },
-        [profile, isPremium, isVip, isAdmin, usage]
+        [profile, isPremium, isVip, isAdmin, usage, isOfflineModeActive]
     );
 
     /**

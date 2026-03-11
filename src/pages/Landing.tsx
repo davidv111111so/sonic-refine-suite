@@ -28,6 +28,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { LevelLogo } from '@/components/LevelLogo';
+import { ProMixerGuide } from '@/components/guides/ProMixerGuide';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -647,18 +648,20 @@ export const Landing = () => {
                                     </CardContent>
                                 </Card>
 
-                                <Card className="bg-slate-900/60 border-purple-500/20 hover:border-purple-500/50 hover:shadow-[0_0_30px_rgba(168,85,247,0.15)] transition-all duration-500 overflow-hidden group cursor-pointer" onClick={() => toast.success("Opening Guide...", { description: "Using the Pro Mixer Lab guide will be available shortly." })}>
-                                    <div className="h-48 bg-slate-800 relative overflow-hidden">
-                                        <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-slate-900/80 z-10" />
-                                        <Layout className="absolute -right-4 -bottom-4 w-32 h-32 text-purple-500/10 group-hover:scale-110 transition-transform duration-700" />
-                                        <div className="absolute top-4 left-4 z-20 bg-purple-500/20 text-purple-400 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><BookOpen className="w-3 h-3" /> Workflow</div>
-                                    </div>
-                                    <CardContent className="p-6 relative z-20">
-                                        <h3 className="text-xl font-bold text-white mb-2 group-hover:text-purple-400 transition-colors">Using the Pro Mixer Lab</h3>
-                                        <p className="text-slate-400 text-sm mb-4 leading-relaxed line-clamp-2">Master live mashups with our dual-deck interface. A deep dive into beatgrids, visual sync, and the 10-band parametric equalizer.</p>
-                                        <div className="flex items-center text-purple-500 text-sm font-semibold">Read Guide <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" /></div>
-                                    </CardContent>
-                                </Card>
+                                <ProMixerGuide>
+                                    <Card className="bg-slate-900/60 border-purple-500/20 hover:border-purple-500/50 hover:shadow-[0_0_30px_rgba(168,85,247,0.15)] transition-all duration-500 overflow-hidden group cursor-pointer">
+                                        <div className="h-48 bg-slate-800 relative overflow-hidden">
+                                            <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-slate-900/80 z-10" />
+                                            <Layout className="absolute -right-4 -bottom-4 w-32 h-32 text-purple-500/10 group-hover:scale-110 transition-transform duration-700" />
+                                            <div className="absolute top-4 left-4 z-20 bg-purple-500/20 text-purple-400 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><BookOpen className="w-3 h-3" /> Workflow</div>
+                                        </div>
+                                        <CardContent className="p-6 relative z-20">
+                                            <h3 className="text-xl font-bold text-white mb-2 group-hover:text-purple-400 transition-colors">Using the Pro Mixer Lab</h3>
+                                            <p className="text-slate-400 text-sm mb-4 leading-relaxed line-clamp-2">Master live mashups with our dual-deck interface. A deep dive into beatgrids, visual sync, and the 10-band parametric equalizer.</p>
+                                            <div className="flex items-center text-purple-500 text-sm font-semibold">Read Guide <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" /></div>
+                                        </CardContent>
+                                    </Card>
+                                </ProMixerGuide>
 
                                 <Card className="bg-slate-900/60 border-green-500/20 hover:border-green-500/50 hover:shadow-[0_0_30px_rgba(34,197,94,0.15)] transition-all duration-500 overflow-hidden group cursor-pointer" onClick={() => toast.success("Opening Guide...", { description: "AI Mastering Best Practices guide will be available shortly." })}>
                                     <div className="h-48 bg-slate-800 relative overflow-hidden">

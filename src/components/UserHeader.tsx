@@ -4,10 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { LogOut, User as UserIcon, Shield, Zap, Sparkles, Crown } from 'lucide-react';
+import { LogOut, User as UserIcon, Shield, Zap, Sparkles, Crown, WifiOff, HardDrive } from 'lucide-react';
 import { toast } from 'sonner';
 import { ProfileModal } from '@/components/ProfileModal';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOfflineLicense } from '@/hooks/useOfflineLicense';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +27,7 @@ interface UserHeaderProps {
 export const UserHeader = ({ onLogout }: UserHeaderProps) => {
   const navigate = useNavigate();
   const { profile, isAdmin, isPremium, isVip, signOut } = useAuth();
+  const { hasValidOfflineLicense, isOfflineModeActive } = useOfflineLicense();
   const [showProfile, setShowProfile] = useState(false);
   const [profileModalTab, setProfileModalTab] = useState("profile");
 
@@ -75,24 +77,38 @@ export const UserHeader = ({ onLogout }: UserHeaderProps) => {
           <p className="text-sm font-medium text-cyan-300 brightness-125">
             {profile.full_name || profile.email}
           </p>
-          <div className="flex items-center gap-2 justify-end">
-            {isAdmin && (
-              <p className="text-[10px] bg-yellow-400/10 text-yellow-400 px-1.5 py-0.5 rounded border border-yellow-400/30 flex items-center gap-1 font-bold">
-                <Shield className="h-2.5 w-2.5" />
-                ADMIN
-              </p>
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex items-center gap-2 justify-end">
+              {isAdmin && (
+                <p className="text-[10px] bg-yellow-400/10 text-yellow-400 px-1.5 py-0.5 rounded border border-yellow-400/30 flex items-center gap-1 font-bold">
+                  <Shield className="h-2.5 w-2.5" />
+                  ADMIN
+                </p>
+              )}
+              {isVip && !isAdmin && (
+                <p className="text-[10px] bg-purple-500/10 text-purple-400 px-1.5 py-0.5 rounded border border-purple-500/30 flex items-center gap-1 font-bold">
+                  <Crown className="h-2.5 w-2.5" />
+                  VIP
+                </p>
+              )}
+              {isPremium && !isVip && !isAdmin && (
+                <p className="text-[10px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded border border-blue-500/30 flex items-center gap-1 font-bold">
+                  <Sparkles className="h-2.5 w-2.5" />
+                  PREMIUM
+                </p>
+              )}
+            </div>
+            {isOfflineModeActive && (
+                <p className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1 font-bold" title="Pro Mixer Unlocked">
+                  <WifiOff className="h-2.5 w-2.5" />
+                  OFFLINE READY
+                </p>
             )}
-            {isVip && !isAdmin && (
-              <p className="text-[10px] bg-purple-500/10 text-purple-400 px-1.5 py-0.5 rounded border border-purple-500/30 flex items-center gap-1 font-bold">
-                <Crown className="h-2.5 w-2.5" />
-                VIP
-              </p>
-            )}
-            {isPremium && !isVip && !isAdmin && (
-              <p className="text-[10px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded border border-blue-500/30 flex items-center gap-1 font-bold">
-                <Sparkles className="h-2.5 w-2.5" />
-                PREMIUM
-              </p>
+            {!isOfflineModeActive && hasValidOfflineLicense && navigator.onLine && (
+                <p className="text-[9px] text-emerald-500/60 flex items-center gap-1 font-medium" title="If you lose internet, the mixer will still work">
+                  <HardDrive className="h-2 w-2" />
+                  License Cached
+                </p>
             )}
           </div>
         </div>

@@ -265,19 +265,28 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
                                 // Potentially scan recursively or just show top level
                             } else if (/\.(mp3|wav|flac|m4a|aac|ogg|aiff)$/i.test(entry.name)) {
                                 const id = `lib-tauri-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-                                const { readFile } = await import('@tauri-apps/plugin-fs');
-                                // In Tauri, we don't necessarily want to load all file bytes into memory immediately
-                                // We can use convertFileSrc or just load metadata first.
-                                // For now, we'll keep the track structure.
+                                
+                                // Import Tauri core safely
+                                let convertFileSrcFn;
+                                try {
+                                    const { convertFileSrc } = await import('@tauri-apps/api/core');
+                                    convertFileSrcFn = convertFileSrc;
+                                } catch (e) {
+                                    // Fallback if core isn't available or old api is used
+                                    convertFileSrcFn = (window as any).__TAURI__?.core?.convertFileSrc || ((path: string) => path);
+                                }
+
+                                const safeUrl = convertFileSrcFn(fullPath);
+
                                 const track: LibraryTrack = {
                                     id,
                                     title: entry.name.replace(/\.[^/.]+$/, ""),
-                                    artist: 'Calculating...',
+                                    artist: 'Local File',
                                     bpm: 0,
                                     key: '?',
                                     time: '--:--',
-                                    url: (window as any).TAURI?.convertFileSrc?.(fullPath) || fullPath,
-                                    file: null as any, // Not a standard File object, we'll handle this in Deck loading
+                                    url: safeUrl,
+                                    file: null as any, // Wavesurfer will fetch this URL directly!
                                     duration: 0
                                 };
                                 newTracks.push(track);
