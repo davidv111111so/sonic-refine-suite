@@ -51,16 +51,23 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
              print(f"[INFO] {speed_mode.upper()} MODE: Applying pre-resampling and speed optimizations")
              import librosa
              import soundfile as sf
-             # Load and resample to 44100 if higher
-             y, sr = sf.read(str(file_path))
-             y_ndim = getattr(y, 'ndim', 0)
-             if sr > 44100:
-                 print(f"   [INFO] Downsampling from {sr} to 44100 to save processing time...")
-                 y_resampled = librosa.resample(y.T if y_ndim > 1 else y, orig_sr=sr, target_sr=44100)
-                 # Save to temporary file to use as input
-                 temp_resampled = file_path.parent / f"resampled_{file_path.name}"
-                 sf.write(str(temp_resampled), y_resampled.T if y_ndim > 1 else y_resampled, 44100)
-                 file_path = temp_resampled
+             
+             try:
+                 # Use librosa.load which is more robust than sf.read (handles MP3, etc.)
+                 # We load with sr=None to get native sample rate
+                 y, sr = librosa.load(str(file_path), sr=None, mono=False)
+                 
+                 # librosa.load returns (channels, samples) for stereo
+                 if sr > 44100:
+                     print(f"   [INFO] Downsampling from {sr} to 44100 to save processing time...")
+                     y_resampled = librosa.resample(y, orig_sr=sr, target_sr=44100)
+                     # Save to temporary file to use as input
+                     temp_resampled = file_path.parent / f"resampled_{file_path.name}"
+                     # sf.write expects (samples, channels)
+                     sf.write(str(temp_resampled), y_resampled.T if y_resampled.ndim > 1 else y_resampled, 44100)
+                     file_path = temp_resampled
+             except Exception as read_err:
+                 print(f"[WARNING] Pre-resampling check failed: {str(read_err)}. Continuing with original file.")
         
         print(f"[INFO] Starting separation with {library}...")
 

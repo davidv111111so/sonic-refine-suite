@@ -302,8 +302,7 @@ def update_task_in_db(task_id, status, progress=None, output_url=None, error=Non
             data["output_url"] = output_url
         if error:
             data["error_message"] = str(error)
-            # Duplicate to error column if it exists (some older schemas might use it)
-            data["error"] = str(error)
+            # We don't use 'error' column anymore as it's redundant and may not exist in all schemas
             
         print(f"[UPDATE] Updating task {task_id} status to {status}...")
         supabase.table("job_logs").update(data).eq("task_id", task_id).execute()
