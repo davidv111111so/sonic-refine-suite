@@ -80,7 +80,7 @@ export const AdjustableFrequencyBand = ({
       </div>
 
       {/* Fader Container with Glow & Glass */}
-      <div className="relative h-44 w-10 mb-4">
+      <div className="relative h-32 w-10 mb-2">
         {/* Modern Fader Track (Glassmorphism) */}
         <div 
           className="absolute inset-x-2 inset-y-1 rounded-full backdrop-blur-md"
@@ -103,7 +103,7 @@ export const AdjustableFrequencyBand = ({
             min={-12}
             max={12}
             step={0.5}
-            className="h-40 w-7 group-hover:scale-105 transition-transform duration-300 cursor-ns-resize"
+            className="h-28 w-7 group-hover:scale-105 transition-transform duration-300 cursor-ns-resize"
           />
         </div>
 

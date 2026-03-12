@@ -40,14 +40,14 @@ interface Stem {
 // Time estimates for each processing configuration
 const TIME_ESTIMATES: Record<string, Record<string, { min: number; max: number; label: string }>> = {
     spleeter: {
-        fastest: { min: 1, max: 2, label: '1-2 min avg' },
-        fast: { min: 1, max: 3, label: '1-3 min avg' },
-        normal: { min: 2, max: 4, label: '2-4 min avg' },
+        fastest: { min: 1, max: 3, label: '~1-3 min' },
+        fast: { min: 2, max: 5, label: '~2-5 min' },
+        normal: { min: 2, max: 5, label: '~2-5 min' },
     },
-    level: {
-        fastest: { min: 2, max: 4, label: '2-4 min avg' },
-        fast: { min: 2, max: 6, label: '2-6 min avg' },
-        normal: { min: 5, max: 10, label: '5-10 min avg' },
+    demucs: {
+        fastest: { min: 5, max: 10, label: '~5-10 min' },
+        fast: { min: 5, max: 15, label: '~5-15 min' },
+        normal: { min: 10, max: 20, label: '~10-20 min' },
     },
 };
 
@@ -58,7 +58,7 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
     const [selectedFileId, setSelectedFileId] = useState<string>('');
     const [stemCount, setStemCount] = useState<string>('4');
     const [speedMode, setSpeedMode] = useState<string>('fast');
-    const [processingLibrary, setProcessingLibrary] = useState<string>(isPremium ? 'level' : 'spleeter');
+    const [processingLibrary, setProcessingLibrary] = useState<string>(isPremium ? 'demucs' : 'spleeter');
 
     // Reset stem count to 4 if switching to Spleeter while 6 is selected
     useEffect(() => {
@@ -67,11 +67,10 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
         }
     }, [processingLibrary, stemCount]);
 
-    const currentEstimate = TIME_ESTIMATES[processingLibrary]?.[speedMode] || TIME_ESTIMATES.level.fast;
+    const currentEstimate = TIME_ESTIMATES[processingLibrary]?.[speedMode] || TIME_ESTIMATES.demucs.fast;
     const [processingStage, setProcessingStage] = useState('');
     const [progress, setProgress] = useState(0);
     const [results, setResults] = useState<string | null>(null); // URL to zip
-    const [resultsBlob, setResultsBlob] = useState<Blob | null>(null); // Actual blob data
     const [stems, setStems] = useState<Stem[]>([]);
     const [isPlaying, setIsPlaying] = useState(false);
 
@@ -94,11 +93,6 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
             });
 
             if (validFiles.length > 0) {
-                toast({
-                    title: "Analyzing track...",
-                    description: "Please wait while we prepare the file for separation.",
-                });
-
                 const newFiles: AudioFile[] = validFiles.map(file => ({
                     id: crypto.randomUUID(),
                     name: file.name,
@@ -208,7 +202,6 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
 
         // Reset State
         setResults(null);
-        setResultsBlob(null);
         setStems([]);
         setProgress(0);
         setProcessingStage('');
@@ -221,14 +214,7 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
 
     const pollStatus = async (taskId: string, authToken: string) => {
         try {
-            // Pass isPremium to ensure we poll the correct backend
-            const data = await masteringService.getTaskStatus(taskId, 3, isPremium);
-
-            if (!data || data.error) {
-                if (pollingInterval.current) clearInterval(pollingInterval.current);
-                const errorMsg = data?.error || 'Separation failed or returned no data';
-                throw new Error(errorMsg);
-            }
+            const data = await masteringService.getTaskStatus(taskId);
 
             // Reset retry count on success
             retryCountRef.current = 0;
@@ -236,16 +222,10 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
             if (data.status === 'completed') {
                 if (pollingInterval.current) clearInterval(pollingInterval.current);
 
-                // Get result - pass isPremium
-                setProcessingStage('Downloading results...');
-                setProgress(95);
-                const blob = await masteringService.getTaskResult(taskId, 3, isPremium);
-
-                setProcessingStage('Extracting stems...');
-                setProgress(98);
+                // Get result
+                const blob = await masteringService.getTaskResult(taskId);
                 const url = URL.createObjectURL(blob);
                 setResults(url);
-                setResultsBlob(blob);
 
                 await handleUnzip(blob);
 
@@ -265,15 +245,9 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                 if (pollingInterval.current) clearInterval(pollingInterval.current);
                 throw new Error(data.error || 'Separation failed');
             } else {
-                // Update progress only if we have a valid numeric value to prevent resets to 0 during polling fluctuations
-                if (data.progress !== undefined && data.progress !== null) {
-                    const nextProgress = Math.max(progress, data.progress); // Don't let progress go backwards
-                    setProgress(nextProgress);
-                    setProcessingStage(`Processing... ${nextProgress}%`);
-                } else if (data.status === 'processing') {
-                    // Stay at current progress if status is still processing
-                    setProcessingStage(prev => prev.includes('%') ? prev : 'Processing...');
-                }
+                // Update progress
+                setProgress(data.progress || 0);
+                setProcessingStage(`Processing... ${data.progress}%`);
             }
         } catch (error) {
             retryCountRef.current++;
@@ -362,9 +336,9 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
             }
             formData.append('stem_count', stemCount);
 
-            const engineLabel = processingLibrary === 'spleeter' ? 'Basic Trial' : 'Level Studio Pro';
+            const engineLabel = processingLibrary === 'spleeter' ? 'Spleeter' : 'Level Engine';
             toast({
-                title: `🔬 ${engineLabel} Started (${speedMode === 'fastest' ? 'Aggressive' : speedMode.toUpperCase()})`,
+                title: `🔬 ${engineLabel} Started (${speedMode.toUpperCase()} Mode)`,
                 description: `Estimated time: ${currentEstimate.label}. Please keep this tab open.`,
             });
 
@@ -376,16 +350,7 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                 : new File([fileBlob], file.name || 'audio.wav', { type: fileBlob.type || 'audio/wav' });
 
             // Call backend via centralized service
-            const data = await masteringService.separateAudio(
-                fileToSend,
-                stemCount,
-                speedMode,
-                processingLibrary,
-                (stage, percent) => {
-                    setProcessingStage(stage);
-                    setProgress(percent);
-                }
-            );
+            const data = await masteringService.separateAudio(fileToSend, stemCount, speedMode, processingLibrary);
             const taskId = data.task_id;
 
             // Start polling
@@ -470,9 +435,9 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
         <div className="space-y-6 animate-in fade-in duration-500">
             <Alert className="bg-cyan-950/20 border-cyan-500/50 text-cyan-200">
                 <AlertCircle className="h-4 w-4 text-cyan-400" />
-                <AlertTitle>Stems Processing (10 Audios Max | 1GB Limit)</AlertTitle>
+                <AlertTitle>Stems Upload Limit: 1GB</AlertTitle>
                 <AlertDescription className="text-sm opacity-90">
-                    High-quality stems separation supports audio files up to 1GB. Processing typically takes 2-8 minutes.
+                    High-quality stems separation supports audio files up to 1GB.
                 </AlertDescription>
             </Alert>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -538,11 +503,11 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                                     </SelectTrigger>
                                     <SelectContent className="bg-slate-900 border-slate-700 text-white">
                                         <SelectItem value="spleeter">
-                                            ⚡ Basic Separation (Trial — 1-3 min avg)
+                                            ⚡ Spleeter (Fast — 2-5 min)
                                         </SelectItem>
-                                        <SelectItem value="level" disabled={!isPremium}>
+                                        <SelectItem value="demucs" disabled={!isPremium}>
                                             <div className="flex items-center gap-2">
-                                                🎧 Level Studio Engine (High Fidelity Pro)
+                                                🎧 Level Stem Separation (High Quality)
                                                 {!isPremium && <Lock className="h-3 w-3 text-amber-500" />}
                                             </div>
                                         </SelectItem>
@@ -551,13 +516,13 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                                 {!isPremium && (
                                     <p className="text-xs text-amber-500/90 font-medium">
                                         <Lock className="h-3 w-3 inline mr-1 -mt-0.5" />
-                                        Upgrade to Premium to unlock Level Studio Engine for studio-quality results.
+                                        Upgrade to Premium to unlock Level Stem Separation for studio-quality results.
                                     </p>
                                 )}
                                 <p className="text-[10px] text-slate-500">
                                     {processingLibrary === 'spleeter'
-                                        ? 'Basic separation uses the legacy Spleeter engine. Good for quick trials.'
-                                        : 'Level Studio uses GPU-accelerated neural networks for professional, phase-accurate stems.'}
+                                        ? 'Spleeter is much faster but produces lower quality stems. Free tier.'
+                                        : 'Level Stem Separation produces studio-quality stems. Premium processing.'}
                                 </p>
                             </div>
 
@@ -570,7 +535,7 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                                     <SelectContent className="bg-slate-900 border-slate-700 text-white">
                                         <SelectItem value="2">2 Stems (Vocals/Instrumental)</SelectItem>
                                         <SelectItem value="4">4 Stems (Vocals/Drums/Bass/Other)</SelectItem>
-                                        {processingLibrary === 'level' && (
+                                        {processingLibrary === 'demucs' && (
                                             <SelectItem value="6">6 Stems (Vocals/Drums/Bass/Guitar/Piano/Other)</SelectItem>
                                         )}
                                     </SelectContent>
@@ -585,13 +550,13 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                                     </SelectTrigger>
                                     <SelectContent className="bg-slate-900 border-slate-700 text-white">
                                         <SelectItem value="fastest">
-                                            🚀 Aggressive Speed (2-4 min avg)
+                                            🚀 Aggressive (5-10 min)
                                         </SelectItem>
                                         <SelectItem value="fast">
-                                            ⚡ Performance Fast (2-6 min avg)
+                                            ⚡ Fast (5-15 min)
                                         </SelectItem>
                                         <SelectItem value="normal">
-                                            🔬 Level Quality (5-10 min avg)
+                                            🔬 Standard (10-20 min)
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
@@ -612,9 +577,9 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                                         Estimated processing time: {currentEstimate.label}
                                     </p>
                                     <p className="text-[10px] text-slate-400 mt-0.5">
-                                        {processingLibrary === 'level' && speedMode === 'normal'
-                                            ? 'Level Studio Engine uses GPU-accelerated neural networks for maximum fidelity. Best results for mastering.'
-                                            : 'GPU processing is active. Times vary based on track length. Keep this tab open.'}
+                                        {processingLibrary === 'demucs' && speedMode === 'normal'
+                                            ? 'Normal mode uses test-time augmentation for maximum quality. Long tracks may take longer.'
+                                            : 'Times vary based on track length and server load. Keep this tab open.'}
                                     </p>
                                 </div>
                             </div>
@@ -671,14 +636,16 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                                         <Button
                                             size="sm"
                                             className="bg-emerald-600 hover:bg-emerald-500"
-                                            onClick={() => {
-                                                const blobToSave = resultsBlob || (results ? results : null);
-                                                if (blobToSave) {
-                                                    saveAs(blobToSave, "stems.zip");
-                                                } else {
+                                            onClick={async () => {
+                                                try {
+                                                    const response = await fetch(results);
+                                                    const blob = await response.blob();
+                                                    saveAs(blob, "stems.zip");
+                                                } catch (error) {
+                                                    console.error("Download failed:", error);
                                                     toast({
                                                         title: "Download Failed",
-                                                        description: "Result data is no longer available in memory. Please refresh.",
+                                                        description: "Could not download stems.",
                                                         variant: "destructive"
                                                     });
                                                 }
@@ -701,8 +668,8 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                                     <Progress value={progress} className="h-2 bg-slate-800" />
                                     <p className="text-xs text-slate-500 text-center mt-2">
                                         {processingLibrary === 'spleeter'
-                                            ? 'Basic engine is processing your track. This should finish in a few minutes.'
-                                            : `Level Studio engine is separating your track (${speedMode} mode - GPU Enabled). Estimated: ${currentEstimate.label}. Please keep this tab open.`}
+                                            ? 'Spleeter is processing your track. This should finish in a few minutes.'
+                                            : `Level Engine is separating your track (${speedMode} mode). Estimated: ${currentEstimate.label}. Please keep this tab open.`}
                                     </p>
                                 </div>
                             )}
@@ -729,6 +696,6 @@ export const StemsTab = ({ audioFiles, onFilesUploaded, isProcessing, setIsProce
                     </Card>
                 </div>
             </div>
-        </div >
+        </div>
     );
 };

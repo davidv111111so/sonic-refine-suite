@@ -20,7 +20,8 @@ import {
     RefreshCw,
     Search,
     Trash2,
-    FlaskConical
+    FlaskConical,
+    Download
 } from 'lucide-react';
 import { AudioQALab } from '@/components/admin/AudioQALab';
 import { useAuth } from '@/contexts/AuthContext';
@@ -109,6 +110,7 @@ export default function Admin() {
         { title: 'Total Users', value: stats?.total_users || '0', icon: Users, color: 'text-blue-400' },
         { title: 'Total Jobs', value: stats?.total_jobs || '0', icon: Activity, color: 'text-green-400' },
         { title: 'Data Processed', value: stats?.total_data_bytes ? `${(stats.total_data_bytes / 1024 / 1024 / 1024).toFixed(2)} GB` : '0 GB', icon: HardDrive, color: 'text-purple-400' },
+        { title: 'Downloads', value: stats?.total_downloads || '0', icon: Download, color: 'text-orange-400' },
         { title: 'Est. Cost', value: stats?.total_estimated_cost ? `$${stats.total_estimated_cost.toFixed(2)}` : '$0.00', icon: FileAudio, color: 'text-cyan-400' },
     ];
 

@@ -186,14 +186,28 @@ export const AIMasteringTab = ({ isProcessing: propIsProcessing, setIsProcessing
   };
 
   // Helper function to trigger file download using native FileSaver
-  const downloadMasteredFile = (blob: Blob, fileName: string) => {
-    console.log(`⬇️ Downloading file: ${fileName}, size: ${blob.size}, type: ${blob.type}`);
+  const downloadMasteredFile = async (blobOrUrl: Blob | string, fileName: string) => {
+    try {
+      console.log(`⬇️ Downloading file: ${fileName}`);
+      let blob: Blob;
+      
+      if (typeof blobOrUrl === 'string') {
+        const response = await fetch(blobOrUrl);
+        blob = await response.blob();
+      } else {
+        blob = blobOrUrl;
+      }
 
-    // Force audio/wav type if missing or incorrect
-    const wavBlob = blob.type === 'audio/wav' ? blob : new Blob([blob], { type: 'audio/wav' });
+      // Force audio/wav type if missing or incorrect
+      const wavBlob = blob.type === 'audio/wav' ? blob : new Blob([blob], { type: 'audio/wav' });
+      const finalFileName = fileName.endsWith('.wav') ? fileName : `${fileName}.wav`;
 
-    saveAs(wavBlob, fileName.endsWith('.wav') ? fileName : `${fileName}.wav`);
-    console.log("✅ Download triggered via file-saver");
+      saveAs(wavBlob, finalFileName);
+      console.log("✅ Download triggered via file-saver");
+    } catch (error) {
+      console.error("❌ Download failed:", error);
+      toast.error("Failed to download file. Please try again.");
+    }
   };
 
   // Helper function to convert MasteringSettings to MasteringSettingsData

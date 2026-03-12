@@ -8,6 +8,7 @@ import { MasteringSettings, MasteringSettingsData } from './MasteringSettings';
 import { masteringService } from '@/services/masteringService';
 import { loadPresetReferenceFile } from '@/utils/presetReferences';
 import { Progress } from '@/components/ui/progress';
+import { saveAs } from 'file-saver';
 
 const defaultSettings: MasteringSettingsData = {
   threshold: 0.998138,
@@ -235,11 +236,20 @@ export const GenrePresetsMastering = () => {
 
         {masteredUrl && (
           <Button
-            onClick={() => {
-              const a = document.createElement('a');
-              a.href = masteredUrl;
-              a.download = `mastered_${targetFile?.name || 'audio'}.wav`;
-              a.click();
+            onClick={async () => {
+              try {
+                const response = await fetch(masteredUrl);
+                const blob = await response.blob();
+                const finalFileName = `mastered_${targetFile?.name || 'audio'}.wav`;
+                saveAs(blob, finalFileName);
+              } catch (error) {
+                console.error("Download failed:", error);
+                toast({
+                  title: t('error'),
+                  description: "Failed to download file.",
+                  variant: 'destructive',
+                });
+              }
             }}
             className="bg-green-500 hover:bg-green-600 text-white px-8 py-6 text-lg font-semibold"
           >

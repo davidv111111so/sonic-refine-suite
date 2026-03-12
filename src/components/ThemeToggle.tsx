@@ -29,28 +29,28 @@ const applyTheme = (isDark: boolean) => {
     document.body.style.setProperty('--input', '0 0% 20%');
     document.body.style.setProperty('--ring', '221 83% 53%');
   } else {
-    // Switch to light mode with high contrast
+    // Switch to light mode with high contrast and legible text
     document.documentElement.classList.remove('dark');
-    document.body.className = 'bg-gradient-to-br from-white via-gray-50 to-gray-100 text-gray-900';
+    document.body.className = 'bg-gradient-to-br from-white via-gray-50 to-slate-100 text-slate-950 font-medium';
     document.body.style.setProperty('--background', '0 0% 100%');
-    document.body.style.setProperty('--foreground', '0 0% 3.9%');
+    document.body.style.setProperty('--foreground', '222 47% 11%');
     document.body.style.setProperty('--card', '0 0% 100%');
-    document.body.style.setProperty('--card-foreground', '0 0% 3.9%');
+    document.body.style.setProperty('--card-foreground', '222 47% 11%');
     document.body.style.setProperty('--popover', '0 0% 100%');
-    document.body.style.setProperty('--popover-foreground', '0 0% 3.9%');
-    document.body.style.setProperty('--primary', '0 0% 9%');
-    document.body.style.setProperty('--primary-foreground', '0 0% 98%');
-    document.body.style.setProperty('--secondary', '0 0% 96.1%');
-    document.body.style.setProperty('--secondary-foreground', '0 0% 9%');
-    document.body.style.setProperty('--muted', '0 0% 96.1%');
-    document.body.style.setProperty('--muted-foreground', '0 0% 45.1%');
-    document.body.style.setProperty('--accent', '0 0% 96.1%');
-    document.body.style.setProperty('--accent-foreground', '0 0% 9%');
-    document.body.style.setProperty('--destructive', '0 84.2% 60.2%');
-    document.body.style.setProperty('--destructive-foreground', '0 0% 98%');
-    document.body.style.setProperty('--border', '0 0% 89.8%');
-    document.body.style.setProperty('--input', '0 0% 89.8%');
-    document.body.style.setProperty('--ring', '0 0% 3.9%');
+    document.body.style.setProperty('--popover-foreground', '222 47% 11%');
+    document.body.style.setProperty('--primary', '221 83% 53%');
+    document.body.style.setProperty('--primary-foreground', '210 40% 98%');
+    document.body.style.setProperty('--secondary', '210 40% 96%');
+    document.body.style.setProperty('--secondary-foreground', '222 47% 11%');
+    document.body.style.setProperty('--muted', '210 40% 96%');
+    document.body.style.setProperty('--muted-foreground', '215 25% 27%'); // Much darker muted text
+    document.body.style.setProperty('--accent', '210 40% 96%');
+    document.body.style.setProperty('--accent-foreground', '222 47% 11%');
+    document.body.style.setProperty('--destructive', '0 84% 60%');
+    document.body.style.setProperty('--destructive-foreground', '210 40% 98%');
+    document.body.style.setProperty('--border', '214 32% 85%'); // Darker borders
+    document.body.style.setProperty('--input', '214 32% 85%');
+    document.body.style.setProperty('--ring', '221 83% 53%');
   }
 };
 
@@ -69,8 +69,8 @@ export const ThemeToggle = () => {
     if (savedTheme === 'light' || savedTheme === 'dark') {
       return savedTheme === 'dark';
     }
-    // If no saved preference, use system theme
-    return getSystemTheme() === 'dark';
+    // If no saved preference, default to dark mode
+    return true;
   });
 
   useEffect(() => {
@@ -81,8 +81,9 @@ export const ThemeToggle = () => {
     if (savedTheme === 'light' || savedTheme === 'dark') {
       initialIsDark = savedTheme === 'dark';
     } else {
-      // Use system theme if no saved preference
-      initialIsDark = getSystemTheme() === 'dark';
+      // Default to dark mode for all new users
+      initialIsDark = true;
+      localStorage.setItem('perfect-audio-theme', 'dark');
     }
     
     setIsDarkMode(initialIsDark);

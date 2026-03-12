@@ -41,9 +41,6 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
         dict: Result info including success status and output path.
     """
     try:
-        if progress_callback:
-            progress_callback(0)
-            
         file_path = Path(file_path)
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -55,18 +52,15 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
              import librosa
              import soundfile as sf
              # Load and resample to 44100 if higher
-             if progress_callback: progress_callback(3)
              y, sr = sf.read(str(file_path))
              y_ndim = getattr(y, 'ndim', 0)
              if sr > 44100:
                  print(f"   [INFO] Downsampling from {sr} to 44100 to save processing time...")
-                 if progress_callback: progress_callback(7)
                  y_resampled = librosa.resample(y.T if y_ndim > 1 else y, orig_sr=sr, target_sr=44100)
                  # Save to temporary file to use as input
                  temp_resampled = file_path.parent / f"resampled_{file_path.name}"
                  sf.write(str(temp_resampled), y_resampled.T if y_ndim > 1 else y_resampled, 44100)
                  file_path = temp_resampled
-        if progress_callback: progress_callback(10)
         
         print(f"[INFO] Starting separation with {library}...")
 
@@ -109,6 +103,7 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
                     "stems": [str(s) for s in stems]
                 }
 
+        # --- LEVEL STEM SEPARATION (PREMIUM PATH) ---
         if library == 'demucs':
             import torch
             import torchaudio
@@ -121,27 +116,9 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
                 import soundfile as sf
                 import numpy as np
                 
-                print(f"[INFO] Replicate API Token detected (ending in ...{replicate_api_token[-4:]})! Routing request to commercial GPU backend.")
+                print(f"[INFO] 💰 Replicate API Token detected! Routing request to commercial GPU backend.")
                 if progress_callback: progress_callback(10)
                 
-                # Start simulated progress thread for the Replicate phase
-                stop_replicate_progress = threading.Event()
-                def simulate_replicate_progress():
-                    curr = 10.0
-                    target = 80.0
-                    # Replicate is usually fast, but let's assume 45s
-                    est = 45.0
-                    fps = 5
-                    step = (target - curr) / (est * fps)
-                    while not stop_replicate_progress.is_set() and curr < target:
-                        time.sleep(1.0/fps)
-                        curr += step
-                        if progress_callback: progress_callback(int(curr))
-                
-                rep_thread = threading.Thread(target=simulate_replicate_progress)
-                rep_thread.daemon = True
-                rep_thread.start()
-
                 try:
                     # Run Replicate explicitly
                     print(f"   Uploading & running on Replicate's Demucs API (cjwbw/demucs)...")
@@ -152,8 +129,7 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
                             input={"audio": audio_file}
                         )
                     
-                    stop_replicate_progress.set()
-                    if progress_callback: progress_callback(85)
+                    if progress_callback: progress_callback(80)
                     print(f"   [CORE] Commercial API separation completed. Downloading stems...")
                     
                     track_name = file_path.stem
@@ -209,7 +185,7 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
                 except Exception as api_err:
                     print(f"[ERROR] Replicate API Failed: {api_err}. Falling back to local CPU Demucs...")
             else:
-                print(f"[WARNING] REPLICATE_API_TOKEN not found in .env!")
+                print(f"[WARNING] ⚠️ REPLICATE_API_TOKEN not found in .env!")
                 print(f"[WARNING]    Processing premium stems on local CPU (Demucs).")
                 print(f"[WARNING]    This drains profitability! Retrieve your Replicate API key to activate hardware acceleration.")
 
@@ -243,10 +219,10 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
             # Auto-detect CUDA GPU
             if torch.cuda.is_available():
                 device = torch.device('cuda')
-                print(f"   [SUCCESS] GPU DETECTED: {torch.cuda.get_device_name(0)} - Using CUDA acceleration!")
+                print(f"   🚀 GPU DETECTED: {torch.cuda.get_device_name(0)} — Using CUDA acceleration!")
             else:
                 device = torch.device('cpu')
-                print(f"   [INFO] No GPU detected - Using CPU (slower)")
+                print(f"   ⚠️ No GPU detected — Using CPU (slower)")
             
             model.to(device)
             model.eval()
@@ -254,12 +230,10 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
             if progress_callback: progress_callback(15)
 
             # Load audio
-            print(f"   [15%] Loading audio from disk: {file_path}")
+            print(f"   Loading audio: {file_path}")
             # Use soundfile to avoid torchaudio backend issues
             wav_np, sr = sf.read(str(file_path))
             
-            if progress_callback: progress_callback(18)
-            print(f"   [18%] Processing raw audio data into tensor...")
             # Convert to torch tensor: [length, channels] -> [channels, length]
             wav = torch.from_numpy(wav_np).float()
             if wav.dim() == 1:
@@ -267,16 +241,11 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
             else:
                 wav = wav.t()
             
-            if progress_callback: progress_callback(20)
             # Resample if necessary
             if sr != model.samplerate:
-                print(f"   [20%] Resampling from {sr} to {model.samplerate}... (This may take a moment)")
-                if progress_callback: progress_callback(22)
                 resampler = torchaudio.transforms.Resample(sr, model.samplerate)
                 wav = resampler(wav)
                 sr = model.samplerate
-            else:
-                print(f"   [20%] Audio already at target samplerate {sr}. Skipping resample.")
 
             if progress_callback: progress_callback(25)
 
@@ -305,13 +274,13 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
             def simulate_progress():
                 current_progress = 25.0
                 target_progress = 85.0
-                fps = 5 # 5 updates per second for much smoother frontend bars
+                fps = 2 # updates per second (slower for less DB overhead)
                 # Fast mode is ~2-3x faster than standard
                 # Adjust duration based on audio length if possible, or use a safer larger estimate
-                estimated_duration = 60 if speed_mode == 'fastest' else (120 if speed_mode == 'fast' else 300)
+                estimated_duration = 120 if speed_mode in ['fastest', 'fast'] else 300  # seconds estimate for CPU
                 step = (target_progress - current_progress) / (estimated_duration * fps)
                 
-                print(f"   [PROGRESS] Simulating progress from 25 to 85 over approx {estimated_duration}s (fps={fps})")
+                print(f"   [PROGRESS] Simulating progress from 25 to 85 over approx {estimated_duration}s")
                 
                 while not stop_progress.is_set() and current_progress < target_progress:
                     time.sleep(1.0 / fps)
@@ -447,12 +416,6 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
                 "output_path": str(output_path),
                 "stems": saved_files
             }
-
-        # Fallback if somehow no library matched
-        return {
-            "success": False,
-            "error": "No valid separation library selected."
-        }
             
     except Exception as e:
         print(f"[ERROR] Separation error: {str(e)}")

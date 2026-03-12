@@ -26,84 +26,97 @@ export const SubscriptionModal = ({ isOpen, onClose }: SubscriptionModalProps) =
 
     const plans = [
         {
-            id: 'basic' as PlanType,
-            name: 'Basic',
-            subtitle: 'Free Forever',
-            price: '$0',
-            period: '/forever',
+            id: 'dj' as PlanType,
+            name: 'Solo DJ Mixer',
+            subtitle: 'Professional mixing gear',
+            price: '$4.99',
+            period: '/month',
             features: [
-                '3 Enhancements/day (20/month)',
+                'Full Pro Mixer Lab',
+                'Harmonic Mixing Tools',
+                'Unlimited Playlists',
+                'MIDI Controller Support',
+                'Offline Mode (Desktop)',
+            ],
+            color: 'cyan',
+            icon: <Headphones className="h-5 w-5" />,
+            buttonText: 'Start Mixing',
+            amount: '499',
+        },
+        {
+            id: 'basic' as PlanType,
+            name: 'Free Trial',
+            subtitle: '7 Days Trial',
+            price: '$0',
+            period: '/7 days',
+            features: [
+                '10 Audio Enhancements',
+                '3 Stem Separations',
+                '2 AI Mastering tracks',
                 'Unlimited Media Player',
-                'Mixer Lab: 45 min/day',
+                'No credit card required',
             ],
             color: 'slate',
             icon: <Layers className="h-5 w-5" />,
-            buttonText: 'Current Plan',
-            isCurrent: true,
-        },
-        {
-            id: 'dj' as PlanType,
-            name: 'DJ Mode',
-            subtitle: 'Mixer Pass',
-            price: `$${TIER_LIMITS.dj.price}`,
-            period: '/month',
-            features: [
-                'Unlimited Mixer Lab',
-                'Recording Enabled',
-                'Full Media Player',
-                'Beat Jump & Quantize',
-                'All DJ features',
-            ],
-            color: 'amber',
-            icon: <Headphones className="h-5 w-5" />,
-            buttonText: 'Get DJ Mode',
-            amount: '20000',
-            payUDescription: 'Level Audio DJ Mode - Monthly',
+            buttonText: 'Start Free Trial',
+            isCurrent: false,
         },
         {
             id: 'pro' as PlanType,
-            name: 'Pro',
-            subtitle: 'For Active Producers',
-            price: `$${TIER_LIMITS.pro.priceIntro}`,
-            priceRegular: `$${TIER_LIMITS.pro.price}`,
-            priceYearly: `$${TIER_LIMITS.pro.priceYearlyIntro}`,
+            name: 'Premium',
+            subtitle: 'Global Standard',
+            price: '$9.99',
             period: '/month',
-            isIntro: true,
             features: [
-                '150 Enhancements/month',
-                '100 Level Stem Separations',
-                '50 Basic Separations',
-                '100 AI Masterings/month',
-                'Unlimited Everything',
-                'Recording + Premium FX',
+                '250 Enhancements/month',
+                '150 Stem Separations/month',
+                '150 AI Masterings/month',
+                'Full Pro Mixer Lab Access',
+                'Audio Effects & Compressor',
+                'Lossless WAV Downloads',
             ],
-            color: 'cyan',
+            color: 'blue',
             icon: <Zap className="h-5 w-5" />,
-            buttonText: 'Upgrade to Pro',
-            amount: '40000',
-            payUDescription: 'Level Audio Pro - Monthly',
+            buttonText: 'Subscribe Monthly',
+            amount: '999',
         },
         {
             id: 'studio' as PlanType,
-            name: 'Studio',
-            subtitle: 'For Professionals',
-            price: `$${TIER_LIMITS.studio.price}`,
-            priceYearly: `$${TIER_LIMITS.studio.priceYearlyIntro}`,
+            name: 'VIP Cloud',
+            subtitle: 'GPU Accelerated',
+            price: '$24.99',
             period: '/month',
             features: [
-                '400 Enhancements/month',
-                '300 Level Stems + 6-Stem',
-                '350 AI Masterings/month',
-                'AI Stems in Mixer Lab',
-                'Everything in Pro + Priority',
-                'Use code EARLYSTUDIO for $24.99',
+                'GPU Accelerated (5-10x faster)',
+                '500 Stem Separations/month',
+                '500 AI Masterings/month',
+                'Full Pro Mixer Lab Access',
+                'Priority Processing Queue',
+                'Everything in Premium',
             ],
             color: 'purple',
             icon: <Crown className="h-5 w-5" />,
-            buttonText: 'Upgrade to Studio',
-            amount: '120000',
-            payUDescription: 'Level Audio Studio - Monthly',
+            buttonText: 'Go VIP',
+            amount: '2499',
             isBest: true,
+        },
+        {
+            id: 'desktop' as any, // Adding a new type if needed or mapping to studio/custom
+            name: 'Desktop Pro',
+            subtitle: 'Lifetime License',
+            price: '$199',
+            period: 'once',
+            features: [
+                'Permanent License',
+                'Unlimited Local Processing',
+                'VST/AU Plugin Included',
+                'Free Updates for Life',
+                'No Subscription Required',
+            ],
+            color: 'amber',
+            icon: <Star className="h-5 w-5" />,
+            buttonText: 'Buy Lifetime',
+            amount: '19900',
         },
     ];
 
@@ -212,7 +225,7 @@ export const SubscriptionModal = ({ isOpen, onClose }: SubscriptionModalProps) =
                             </p>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
                             {plans.map((plan) => (
                                 <Card
                                     key={plan.id}
@@ -222,7 +235,9 @@ export const SubscriptionModal = ({ isOpen, onClose }: SubscriptionModalProps) =
                                             ? 'border-cyan-500/50 bg-cyan-950/10'
                                             : plan.color === 'amber'
                                                 ? 'border-amber-500/50 bg-amber-950/10'
-                                                : 'border-slate-700 bg-slate-900/50'
+                                                : plan.color === 'blue'
+                                                    ? 'border-blue-500/50 bg-blue-950/10'
+                                                    : 'border-slate-700 bg-slate-900/50'
                                         }`}
                                     onClick={() => handlePlanSelect(plan.id)}
                                 >
@@ -231,33 +246,23 @@ export const SubscriptionModal = ({ isOpen, onClose }: SubscriptionModalProps) =
                                             BEST VALUE
                                         </div>
                                     )}
-                                    {plan.isIntro && (
-                                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-[10px] font-bold px-3 py-0.5 rounded-full">
-                                            INTRO PRICE
-                                        </div>
-                                    )}
                                     <CardHeader className="pb-2 pt-4">
                                         <div className="flex items-center gap-2">
                                             {plan.icon}
-                                            <CardTitle className={`text-base ${plan.color === 'slate' ? 'text-slate-200' :
+                                            <CardTitle className={`text-sm ${plan.color === 'slate' ? 'text-slate-200' :
                                                     plan.color === 'cyan' ? 'text-cyan-400' :
                                                         plan.color === 'amber' ? 'text-amber-400' :
-                                                            'text-purple-400'
+                                                            plan.color === 'blue' ? 'text-blue-400' :
+                                                                'text-purple-400'
                                                 }`}>
                                                 {plan.name}
                                             </CardTitle>
                                         </div>
-                                        <p className="text-[10px] text-slate-500">{plan.subtitle}</p>
+                                        <p className="text-[9px] text-slate-500">{plan.subtitle}</p>
                                         <div className="flex items-baseline gap-1 mt-1">
-                                            <span className="text-2xl font-bold text-white">{plan.price}</span>
+                                            <span className="text-xl font-bold text-white">{plan.price}</span>
                                             <span className="text-xs text-slate-400">{plan.period}</span>
                                         </div>
-                                        {plan.priceRegular && (
-                                            <p className="text-[10px] text-slate-500 line-through">then {plan.priceRegular}/mo</p>
-                                        )}
-                                        {plan.priceYearly && (
-                                            <p className="text-[10px] text-green-400">or {plan.priceYearly}/year</p>
-                                        )}
                                     </CardHeader>
                                     <CardContent className="pb-3">
                                         <ul className="space-y-1">
@@ -383,7 +388,7 @@ export const SubscriptionModal = ({ isOpen, onClose }: SubscriptionModalProps) =
                             <PayUCheckout
                                 planName={selectedPlanData.name}
                                 amount={selectedPlanData.amount || '0'}
-                                description={selectedPlanData.payUDescription || ''}
+                                description={`Level Audio ${selectedPlanData.name} - ${selectedPlanData.subtitle}`}
                                 onBack={handleBack}
                             />
                         )}

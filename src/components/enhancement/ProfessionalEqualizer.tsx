@@ -201,7 +201,7 @@ export const ProfessionalEqualizer = ({
             </div>
 
             {/* Professional EQ with DJ Grid Background */}
-            <div className="relative bg-gradient-to-br from-slate-950 via-black to-slate-900 rounded-xl p-6 border-2 border-cyan-500/30 shadow-2xl overflow-hidden">
+            <div className="relative bg-gradient-to-br from-slate-950 via-black to-slate-900 rounded-xl p-3 border-2 border-cyan-500/30 shadow-2xl overflow-hidden">
 
               {/* Animated DJ Grid Background */}
               <div className="absolute inset-0 opacity-30">
@@ -217,11 +217,11 @@ export const ProfessionalEqualizer = ({
                   </defs>
 
                   {/* Frequency Zone Labels */}
-                  <text x="5%" y="15%" fill="#06b6d4" fontSize="10" opacity="0.5" fontWeight="bold">SUB</text>
-                  <text x="5%" y="35%" fill="#3b82f6" fontSize="10" opacity="0.5" fontWeight="bold">BASS</text>
-                  <text x="5%" y="55%" fill="#8b5cf6" fontSize="10" opacity="0.5" fontWeight="bold">MID</text>
-                  <text x="5%" y="75%" fill="#ec4899" fontSize="10" opacity="0.5" fontWeight="bold">HIGH</text>
-                  <text x="5%" y="95%" fill="#ef4444" fontSize="10" opacity="0.5" fontWeight="bold">AIR</text>
+                  <text x="2%" y="15%" fill="#06b6d4" fontSize="8" opacity="0.5" fontWeight="bold">SUB</text>
+                  <text x="2%" y="35%" fill="#3b82f6" fontSize="8" opacity="0.5" fontWeight="bold">BASS</text>
+                  <text x="2%" y="55%" fill="#8b5cf6" fontSize="8" opacity="0.5" fontWeight="bold">MID</text>
+                  <text x="2%" y="75%" fill="#ec4899" fontSize="8" opacity="0.5" fontWeight="bold">HIGH</text>
+                  <text x="2%" y="95%" fill="#ef4444" fontSize="8" opacity="0.5" fontWeight="bold">AIR</text>
 
                   {/* Horizontal grid lines */}
                   {[...Array(13)].map((_, i) => (
@@ -254,18 +254,18 @@ export const ProfessionalEqualizer = ({
               </div>
 
               {/* dB Scale */}
-              <div className="absolute left-2 top-6 bottom-6 flex flex-col justify-between">
+              <div className="absolute left-1 top-4 bottom-4 flex flex-col justify-between">
                 {getTickMarks().map((mark) => (
                   <span
                     key={mark}
-                    className="text-[10px] text-cyan-400/70 font-mono"
+                    className="text-[8px] text-cyan-400/70 font-mono"
                   >
                     {mark > 0 ? `+${mark}` : mark}
                   </span>
                 ))}
               </div>
 
-              <div className="flex justify-center items-end gap-3 py-4 relative z-10 pl-8">
+              <div className="flex justify-center items-end gap-1.5 py-2 relative z-10 pl-6">
                 {eqFrequencies.map((freq, index) => {
                   // Color coding by frequency zone
                   const getFreqColor = () => {
@@ -290,12 +290,12 @@ export const ProfessionalEqualizer = ({
                             if (e.key === 'Enter') handleFrequencySubmit(index);
                             if (e.key === 'Escape') setEditingBand(null);
                           }}
-                          className="w-14 h-6 text-[9px] text-center p-0 bg-slate-800 border-cyan-500 text-cyan-300"
+                          className="w-12 h-5 text-[8px] text-center p-0 bg-slate-800 border-cyan-500 text-cyan-300"
                           autoFocus
                         />
                       ) : (
                         <div
-                          className={`text-[10px] text-center mb-2 font-mono bg-gradient-to-r ${getFreqColor()} bg-clip-text text-transparent font-bold cursor-pointer hover:opacity-80`}
+                          className={`text-[9px] text-center mb-1.5 font-mono bg-gradient-to-r ${getFreqColor()} bg-clip-text text-transparent font-bold cursor-pointer hover:opacity-80`}
                           onClick={() => handleFrequencyClick(index)}
                           title={`Click to edit (Range: ${frequencyRanges[index][0]}-${frequencyRanges[index][1]} Hz)`}
                         >
@@ -304,13 +304,13 @@ export const ProfessionalEqualizer = ({
                       )}
 
                       {/* Professional Fader with Rails */}
-                      <div className="relative h-32 w-6 mb-2">
+                      <div className="relative h-28 w-5 mb-1.5">
 
                         {/* Fader Rail Background with Gradient */}
                         <div
-                          className={`absolute inset-x-1 inset-y-2 rounded-full border-2 shadow-inner bg-gradient-to-b ${getFreqColor()} opacity-20`}
+                          className={`absolute inset-x-0.5 inset-y-1 rounded-full border shadow-inner bg-gradient-to-b ${getFreqColor()} opacity-20`}
                           style={{
-                            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.6)'
+                            boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.6)'
                           }}
                         />
 
@@ -323,13 +323,13 @@ export const ProfessionalEqualizer = ({
                             min={-12}
                             max={12}
                             step={0.5}
-                            className="h-28 w-5 group-hover:scale-110 transition-transform duration-200"
+                            className="h-24 w-4 group-hover:scale-105 transition-transform duration-200"
                           />
                         </div>
                       </div>
 
                       {/* Value Display with Color */}
-                      <div className={`text-[9px] text-center font-mono bg-gradient-to-r ${getFreqColor()} bg-clip-text text-transparent font-bold bg-black/80 rounded px-2 py-1`}>
+                      <div className={`text-[8px] text-center font-mono bg-gradient-to-r ${getFreqColor()} bg-clip-text text-transparent font-bold bg-black/80 rounded px-1.5 py-0.5`}>
                         {eqBands[index] > 0 ? '+' : ''}{eqBands[index].toFixed(1)}
                       </div>
                     </div>
@@ -338,7 +338,7 @@ export const ProfessionalEqualizer = ({
               </div>
 
               {/* Professional EQ Branding */}
-              <div className="absolute bottom-2 right-3 text-[9px] font-mono bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent font-bold">
+              <div className="absolute bottom-1 right-2 text-[8px] font-mono bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent font-bold">
                 SPECTRUM PRO EQ
               </div>
             </div>

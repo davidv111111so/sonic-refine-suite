@@ -250,11 +250,26 @@ export const AudioQALab = () => {
         const setAnalyzing = side === 'before' ? setAnalyzingBefore : setAnalyzingAfter;
         const setResult = side === 'before' ? setBeforeResult : setAfterResult;
 
+        if (!file) {
+            toast.error("No file provided for analysis");
+            return;
+        }
+
+        // Basic validation
+        if (file.size > 100 * 1024 * 1024) {
+             toast.error("File exceeds 100MB limit", {
+                 description: "Please use a smaller file for QA analysis."
+             });
+             return;
+        }
+
         setAnalyzing(true);
         setResult(null);
 
         try {
+            console.log(`[QA] Starting analysis for ${side} file: ${file.name} (${file.size} bytes)`);
             const { data: { session } } = await supabase.auth.getSession();
+            
             const formData = new FormData();
             formData.append('file', file);
 
@@ -266,14 +281,24 @@ export const AudioQALab = () => {
 
             if (!response.ok) {
                 const errData = await response.json().catch(() => ({}));
-                throw new Error(errData.error || `Analysis failed (${response.status})`);
+                console.error(`[QA] Server error (${response.status}):`, errData);
+                throw new Error(errData.error || `Server returned ${response.status}`);
             }
 
             const data: QAResult = await response.json();
+            
+            if (!data || !data.file_info) {
+                console.error(`[QA] Invalid data format:`, data);
+                throw new Error('Analysis incomplete or corrupted');
+            }
+
             setResult(data);
-            toast.success(`${side === 'before' ? 'Before' : 'After'} file analyzed successfully`);
+            toast.success(`${side === 'before' ? 'Original' : 'Processed'} analyzed`);
         } catch (err) {
-            toast.error(err instanceof Error ? err.message : 'Analysis failed');
+            console.error(`[QA] ${side} analysis failed:`, err);
+            toast.error(err instanceof Error ? err.message : 'Analysis failed', {
+                description: 'Ensure the Python backend is running and the file is not corrupted.'
+            });
         } finally {
             setAnalyzing(false);
         }

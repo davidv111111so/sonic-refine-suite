@@ -685,12 +685,7 @@ def background_separation(task_id, file_path, output_dir, library, model_name, s
             progress_callback=progress_callback
         )
         
-        if result is None:
-            print("[ERROR] separate_audio returned None! This should never happen. Aborting.")
-            update_task_in_db(task_id, 'failed', error="Internal Separation Error: Engine returned no result.")
-            return
-
-        if not result.get('success'):
+        if not result['success']:
             update_task_in_db(task_id, 'failed', error=result.get('error', 'Unknown error'))
             return
             
@@ -699,14 +694,14 @@ def background_separation(task_id, file_path, output_dir, library, model_name, s
         shutil.make_archive(zip_base, 'zip', result['output_path'])
         zip_path = zip_base + '.zip'
         
-        print(f"[SUCCESS] Stems ZIP created at: {zip_path} ({os.path.getsize(zip_path)} bytes)")
+        print(f"✅ Stems ZIP created at: {zip_path} ({os.path.getsize(zip_path)} bytes)")
         
         # MUST upload to remote storage — local:// doesn't survive on Cloud Run
         result_url = None
         try:
             result_url = upload_result_to_storage(zip_path, task_id)
             if result_url:
-                print(f"[SUCCESS] Stems uploaded to remote storage: {result_url}")
+                print(f"✅ Stems uploaded to remote storage: {result_url}")
         except Exception as upload_err:
             print(f"⚠️ Remote storage upload failed: {upload_err}")
         
@@ -718,7 +713,7 @@ def background_separation(task_id, file_path, output_dir, library, model_name, s
         update_task_in_db(task_id, 'completed', 100, output_url=result_url)
 
     except Exception as e:
-        print(f"[ERROR] Background task error: {str(e)}")
+        print(f"❌ Background task error: {str(e)}")
         import traceback
         traceback.print_exc()
         update_task_in_db(task_id, 'failed', error=str(e))
@@ -871,8 +866,6 @@ def get_task_result(task_id):
 @app.route('/api/separate-audio', methods=['POST'])
 def separate_audio_endpoint():
     """Start audio separation task"""
-        
-    # Verify Authentication
     user = verify_auth_token(request)
     if not user:
         return jsonify({"error": "Unauthorized"}), 401
@@ -891,15 +884,14 @@ def separate_audio_endpoint():
             print(f"⚠️ Failed to fetch user tier to verify access limits: {e}")
 
     # Debug Request
-    print(f"[STEMS] Request Content-Type: {request.content_type}, User Tier: {tier}")
+    print(f"✂️ Request Content-Type: {request.content_type}, User Tier: {tier}")
     data = request.get_json(silent=True) or {}
-    print(f"[STEMS] Request JSON Keys: {list(data.keys())}")
+    print(f"✂️ Request JSON Keys: {list(data.keys())}")
     
     # Robust file_url extraction (check JSON then FORM)
     file_url = data.get('file_url') or request.form.get('file_url')
     
-    library = data.get('library') or request.form.get('library') or 'demucs'
-    
+    library = data.get('library', request.form.get('library', 'demucs'))
     if tier not in ['premium', 'vip', 'admin'] and library == 'demucs':
         print(f"🔒 ACCESSS DENIED: User tier '{tier}' cannot use Level Stem Separation. Forcing Spleeter.")
         library = 'spleeter'
@@ -910,7 +902,7 @@ def separate_audio_endpoint():
     speed_mode = data.get('speed_mode', request.form.get('speed_mode', 'fast'))
     two_stems = (stem_count == '2')
     
-    print(f"[STEMS] Speed mode: {speed_mode}")
+    print(f"✂️ Speed mode: {speed_mode}")
 
     # Create task
     task_id = str(uuid.uuid4())
@@ -920,7 +912,7 @@ def separate_audio_endpoint():
     
     try:
         if file_url:
-            print(f"[STEMS] Separating via URL: {file_url[:50]}...")
+            print(f"✂️ Separating via URL: {file_url[:50]}...")
             if not download_file(file_url, input_path):
                 return jsonify({"error": "Failed to download file"}), 500
         elif 'file' in request.files:

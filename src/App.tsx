@@ -28,19 +28,23 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
 const RootRoute = () => {
-  const { profile, loading } = useAuth();
+  const { profile, session, loading } = useAuth();
   const isAuthCallback = window.location.hash.includes('access_token=') || window.location.search.includes('code=');
 
-  if (loading || isAuthCallback) return (
+  // If we are loading or strictly in an auth transition, show the spinner
+  if (loading || isAuthCallback || (session && !profile)) return (
       <div className="min-h-screen flex items-center justify-center bg-slate-950">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto"></div>
-          <p className="mt-4 text-slate-400">Loading your profile...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto shadow-[0_0_15px_rgba(34,211,238,0.5)]"></div>
+          <p className="mt-4 text-slate-400 font-medium animate-pulse">Loading your profile...</p>
         </div>
       </div>
   );
+  
+  // Explicitly redirect logged-in users to /app
   if (profile) return <Navigate to="/app" replace />;
 
+  // Only show landing to guests
   return <Landing />;
 };
 

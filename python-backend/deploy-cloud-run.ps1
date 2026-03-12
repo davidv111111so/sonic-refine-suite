@@ -30,8 +30,8 @@ gcloud config set project $PROJECT_ID
 
 # Construir imagen
 Write-Host ""
-Write-Host "Construyendo imagen Docker en Cloud Build..."
-gcloud builds submit --tag $IMAGE_NAME .
+Write-Host "Construyendo imagen Docker en Cloud Build (usando e2-highcpu-8 para más memoria)..."
+gcloud builds submit --machine-type=e2-highcpu-8 --tag $IMAGE_NAME .
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "ERROR: Fallo al construir la imagen"
@@ -57,8 +57,8 @@ gcloud run deploy $SERVICE_NAME `
     --set-env-vars "$envString" `
     --memory 16Gi `
     --cpu 8 `
-    --min-instances 3 `
-    --max-instances 20 `
+    --min-instances 0 `
+    --max-instances 2 `
     --liveness-probe httpGet.path=/health `
     --startup-probe httpGet.path=/health
 

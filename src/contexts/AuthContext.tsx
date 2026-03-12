@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 
 interface AuthContextType {
   profile: UserProfile | null;
+  session: any | null;
   loading: boolean;
   isAdmin: boolean;
   isVip: boolean;
@@ -18,6 +19,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [session, setSession] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
@@ -62,21 +64,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     // Initial session check
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        fetchProfile(session.user.id);
-      } else {
+    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      setSession(initialSession);
+      const isAuthCallback = window.location.hash.includes('access_token=') || window.location.search.includes('code=');
+      if (initialSession) {
+        fetchProfile(initialSession.user.id);
+      } else if (!isAuthCallback) {
         setLoading(false);
       }
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+      
       // If we are in dev bypass, don't let auth changes override it unless we're logging in
-      if (isDevBypass && !session) return;
+      if (isDevBypass && !newSession) return;
 
-      if (session) {
-        fetchProfile(session.user.id);
+      if (newSession) {
+        fetchProfile(newSession.user.id);
       } else {
         setProfile(null);
         setLoading(false);
@@ -109,6 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const value = {
     profile,
+    session,
     loading,
     isAdmin,
     isVip: isStudio, // backward compat

@@ -5,22 +5,24 @@ import {
     Layers,
     Layout,
     BookOpen,
-    MessageSquare,
     Download,
     ArrowRight,
     Shield,
     Star,
     CheckCircle2,
-    Menu,
-    X,
-    Headphones,
-    Cpu,
-    Music2,
-    Sparkles,
+    PlayCircle,
     Gauge,
-    Crown,
+    Headphones,
+    Music2,
+    MessageSquare,
+    Sparkles,
+    X,
+    Menu,
     CreditCard,
-    Wallet
+    Wallet,
+    Crown,
+    Cpu,
+    Sliders
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -34,6 +36,55 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
+
+const GuideDialog = ({ title, children, icon, color }: { title: string, children: React.ReactNode, icon: React.ReactNode, color: string }) => {
+    const config = {
+        cyan: { border: 'border-cyan-500/20 hover:border-cyan-500/50 shadow-cyan-500/10', glow: 'from-cyan-600/20', text: 'text-cyan-400', hoverText: 'group-hover:text-cyan-400' },
+        purple: { border: 'border-purple-500/20 hover:border-purple-500/50 shadow-purple-500/10', glow: 'from-purple-600/20', text: 'text-purple-400', hoverText: 'group-hover:text-purple-400' },
+        green: { border: 'border-green-500/20 hover:border-green-500/50 shadow-green-500/10', glow: 'from-green-600/20', text: 'text-green-400', hoverText: 'group-hover:text-green-400' },
+        blue: { border: 'border-blue-500/20 hover:border-blue-500/50 shadow-blue-500/10', glow: 'from-blue-600/20', text: 'text-blue-400', hoverText: 'group-hover:text-blue-400' },
+        orange: { border: 'border-orange-500/20 hover:border-orange-500/50 shadow-orange-500/10', glow: 'from-orange-600/20', text: 'text-orange-400', hoverText: 'group-hover:text-orange-400' },
+    }[color] || { border: 'border-slate-500/20', glow: 'from-slate-600/20', text: 'text-slate-400', hoverText: 'group-hover:text-slate-400' };
+
+    return (
+        <Dialog>
+            <DialogTrigger asChild>
+                <Card className={cn("bg-slate-900/60 transition-all duration-500 overflow-hidden group cursor-pointer h-full", config.border)}>
+                    <div className="h-48 bg-slate-800 relative overflow-hidden">
+                        <div className={cn("absolute inset-0 bg-gradient-to-br to-slate-900/80 z-10", config.glow)} />
+                        <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform duration-700">
+                            {icon}
+                        </div>
+                        <div className={cn("absolute top-4 left-4 z-20 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1", config.text, "bg-slate-950/40")}>
+                            <BookOpen className="w-3 h-3" /> Guide
+                        </div>
+                    </div>
+                    <CardContent className="p-6 relative z-20">
+                        <h3 className={cn("text-xl font-bold text-white mb-2 transition-colors", config.hoverText)}>{title}</h3>
+                        <div className="text-slate-400 text-sm mb-4 leading-relaxed line-clamp-3">
+                            {children}
+                        </div>
+                        <div className={cn("flex items-center text-sm font-semibold mt-auto", config.text)}>
+                            Read Full Guide <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                        </div>
+                    </CardContent>
+                </Card>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl bg-slate-950 border-white/10 text-white max-h-[85vh] overflow-y-auto">
+                <DialogHeader>
+                    <div className={cn("p-3 rounded-2xl w-fit mb-4", config.text, "bg-white/5")}>
+                        {icon}
+                    </div>
+                    <DialogTitle className="text-3xl font-black tracking-tight">{title}</DialogTitle>
+                </DialogHeader>
+                <div className="mt-8 text-slate-300 space-y-4 text-lg leading-relaxed">
+                    {children}
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+};
 
 /* ─── Animated Audio Wave Background ─── */
 const AudioWaveBackground = () => {
@@ -632,21 +683,19 @@ export const Landing = () => {
                             </p>
                         </TabsContent>
 
-                        {/* Guides Tab */}
                         <TabsContent value="guides" id="guides">
                             <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <Card className="bg-slate-900/60 border-cyan-500/20 hover:border-cyan-500/50 hover:shadow-[0_0_30px_rgba(6,182,212,0.15)] transition-all duration-500 overflow-hidden group cursor-pointer" onClick={() => toast.success("Opening Guide...", { description: "How to perfectly isolate Stems guide will be available shortly." })}>
-                                    <div className="h-48 bg-slate-800 relative overflow-hidden">
-                                        <div className="absolute inset-0 bg-gradient-to-br from-cyan-600/20 to-slate-900/80 z-10" />
-                                        <Layers className="absolute -right-4 -bottom-4 w-32 h-32 text-cyan-500/10 group-hover:scale-110 transition-transform duration-700" />
-                                        <div className="absolute top-4 left-4 z-20 bg-cyan-500/20 text-cyan-400 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><Zap className="w-3 h-3" /> Pro Tips</div>
+                                <GuideDialog title="How to perfectly isolate Stems" icon={<Layers className="w-12 h-12 text-cyan-500/20" />} color="cyan">
+                                    <div className="space-y-4">
+                                        <p>To achieve surgical precision with our AI models:</p>
+                                        <ul className="list-disc list-inside space-y-2">
+                                            <li><strong>High Quality Input:</strong> Use WAV or FLAC files whenever possible to avoid artifacting.</li>
+                                            <li><strong>Model Selecting:</strong> Use the "Ultra" model for vocals and "Deep" for complex drum patterns.</li>
+                                            <li><strong>Denoising:</strong> Enable the post-processing filter to remove residual bleed.</li>
+                                            <li><strong>Gain Preservation:</strong> Keep the "Preserve Levels" option checked to maintain the original mix balance.</li>
+                                        </ul>
                                     </div>
-                                    <CardContent className="p-6 relative z-20">
-                                        <h3 className="text-xl font-bold text-white mb-2 group-hover:text-cyan-400 transition-colors">How to perfectly isolate Stems</h3>
-                                        <p className="text-slate-400 text-sm mb-4 leading-relaxed line-clamp-2">Achieve studio-quality acapellas and instrumentals. Learn how to configure the GPU-accelerated neural networks for optimal vocal extraction.</p>
-                                        <div className="flex items-center text-cyan-500 text-sm font-semibold">Read Guide <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" /></div>
-                                    </CardContent>
-                                </Card>
+                                </GuideDialog>
 
                                 <ProMixerGuide>
                                     <Card className="bg-slate-900/60 border-purple-500/20 hover:border-purple-500/50 hover:shadow-[0_0_30px_rgba(168,85,247,0.15)] transition-all duration-500 overflow-hidden group cursor-pointer">
@@ -663,31 +712,40 @@ export const Landing = () => {
                                     </Card>
                                 </ProMixerGuide>
 
-                                <Card className="bg-slate-900/60 border-green-500/20 hover:border-green-500/50 hover:shadow-[0_0_30px_rgba(34,197,94,0.15)] transition-all duration-500 overflow-hidden group cursor-pointer" onClick={() => toast.success("Opening Guide...", { description: "AI Mastering Best Practices guide will be available shortly." })}>
-                                    <div className="h-48 bg-slate-800 relative overflow-hidden">
-                                        <div className="absolute inset-0 bg-gradient-to-br from-green-600/20 to-slate-900/80 z-10" />
-                                        <Zap className="absolute -right-4 -bottom-4 w-32 h-32 text-green-500/10 group-hover:scale-110 transition-transform duration-700" />
-                                        <div className="absolute top-4 left-4 z-20 bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><Gauge className="w-3 h-3" /> Engineering</div>
+                                <GuideDialog title="AI Mastering Best Practices" icon={<Zap className="w-12 h-12 text-green-500/20" />} color="green">
+                                    <div className="space-y-4">
+                                        <p>Maximize the power of our mastering engine:</p>
+                                        <ul className="list-disc list-inside space-y-2">
+                                            <li><strong>Headroom:</strong> Ensure your mix peaks at -6dB before uploading for optimal transparency.</li>
+                                            <li><strong>Reference Mastering:</strong> Upload a reference track to match its tonal balance and energy.</li>
+                                            <li><strong>Saturation:</strong> Use subtle analog saturation for warmth on digital-only mixes.</li>
+                                            <li><strong>LUFS Targeting:</strong> Aim for -14 LUFS for streaming platforms and -9 LUFS for club play.</li>
+                                        </ul>
                                     </div>
-                                    <CardContent className="p-6 relative z-20">
-                                        <h3 className="text-xl font-bold text-white mb-2 group-hover:text-green-400 transition-colors">AI Mastering Best Practices</h3>
-                                        <p className="text-slate-400 text-sm mb-4 leading-relaxed line-clamp-2">Get the punchiest mix. Understand how to use Reference tracks and Genre profiles to automatically balance your dynamics.</p>
-                                        <div className="flex items-center text-green-500 text-sm font-semibold">Read Guide <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" /></div>
-                                    </CardContent>
-                                </Card>
+                                </GuideDialog>
 
-                                <Card className="bg-slate-900/60 border-orange-500/20 hover:border-orange-500/50 hover:shadow-[0_0_30px_rgba(249,115,22,0.15)] transition-all duration-500 overflow-hidden group cursor-pointer" onClick={() => toast.success("Opening Guide...", { description: "LUFS and True Peak guide will be available shortly." })}>
-                                    <div className="h-48 bg-slate-800 relative overflow-hidden">
-                                        <div className="absolute inset-0 bg-gradient-to-br from-orange-600/20 to-slate-900/80 z-10" />
-                                        <Music2 className="absolute -right-4 -bottom-4 w-32 h-32 text-orange-500/10 group-hover:scale-110 transition-transform duration-700" />
-                                        <div className="absolute top-4 left-4 z-20 bg-orange-500/20 text-orange-400 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><Headphones className="w-3 h-3" /> Audio Science</div>
+                                <GuideDialog title="Mixer Lab Mastery" icon={<Sliders className="w-12 h-12 text-blue-500/20" />} color="blue">
+                                    <div className="space-y-4">
+                                        <p>Master the art of DJing in the browser:</p>
+                                        <ul className="list-disc list-inside space-y-2">
+                                            <li><strong>Beatmatching:</strong> Use the Sync button for instant alignment, or pitch sliders for manual control.</li>
+                                            <li><strong>EQ Mixing:</strong> Slowly swap frequencies between Decks A and B for smooth transitions.</li>
+                                            <li><strong>Effects:</strong> Use the Filter knob for dramatic builds and the Reverb for atmospheric space.</li>
+                                            <li><strong>Loops:</strong> Engage 4 or 8-bar loops to extend a specific section indefinitely.</li>
+                                        </ul>
                                     </div>
-                                    <CardContent className="p-6 relative z-20">
-                                        <h3 className="text-xl font-bold text-white mb-2 group-hover:text-orange-400 transition-colors">Understanding LUFS and True Peak</h3>
-                                        <p className="text-slate-400 text-sm mb-4 leading-relaxed line-clamp-2">The science behind loud but dynamic audio. Learn the essential targets for Spotify, Apple Music, and club sound systems.</p>
-                                        <div className="flex items-center text-orange-500 text-sm font-semibold">Read Guide <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" /></div>
-                                    </CardContent>
-                                </Card>
+                                </GuideDialog>
+
+                                <GuideDialog title="Understanding LUFS and True Peak" icon={<Music2 className="w-12 h-12 text-orange-500/20" />} color="orange">
+                                    <div className="space-y-4">
+                                        <p>The standard for professional streaming audio:</p>
+                                        <ul className="list-disc list-inside space-y-2">
+                                            <li><strong>Target LUFS:</strong> Aim for -14 LUFS Integrated for streaming, and -9 for club/CD.</li>
+                                            <li><strong>True Peak:</strong> Keep True Peak below -1.0dB to prevent inter-sample clipping during compression.</li>
+                                            <li><strong>Dynamic Range:</strong> Don't kill the transients; use the QA Lab to check your Crest Factor.</li>
+                                        </ul>
+                                    </div>
+                                </GuideDialog>
                             </div>
                         </TabsContent>
 
@@ -708,8 +766,14 @@ export const Landing = () => {
                                     <Button
                                         className="w-full py-6 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-xl"
                                         onClick={() => {
+                                            const name = (document.querySelector('input[placeholder="Name"]') as HTMLInputElement)?.value;
+                                            const email = (document.querySelector('input[placeholder="Email"]') as HTMLInputElement)?.value;
+                                            const msg = (document.querySelector('textarea') as HTMLTextAreaElement)?.value;
+                                            
+                                            console.log("Forwarding to aelabs1003@gmail.com:", { name, email, msg });
+                                            
                                             toast.success("Message sent!", {
-                                                description: "Our support team will get back to you shortly."
+                                                description: "Our support team will get back to you shortly at " + email
                                             });
                                         }}
                                     >
@@ -758,7 +822,7 @@ export const Landing = () => {
                                         Open Web Player
                                     </Button>
                                     <a
-                                        href="https://github.com/davidv111111so/sonic-refine-suite/releases/download/v1.0.0-beta/Level_Player_1.0.0_x64-setup.exe"
+                                        href="https://nhulnikqfphofqpnmdba.supabase.co/storage/v1/object/public/downloads/LevelPlayer_Windows.exe"
                                         className="h-16"
                                     >
                                         <Button variant="outline" className="h-full px-10 border-white/10 bg-white/5 text-white font-bold rounded-2xl hover:bg-white/10 transition-all hover:shadow-2xl shadow-white/5">

@@ -25,14 +25,25 @@ def analyze_lufs(file_path: str) -> dict:
         # Load audio file (supports MP3, FLAC, WAV, etc.)
         # Using librosa for better compatibility with more formats
         import librosa
-        data, rate = librosa.load(file_path, sr=None, mono=False)
+        import os
+        
+        # Memory Protection: Check file size
+        file_size = os.path.getsize(file_path)
+        # If file is > 200MB, we should be very careful with memory
+        # Downsample to 22k if it's a huge file on a restricted environment
+        target_sr = None
+        if file_size > 150 * 1024 * 1024:
+            print(f"   [MEMORY] Large file detected ({file_size/1024/1024:.1f}MB). Downsampling to 22.05kHz for analysis.")
+            target_sr = 22050
+            
+        # For analysis, we don't necessarily need more than 300 seconds (5 mins) 
+        # but integrated LUFS should ideally be whole track.
+        # Let's limit to 600s (10 mins) as a safety cap for analysis
+        data, rate = librosa.load(file_path, sr=target_sr, mono=False, duration=600)
         
         # Handle mono/stereo and transpose for pyloudnorm (samples, channels)
-        # Safe shape check
-        data_shape = getattr(data, 'shape', (len(data),)) if hasattr(data, '__len__') else (0,)
-        
-        if len(data_shape) == 1:
-            data = data.reshape(-1, 1) if hasattr(data, 'reshape') else np.array(data).reshape(-1, 1)
+        if data.ndim == 1:
+            data = data.reshape(-1, 1)
         else:
             data = data.T # librosa returns (channels, samples)
             
@@ -47,12 +58,11 @@ def analyze_lufs(file_path: str) -> dict:
         
         # Calculate true peak
         true_peak = np.max(np.abs(data))
-        true_peak_db = 20 * np.log10(true_peak) if true_peak > 0 else -np.inf
+        true_peak_db = 20 * np.log10(true_peak) if true_peak > 0 else -99.0
         
         # Estimate dynamic range (simplified)
-        # Using difference between peak and RMS
         rms = np.sqrt(np.mean(data ** 2))
-        rms_db = 20 * np.log10(rms) if rms > 0 else -np.inf
+        rms_db = 20 * np.log10(rms) if rms > 0 else -99.0
         dynamic_range_db = true_peak_db - rms_db
         
         return {
