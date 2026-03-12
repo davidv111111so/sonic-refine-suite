@@ -12,9 +12,9 @@ import hashlib
 from flask import Flask, request, jsonify, send_file, redirect
 from flask_cors import CORS
 # import matchering as mg # Removed for GPL compliance
-from mastering_engine import MasteringEngine
-import soundfile as sf
-import librosa
+# from mastering_engine import MasteringEngine # Lazy import
+# import soundfile as sf # Moved to functions to speed up startup
+# import librosa # Moved to functions to speed up startup
 from supabase import create_client, Client
 from dotenv import load_dotenv
 # Load environment variables FIRST
@@ -25,9 +25,9 @@ import json
 import threading
 import uuid
 from datetime import datetime
-from audio_analysis import analyze_lufs, is_reference_suitable
 from payment_webhooks import payment_bp
-from b2_service import b2_service
+# from audio_analysis import analyze_lufs, is_reference_suitable # Lazy import
+# from b2_service import b2_service # Lazy import
 
 app = Flask(__name__)
 
@@ -490,6 +490,7 @@ def background_mastering(task_id, user_id, target_url, reference_url, settings):
         # Handle format conversion if needed for analysis
         # (Already handled inside MasteringEngine.load_audio which uses librosa)
         
+        from mastering_engine import MasteringEngine
         engine = MasteringEngine()
         draft_mode = True # Force speed mode for 90s avg
         result_info = engine.process(temp_target, temp_reference, output_path, target_lufs=target_lufs, draft_mode=draft_mode)
@@ -498,9 +499,7 @@ def background_mastering(task_id, user_id, target_url, reference_url, settings):
         # 3. Analyze output and upload
         # (Optional: Re-run analysis for metadata)
         # analyze_lufs is already imported at top level from audio_analysis
-        output_analysis = analyze_lufs(output_path) if 'analyze_lufs' in globals() or 'analyze_lufs' in locals() or 'analyze_lufs' in globals().get('__builtins__', {}) or True else {"success": False}
-        
-        # In fact, analyze_lufs is definitely available as it was imported at line 28
+        from audio_analysis import analyze_lufs
         output_analysis = analyze_lufs(output_path)
         
         import json
@@ -539,6 +538,7 @@ def upload_result_to_storage(local_path, task_id, bucket='audio-processing'):
         file_name = f"results/{task_id}{ext}"
         mime = "application/zip" if ext == ".zip" else "audio/wav"
         
+        from b2_service import b2_service
         # 1. Try B2
         if b2_service and b2_service.bucket:
             try:
@@ -604,6 +604,7 @@ def analyze_audio_endpoint():
             return jsonify({"error": "No file or URL provided"}), 400
         
         # Analyze
+        from audio_analysis import analyze_lufs
         analysis = analyze_lufs(temp_path)
         
         # Log job
@@ -826,8 +827,8 @@ def get_task_result(task_id):
                 print(f"[AUTH] Getting auth URL for B2: {remote_path}")
                 
                 # Re-authenticate B2 if needed
+                from b2_service import b2_service
                 if not b2_service.bucket:
-                    print("🔄 Re-authenticating B2...")
                     b2_service.authenticate()
                 
                 auth_url = b2_service.get_download_url(remote_path)
@@ -1029,6 +1030,7 @@ def qa_analyze_endpoint():
             file_info["bit_depth"] = None
 
         # ── LUFS & Loudness Analysis ──
+        from audio_analysis import analyze_lufs
         lufs_result = analyze_lufs(temp_path)
         loudness = {}
         if lufs_result.get('success'):
