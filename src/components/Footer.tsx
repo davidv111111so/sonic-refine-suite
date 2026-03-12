@@ -18,7 +18,9 @@ export const Footer = () => {
             <Link to="/terms" className="flex items-center gap-2 text-slate-300 hover:text-blue-400 transition-colors duration-200 text-sm">
               <Scale className="h-4 w-4" />
               Terms & Conditions
-              <ExternalLink className="h-3 w-3" />
+            </Link>
+            <Link to="/refunds" className="text-slate-300 hover:text-blue-400 transition-colors duration-200 text-sm">
+              Refunds
             </Link>
           </div>
 
