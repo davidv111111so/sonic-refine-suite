@@ -15,7 +15,7 @@ export class MasteringService {
       window.location.hostname.includes('172.')
     )
       ? (import.meta.env.VITE_PYTHON_BACKEND_URL || "")
-      : (import.meta.env.VITE_PYTHON_BACKEND_URL || "https://mastering-backend-857351913435.us-central1.run.app");
+      : (import.meta.env.VITE_PYTHON_BACKEND_URL || "https://mastering-backend-azkp62xtaq-uc.a.run.app");
 
     // Ensure we don't have a trailing slash
     const sanitizedUrl = url.endsWith('/') ? url.slice(0, -1) : url;
