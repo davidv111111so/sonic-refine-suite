@@ -45,12 +45,13 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         
+        import librosa
+        import soundfile as sf
+        
         # 1. OPTIMIZATION: Check for FASTEST/FAST mode and resample early if needed
         # (This avoids heavy processing on 96k/192k files)
         if speed_mode in ['fastest', 'fast']:
              print(f"[INFO] {speed_mode.upper()} MODE: Applying pre-resampling and speed optimizations")
-             import librosa
-             import soundfile as sf
              
              try:
                  # Use librosa.load which is more robust than sf.read (handles MP3, etc.)
@@ -423,6 +424,12 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
                 "output_path": str(output_path),
                 "stems": saved_files
             }
+            
+        print(f"[ERROR] Unsupported library requested: {library}")
+        return {
+            "success": False,
+            "error": f"Unsupported library: {library}"
+        }
             
     except Exception as e:
         print(f"[ERROR] Separation error: {str(e)}")

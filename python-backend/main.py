@@ -311,25 +311,7 @@ def update_task_in_db(task_id, status, progress=None, output_url=None, error=Non
         if "Could not find the table" not in str(e):
             print(f"⚠️ Failed to update task {task_id} in Supabase: {e}")
 
-def upload_result_to_storage(local_path, task_id, bucket='audio-processing'):
-    """Upload result ZIP to Supabase Storage"""
-    try:
-        file_name = f"results/{task_id}_stems.zip"
-        print(f"[UPLOAD] Uploading result to {file_name}...")
-        
-        with open(local_path, 'rb') as f:
-            supabase.storage.from_(bucket).upload(
-                file=f,
-                path=file_name,
-                file_options={"content-type": "application/zip", "upsert": "true"}
-            )
-        
-        # Get public URL
-        url = supabase.storage.from_(bucket).get_public_url(file_name)
-        return url
-    except Exception as e:
-        print(f"[ERROR] Upload result failed: {e}")
-        return None
+# Redundant definition removed as it's defined later with proper B2 fallback
 
 def cleanup_old_files(bucket_name='audio-processing', max_age_hours=1):
     """Delete files older than max_age_hours from Supabase Storage"""
@@ -404,6 +386,7 @@ def get_b2_upload_url():
         return jsonify({"error": "Unauthorized"}), 401
     
     try:
+        from b2_service import b2_service
         data = request.get_json()
         file_name = data.get('fileName')
         content_type = data.get('contentType', 'audio/wav')
@@ -417,6 +400,7 @@ def get_b2_upload_url():
             
         return jsonify(upload_data)
     except Exception as e:
+        print(f"[ERROR] get_b2_upload_url failed: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/master-audio', methods=['POST'])
@@ -684,8 +668,12 @@ def background_separation(task_id, file_path, output_dir, library, model_name, s
             speed_mode=speed_mode,
             progress_callback=progress_callback
         )
-        
-        if not result['success']:
+        if result is None:
+            print(f"❌ separate_audio returned None for task {task_id}")
+            update_task_in_db(task_id, 'failed', error="Core processing returned None. This usually indicates an unexpected code path.")
+            return
+
+        if not result.get('success', False):
             update_task_in_db(task_id, 'failed', error=result.get('error', 'Unknown error'))
             return
             
