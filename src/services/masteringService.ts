@@ -321,12 +321,13 @@ export class MasteringService {
    * Get task status for long-running processes (Stems)
    * Includes built-in retry logic for transient connection failures
    */
-  async getTaskStatus(taskId: string, retries: number = 3): Promise<any> {
+  async getTaskStatus(taskId: string, retries: number = 3, isVip: boolean = false): Promise<any> {
     let lastError: Error | null = null;
+    const base = this.getBackendUrl(isVip);
 
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
-        const response = await fetch(`${this.backendUrl}/api/task-status/${taskId}`);
+        const response = await fetch(`${base}/api/task-status/${taskId}`);
         if (!response.ok) {
           throw new Error(`Failed to get status (${response.status})`);
         }
@@ -349,12 +350,13 @@ export class MasteringService {
   /**
    * Get task result (ZIP or audio blob)
    */
-  async getTaskResult(taskId: string, retries: number = 3): Promise<Blob> {
+  async getTaskResult(taskId: string, retries: number = 3, isVip: boolean = false): Promise<Blob> {
     let lastError: Error | null = null;
+    const base = this.getBackendUrl(isVip);
 
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
-        const response = await fetch(`${this.backendUrl}/api/task-result/${taskId}`);
+        const response = await fetch(`${base}/api/task-result/${taskId}`);
         if (!response.ok) {
           const errorText = await response.text();
           throw new Error(`Failed to get result (${response.status}): ${errorText}`);
