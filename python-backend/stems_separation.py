@@ -45,27 +45,27 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         
-        import librosa
-        import soundfile as sf
-        
+        if library == 'level':
+            library = 'demucs'
+            print("[INFO] Library alias 'level' mapped to 'demucs'")
+
         # 1. OPTIMIZATION: Check for FASTEST/FAST mode and resample early if needed
         # (This avoids heavy processing on 96k/192k files)
         if speed_mode in ['fastest', 'fast']:
              print(f"[INFO] {speed_mode.upper()} MODE: Applying pre-resampling and speed optimizations")
-             
+             import librosa
+             import soundfile as sf
+             # Load and resample to 44100 if higher
+             # Use librosa.load instead of sf.read for robust format support (MP3, etc)
              try:
-                 # Use librosa.load which is more robust than sf.read (handles MP3, etc.)
-                 # We load with sr=None to get native sample rate
                  y, sr = librosa.load(str(file_path), sr=None, mono=False)
-                 
-                 # librosa.load returns (channels, samples) for stereo
+                 y_ndim = getattr(y, 'ndim', 0)
                  if sr > 44100:
                      print(f"   [INFO] Downsampling from {sr} to 44100 to save processing time...")
                      y_resampled = librosa.resample(y, orig_sr=sr, target_sr=44100)
                      # Save to temporary file to use as input
                      temp_resampled = file_path.parent / f"resampled_{file_path.name}"
-                     # sf.write expects (samples, channels)
-                     sf.write(str(temp_resampled), y_resampled.T if y_resampled.ndim > 1 else y_resampled, 44100)
+                     sf.write(str(temp_resampled), y_resampled.T if y_ndim > 1 else y_resampled, 44100)
                      file_path = temp_resampled
              except Exception as read_err:
                  print(f"[WARNING] Pre-resampling check failed: {str(read_err)}. Continuing with original file.")
@@ -239,8 +239,12 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
 
             # Load audio
             print(f"   Loading audio: {file_path}")
-            # Use soundfile to avoid torchaudio backend issues
-            wav_np, sr = sf.read(str(file_path))
+            # Use librosa.load for widespread format support
+            import librosa
+            wav_np, sr = librosa.load(str(file_path), sr=None, mono=False)
+            # Transpose to [length, channels] if needed for consistency with following code
+            if wav_np.ndim > 1:
+                wav_np = wav_np.T
             
             # Convert to torch tensor: [length, channels] -> [channels, length]
             wav = torch.from_numpy(wav_np).float()
@@ -424,11 +428,11 @@ def separate_audio(file_path, output_dir, library='demucs', model_name='htdemucs
                 "output_path": str(output_path),
                 "stems": saved_files
             }
-            
-        print(f"[ERROR] Unsupported library requested: {library}")
+
+        # If it reaches here, it didn't match any library or failed
         return {
             "success": False,
-            "error": f"Unsupported library: {library}"
+            "error": f"Unsupported library or configuration: {library}"
         }
             
     except Exception as e:
